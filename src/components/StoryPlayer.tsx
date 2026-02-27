@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { getAudioUrl, fetchStory, getRssFeedUrl, type StoryDetail } from '../lib/api';
 import {
-    Play, Pause, SkipBack, SkipForward, Volume2,
+    Play, Pause, SkipBack, SkipForward,
     ChevronDown, ChevronUp, Rss, Copy, ArrowLeft, Moon
 } from 'lucide-react';
 import toast from 'react-hot-toast';

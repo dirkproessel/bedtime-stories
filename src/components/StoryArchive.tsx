@@ -1,5 +1,5 @@
 import { useStore } from '../store/useStore';
-import { getAudioUrl, deleteStory } from '../lib/api';
+import { deleteStory } from '../lib/api';
 import { Play, Trash2, Clock, BookOpen, Calendar } from 'lucide-react';
 import toast from 'react-hot-toast';
 

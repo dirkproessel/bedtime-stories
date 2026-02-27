@@ -1,4 +1,3 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import { useStore } from './store/useStore';
 import { Loader2, PenTool, BookOpen, Headphones, Moon } from 'lucide-react';
@@ -61,8 +60,8 @@ function App() {
               key={key}
               onClick={() => setActiveView(key)}
               className={`flex flex-col items-center gap-1 px-6 py-2 rounded-xl transition-all ${activeView === key
-                  ? 'text-indigo-600'
-                  : 'text-slate-400 hover:text-slate-600'
+                ? 'text-indigo-600'
+                : 'text-slate-400 hover:text-slate-600'
                 }`}
             >
               <Icon className={`w-5 h-5 ${activeView === key ? 'stroke-[2.5]' : ''}`} />

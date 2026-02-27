@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useStore } from '../store/useStore';
-import { getVoicePreviewUrl } from '../lib/api';
+import { getVoicePreviewUrl, type GenerationStatus } from '../lib/api';
 import { Sparkles, Mic, MicOff, Play, Pause, BookOpen, Wand2, MessageSquareText } from 'lucide-react';
 
 const THEMES = [
@@ -131,8 +131,8 @@ export default function StoryCreator() {
                 <button
                     onClick={() => setMode('guided')}
                     className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${mode === 'guided'
-                            ? 'bg-white text-slate-900 shadow-sm'
-                            : 'text-slate-500 hover:text-slate-700'
+                        ? 'bg-white text-slate-900 shadow-sm'
+                        : 'text-slate-500 hover:text-slate-700'
                         }`}
                 >
                     <Wand2 className="w-4 h-4" />
@@ -141,8 +141,8 @@ export default function StoryCreator() {
                 <button
                     onClick={() => setMode('free')}
                     className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${mode === 'free'
-                            ? 'bg-white text-slate-900 shadow-sm'
-                            : 'text-slate-500 hover:text-slate-700'
+                        ? 'bg-white text-slate-900 shadow-sm'
+                        : 'text-slate-500 hover:text-slate-700'
                         }`}
                 >
                     <MessageSquareText className="w-4 h-4" />
@@ -161,8 +161,8 @@ export default function StoryCreator() {
                                     key={t.value}
                                     onClick={() => setTheme(t.value)}
                                     className={`p-3 rounded-xl text-sm font-medium transition-all border-2 ${theme === t.value
-                                            ? 'border-indigo-500 bg-indigo-50 text-indigo-700 shadow-sm'
-                                            : 'border-slate-100 bg-white text-slate-600 hover:border-slate-200'
+                                        ? 'border-indigo-500 bg-indigo-50 text-indigo-700 shadow-sm'
+                                        : 'border-slate-100 bg-white text-slate-600 hover:border-slate-200'
                                         }`}
                                 >
                                     {t.label}
@@ -180,8 +180,8 @@ export default function StoryCreator() {
                                     key={s.value}
                                     onClick={() => setStyle(s.value)}
                                     className={`px-4 py-2 rounded-full text-sm font-medium transition-all border-2 ${style === s.value
-                                            ? 'border-purple-500 bg-purple-50 text-purple-700'
-                                            : 'border-slate-100 bg-white text-slate-600 hover:border-slate-200'
+                                        ? 'border-purple-500 bg-purple-50 text-purple-700'
+                                        : 'border-slate-100 bg-white text-slate-600 hover:border-slate-200'
                                         }`}
                                 >
                                     {s.label}
@@ -213,8 +213,8 @@ export default function StoryCreator() {
                                     key={l.value}
                                     onClick={() => setTargetMinutes(l.value)}
                                     className={`p-3 rounded-xl text-center transition-all border-2 ${targetMinutes === l.value
-                                            ? 'border-indigo-500 bg-indigo-50'
-                                            : 'border-slate-100 bg-white hover:border-slate-200'
+                                        ? 'border-indigo-500 bg-indigo-50'
+                                        : 'border-slate-100 bg-white hover:border-slate-200'
                                         }`}
                                 >
                                     <div className={`text-sm font-bold ${targetMinutes === l.value ? 'text-indigo-700' : 'text-slate-700'}`}>{l.label}</div>
@@ -241,8 +241,8 @@ export default function StoryCreator() {
                     <button
                         onClick={isListening ? handleStopListening : handleStartListening}
                         className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${isListening
-                                ? 'bg-red-50 text-red-600 border-2 border-red-200'
-                                : 'bg-slate-50 text-slate-600 border-2 border-slate-100 hover:border-slate-200'
+                            ? 'bg-red-50 text-red-600 border-2 border-red-200'
+                            : 'bg-slate-50 text-slate-600 border-2 border-slate-100 hover:border-slate-200'
                             }`}
                     >
                         {isListening ? <MicOff className="w-4 h-4 animate-pulse" /> : <Mic className="w-4 h-4" />}
@@ -258,8 +258,8 @@ export default function StoryCreator() {
                                     key={l.value}
                                     onClick={() => setTargetMinutes(l.value)}
                                     className={`p-3 rounded-xl text-center transition-all border-2 ${targetMinutes === l.value
-                                            ? 'border-indigo-500 bg-indigo-50'
-                                            : 'border-slate-100 bg-white hover:border-slate-200'
+                                        ? 'border-indigo-500 bg-indigo-50'
+                                        : 'border-slate-100 bg-white hover:border-slate-200'
                                         }`}
                                 >
                                     <div className={`text-sm font-bold ${targetMinutes === l.value ? 'text-indigo-700' : 'text-slate-700'}`}>{l.label}</div>
@@ -279,8 +279,8 @@ export default function StoryCreator() {
                         <div
                             key={v.key}
                             className={`relative p-3 rounded-xl transition-all border-2 cursor-pointer ${voiceKey === v.key
-                                    ? 'border-indigo-500 bg-indigo-50'
-                                    : 'border-slate-100 bg-white hover:border-slate-200'
+                                ? 'border-indigo-500 bg-indigo-50'
+                                : 'border-slate-100 bg-white hover:border-slate-200'
                                 }`}
                             onClick={() => setVoiceKey(v.key)}
                         >
@@ -294,8 +294,8 @@ export default function StoryCreator() {
                                 <button
                                     onClick={(e) => { e.stopPropagation(); handlePreviewVoice(v.key); }}
                                     className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${previewVoice === v.key
-                                            ? 'bg-indigo-500 text-white'
-                                            : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
+                                        ? 'bg-indigo-500 text-white'
+                                        : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
                                         }`}
                                 >
                                     {previewVoice === v.key ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 ml-0.5" />}
