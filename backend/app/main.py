@@ -382,3 +382,16 @@ def _regenerate_rss():
 @app.get("/api/health")
 async def health():
     return {"status": "ok", "version": "1.0.0"}
+
+# ──────────────────────────────────
+# Startup
+# ──────────────────────────────────
+
+# Force RSS regeneration on startup to update metadata/cover
+try:
+    rss_path = settings.AUDIO_OUTPUT_DIR / "feed.xml"
+    if rss_path.exists():
+        rss_path.unlink()
+    _regenerate_rss()
+except Exception as e:
+    logger.error(f"Failed to force RSS regeneration on startup: {e}")
