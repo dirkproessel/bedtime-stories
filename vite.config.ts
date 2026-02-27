@@ -3,7 +3,6 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [
     react(),
@@ -12,10 +11,11 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       manifest: {
-        name: 'Praxis App',
-        short_name: 'App',
-        description: 'React Supabase Starter',
-        theme_color: '#ffffff',
+        name: 'Gute-Nacht-Geschichten',
+        short_name: 'Geschichten',
+        description: 'Generiere einzigartige Gute-Nacht-Geschichten',
+        theme_color: '#6366f1',
+        background_color: '#f8fafc',
         icons: [
           {
             src: 'pwa-192x192.svg',
@@ -31,4 +31,12 @@ export default defineConfig({
       }
     })
   ],
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+    },
+  },
 })

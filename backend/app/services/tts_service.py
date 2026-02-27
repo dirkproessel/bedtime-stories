@@ -1,0 +1,116 @@
+"""
+Text-to-Speech service supporting Edge TTS and Google Cloud TTS.
+Generates MP3 chunks per chapter.
+"""
+
+import edge_tts
+from pathlib import Path
+
+# Available Edge TTS German voices
+EDGE_VOICES = {
+    "amala": {"id": "de-DE-AmalaNeural", "name": "Amala", "gender": "female"},
+    "conrad": {"id": "de-DE-ConradNeural", "name": "Conrad", "gender": "male"},
+    "katja": {"id": "de-DE-KatjaNeural", "name": "Katja", "gender": "female"},
+    "killian": {"id": "de-DE-KillianNeural", "name": "Killian", "gender": "male"},
+    "florian": {"id": "de-DE-FlorianMultilingualNeural", "name": "Florian", "gender": "male"},
+    "seraphina": {"id": "de-DE-SeraphinaMultilingualNeural", "name": "Seraphina", "gender": "female"},
+}
+
+DEFAULT_VOICE = "katja"
+
+
+def get_available_voices() -> list[dict]:
+    """Return list of available voice profiles."""
+    return [
+        {
+            "key": key,
+            "name": v["name"],
+            "gender": v["gender"],
+            "engine": "edge",
+        }
+        for key, v in EDGE_VOICES.items()
+    ]
+
+
+async def generate_tts_chunk(
+    text: str,
+    output_path: Path,
+    voice_key: str = DEFAULT_VOICE,
+    rate: str = "-5%",
+) -> Path:
+    """
+    Convert text to speech and save as MP3.
+
+    Args:
+        text: The text to convert
+        output_path: Where to save the MP3
+        voice_key: Key from EDGE_VOICES
+        rate: Speech rate adjustment (e.g. "-10%" for slower)
+
+    Returns:
+        Path to the generated MP3 file
+    """
+    voice = EDGE_VOICES.get(voice_key, EDGE_VOICES[DEFAULT_VOICE])
+
+    communicate = edge_tts.Communicate(
+        text=text,
+        voice=voice["id"],
+        rate=rate,
+    )
+
+    await communicate.save(str(output_path))
+    return output_path
+
+
+async def generate_voice_preview(
+    voice_key: str,
+    output_path: Path,
+) -> Path:
+    """Generate a short preview clip for a voice."""
+    preview_text = (
+        "Hallo! Ich bin deine Gute-Nacht-Geschichte-Stimme. "
+        "Komm, lass uns zusammen in ein Abenteuer eintauchen."
+    )
+    return await generate_tts_chunk(preview_text, output_path, voice_key)
+
+
+async def chapters_to_audio(
+    chapters: list[dict],
+    output_dir: Path,
+    voice_key: str = DEFAULT_VOICE,
+    rate: str = "-5%",
+    on_progress: callable = None,
+) -> list[Path]:
+    """
+    Convert all chapters to individual MP3 files.
+
+    Args:
+        chapters: List of {"title": str, "text": str}
+        output_dir: Directory for the MP3 chunks
+        voice_key: Voice profile key
+        rate: Speaking rate
+        on_progress: Async callback(status_type, message)
+
+    Returns:
+        List of paths to generated MP3 files
+    """
+    output_dir.mkdir(parents=True, exist_ok=True)
+    audio_files = []
+
+    for i, chapter in enumerate(chapters):
+        if on_progress:
+            await on_progress(
+                "tts",
+                f"Vertone Kapitel {i + 1}/{len(chapters)}: {chapter['title']}",
+            )
+
+        filename = f"chapter_{i + 1:02d}.mp3"
+        output_path = output_dir / filename
+
+        # Add chapter title announcement before text
+        full_text = f"Kapitel {i + 1}. {chapter['title']}. ... {chapter['text']}"
+
+        await generate_tts_chunk(full_text, output_path, voice_key, rate)
+        audio_files.append(output_path)
+
+    return audio_files

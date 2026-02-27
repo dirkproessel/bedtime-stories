@@ -3,8 +3,8 @@
 @theme {
   --color-background: #f8fafc;
   --color-surface: #ffffff;
-  --color-primary: #10b981;
-  --color-primary-focus: #059669;
+  --color-primary: #6366f1;
+  --color-primary-focus: #4f46e5;
   --color-text: #0f172a;
   --color-text-muted: #64748b;
   --font-sans: "Inter", system-ui, sans-serif;
@@ -12,54 +12,39 @@
 
 @layer base {
   body {
-    background-color: var(--color-background);
+    background: linear-gradient(to bottom, #f8fafc, #eef2ff);
     color: var(--color-text);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     overscroll-behavior-y: none;
+    min-height: 100vh;
   }
 }
 
 @layer components {
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
   .btn-primary {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    background-color: var(--color-primary);
+    background: linear-gradient(135deg, var(--color-primary), #8b5cf6);
     color: white;
-    font-weight: 500;
-    border-radius: 0.75rem;
+    font-weight: 600;
+    border-radius: 1rem;
     padding: 1rem 1.5rem;
-    transition-property: all;
-    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-    transition-duration: 150ms;
-    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 14px 0 rgb(99 102 241 / 0.25);
+  }
+
+  .btn-primary:hover {
+    box-shadow: 0 6px 20px 0 rgb(99 102 241 / 0.35);
   }
 
   .btn-primary:active {
     transform: scale(0.98);
-    background-color: var(--color-primary-focus);
-  }
-
-  .btn-outline {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    border-width: 2px;
-    border-color: #e2e8f0;
-    color: #334155;
-    font-weight: 500;
-    border-radius: 0.75rem;
-    padding: 1rem 1.5rem;
-    transition-property: all;
-    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-    transition-duration: 150ms;
-  }
-
-  .btn-outline:active {
-    transform: scale(0.98);
-    background-color: #f8fafc;
   }
 }
