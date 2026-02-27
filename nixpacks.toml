@@ -1,0 +1,6 @@
+[phases.build]
+cmds = ['npm run build']
+
+[static]
+directory = 'dist'
+spa = true

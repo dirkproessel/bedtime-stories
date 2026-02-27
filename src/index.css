@@ -1,0 +1,65 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: #f8fafc;
+  --color-surface: #ffffff;
+  --color-primary: #10b981;
+  --color-primary-focus: #059669;
+  --color-text: #0f172a;
+  --color-text-muted: #64748b;
+  --font-sans: "Inter", system-ui, sans-serif;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-background);
+    color: var(--color-text);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior-y: none;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background-color: var(--color-primary);
+    color: white;
+    font-weight: 500;
+    border-radius: 0.75rem;
+    padding: 1rem 1.5rem;
+    transition-property: all;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  }
+
+  .btn-primary:active {
+    transform: scale(0.98);
+    background-color: var(--color-primary-focus);
+  }
+
+  .btn-outline {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-width: 2px;
+    border-color: #e2e8f0;
+    color: #334155;
+    font-weight: 500;
+    border-radius: 0.75rem;
+    padding: 1rem 1.5rem;
+    transition-property: all;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+  }
+
+  .btn-outline:active {
+    transform: scale(0.98);
+    background-color: #f8fafc;
+  }
+}
