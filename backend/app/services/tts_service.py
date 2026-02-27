@@ -40,25 +40,30 @@ async def generate_tts_chunk(
 ) -> Path:
     """
     Convert text to speech and save as MP3.
-
-    Args:
-        text: The text to convert
-        output_path: Where to save the MP3
-        voice_key: Key from EDGE_VOICES
-        rate: Speech rate adjustment (e.g. "-10%" for slower)
-
-    Returns:
-        Path to the generated MP3 file
     """
+    import logging
+    logger = logging.getLogger(__name__)
+
     voice = EDGE_VOICES.get(voice_key, EDGE_VOICES[DEFAULT_VOICE])
+    logger.info(f"TTS: Generating audio with voice {voice['id']} -> {output_path}")
 
-    communicate = edge_tts.Communicate(
-        text=text,
-        voice=voice["id"],
-        rate=rate,
-    )
+    try:
+        communicate = edge_tts.Communicate(
+            text=text,
+            voice=voice["id"],
+            rate=rate,
+        )
+        await communicate.save(str(output_path))
 
-    await communicate.save(str(output_path))
+        # Verify file was created and has content
+        if not output_path.exists() or output_path.stat().st_size == 0:
+            raise RuntimeError(f"TTS generated empty file for voice {voice_key}")
+
+        logger.info(f"TTS: Generated {output_path.stat().st_size} bytes")
+    except Exception as e:
+        logger.error(f"TTS Error: {e}")
+        raise
+
     return output_path
 
 
@@ -67,6 +72,10 @@ async def generate_voice_preview(
     output_path: Path,
 ) -> Path:
     """Generate a short preview clip for a voice."""
+    # Delete existing empty preview files so they get regenerated
+    if output_path.exists() and output_path.stat().st_size == 0:
+        output_path.unlink()
+
     preview_text = (
         "Hallo! Ich bin deine Gute-Nacht-Geschichte-Stimme. "
         "Komm, lass uns zusammen in ein Abenteuer eintauchen."

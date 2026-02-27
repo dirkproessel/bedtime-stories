@@ -14,9 +14,13 @@ Endpoints:
 
 import asyncio
 import json
+import logging
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -93,11 +97,12 @@ async def preview_voice(voice_key: str):
     preview_dir.mkdir(parents=True, exist_ok=True)
     preview_path = preview_dir / f"{voice_key}.mp3"
 
-    if not preview_path.exists():
+    # Regenerate if missing or empty (0 bytes)
+    if not preview_path.exists() or preview_path.stat().st_size == 0:
         try:
             await generate_voice_preview(voice_key, preview_path)
         except Exception as e:
-            raise HTTPException(status_code=400, detail=f"Voice not found: {e}")
+            raise HTTPException(status_code=500, detail=f"TTS Error: {e}")
 
     return FileResponse(preview_path, media_type="audio/mpeg")
 
