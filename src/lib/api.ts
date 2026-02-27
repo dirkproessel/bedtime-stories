@@ -9,6 +9,8 @@ export interface VoiceProfile {
     name: string;
     gender: string;
     engine: string;
+    accent?: string;
+    style?: string;
 }
 
 export interface StoryMeta {

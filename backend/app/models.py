@@ -33,6 +33,8 @@ class VoiceProfile(BaseModel):
     name: str
     gender: str
     engine: str
+    accent: str | None = "DE"
+    style: str | None = "Standard"
 
 
 class StoryOutline(BaseModel):

@@ -284,16 +284,21 @@ export default function StoryCreator() {
                                 }`}
                             onClick={() => setVoiceKey(v.key)}
                         >
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <div className={`text-sm font-bold ${voiceKey === v.key ? 'text-indigo-700' : 'text-slate-700'}`}>{v.name}</div>
-                                    <div className={`text-xs ${voiceKey === v.key ? 'text-indigo-500' : 'text-slate-400'}`}>
-                                        {v.gender === 'female' ? '♀ Weiblich' : '♂ Männlich'}
+                            <div className="flex items-center justify-between gap-2">
+                                <div className="min-w-0">
+                                    <div className="flex items-center gap-1.5 mb-0.5">
+                                        <div className={`text-sm font-bold truncate ${voiceKey === v.key ? 'text-indigo-700' : 'text-slate-700'}`}>{v.name}</div>
+                                        <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-500 font-bold uppercase shrink-0">
+                                            {v.accent === 'AT' ? '🇦🇹 AT' : v.accent === 'CH' ? '🇨🇭 CH' : '🇩🇪 DE'}
+                                        </span>
+                                    </div>
+                                    <div className={`text-[10px] font-medium truncate ${voiceKey === v.key ? 'text-indigo-500' : 'text-slate-400'}`}>
+                                        {v.gender === 'female' ? '♀ Weiblich' : '♂ Männlich'} · {v.style}
                                     </div>
                                 </div>
                                 <button
                                     onClick={(e) => { e.stopPropagation(); handlePreviewVoice(v.key); }}
-                                    className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${previewVoice === v.key
+                                    className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all ${previewVoice === v.key
                                         ? 'bg-indigo-500 text-white'
                                         : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
                                         }`}

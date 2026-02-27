@@ -6,14 +6,22 @@ Generates MP3 chunks per chapter.
 import edge_tts
 from pathlib import Path
 
-# Available Edge TTS German voices
+# Available Edge TTS German voices (DE, AT, CH)
 EDGE_VOICES = {
-    "amala": {"id": "de-DE-AmalaNeural", "name": "Amala", "gender": "female"},
-    "conrad": {"id": "de-DE-ConradNeural", "name": "Conrad", "gender": "male"},
-    "katja": {"id": "de-DE-KatjaNeural", "name": "Katja", "gender": "female"},
-    "killian": {"id": "de-DE-KillianNeural", "name": "Killian", "gender": "male"},
-    "florian": {"id": "de-DE-FlorianMultilingualNeural", "name": "Florian", "gender": "male"},
-    "seraphina": {"id": "de-DE-SeraphinaMultilingualNeural", "name": "Seraphina", "gender": "female"},
+    # Deutschland – Multilingual (natürlicher)
+    "seraphina": {"id": "de-DE-SeraphinaMultilingualNeural", "name": "Seraphina", "gender": "female", "accent": "DE", "style": "Multilingual"},
+    "florian": {"id": "de-DE-FlorianMultilingualNeural", "name": "Florian", "gender": "male", "accent": "DE", "style": "Multilingual"},
+    # Deutschland – Standard
+    "amala": {"id": "de-DE-AmalaNeural", "name": "Amala", "gender": "female", "accent": "DE", "style": "Standard"},
+    "conrad": {"id": "de-DE-ConradNeural", "name": "Conrad", "gender": "male", "accent": "DE", "style": "Standard"},
+    "katja": {"id": "de-DE-KatjaNeural", "name": "Katja", "gender": "female", "accent": "DE", "style": "Standard"},
+    "killian": {"id": "de-DE-KillianNeural", "name": "Killian", "gender": "male", "accent": "DE", "style": "Standard"},
+    # Österreich
+    "ingrid": {"id": "de-AT-IngridNeural", "name": "Ingrid", "gender": "female", "accent": "AT", "style": "Österreichisch"},
+    "jonas": {"id": "de-AT-JonasNeural", "name": "Jonas", "gender": "male", "accent": "AT", "style": "Österreichisch"},
+    # Schweiz
+    "leni": {"id": "de-CH-LeniNeural", "name": "Leni", "gender": "female", "accent": "CH", "style": "Schweizerdeutsch"},
+    "jan": {"id": "de-CH-JanNeural", "name": "Jan", "gender": "male", "accent": "CH", "style": "Schweizerdeutsch"},
 }
 
 DEFAULT_VOICE = "katja"
@@ -27,6 +35,8 @@ def get_available_voices() -> list[dict]:
             "name": v["name"],
             "gender": v["gender"],
             "engine": "edge",
+            "accent": v.get("accent", "DE"),
+            "style": v.get("style", "Standard"),
         }
         for key, v in EDGE_VOICES.items()
     ]
