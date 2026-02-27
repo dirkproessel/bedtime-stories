@@ -333,6 +333,15 @@ async def delete_story(story_id: str):
 # RSS Feed
 # ──────────────────────────────────
 
+@app.get("/api/podcast-cover.png")
+async def get_podcast_cover():
+    """Serve the podcast cover art."""
+    cover_path = Path(__file__).parent / "static" / "podcast-cover.png"
+    if not cover_path.exists():
+        raise HTTPException(status_code=404, detail="Cover not found")
+    return FileResponse(cover_path, media_type="image/png")
+
+
 @app.get("/api/feed.xml")
 async def get_rss_feed():
     """Serve the podcast RSS feed."""
@@ -352,8 +361,16 @@ def _regenerate_rss():
     """Regenerate the RSS feed from current stories."""
     stories = list(_stories_db.values())
     rss_path = settings.AUDIO_OUTPUT_DIR / "feed.xml"
+    image_url = f"{settings.BASE_URL}/api/podcast-cover.png"
+    email = "dirk@proessel.de"  # Required by Spotify
     try:
-        generate_rss_feed(stories, settings.BASE_URL, rss_path)
+        generate_rss_feed(
+            stories,
+            settings.BASE_URL,
+            rss_path,
+            image_url=image_url,
+            email=email,
+        )
     except Exception:
         pass  # Non-critical
 

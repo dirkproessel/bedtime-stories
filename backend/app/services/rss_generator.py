@@ -11,6 +11,8 @@ def generate_rss_feed(
     stories: list[dict],
     base_url: str,
     output_path: Path,
+    image_url: str | None = None,
+    email: str | None = None,
 ) -> Path:
     """
     Generate a podcast-compatible RSS feed.
@@ -38,6 +40,13 @@ def generate_rss_feed(
     fg.podcast.itunes_summary(
         "Jeden Tag eine neue, liebevoll generierte Gute-Nacht-Geschichte."
     )
+
+    if image_url:
+        fg.logo(image_url)
+        fg.podcast.itunes_image(image_url)
+
+    if email:
+        fg.podcast.itunes_owner(name="Bedtime Stories", email=email)
 
     # Add episodes (newest first)
     for story in sorted(stories, key=lambda s: s["created_at"], reverse=True):
