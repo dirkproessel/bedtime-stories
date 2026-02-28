@@ -3,12 +3,12 @@ Story generation service using Google Gemini Flash.
 Two-step process: 1) Generate outline  2) Write detailed chapters
 """
 
-import google.generativeai as genai
+from google import genai
 from app.config import settings
 
-genai.configure(api_key=settings.GEMINI_API_KEY)
+client = genai.Client(api_key=settings.GEMINI_API_KEY)
 
-MODEL = "gemini-2.5-flash"
+MODEL = "gemini-2.0-flash"
 
 SYSTEM_PROMPT = """Du bist ein erstklassiger, kreativer Geschichtenerzähler für Kinderhörbücher.
 Deine Geschichten sind:
@@ -64,16 +64,15 @@ Antworte NUR im folgenden JSON-Format:
     ]
 }}"""
 
-    model = genai.GenerativeModel(
-        MODEL,
-        system_instruction=SYSTEM_PROMPT,
-        generation_config=genai.types.GenerationConfig(
-            response_mime_type="application/json",
-            temperature=0.9,
-        ),
+    response = client.models.generate_content(
+        model=MODEL,
+        contents=user_prompt,
+        config={
+            "system_instruction": SYSTEM_PROMPT,
+            "response_mime_type": "application/json",
+            "temperature": 0.9,
+        }
     )
-
-    response = await model.generate_content_async(user_prompt)
 
     import json
     outline = json.loads(response.text)
@@ -105,16 +104,15 @@ Wichtig:
 - Baue natürliche Pausen ein (Absätze)
 - Wenn es das letzte Kapitel ist, beende die Geschichte sanft und friedlich"""
 
-    model = genai.GenerativeModel(
-        MODEL,
-        system_instruction=SYSTEM_PROMPT,
-        generation_config=genai.types.GenerationConfig(
-            temperature=0.85,
-            max_output_tokens=4096,
-        ),
+    response = client.models.generate_content(
+        model=MODEL,
+        contents=user_prompt,
+        config={
+            "system_instruction": SYSTEM_PROMPT,
+            "temperature": 0.85,
+            "max_output_tokens": 8192,
+        }
     )
-
-    response = await model.generate_content_async(user_prompt)
     return response.text
 
 
