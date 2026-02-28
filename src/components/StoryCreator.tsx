@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { useStore } from '../store/useStore';
 import { getVoicePreviewUrl, type GenerationStatus } from '../lib/api';
-import { Sparkles, Mic, MicOff, Play, Pause, BookOpen, Wand2, MessageSquareText, Venus, Mars, Users, Check } from 'lucide-react';
+import { Sparkles, Mic, MicOff, Play, Pause, BookOpen, Wand2, MessageSquareText, Venus, Mars, Users } from 'lucide-react';
 
 const THEMES = [
     { value: 'abenteuer', label: '🗺️ Abenteuer' },
@@ -305,22 +305,15 @@ export default function StoryCreator() {
                                 </div>
 
                                 {/* Play Right */}
-                                <div className="flex items-center gap-1.5 shrink-0">
-                                    <button
-                                        onClick={(e) => { e.stopPropagation(); handlePreviewVoice(v.key); }}
-                                        className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${previewVoice === v.key
-                                            ? 'bg-indigo-500 text-white'
-                                            : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
-                                            }`}
-                                    >
-                                        {previewVoice === v.key ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 ml-0.5" />}
-                                    </button>
-                                    {voiceKey === v.key && (
-                                        <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center">
-                                            <Check className="w-3.5 h-3.5 text-indigo-600" />
-                                        </div>
-                                    )}
-                                </div>
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); handlePreviewVoice(v.key); }}
+                                    className={`w-8 h-8 rounded-full flex items-center justify-center transition-all shrink-0 ${previewVoice === v.key
+                                        ? 'bg-indigo-500 text-white'
+                                        : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
+                                        }`}
+                                >
+                                    {previewVoice === v.key ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 ml-0.5" />}
+                                </button>
                             </div>
                         </div>
                     ))}

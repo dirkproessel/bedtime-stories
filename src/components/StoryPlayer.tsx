@@ -23,20 +23,30 @@ export default function StoryPlayer() {
         }
     }, [selectedStoryId]);
 
+    // Set audio src imperatively to prevent React from reloading it on state changes (e.g. seek)
+    useEffect(() => {
+        const audio = audioRef.current;
+        if (!audio || !selectedStoryId) return;
+        const newSrc = getAudioUrl(selectedStoryId);
+        if (audio.src !== newSrc) {
+            audio.src = newSrc;
+            audio.load();
+        }
+        // Reset state
+        setCurrentTime(0);
+        setDuration(0);
+        setIsPlaying(false);
+    }, [selectedStoryId]);
+
     useEffect(() => {
         const audio = audioRef.current;
         if (!audio) return;
 
         const onTimeUpdate = () => setCurrentTime(audio.currentTime);
-        const onLoaded = () => setDuration(audio.duration);
+        const onLoaded = () => { if (audio.duration && isFinite(audio.duration)) setDuration(audio.duration); };
         const onEnded = () => setIsPlaying(false);
         const onPlay = () => setIsPlaying(true);
         const onPause = () => setIsPlaying(false);
-
-        // Immediate check if already loaded
-        if (audio.readyState >= 1) {
-            setDuration(audio.duration);
-        }
 
         audio.addEventListener('timeupdate', onTimeUpdate);
         audio.addEventListener('loadedmetadata', onLoaded);
@@ -55,7 +65,7 @@ export default function StoryPlayer() {
             audio.removeEventListener('play', onPlay);
             audio.removeEventListener('pause', onPause);
         };
-    }, [selectedStoryId, story]);
+    }, []);
 
     if (!selectedStoryId || !story) {
         return (
@@ -125,7 +135,8 @@ export default function StoryPlayer() {
             </div>
 
             {/* Audio Element */}
-            <audio ref={audioRef} src={getAudioUrl(selectedStoryId)} preload="metadata" />
+            {/* src is set imperatively via useEffect to avoid reloads on seek */}
+            <audio ref={audioRef} preload="metadata" />
 
             {/* Progress */}
             <div className="mb-4">
