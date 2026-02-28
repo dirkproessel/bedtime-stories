@@ -33,9 +33,9 @@ def generate_rss_feed(
     fg.title("🌙 Abenteuer aus der Hosentasche")
     fg.link(href=base_url, rel="alternate")
     fg.description("Deine tägliche Portion Magie – direkt aus der Hosentasche.")
-    fg.language("de")
+    fg.language("de-DE")
     fg.podcast.itunes_category("Kids & Family", "Stories for Kids")
-    fg.podcast.itunes_author("Bedtime Stories Generator")
+    fg.podcast.itunes_author("Sektion Unfug")
     fg.podcast.itunes_explicit("no")
     fg.podcast.itunes_summary(
         "Jeden Tag eine neue, liebevoll generierte Gute-Nacht-Geschichte."
@@ -46,7 +46,7 @@ def generate_rss_feed(
         fg.podcast.itunes_image(image_url)
 
     if email:
-        fg.podcast.itunes_owner(name="Abenteuer aus der Hosentasche", email=email)
+        fg.podcast.itunes_owner(name="Sektion Unfug", email=email)
 
     # Add episodes (newest first)
     for story in sorted(stories, key=lambda s: s["created_at"], reverse=True):
