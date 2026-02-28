@@ -293,7 +293,8 @@ export default function StoryCreator() {
                                         <div className="text-left">
                                             <div className={`font-medium truncate ${voiceKey === v.key ? 'text-indigo-700' : 'text-slate-700'}`}>{v.name}</div>
                                             <div className="text-xs text-slate-500 uppercase tracking-wider">
-                                                {v.engine === 'google' ? 'Premium Neural' : 'Standard'}
+                                                {v.engine === 'openai' ? 'Ultra High Quality' :
+                                                    v.engine === 'google' ? 'Premium Neural' : 'Standard'}
                                             </div>
                                         </div>
                                     </div>

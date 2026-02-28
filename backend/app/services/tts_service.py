@@ -9,14 +9,20 @@ from app.config import settings
 
 # Available Edge TTS German voices (Simplified)
 EDGE_VOICES = {
-    "seraphina": {"id": "de-DE-SeraphinaMultilingualNeural", "name": "Seraphina (Multilingual)", "gender": "female"},
-    "florian": {"id": "de-DE-FlorianMultilingualNeural", "name": "Florian (Multilingual)", "gender": "male"},
+    "seraphina": {"id": "de-DE-SeraphinaMultilingualNeural", "name": "Seraphina", "gender": "female"},
+    "florian": {"id": "de-DE-FlorianMultilingualNeural", "name": "Florian", "gender": "male"},
 }
 
 # Google Cloud TTS Neural2 voices
 GOOGLE_VOICES = {
-    "neural_g": {"id": "de-DE-Neural2-G", "name": "Neural (G) - Weiblich", "gender": "female"},
-    "neural_h": {"id": "de-DE-Neural2-H", "name": "Neural (H) - Männlich", "gender": "male"},
+    "eliza": {"id": "de-DE-Neural2-G", "name": "Eliza", "gender": "female"},
+    "percy": {"id": "de-DE-Neural2-H", "name": "Percy", "gender": "male"},
+}
+
+# OpenAI TTS voices
+OPENAI_VOICES = {
+    "shimmer": {"id": "shimmer", "name": "Shimmer", "gender": "female"},
+    "onyx": {"id": "onyx", "name": "Onyx", "gender": "male"},
 }
 
 DEFAULT_VOICE = "seraphina"
@@ -43,6 +49,15 @@ def get_available_voices() -> list[dict]:
             "gender": v["gender"],
             "engine": "google",
         })
+
+    # OpenAI Voices
+    for key, v in OPENAI_VOICES.items():
+        voices.append({
+            "key": key,
+            "name": v["name"],
+            "gender": v["gender"],
+            "engine": "openai",
+        })
         
     return voices
 
@@ -55,7 +70,7 @@ async def generate_tts_chunk(
 ) -> Path:
     """
     Convert text to speech and save as MP3.
-    Supports both Edge TTS and Google Cloud TTS.
+    Supports Edge TTS, Google Cloud TTS, and OpenAI TTS.
     """
     import logging
     logger = logging.getLogger(__name__)
@@ -64,6 +79,9 @@ async def generate_tts_chunk(
     if voice_key in GOOGLE_VOICES:
         voice_config = GOOGLE_VOICES[voice_key]
         engine = "google"
+    elif voice_key in OPENAI_VOICES:
+        voice_config = OPENAI_VOICES[voice_key]
+        engine = "openai"
     else:
         voice_config = EDGE_VOICES.get(voice_key, EDGE_VOICES[DEFAULT_VOICE])
         engine = "edge"
@@ -82,7 +100,7 @@ async def generate_tts_chunk(
                 rate=rate,
             )
             await communicate.save(str(output_path))
-        else:
+        elif engine == "google":
             # Google Cloud TTS (Paid/Premium)
             from google.cloud import texttospeech
             
@@ -113,6 +131,18 @@ async def generate_tts_chunk(
             
             with open(output_path, "wb") as out:
                 out.write(response.audio_content)
+        elif engine == "openai":
+            # OpenAI TTS
+            from openai import OpenAI
+            client = OpenAI(api_key=settings.OPENAI_API_KEY)
+            
+            response = client.audio.speech.create(
+                model="tts-1",
+                voice=voice_config["id"],
+                input=clean_text,
+                speed=0.95 if rate == "-5%" else 1.0
+            )
+            response.stream_to_file(output_path)
 
         # Verify file was created and has content
         if not output_path.exists() or output_path.stat().st_size == 0:

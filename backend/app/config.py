@@ -12,6 +12,7 @@ class Settings:
     POCKETBASE_ADMIN_PASSWORD: str = os.getenv("POCKETBASE_ADMIN_PASSWORD", "")
     AUDIO_OUTPUT_DIR: Path = Path(os.getenv("AUDIO_OUTPUT_DIR", "./audio_output"))
     BASE_URL: str = os.getenv("BASE_URL", "http://localhost:8000")
+    OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
 
     def __init__(self):
         self.AUDIO_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
