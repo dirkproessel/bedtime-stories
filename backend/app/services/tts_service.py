@@ -57,9 +57,13 @@ async def generate_tts_chunk(
     voice = EDGE_VOICES.get(voice_key, EDGE_VOICES[DEFAULT_VOICE])
     logger.info(f"TTS: Generating audio with voice {voice['id']} -> {output_path}")
 
+    # Cleanup text: remove markdown formatting that TTS might read literally
+    # e.g. *sehr* -> sehr
+    clean_text = text.replace("*", "").replace("_", "").replace("#", "")
+
     try:
         communicate = edge_tts.Communicate(
-            text=text,
+            text=clean_text,
             voice=voice["id"],
             rate=rate,
         )

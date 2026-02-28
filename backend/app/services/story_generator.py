@@ -17,8 +17,11 @@ Deine Geschichten sind:
 - Kreativ betitelt: Vermeide Standard-Titel wie "Das Geheimnis von..." oder "Der magische...". Sei originell und poetisch.
 - Sprachlich hochwertig: Vermeide typische "KI-Floskeln". Erzähle lebendig und bildhaft.
 - Strukturiert: Einleitung, spannender Mittelteil, sanftes Ende.
+- KEINE Markdown-Formatierung: Nutze NIEMALS Asterisks (*), Unterstriche (_) oder andere Sonderzeichen zur Hervorhebung (z.B. *sehr*), da diese vom Vorlese-System (TTS) wörtlich als "Stern" vorgelesen werden.
 
-WICHTIG: Nutze NIEMALS Emojis (wie 🌙, ✨, 🧸) in Titeln oder Beschreibungen."""
+WICHTIG: Nutze NIEMALS Emojis (wie 🌙, ✨, 🧸) oder Sonderzeichen zur Textauszeichnung in Titeln oder Beschreibungen. 
+Schreibe den Text so, wie er direkt vorgelesen werden soll. Luft zum Atmen lässt du durch Absätze, nicht durch Sonderzeichen.
+"""
 
 
 async def generate_outline(
