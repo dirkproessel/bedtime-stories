@@ -32,13 +32,13 @@ def generate_rss_feed(
     # Feed metadata
     fg.title("🌙 Abenteuer aus der Hosentasche")
     fg.link(href=base_url, rel="alternate")
-    fg.description("Deine tägliche Portion Magie – direkt aus der Hosentasche.")
+    fg.description("Alles, was zu groß für den Alltag ist, passt perfekt in diese Hosentasche. Die Sektion Unfug liefert echte Abenteuer zwischen Küchentresen und Sternenhimmel: ohne Kitsch, dafür als idealer Abschluss für den Tag und eine himmlisch gute Nacht.")
     fg.language("de-DE")
     fg.podcast.itunes_category("Kids & Family", "Stories for Kids")
     fg.podcast.itunes_author("Sektion Unfug")
     fg.podcast.itunes_explicit("no")
     fg.podcast.itunes_summary(
-        "Jeden Tag eine neue, liebevoll generierte Gute-Nacht-Geschichte."
+        "Alles, was zu groß für den Alltag ist, passt perfekt in diese Hosentasche. Die Sektion Unfug liefert echte Abenteuer zwischen Küchentresen und Sternenhimmel: ohne Kitsch, dafür als idealer Abschluss für den Tag und eine himmlisch gute Nacht."
     )
 
     if image_url:
