@@ -31,17 +31,19 @@ def merge_audio_files(
     output_path: Path,
     intro_path: Path | None = None,
     outro_path: Path | None = None,
+    title_path: Path | None = None,
     silence_between_ms: int = 2500,
     fade_out_ms: int = 3000,
 ) -> Path:
     """
-    Merge multiple MP3 files with optional intro/outro and normalization.
+    Merge multiple MP3 files with optional intro/outro, title announcement and normalization.
 
     Args:
         audio_files: List of MP3 file paths (in order)
         output_path: Final output MP3 path
         intro_path: Path to Intro MP3 (optional)
         outro_path: Path to Outro MP3 (optional)
+        title_path: Path to Title TTS MP3 (optional)
         silence_between_ms: Milliseconds of silence between chapters
         fade_out_ms: Fade-out duration at the end in ms
     """
@@ -66,6 +68,11 @@ def merge_audio_files(
         # 1. Intro
         if intro_path and intro_path.exists():
             lines.append(f"file '{intro_path.resolve()}'")
+            lines.append(f"file '{silence_path.resolve()}'")
+
+        # 1.5 Title Announcement
+        if title_path and title_path.exists():
+            lines.append(f"file '{title_path.resolve()}'")
             lines.append(f"file '{silence_path.resolve()}'")
 
         # 2. Chapters

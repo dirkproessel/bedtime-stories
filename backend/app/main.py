@@ -39,6 +39,7 @@ from app.services.tts_service import (
     chapters_to_audio,
     get_available_voices,
     generate_voice_preview,
+    generate_tts_chunk,
 )
 from app.services.audio_processor import merge_audio_files, get_audio_duration
 from app.services.rss_generator import generate_rss_feed
@@ -212,6 +213,16 @@ async def _run_pipeline(
             on_progress=on_progress,
         )
 
+        # Step 2.5: Generate title audio
+        await on_progress("generating_audio", "Vertone Titel...")
+        title_path = chunks_dir / "title.mp3"
+        await generate_tts_chunk(
+            text=story_data["title"],
+            output_path=title_path,
+            voice_key=voice_key,
+            rate=speech_rate
+        )
+
         # Step 3: Merge & normalize
         await on_progress("processing", "Zusammenfügen & Normalisieren...")
         final_path = story_dir / "story.mp3"
@@ -226,6 +237,7 @@ async def _run_pipeline(
             final_path,
             intro_path=intro_path if intro_path.exists() else None,
             outro_path=outro_path if outro_path.exists() else None,
+            title_path=title_path,
         )
 
         # Get duration
