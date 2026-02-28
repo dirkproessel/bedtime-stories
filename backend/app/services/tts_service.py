@@ -5,6 +5,7 @@ Generates MP3 chunks per chapter.
 
 import edge_tts
 from pathlib import Path
+from app.config import settings
 
 # Available Edge TTS German voices (Simplified)
 EDGE_VOICES = {
