@@ -122,11 +122,12 @@ async def generate_tts_chunk(
             )
             
             # Select the type of audio file you want returned
+            # Select the type of audio file you want returned
             audio_config = texttospeech.AudioConfig(
                 audio_encoding=texttospeech.AudioEncoding.MP3,
-                # Mapping edge rate percentage to google rate (0.25 to 4.0)
-                # "-5%" -> 0.95
-                speaking_rate=0.95 if rate == "-5%" else 1.0
+                speaking_rate=0.95 if rate == "-5%" else 1.0,
+                # Eliza (Neural2-G) slightly deeper if requested
+                pitch=-1.5 if voice_key == "eliza" else 0.0
             )
             
             response = client.synthesize_speech(
@@ -136,17 +137,17 @@ async def generate_tts_chunk(
             with open(output_path, "wb") as out:
                 out.write(response.audio_content)
         elif engine == "openai":
-            # OpenAI TTS
-            from openai import OpenAI
-            client = OpenAI(api_key=settings.OPENAI_API_KEY)
+            # OpenAI TTS - Refactored for better compatibility
+            import openai
+            client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
             
-            response = client.audio.speech.create(
+            with client.audio.speech.with_streaming_response.create(
                 model="tts-1",
                 voice=voice_config["id"],
                 input=clean_text,
                 speed=0.95 if rate == "-5%" else 1.0
-            )
-            response.stream_to_file(output_path)
+            ) as response:
+                response.stream_to_file(output_path)
 
         # Verify file was created and has content
         if not output_path.exists() or output_path.stat().st_size == 0:
