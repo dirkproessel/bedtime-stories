@@ -110,12 +110,13 @@ export async function deleteStory(storyId: string): Promise<void> {
 }
 
 export async function toggleSpotify(storyId: string, enabled: boolean): Promise<void> {
-    const res = await fetch(`${API_BASE}/api/stories/${storyId}/spotify`, {
+    const res = await fetch(`${API_BASE}/api/stories/${storyId}/spotify?enabled=${enabled}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ enabled }),
     });
-    if (!res.ok) throw new Error('Failed to toggle Spotify status');
+    if (!res.ok) {
+        const detail = await res.text().catch(() => '');
+        throw new Error(`Failed to toggle Spotify status: ${res.status} ${detail}`);
+    }
 }
 
 export function getRssFeedUrl(): string {

@@ -13,12 +13,12 @@ export default function StoryPlayer() {
     const [isPlaying, setIsPlaying] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
+    const [isDragging, setIsDragging] = useState(false);
+    const [dragTime, setDragTime] = useState(0);
     const [showChapters, setShowChapters] = useState(false);
     const [showRss, setShowRss] = useState(false);
 
-    // Create the audio element once outside of React's render cycle.
-    // This is the KEY fix: the ref is always valid, and React can never re-create
-    // or re-load the element when state changes (which caused seeks to reset).
+    // Audio object lives outside React's render tree — never recreated, never causes src reload
     const audioRef = useRef<HTMLAudioElement>(new Audio());
 
     // Attach event listeners once on mount
@@ -51,7 +51,7 @@ export default function StoryPlayer() {
         };
     }, []);
 
-    // Load audio when the selected story changes
+    // Load new audio when story changes
     useEffect(() => {
         const audio = audioRef.current;
         setCurrentTime(0);
@@ -85,11 +85,25 @@ export default function StoryPlayer() {
         audio.currentTime = Math.max(0, Math.min(audio.currentTime + seconds, duration));
     };
 
-    const seek = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const time = parseFloat(e.target.value);
+    // Proper seek: while dragging only move the slider visually.
+    // Only actually seek the audio when pointer is released.
+    const handleSeekChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setDragTime(parseFloat(e.target.value));
+    };
+
+    const handleSeekStart = (e: React.PointerEvent<HTMLInputElement>) => {
+        setIsDragging(true);
+        setDragTime(parseFloat((e.target as HTMLInputElement).value));
+    };
+
+    const handleSeekEnd = (e: React.PointerEvent<HTMLInputElement>) => {
+        const time = parseFloat((e.target as HTMLInputElement).value);
         audioRef.current.currentTime = time;
         setCurrentTime(time);
+        setIsDragging(false);
     };
+
+    const sliderValue = isDragging ? dragTime : currentTime;
 
     const formatTime = (s: number) => {
         if (!s || !isFinite(s)) return '0:00';
@@ -153,12 +167,15 @@ export default function StoryPlayer() {
                     type="range"
                     min={0}
                     max={duration || 0}
-                    value={currentTime}
-                    onChange={seek}
+                    step={1}
+                    value={sliderValue}
+                    onChange={handleSeekChange}
+                    onPointerDown={handleSeekStart}
+                    onPointerUp={handleSeekEnd}
                     className="w-full h-1.5 rounded-full bg-slate-200 accent-indigo-500 cursor-pointer appearance-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-indigo-500 [&::-webkit-slider-thumb]:shadow-md"
                 />
                 <div className="flex justify-between text-xs text-slate-400 mt-1">
-                    <span>{formatTime(currentTime)}</span>
+                    <span>{formatTime(sliderValue)}</span>
                     <span>{formatTime(duration)}</span>
                 </div>
             </div>
