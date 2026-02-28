@@ -28,6 +28,7 @@ interface AppState {
     startFreeGeneration: (text: string, voiceKey: string, targetMinutes: number) => Promise<void>;
     pollStatus: () => Promise<void>;
     stopPolling: () => void;
+    updateStorySpotify: (id: string, enabled: boolean) => Promise<void>;
 
     // UI
     activeView: 'create' | 'archive' | 'player';
@@ -144,6 +145,20 @@ export const useStore = create<AppState>((set, get) => ({
         if (pollInterval) {
             clearInterval(pollInterval);
             pollInterval = null;
+        }
+    },
+
+    updateStorySpotify: async (id: string, enabled: boolean) => {
+        try {
+            const { toggleSpotify } = await import('../lib/api');
+            await toggleSpotify(id, enabled);
+            set((state) => ({
+                stories: state.stories.map((s) =>
+                    s.id === id ? { ...s, is_on_spotify: enabled } : s
+                ),
+            }));
+        } catch (e: any) {
+            set({ error: e.message });
         }
     },
 

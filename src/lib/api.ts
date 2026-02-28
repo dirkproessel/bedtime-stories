@@ -22,6 +22,8 @@ export interface StoryMeta {
     voice_key: string;
     duration_seconds: number | null;
     chapter_count: number;
+    image_url: string | null;
+    is_on_spotify: boolean;
     created_at: string;
 }
 
@@ -105,6 +107,13 @@ export function getAudioUrl(storyId: string): string {
 export async function deleteStory(storyId: string): Promise<void> {
     const res = await fetch(`${API_BASE}/api/stories/${storyId}`, { method: 'DELETE' });
     if (!res.ok) throw new Error('Failed to delete story');
+}
+
+export async function toggleSpotify(storyId: string, enabled: boolean): Promise<void> {
+    const res = await fetch(`${API_BASE}/api/stories/${storyId}/spotify?enabled=${enabled}`, {
+        method: 'PATCH',
+    });
+    if (!res.ok) throw new Error('Failed to toggle Spotify status');
 }
 
 export function getRssFeedUrl(): string {

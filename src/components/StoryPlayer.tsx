@@ -96,9 +96,15 @@ export default function StoryPlayer() {
 
             {/* Cover / Title */}
             <div className="text-center mb-8">
-                <div className="w-32 h-32 mx-auto rounded-3xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center mb-6 shadow-xl shadow-purple-500/25">
-                    <Moon className="w-16 h-16 text-white/90" />
-                </div>
+                {story.image_url ? (
+                    <div className="w-48 h-48 mx-auto rounded-3xl overflow-hidden mb-6 shadow-xl border-4 border-white">
+                        <img src={story.image_url} alt={story.title} className="w-full h-full object-cover" />
+                    </div>
+                ) : (
+                    <div className="w-32 h-32 mx-auto rounded-3xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center mb-6 shadow-xl shadow-purple-500/25">
+                        <Moon className="w-16 h-16 text-white/90" />
+                    </div>
+                )}
                 <h1 className="text-xl font-bold text-slate-900">{story.title}</h1>
                 <p className="text-sm text-slate-400 mt-1">{story.chapter_count} Kapitel · {formatTime(story.duration_seconds || 0)}</p>
             </div>

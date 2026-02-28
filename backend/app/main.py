@@ -43,6 +43,7 @@ from app.services.tts_service import (
 )
 from app.services.audio_processor import merge_audio_files, get_audio_duration
 from app.services.rss_generator import generate_rss_feed
+from app.services.image_generator import generate_story_image
 
 app = FastAPI(title="Bedtime Stories API", version="1.0.0")
 
@@ -243,6 +244,13 @@ async def _run_pipeline(
         # Get duration
         duration = get_audio_duration(final_path)
 
+        # Step 3.5: Generate story image
+        await on_progress("processing", "Generiere Titelbild...")
+        image_path = story_dir / "cover.png"
+        image_url = None
+        if await generate_story_image(story_data["synopsis"], image_path):
+            image_url = f"{settings.BASE_URL}/api/stories/{story_id}/image.png"
+
         # Step 4: Save metadata
         story_meta = {
             "id": story_id,
@@ -254,6 +262,8 @@ async def _run_pipeline(
             "duration_seconds": duration,
             "chapter_count": len(story_data["chapters"]),
             "filename": "story.mp3",
+            "image_url": image_url,
+            "is_on_spotify": False,
             "created_at": datetime.now(timezone.utc).isoformat(),
         }
 
@@ -352,6 +362,33 @@ async def delete_story(story_id: str):
     return {"status": "deleted"}
 
 
+@app.get("/api/stories/{story_id}/image.png")
+async def get_story_image(story_id: str):
+    """Serve the story cover image."""
+    image_path = settings.AUDIO_OUTPUT_DIR / story_id / "cover.png"
+    if not image_path.exists():
+        # Fallback to podcast cover if story image is missing
+        image_path = Path(__file__).parent / "static" / "podcast-cover.png"
+    
+    if not image_path.exists():
+        raise HTTPException(status_code=404, detail="Image not found")
+        
+    return FileResponse(image_path, media_type="image/png")
+
+
+@app.patch("/api/stories/{story_id}/spotify")
+async def toggle_spotify(story_id: str, enabled: bool):
+    """Toggle whether a story is included in the Spotify RSS feed."""
+    if story_id not in _stories_db:
+        raise HTTPException(status_code=404, detail="Story not found")
+    
+    _stories_db[story_id]["is_on_spotify"] = enabled
+    _save_stories()
+    _regenerate_rss()
+    
+    return {"id": story_id, "is_on_spotify": enabled}
+
+
 # ──────────────────────────────────
 # RSS Feed
 # ──────────────────────────────────
@@ -382,7 +419,8 @@ async def get_rss_feed():
 
 def _regenerate_rss():
     """Regenerate the RSS feed from current stories."""
-    stories = list(_stories_db.values())
+    # Only include stories that have is_on_spotify=True
+    stories = [s for s in _stories_db.values() if s.get("is_on_spotify")]
     rss_path = settings.AUDIO_OUTPUT_DIR / "feed.xml"
     image_url = f"{settings.BASE_URL}/api/podcast-cover.png"
     email = "dirk@proessel.de"  # Required by Spotify

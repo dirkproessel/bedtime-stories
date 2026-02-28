@@ -58,6 +58,8 @@ class StoryMeta(BaseModel):
     voice_key: str
     duration_seconds: float | None = None
     chapter_count: int
+    is_on_spotify: bool = False
+    image_url: str | None = None
     created_at: datetime
 
 
