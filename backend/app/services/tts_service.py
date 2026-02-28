@@ -210,8 +210,9 @@ async def chapters_to_audio(
         filename = f"chapter_{i + 1:02d}.mp3"
         output_path = output_dir / filename
 
-        # Add chapter title announcement before text
-        full_text = f"Kapitel {i + 1}. {chapter['title']}. ... {chapter['text']}"
+        # No title announcement as per user request, just the text.
+        # AudioProcessor will handle the pause/merge.
+        full_text = chapter["text"]
 
         await generate_tts_chunk(full_text, output_path, voice_key, rate)
         audio_files.append(output_path)
