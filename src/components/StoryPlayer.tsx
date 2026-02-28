@@ -30,15 +30,30 @@ export default function StoryPlayer() {
         const onTimeUpdate = () => setCurrentTime(audio.currentTime);
         const onLoaded = () => setDuration(audio.duration);
         const onEnded = () => setIsPlaying(false);
+        const onPlay = () => setIsPlaying(true);
+        const onPause = () => setIsPlaying(false);
+
+        // Immediate check if already loaded
+        if (audio.readyState >= 1) {
+            setDuration(audio.duration);
+        }
 
         audio.addEventListener('timeupdate', onTimeUpdate);
         audio.addEventListener('loadedmetadata', onLoaded);
+        audio.addEventListener('durationchange', onLoaded);
+        audio.addEventListener('canplay', onLoaded);
         audio.addEventListener('ended', onEnded);
+        audio.addEventListener('play', onPlay);
+        audio.addEventListener('pause', onPause);
 
         return () => {
             audio.removeEventListener('timeupdate', onTimeUpdate);
             audio.removeEventListener('loadedmetadata', onLoaded);
+            audio.removeEventListener('durationchange', onLoaded);
+            audio.removeEventListener('canplay', onLoaded);
             audio.removeEventListener('ended', onEnded);
+            audio.removeEventListener('play', onPlay);
+            audio.removeEventListener('pause', onPause);
         };
     }, [selectedStoryId, story]);
 

@@ -280,49 +280,46 @@ export default function StoryCreator() {
                             key={v.key}
                             className={`p-3 rounded-xl transition-all border-2 cursor-pointer ${voiceKey === v.key
                                 ? 'border-indigo-500 bg-indigo-50 shadow-sm'
-                                : 'border-slate-100 bg-white text-slate-600 hover:border-slate-200'
+                                : 'border-slate-100 bg-white hover:border-slate-200'
                                 }`}
                             onClick={() => setVoiceKey(v.key)}
                         >
-                            <div className="flex flex-col gap-3">
-                                <div className="flex items-center justify-between">
-                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${voiceKey === v.key ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-50 text-slate-400'}`}>
-                                        {v.gender === 'female' ? <Venus className="w-4 h-4" /> :
-                                            v.gender === 'male' ? <Mars className="w-4 h-4" /> : <Users className="w-4 h-4" />}
-                                    </div>
-                                    <div className="flex items-center gap-1.5">
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); handlePreviewVoice(v.key); }}
-                                            className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${previewVoice === v.key
-                                                ? 'bg-indigo-500 text-white'
-                                                : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
-                                                }`}
-                                        >
-                                            {previewVoice === v.key ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 ml-0.5" />}
-                                        </button>
-                                        {voiceKey === v.key && (
-                                            <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center">
-                                                <Check className="w-3.5 h-3.5 text-indigo-600" />
-                                            </div>
-                                        )}
-                                    </div>
+                            <div className="flex items-center gap-3">
+                                {/* Icon Left */}
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${voiceKey === v.key ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-50 text-slate-400'}`}>
+                                    {v.gender === 'female' ? <Venus className="w-5 h-5" /> :
+                                        v.gender === 'male' ? <Mars className="w-5 h-5" /> : <Users className="w-5 h-5" />}
                                 </div>
-                                <div className="text-left">
+
+                                {/* Name & Quality Center */}
+                                <div className="flex-1 min-w-0 text-left">
                                     <div className={`text-sm font-bold truncate ${voiceKey === v.key ? 'text-indigo-700' : 'text-slate-700'}`}>
                                         {v.name}
                                     </div>
-                                    <div className="text-[10px] uppercase tracking-wider flex items-center gap-1.5 mt-0.5">
-                                        <span className={`font-semibold ${v.engine === 'openai' ? 'text-purple-600' :
-                                                v.engine === 'google' ? 'text-blue-600' : 'text-slate-500'
-                                            }`}>
-                                            {v.engine === 'openai' ? 'Premium ($)' :
-                                                v.engine === 'google' ? 'Standard+' : 'Standard'}
-                                        </span>
-                                        <span className="text-slate-300">•</span>
-                                        <span className="text-slate-400">
-                                            {v.gender === 'female' ? 'Weiblich' : v.gender === 'male' ? 'Männlich' : 'Neutral'}
-                                        </span>
+                                    <div className={`text-[10px] font-semibold uppercase tracking-wider ${v.engine === 'openai' ? 'text-purple-600' :
+                                            v.engine === 'google' ? 'text-blue-600' : 'text-slate-400'
+                                        }`}>
+                                        {v.engine === 'openai' ? 'Premium ($)' :
+                                            v.engine === 'google' ? 'Standard+' : 'Standard'}
                                     </div>
+                                </div>
+
+                                {/* Play Right */}
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); handlePreviewVoice(v.key); }}
+                                        className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${previewVoice === v.key
+                                            ? 'bg-indigo-500 text-white'
+                                            : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
+                                            }`}
+                                    >
+                                        {previewVoice === v.key ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 ml-0.5" />}
+                                    </button>
+                                    {voiceKey === v.key && (
+                                        <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center">
+                                            <Check className="w-3.5 h-3.5 text-indigo-600" />
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
