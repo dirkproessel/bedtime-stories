@@ -23,6 +23,10 @@ GOOGLE_VOICES = {
 OPENAI_VOICES = {
     "shimmer": {"id": "shimmer", "name": "Shimmer", "gender": "female"},
     "onyx": {"id": "onyx", "name": "Onyx", "gender": "male"},
+    "alloy": {"id": "alloy", "name": "Alloy", "gender": "neutral"},
+    "echo": {"id": "echo", "name": "Echo", "gender": "male"},
+    "fable": {"id": "fable", "name": "Fable", "gender": "neutral"},
+    "nova": {"id": "nova", "name": "Nova", "gender": "female"},
 }
 
 DEFAULT_VOICE = "seraphina"
@@ -137,7 +141,7 @@ async def generate_tts_chunk(
             client = OpenAI(api_key=settings.OPENAI_API_KEY)
             
             response = client.audio.speech.create(
-                model="tts-1",
+                model="tts-1-hd",
                 voice=voice_config["id"],
                 input=clean_text,
                 speed=0.95 if rate == "-5%" else 1.0
