@@ -123,8 +123,8 @@ export default function StoryArchive() {
                                                         checked={story.is_on_spotify}
                                                         onChange={(e) => handleSpotifyToggle(story.id, e.target.checked)}
                                                     />
-                                                    <div className={`w-8 h-4.5 rounded-full transition-colors ${story.is_on_spotify ? 'bg-green-500' : 'bg-slate-200'}`}></div>
-                                                    <div className={`absolute top-0.5 left-0.5 w-3.5 h-3.5 bg-white rounded-full transition-transform ${story.is_on_spotify ? 'translate-x-3.5' : ''}`}></div>
+                                                    <div className={`w-9 h-5 rounded-full transition-colors ${story.is_on_spotify ? 'bg-green-500' : 'bg-slate-200'}`}></div>
+                                                    <div className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${story.is_on_spotify ? 'translate-x-4' : ''}`}></div>
                                                 </div>
                                                 <span className={`text-xs font-medium transition-colors ${story.is_on_spotify ? 'text-green-600' : 'text-slate-400'}`}>
                                                     Spotify Feed

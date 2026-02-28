@@ -40,7 +40,7 @@ export default function StoryPlayer() {
             audio.removeEventListener('loadedmetadata', onLoaded);
             audio.removeEventListener('ended', onEnded);
         };
-    }, [selectedStoryId]);
+    }, [selectedStoryId, story]);
 
     if (!selectedStoryId || !story) {
         return (

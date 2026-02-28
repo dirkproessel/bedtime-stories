@@ -159,6 +159,7 @@ export const useStore = create<AppState>((set, get) => ({
             }));
         } catch (e: any) {
             set({ error: e.message });
+            throw e;
         }
     },
 

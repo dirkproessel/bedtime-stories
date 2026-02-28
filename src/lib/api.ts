@@ -111,7 +111,7 @@ export async function deleteStory(storyId: string): Promise<void> {
 
 export async function toggleSpotify(storyId: string, enabled: boolean): Promise<void> {
     const res = await fetch(`${API_BASE}/api/stories/${storyId}/spotify?enabled=${enabled}`, {
-        method: 'PATCH',
+        method: 'POST',
     });
     if (!res.ok) throw new Error('Failed to toggle Spotify status');
 }
