@@ -29,20 +29,21 @@ def _create_silence(duration_ms: int, output_path: Path) -> Path:
 def merge_audio_files(
     audio_files: list[Path],
     output_path: Path,
+    intro_path: Path | None = None,
+    outro_path: Path | None = None,
     silence_between_ms: int = 2500,
     fade_out_ms: int = 3000,
 ) -> Path:
     """
-    Merge multiple MP3 files with silence between them and normalize loudness.
+    Merge multiple MP3 files with optional intro/outro and normalization.
 
     Args:
         audio_files: List of MP3 file paths (in order)
         output_path: Final output MP3 path
+        intro_path: Path to Intro MP3 (optional)
+        outro_path: Path to Outro MP3 (optional)
         silence_between_ms: Milliseconds of silence between chapters
         fade_out_ms: Fade-out duration at the end in ms
-
-    Returns:
-        Path to the merged & normalized MP3
     """
     if not audio_files:
         raise ValueError("No audio files provided")
@@ -61,10 +62,24 @@ def merge_audio_files(
         # Create FFmpeg concat list
         concat_list = tmpdir / "concat.txt"
         lines = []
+
+        # 1. Intro
+        if intro_path and intro_path.exists():
+            lines.append(f"file '{intro_path.resolve()}'")
+            lines.append(f"file '{silence_path.resolve()}'")
+
+        # 2. Chapters
         for i, af in enumerate(audio_files):
             lines.append(f"file '{af.resolve()}'")
             if i < len(audio_files) - 1:
                 lines.append(f"file '{silence_path.resolve()}'")
+            elif outro_path and outro_path.exists():
+                # Silence before outro if it exists
+                lines.append(f"file '{silence_path.resolve()}'")
+
+        # 3. Outro
+        if outro_path and outro_path.exists():
+            lines.append(f"file '{outro_path.resolve()}'")
 
         concat_list.write_text("\n".join(lines), encoding="utf-8")
 

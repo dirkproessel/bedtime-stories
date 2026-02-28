@@ -215,7 +215,18 @@ async def _run_pipeline(
         # Step 3: Merge & normalize
         await on_progress("processing", "Zusammenfügen & Normalisieren...")
         final_path = story_dir / "story.mp3"
-        merge_audio_files(audio_files, final_path)
+        
+        # Check for intro/outro in static dir
+        static_dir = Path(__file__).parent / "static"
+        intro_path = static_dir / "Intro.mp3"
+        outro_path = static_dir / "Outro.mp3"
+        
+        merge_audio_files(
+            audio_files, 
+            final_path,
+            intro_path=intro_path if intro_path.exists() else None,
+            outro_path=outro_path if outro_path.exists() else None,
+        )
 
         # Get duration
         duration = get_audio_duration(final_path)
