@@ -15,32 +15,15 @@ export default function StoryPlayer() {
     const [duration, setDuration] = useState(0);
     const [showChapters, setShowChapters] = useState(false);
     const [showRss, setShowRss] = useState(false);
-    const audioRef = useRef<HTMLAudioElement>(null);
 
-    useEffect(() => {
-        if (selectedStoryId) {
-            fetchStory(selectedStoryId).then(setStory).catch(() => toast.error('Geschichte konnte nicht geladen werden'));
-        }
-    }, [selectedStoryId]);
+    // Create the audio element once outside of React's render cycle.
+    // This is the KEY fix: the ref is always valid, and React can never re-create
+    // or re-load the element when state changes (which caused seeks to reset).
+    const audioRef = useRef<HTMLAudioElement>(new Audio());
 
-    // Set audio src imperatively to prevent React from reloading it on state changes (e.g. seek)
+    // Attach event listeners once on mount
     useEffect(() => {
         const audio = audioRef.current;
-        if (!audio || !selectedStoryId) return;
-        const newSrc = getAudioUrl(selectedStoryId);
-        if (audio.src !== newSrc) {
-            audio.src = newSrc;
-            audio.load();
-        }
-        // Reset state
-        setCurrentTime(0);
-        setDuration(0);
-        setIsPlaying(false);
-    }, [selectedStoryId]);
-
-    useEffect(() => {
-        const audio = audioRef.current;
-        if (!audio) return;
 
         const onTimeUpdate = () => setCurrentTime(audio.currentTime);
         const onLoaded = () => { if (audio.duration && isFinite(audio.duration)) setDuration(audio.duration); };
@@ -57,6 +40,7 @@ export default function StoryPlayer() {
         audio.addEventListener('pause', onPause);
 
         return () => {
+            audio.pause();
             audio.removeEventListener('timeupdate', onTimeUpdate);
             audio.removeEventListener('loadedmetadata', onLoaded);
             audio.removeEventListener('durationchange', onLoaded);
@@ -67,37 +51,48 @@ export default function StoryPlayer() {
         };
     }, []);
 
-    if (!selectedStoryId || !story) {
-        return (
-            <div className="p-6 flex flex-col items-center justify-center min-h-[60vh]">
-                <Moon className="w-12 h-12 text-slate-200 mb-4" />
-                <p className="text-slate-400 text-sm">Wähle eine Geschichte aus dem Archiv</p>
-            </div>
-        );
-    }
+    // Load audio when the selected story changes
+    useEffect(() => {
+        const audio = audioRef.current;
+        setCurrentTime(0);
+        setDuration(0);
+        setIsPlaying(false);
+        if (selectedStoryId) {
+            audio.src = getAudioUrl(selectedStoryId);
+            audio.load();
+        } else {
+            audio.src = '';
+        }
+    }, [selectedStoryId]);
+
+    // Fetch story metadata
+    useEffect(() => {
+        setStory(null);
+        if (selectedStoryId) {
+            fetchStory(selectedStoryId)
+                .then(setStory)
+                .catch(() => toast.error('Geschichte konnte nicht geladen werden'));
+        }
+    }, [selectedStoryId]);
 
     const togglePlay = () => {
-        const audio = audioRef.current!;
-        if (isPlaying) {
-            audio.pause();
-        } else {
-            audio.play();
-        }
-        setIsPlaying(!isPlaying);
+        const audio = audioRef.current;
+        if (isPlaying) { audio.pause(); } else { audio.play(); }
     };
 
     const skip = (seconds: number) => {
-        const audio = audioRef.current!;
+        const audio = audioRef.current;
         audio.currentTime = Math.max(0, Math.min(audio.currentTime + seconds, duration));
     };
 
     const seek = (e: React.ChangeEvent<HTMLInputElement>) => {
         const time = parseFloat(e.target.value);
-        audioRef.current!.currentTime = time;
+        audioRef.current.currentTime = time;
         setCurrentTime(time);
     };
 
     const formatTime = (s: number) => {
+        if (!s || !isFinite(s)) return '0:00';
         const m = Math.floor(s / 60);
         const sec = Math.floor(s % 60);
         return `${m}:${sec.toString().padStart(2, '0')}`;
@@ -107,6 +102,24 @@ export default function StoryPlayer() {
         navigator.clipboard.writeText(getRssFeedUrl());
         toast.success('RSS-Feed URL kopiert!');
     };
+
+    if (!selectedStoryId) {
+        return (
+            <div className="p-6 flex flex-col items-center justify-center min-h-[60vh]">
+                <Moon className="w-12 h-12 text-slate-200 mb-4" />
+                <p className="text-slate-400 text-sm">Wähle eine Geschichte aus dem Archiv</p>
+            </div>
+        );
+    }
+
+    if (!story) {
+        return (
+            <div className="p-6 flex flex-col items-center justify-center min-h-[60vh]">
+                <div className="w-16 h-16 rounded-full border-4 border-indigo-200 border-t-indigo-500 animate-spin mb-4" />
+                <p className="text-slate-400 text-sm">Lade Geschichte…</p>
+            </div>
+        );
+    }
 
     return (
         <div className="p-4 sm:p-6 max-w-2xl mx-auto">
@@ -133,10 +146,6 @@ export default function StoryPlayer() {
                 <h1 className="text-xl font-bold text-slate-900">{story.title}</h1>
                 <p className="text-sm text-slate-400 mt-1">{story.chapter_count} Kapitel · {formatTime(story.duration_seconds || 0)}</p>
             </div>
-
-            {/* Audio Element */}
-            {/* src is set imperatively via useEffect to avoid reloads on seek */}
-            <audio ref={audioRef} preload="metadata" />
 
             {/* Progress */}
             <div className="mb-4">
@@ -184,12 +193,8 @@ export default function StoryPlayer() {
                         <div className="mt-2 space-y-3">
                             {story.chapters.map((ch, i) => (
                                 <div key={i} className="p-4 bg-white border-2 border-slate-100 rounded-2xl">
-                                    <h3 className="text-sm font-bold text-slate-700 mb-2">
-                                        Kapitel {i + 1}: {ch.title}
-                                    </h3>
-                                    <p className="text-xs text-slate-500 leading-relaxed whitespace-pre-line">
-                                        {ch.text}
-                                    </p>
+                                    <h3 className="text-sm font-bold text-slate-700 mb-2">Kapitel {i + 1}: {ch.title}</h3>
+                                    <p className="text-xs text-slate-500 leading-relaxed whitespace-pre-line">{ch.text}</p>
                                 </div>
                             ))}
                         </div>

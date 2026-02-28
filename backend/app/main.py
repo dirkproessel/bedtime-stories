@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse, Response
+from pydantic import BaseModel
 
 from app.config import settings
 from app.models import (
