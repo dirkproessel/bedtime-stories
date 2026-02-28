@@ -141,7 +141,7 @@ async def generate_tts_chunk(
             client = OpenAI(api_key=settings.OPENAI_API_KEY)
             
             response = client.audio.speech.create(
-                model="tts-1-hd",
+                model="tts-1",
                 voice=voice_config["id"],
                 input=clean_text,
                 speed=0.95 if rate == "-5%" else 1.0
