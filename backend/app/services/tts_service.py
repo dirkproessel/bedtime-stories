@@ -6,40 +6,44 @@ Generates MP3 chunks per chapter.
 import edge_tts
 from pathlib import Path
 
-# Available Edge TTS German voices (DE, AT, CH)
+# Available Edge TTS German voices (Simplified)
 EDGE_VOICES = {
-    # Deutschland – Multilingual (natürlicher)
-    "seraphina": {"id": "de-DE-SeraphinaMultilingualNeural", "name": "Seraphina", "gender": "female", "accent": "DE", "style": "Multilingual"},
-    "florian": {"id": "de-DE-FlorianMultilingualNeural", "name": "Florian", "gender": "male", "accent": "DE", "style": "Multilingual"},
-    # Deutschland – Standard
-    "amala": {"id": "de-DE-AmalaNeural", "name": "Amala", "gender": "female", "accent": "DE", "style": "Standard"},
-    "conrad": {"id": "de-DE-ConradNeural", "name": "Conrad", "gender": "male", "accent": "DE", "style": "Standard"},
-    "katja": {"id": "de-DE-KatjaNeural", "name": "Katja", "gender": "female", "accent": "DE", "style": "Standard"},
-    "killian": {"id": "de-DE-KillianNeural", "name": "Killian", "gender": "male", "accent": "DE", "style": "Standard"},
-    # Österreich
-    "ingrid": {"id": "de-AT-IngridNeural", "name": "Ingrid", "gender": "female", "accent": "AT", "style": "Österreichisch"},
-    "jonas": {"id": "de-AT-JonasNeural", "name": "Jonas", "gender": "male", "accent": "AT", "style": "Österreichisch"},
-    # Schweiz
-    "leni": {"id": "de-CH-LeniNeural", "name": "Leni", "gender": "female", "accent": "CH", "style": "Schweizerdeutsch"},
-    "jan": {"id": "de-CH-JanNeural", "name": "Jan", "gender": "male", "accent": "CH", "style": "Schweizerdeutsch"},
+    "seraphina": {"id": "de-DE-SeraphinaMultilingualNeural", "name": "Seraphina (Multilingual)", "gender": "female"},
+    "florian": {"id": "de-DE-FlorianMultilingualNeural", "name": "Florian (Multilingual)", "gender": "male"},
 }
 
-DEFAULT_VOICE = "katja"
+# Google Cloud TTS Neural2 voices
+GOOGLE_VOICES = {
+    "neural_g": {"id": "de-DE-Neural2-G", "name": "Neural (G) - Weiblich", "gender": "female"},
+    "neural_h": {"id": "de-DE-Neural2-H", "name": "Neural (H) - Männlich", "gender": "male"},
+}
+
+DEFAULT_VOICE = "seraphina"
 
 
 def get_available_voices() -> list[dict]:
     """Return list of available voice profiles."""
-    return [
-        {
+    voices = []
+    
+    # Edge Voices
+    for key, v in EDGE_VOICES.items():
+        voices.append({
             "key": key,
             "name": v["name"],
             "gender": v["gender"],
             "engine": "edge",
-            "accent": v.get("accent", "DE"),
-            "style": v.get("style", "Standard"),
-        }
-        for key, v in EDGE_VOICES.items()
-    ]
+        })
+        
+    # Google Voices
+    for key, v in GOOGLE_VOICES.items():
+        voices.append({
+            "key": key,
+            "name": v["name"],
+            "gender": v["gender"],
+            "engine": "google",
+        })
+        
+    return voices
 
 
 async def generate_tts_chunk(
@@ -50,24 +54,64 @@ async def generate_tts_chunk(
 ) -> Path:
     """
     Convert text to speech and save as MP3.
+    Supports both Edge TTS and Google Cloud TTS.
     """
     import logging
     logger = logging.getLogger(__name__)
 
-    voice = EDGE_VOICES.get(voice_key, EDGE_VOICES[DEFAULT_VOICE])
-    logger.info(f"TTS: Generating audio with voice {voice['id']} -> {output_path}")
+    # Determine which engine to use
+    if voice_key in GOOGLE_VOICES:
+        voice_config = GOOGLE_VOICES[voice_key]
+        engine = "google"
+    else:
+        voice_config = EDGE_VOICES.get(voice_key, EDGE_VOICES[DEFAULT_VOICE])
+        engine = "edge"
 
-    # Cleanup text: remove markdown formatting that TTS might read literally
-    # e.g. *sehr* -> sehr
+    logger.info(f"TTS: Generating audio with {engine} voice {voice_config['id']} -> {output_path}")
+
+    # Cleanup text: remove markdown formatting
     clean_text = text.replace("*", "").replace("_", "").replace("#", "")
 
     try:
-        communicate = edge_tts.Communicate(
-            text=clean_text,
-            voice=voice["id"],
-            rate=rate,
-        )
-        await communicate.save(str(output_path))
+        if engine == "edge":
+            # Edge TTS (Free)
+            communicate = edge_tts.Communicate(
+                text=clean_text,
+                voice=voice_config["id"],
+                rate=rate,
+            )
+            await communicate.save(str(output_path))
+        else:
+            # Google Cloud TTS (Paid/Premium)
+            from google.cloud import texttospeech
+            
+            # Initialize client with API Key from settings
+            client = texttospeech.TextToSpeechClient(
+                client_options={"api_key": settings.GEMINI_API_KEY}
+            )
+            
+            synthesis_input = texttospeech.SynthesisInput(text=clean_text)
+            
+            # Select the voice
+            voice = texttospeech.VoiceSelectionParams(
+                language_code="de-DE",
+                name=voice_config["id"]
+            )
+            
+            # Select the type of audio file you want returned
+            audio_config = texttospeech.AudioConfig(
+                audio_encoding=texttospeech.AudioEncoding.MP3,
+                # Mapping edge rate percentage to google rate (0.25 to 4.0)
+                # "-5%" -> 0.95
+                speaking_rate=0.95 if rate == "-5%" else 1.0
+            )
+            
+            response = client.synthesize_speech(
+                input=synthesis_input, voice=voice, audio_config=audio_config
+            )
+            
+            with open(output_path, "wb") as out:
+                out.write(response.audio_content)
 
         # Verify file was created and has content
         if not output_path.exists() or output_path.stat().st_size == 0:

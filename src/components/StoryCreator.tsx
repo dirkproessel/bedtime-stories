@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { useStore } from '../store/useStore';
 import { getVoicePreviewUrl, type GenerationStatus } from '../lib/api';
-import { Sparkles, Mic, MicOff, Play, Pause, BookOpen, Wand2, MessageSquareText } from 'lucide-react';
+import { Sparkles, Mic, MicOff, Play, Pause, BookOpen, Wand2, MessageSquareText, User, Check } from 'lucide-react';
 
 const THEMES = [
     { value: 'abenteuer', label: '🗺️ Abenteuer' },
@@ -286,25 +286,34 @@ export default function StoryCreator() {
                         >
                             <div className="flex items-center justify-between gap-2">
                                 <div className="min-w-0">
-                                    <div className="flex items-center gap-1.5 mb-0.5">
-                                        <div className={`text-sm font-bold truncate ${voiceKey === v.key ? 'text-indigo-700' : 'text-slate-700'}`}>{v.name}</div>
-                                        <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-500 font-bold uppercase shrink-0">
-                                            {v.accent === 'AT' ? '🇦🇹 AT' : v.accent === 'CH' ? '🇨🇭 CH' : '🇩🇪 DE'}
-                                        </span>
-                                    </div>
-                                    <div className={`text-[10px] font-medium truncate ${voiceKey === v.key ? 'text-indigo-500' : 'text-slate-400'}`}>
-                                        {v.gender === 'female' ? '♀ Weiblich' : '♂ Männlich'} · {v.style}
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
+                                            {v.gender === 'female' ? <User className="w-4 h-4" /> : <User className="w-4 h-4" />}
+                                        </div>
+                                        <div className="text-left">
+                                            <div className={`font-medium truncate ${voiceKey === v.key ? 'text-indigo-700' : 'text-slate-700'}`}>{v.name}</div>
+                                            <div className="text-xs text-slate-500 uppercase tracking-wider">
+                                                {v.engine === 'google' ? 'Premium Neural' : 'Standard'}
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); handlePreviewVoice(v.key); }}
-                                    className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all ${previewVoice === v.key
-                                        ? 'bg-indigo-500 text-white'
-                                        : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
-                                        }`}
-                                >
-                                    {previewVoice === v.key ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 ml-0.5" />}
-                                </button>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); handlePreviewVoice(v.key); }}
+                                        className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all ${previewVoice === v.key
+                                            ? 'bg-indigo-500 text-white'
+                                            : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
+                                            }`}
+                                    >
+                                        {previewVoice === v.key ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 ml-0.5" />}
+                                    </button>
+                                    {voiceKey === v.key && (
+                                        <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center">
+                                            <Check className="w-3.5 h-3.5 text-indigo-600" />
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     ))}
