@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { useStore } from '../store/useStore';
 import { getVoicePreviewUrl, type GenerationStatus } from '../lib/api';
-import { Sparkles, Mic, MicOff, Play, Pause, BookOpen, Wand2, MessageSquareText, User, Check } from 'lucide-react';
+import { Sparkles, Mic, MicOff, Play, Pause, BookOpen, Wand2, MessageSquareText, Venus, Mars, Users, Check } from 'lucide-react';
 
 const THEMES = [
     { value: 'abenteuer', label: '🗺️ Abenteuer' },
@@ -278,46 +278,51 @@ export default function StoryCreator() {
                     {voices.map(v => (
                         <div
                             key={v.key}
-                            className={`relative p-3 rounded-xl transition-all border-2 cursor-pointer ${voiceKey === v.key
-                                ? 'border-indigo-500 bg-indigo-50'
-                                : 'border-slate-100 bg-white hover:border-slate-200'
+                            className={`p-3 rounded-xl transition-all border-2 cursor-pointer ${voiceKey === v.key
+                                ? 'border-indigo-500 bg-indigo-50 shadow-sm'
+                                : 'border-slate-100 bg-white text-slate-600 hover:border-slate-200'
                                 }`}
                             onClick={() => setVoiceKey(v.key)}
                         >
-                            <div className="flex items-center justify-between gap-2">
-                                <div className="min-w-0">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
-                                            {v.gender === 'female' ? <User className="w-4 h-4" /> : <User className="w-4 h-4" />}
-                                        </div>
-                                        <div className="text-left">
-                                            <div className={`font-medium truncate ${voiceKey === v.key ? 'text-indigo-700' : 'text-slate-700'}`}>{v.name}</div>
-                                            <div className="text-xs text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-                                                <span>
-                                                    {v.engine === 'openai' ? 'First' :
-                                                        v.engine === 'google' ? 'Business' : 'Economy'}
-                                                </span>
-                                                <span className="text-slate-300">•</span>
-                                                <span>{v.gender === 'female' ? 'Weiblich' : v.gender === 'male' ? 'Männlich' : 'Neutral'}</span>
+                            <div className="flex flex-col gap-3">
+                                <div className="flex items-center justify-between">
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${voiceKey === v.key ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-50 text-slate-400'}`}>
+                                        {v.gender === 'female' ? <Venus className="w-4 h-4" /> :
+                                            v.gender === 'male' ? <Mars className="w-4 h-4" /> : <Users className="w-4 h-4" />}
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); handlePreviewVoice(v.key); }}
+                                            className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${previewVoice === v.key
+                                                ? 'bg-indigo-500 text-white'
+                                                : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
+                                                }`}
+                                        >
+                                            {previewVoice === v.key ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 ml-0.5" />}
+                                        </button>
+                                        {voiceKey === v.key && (
+                                            <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center">
+                                                <Check className="w-3.5 h-3.5 text-indigo-600" />
                                             </div>
-                                        </div>
+                                        )}
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <button
-                                        onClick={(e) => { e.stopPropagation(); handlePreviewVoice(v.key); }}
-                                        className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all ${previewVoice === v.key
-                                            ? 'bg-indigo-500 text-white'
-                                            : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
-                                            }`}
-                                    >
-                                        {previewVoice === v.key ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 ml-0.5" />}
-                                    </button>
-                                    {voiceKey === v.key && (
-                                        <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center">
-                                            <Check className="w-3.5 h-3.5 text-indigo-600" />
-                                        </div>
-                                    )}
+                                <div className="text-left">
+                                    <div className={`text-sm font-bold truncate ${voiceKey === v.key ? 'text-indigo-700' : 'text-slate-700'}`}>
+                                        {v.name}
+                                    </div>
+                                    <div className="text-[10px] uppercase tracking-wider flex items-center gap-1.5 mt-0.5">
+                                        <span className={`font-semibold ${v.engine === 'openai' ? 'text-purple-600' :
+                                                v.engine === 'google' ? 'text-blue-600' : 'text-slate-500'
+                                            }`}>
+                                            {v.engine === 'openai' ? 'Premium ($)' :
+                                                v.engine === 'google' ? 'Standard+' : 'Standard'}
+                                        </span>
+                                        <span className="text-slate-300">•</span>
+                                        <span className="text-slate-400">
+                                            {v.gender === 'female' ? 'Weiblich' : v.gender === 'male' ? 'Männlich' : 'Neutral'}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
