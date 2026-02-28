@@ -10,15 +10,15 @@ genai.configure(api_key=settings.GEMINI_API_KEY)
 
 MODEL = "gemini-2.5-flash"
 
-SYSTEM_PROMPT = """Du bist ein kreativer Geschichtenerzähler für Gute-Nacht-Geschichten.
+SYSTEM_PROMPT = """Du bist ein erstklassiger, kreativer Geschichtenerzähler für Kinderhörbücher.
 Deine Geschichten sind:
-- Beruhigend und positiv
-- Altersgerecht und fantasievoll
-- Mit klarer Struktur (Einleitung, Hauptteil, Ende)
-- In einfacher, bildreicher Sprache geschrieben
-- Geeignet zum Vorlesen / Anhören vor dem Schlafen
+- Beruhigend, positiv und fantasievoll.
+- Absolut frei von Emojis oder Icons in Titeln und Beschreibungen.
+- Kreativ betitelt: Vermeide Standard-Titel wie "Das Geheimnis von..." oder "Der magische...". Sei originell und poetisch.
+- Sprachlich hochwertig: Vermeide typische "KI-Floskeln". Erzähle lebendig und bildhaft.
+- Strukturiert: Einleitung, spannender Mittelteil, sanftes Ende.
 
-Schreibe immer auf Deutsch, es sei denn anders angegeben."""
+WICHTIG: Nutze NIEMALS Emojis (wie 🌙, ✨, 🧸) in Titeln oder Beschreibungen."""
 
 
 async def generate_outline(
@@ -27,7 +27,7 @@ async def generate_outline(
     characters: list[str] | None = None,
     target_minutes: int = 20,
 ) -> dict:
-    """Generate a story outline with chapter structure."""
+    """Generate a story outline with chapter structure and synopsis."""
 
     # ~150 words per minute spoken → target word count
     target_words = target_minutes * 150
@@ -37,21 +37,25 @@ async def generate_outline(
     if characters:
         char_text = f"\nHauptcharaktere: {', '.join(characters)}"
 
-    user_prompt = f"""Erstelle eine Gliederung für eine Gute-Nacht-Geschichte.
-
+    user_prompt = f"""Erstelle eine Gliederung für eine neue Geschichte.
 Thema/Plot: {prompt}
 Stil: {style}{char_text}
 Ziel-Länge: ~{target_words} Wörter ({target_minutes} Minuten Hörzeit)
-Anzahl Kapitel: {num_chapters}
 
-Antworte NUR im folgenden JSON-Format (keine Markdown-Codeblöcke):
+Aufgaben:
+1. Erfinde einen kreativen, packenden Titel (KEINE Emojis, KEINE Standard-Phrasen).
+2. Schreibe eine spannende Zusammenfassung (Synopsis) der Geschichte (4-5 Sätze), die Lust aufs Hören macht. Keine Icons verwenden.
+3. Erstelle eine Kapitelstruktur ({num_chapters} Kapitel).
+
+Antworte NUR im folgenden JSON-Format:
 {{
-    "title": "Titel der Geschichte",
+    "title": "Kreativer Titel ohne Icons",
+    "synopsis": "Einladende Zusammenfassung (4-5 Sätze) ohne Icons.",
     "chapters": [
         {{
             "number": 1,
             "title": "Kapiteltitel",
-            "summary": "2-3 Sätze was in diesem Kapitel passiert",
+            "summary": "Was passiert hier?",
             "target_words": 500
         }}
     ]
@@ -148,5 +152,6 @@ async def generate_full_story(
 
     return {
         "title": outline["title"],
+        "synopsis": outline.get("synopsis", ""),
         "chapters": chapters_text,
     }

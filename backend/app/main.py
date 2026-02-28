@@ -235,7 +235,7 @@ async def _run_pipeline(
         story_meta = {
             "id": story_id,
             "title": story_data["title"],
-            "description": f"Geschichte: {prompt}",
+            "description": story_data.get("synopsis", f"Geschichte: {prompt}"),
             "prompt": prompt,
             "style": style,
             "voice_key": voice_key,

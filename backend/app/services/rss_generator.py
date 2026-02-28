@@ -30,7 +30,7 @@ def generate_rss_feed(
     fg.load_extension("podcast")
 
     # Feed metadata
-    fg.title("🌙 Abenteuer aus der Hosentasche")
+    fg.title("Abenteuer aus der Hosentasche")
     fg.link(href=base_url, rel="alternate")
     fg.description("Alles, was zu groß für den Alltag ist, passt perfekt in diese Hosentasche. Die Sektion Unfug liefert echte Abenteuer zwischen Küchentresen und Sternenhimmel: ohne Kitsch, dafür als idealer Abschluss für den Tag und eine himmlisch gute Nacht.")
     fg.language("de-DE")
