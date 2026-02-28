@@ -138,9 +138,12 @@ async def generate_tts_chunk(
                 out.write(response.audio_content)
         elif engine == "openai":
             # Direct OpenAI TTS API call via httpx to avoid library version/proxy issues
+            if not settings.OPENAI_API_KEY:
+                raise ValueError("OpenAI API Key is missing. Please set OPENAI_API_KEY in the environment.")
+            
             import httpx
             headers = {
-                "Authorization": f"Bearer {settings.OPENAI_API_KEY}",
+                "Authorization": f"Bearer {settings.OPENAI_API_KEY.strip()}",
                 "Content-Type": "application/json",
             }
             payload = {
