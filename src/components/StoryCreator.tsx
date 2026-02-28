@@ -122,7 +122,7 @@ export default function StoryCreator() {
                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 mb-4 shadow-lg shadow-indigo-500/25">
                     <BookOpen className="w-8 h-8 text-white" />
                 </div>
-                <h1 className="text-2xl font-bold text-slate-900">Neue Geschichte</h1>
+                <h1 className="text-2xl font-bold text-slate-900">Abenteuer aus der Hosentasche</h1>
                 <p className="text-slate-500 mt-1">Erstelle eine einzigartige Gute-Nacht-Geschichte</p>
             </div>
 
