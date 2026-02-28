@@ -14,14 +14,14 @@ class StoryRequest(BaseModel):
     style: str = "märchenhaft"
     characters: list[str] | None = None
     target_minutes: int = 20
-    voice_key: str = "katja"
+    voice_key: str = "seraphina"
     speech_rate: str = "-5%"
 
 
 class FreeTextRequest(BaseModel):
     """Free text prompt for story generation."""
     text: str
-    voice_key: str = "katja"
+    voice_key: str = "seraphina"
     target_minutes: int = 20
     speech_rate: str = "-5%"
 

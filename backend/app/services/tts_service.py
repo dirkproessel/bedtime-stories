@@ -123,9 +123,27 @@ async def generate_tts_chunk(
             
             # Select the type of audio file you want returned
             # Select the type of audio file you want returned
+            # Convert rate string like "-5%" to a float speaking_rate
+            # 1.0 is default, 0.95 is 5% slower
+            try:
+                if rate.startswith("-") and rate.endswith("%"):
+                    val = int(rate[1:-1])
+                    speaking_rate = 1.0 - (val / 100.0)
+                elif rate.startswith("+") and rate.endswith("%"):
+                    val = int(rate[1:-1])
+                    speaking_rate = 1.0 + (val / 100.0)
+                else:
+                    speaking_rate = 0.95 if rate == "-5%" else 1.0
+            except:
+                speaking_rate = 0.95 if rate == "-5%" else 1.0
+
+            # Percy (Neural2-H) adjustment: Make him specifically slower as requested
+            if voice_key == "percy":
+                speaking_rate *= 0.92  # Additional 8% slower than the requested base rate
+
             audio_config = texttospeech.AudioConfig(
                 audio_encoding=texttospeech.AudioEncoding.MP3,
-                speaking_rate=0.95 if rate == "-5%" else 1.0,
+                speaking_rate=speaking_rate,
                 # Eliza (Neural2-G) slightly deeper if requested
                 pitch=-1.5 if voice_key == "eliza" else 0.0
             )

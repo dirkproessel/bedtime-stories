@@ -37,7 +37,7 @@ export default function StoryCreator() {
     const [style, setStyle] = useState('märchenhaft');
     const [characters, setCharacters] = useState('');
     const [targetMinutes, setTargetMinutes] = useState(20);
-    const [voiceKey, setVoiceKey] = useState('katja');
+    const [voiceKey, setVoiceKey] = useState('seraphina');
 
     // Free mode state
     const [freeText, setFreeText] = useState('');
@@ -297,7 +297,7 @@ export default function StoryCreator() {
                                         {v.name}
                                     </div>
                                     <div className={`text-[10px] font-semibold uppercase tracking-wider ${v.engine === 'openai' ? 'text-purple-600' :
-                                            v.engine === 'google' ? 'text-blue-600' : 'text-slate-400'
+                                        v.engine === 'google' ? 'text-blue-600' : 'text-slate-400'
                                         }`}>
                                         {v.engine === 'openai' ? 'Premium ($)' :
                                             v.engine === 'google' ? 'Standard+' : 'Standard'}
