@@ -137,17 +137,28 @@ async def generate_tts_chunk(
             with open(output_path, "wb") as out:
                 out.write(response.audio_content)
         elif engine == "openai":
-            # OpenAI TTS - Refactored for better compatibility
-            import openai
-            client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
+            # Direct OpenAI TTS API call via httpx to avoid library version/proxy issues
+            import httpx
+            headers = {
+                "Authorization": f"Bearer {settings.OPENAI_API_KEY}",
+                "Content-Type": "application/json",
+            }
+            payload = {
+                "model": "tts-1",
+                "input": clean_text,
+                "voice": voice_config["id"],
+                "speed": 0.95 if rate == "-5%" else 1.0,
+            }
             
-            with client.audio.speech.with_streaming_response.create(
-                model="tts-1",
-                voice=voice_config["id"],
-                input=clean_text,
-                speed=0.95 if rate == "-5%" else 1.0
-            ) as response:
-                response.stream_to_file(output_path)
+            with httpx.Client(timeout=60.0) as client:
+                response = client.post(
+                    "https://api.openai.com/v1/audio/speech",
+                    headers=headers,
+                    json=payload
+                )
+                response.raise_for_status()
+                with open(output_path, "wb") as out:
+                    out.write(response.content)
 
         # Verify file was created and has content
         if not output_path.exists() or output_path.stat().st_size == 0:
