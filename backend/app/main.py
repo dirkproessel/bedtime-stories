@@ -195,7 +195,7 @@ async def _run_pipeline(
     # Initial record creation
     story_meta = StoryMeta(
         id=story_id,
-        title="Generierung läuft...",
+        title=f"Schreibe '{style}'-Geschichte ({target_minutes} Min)...",
         description=f"Idee: {(original_prompt or prompt)[:100]}...",
         prompt=original_prompt or prompt,
         genre=genre,
@@ -211,14 +211,19 @@ async def _run_pipeline(
     )
     store.add_story(story_meta)
 
-    async def on_progress(status_type: str, message: str):
+    async def on_progress(status_type: str, message: str, pct: int | None = None):
         _generation_status[story_id]["status"] = status_type
         _generation_status[story_id]["progress"] = message
+        if pct is not None:
+            _generation_status[story_id]["progress_pct"] = pct
+        
         # Also update persistent store
         curr = store.get_by_id(story_id)
         if curr:
             curr.status = "generating" if status_type != "done" and status_type != "error" else status_type
             curr.progress = message
+            if pct is not None:
+                curr.progress_pct = pct
             store.add_story(curr)
 
     try:
@@ -249,7 +254,7 @@ async def _run_pipeline(
         )
 
         # Step 2: TTS – chapters to audio
-        await on_progress("generating_audio", "Starte Vertonung...")
+        await on_progress("generating_audio", "Bereite Vertonung vor...", 30)
         chunks_dir = story_dir / "chunks"
         audio_files = await chapters_to_audio(
             chapters=story_data["chapters"],
@@ -260,7 +265,7 @@ async def _run_pipeline(
         )
 
         # Step 2.5: Generate title audio
-        await on_progress("generating_audio", "Vertone Titel...")
+        await on_progress("generating_audio", "Vertone Titel...", 80)
         title_tts_path = chunks_dir / "title.mp3"
         await generate_tts_chunk(
             text=story_data["title"],
@@ -270,7 +275,7 @@ async def _run_pipeline(
         )
 
         # Step 4: Merge and Post-process
-        await on_progress("processing", "Mische Audio-Spuren und optimiere Klang...")
+        await on_progress("processing", "Mische Audio-Spuren und optimiere Klang...", 85)
         final_audio_path = story_dir / "story.mp3"
         await merge_audio_files(
             audio_files=audio_files,
@@ -284,7 +289,7 @@ async def _run_pipeline(
         duration = await get_audio_duration(final_audio_path)
 
         # Step 3.5: Generate story image
-        await on_progress("processing", "Generiere Titelbild...")
+        await on_progress("processing", "Generiere Titelbild...", 95)
         image_path = story_dir / "cover.png"
         image_url = None
         try:
@@ -297,6 +302,10 @@ async def _run_pipeline(
         except Exception as e:
             logger.error(f"Failed to call generate_story_image for {story_id}: {e}", exc_info=True)
 
+        # Calculate word count
+        total_text = "\n".join([c["text"] for c in story_data["chapters"]])
+        word_count = len(total_text.split())
+
         # Step 4: Finalize metadata
         story_meta = store.get_by_id(story_id)
         if story_meta:
@@ -304,10 +313,12 @@ async def _run_pipeline(
             story_meta.description = story_data.get("synopsis", story_meta.description)
             story_meta.duration_seconds = duration
             story_meta.chapter_count = len(story_data["chapters"])
+            story_meta.word_count = word_count
             story_meta.image_url = image_url
             story_meta.voice_name = voice_name
             story_meta.status = "done"
             story_meta.progress = "Fertig! Geschichte bereit zum Anhören."
+            story_meta.progress_pct = 100
             store.add_story(story_meta)
 
     except Exception as e:

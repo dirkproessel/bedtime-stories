@@ -48,6 +48,7 @@ class StoryStatus(BaseModel):
     id: str
     status: str  # "generating_text" | "generating_audio" | "processing" | "done" | "error"
     progress: str  # Human-readable progress message
+    progress_pct: int = 0
     title: str | None = None
 
 
@@ -62,10 +63,13 @@ class StoryMeta(BaseModel):
     voice_name: str | None = None
     duration_seconds: float | None = None
     chapter_count: int
+    word_count: int | None = None
+    word_count: int | None = None
     is_on_spotify: bool = False
     image_url: str | None = None
     status: str = "done"  # "generating", "done", "error"
     progress: str | None = None
+    progress_pct: int = 0
     created_at: datetime
 
 

@@ -234,7 +234,7 @@ export default function StoryCreator() {
 
                                 {/* Name & Quality Center */}
                                 <div className="flex-1 min-w-0 text-left">
-                                    <div className={`text-sm font-bold truncate ${voiceKey === v.key ? 'text-indigo-700' : 'text-slate-700'}`}>
+                                    <div className={`text-sm font-bold truncate capitalize ${voiceKey === v.key ? 'text-indigo-700' : 'text-slate-700'}`}>
                                         {v.name}
                                     </div>
                                     <div className={`text-xs ${voiceKey === v.key ? 'text-indigo-500' : 'text-slate-400'}`}>
@@ -260,14 +260,21 @@ export default function StoryCreator() {
                 <audio ref={audioRef} className="hidden" />
             </div>
 
-            {/* Generate Button */}
-            <button
-                onClick={handleGenerate}
-                className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg shadow-indigo-200 hover:shadow-xl hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2"
-            >
-                <Sparkles className="w-6 h-6" />
-                Geschichte jetzt schreiben
-            </button>
+            {/* Sticky Generate Button Container */}
+            <div className="fixed bottom-[72px] left-0 right-0 p-4 bg-gradient-to-t from-slate-50/90 to-transparent backdrop-blur-sm z-40 max-w-2xl mx-auto pointer-events-none">
+                <div className="pointer-events-auto">
+                    <button
+                        onClick={handleGenerate}
+                        className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg shadow-indigo-200 hover:shadow-xl hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2"
+                    >
+                        <Sparkles className="w-6 h-6" />
+                        Geschichte jetzt schreiben
+                    </button>
+                </div>
+            </div>
+
+            {/* Bottom Spacer to prevent content from being hidden behind sticky button */}
+            <div className="h-32" />
         </div>
     );
 }

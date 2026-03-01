@@ -91,9 +91,22 @@ export default function StoryArchive() {
                                             </h3>
 
                                             {story.status === 'generating' ? (
-                                                <div className="mt-2 flex items-center gap-2 px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-medium w-fit animate-pulse">
-                                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                                    {story.progress || 'Wird erstellt...'}
+                                                <div className="mt-3 space-y-2 w-full">
+                                                    <div className="flex justify-between items-end">
+                                                        <div className="flex items-center gap-2 text-indigo-600 text-xs font-semibold animate-pulse">
+                                                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                                            {story.progress || 'Wird erstellt...'}
+                                                        </div>
+                                                        <span className="text-[10px] font-bold text-indigo-400 bg-indigo-50 px-1.5 py-0.5 rounded-md">
+                                                            {story.progress_pct || 0}%
+                                                        </span>
+                                                    </div>
+                                                    <div className="w-full h-1.5 bg-indigo-50 rounded-full overflow-hidden border border-indigo-100/50">
+                                                        <div
+                                                            className="h-full bg-gradient-to-r from-indigo-400 to-purple-500 transition-all duration-500 ease-out"
+                                                            style={{ width: `${story.progress_pct || 0}%` }}
+                                                        />
+                                                    </div>
                                                 </div>
                                             ) : story.status === 'error' ? (
                                                 <div className="mt-2 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-xs font-medium w-fit border border-red-100 italic">
@@ -122,7 +135,9 @@ export default function StoryArchive() {
                                                         </div>
                                                         <div className="flex flex-col">
                                                             <span className="text-[9px] uppercase font-bold text-slate-400">Stimme</span>
-                                                            <span className="text-[11px] text-slate-600 truncate font-semibold">{story.voice_name || story.voice_key}</span>
+                                                            <span className="text-[11px] text-slate-600 truncate font-semibold capitalize">
+                                                                {story.voice_name || story.voice_key}
+                                                            </span>
                                                         </div>
                                                         <div className="flex flex-col">
                                                             <span className="text-[9px] uppercase font-bold text-slate-400">Dauer</span>
@@ -134,7 +149,7 @@ export default function StoryArchive() {
                                                     <div className="flex items-center gap-3 text-[10px] text-slate-400 pt-1">
                                                         <span className="flex items-center gap-1">
                                                             <BookOpen className="w-3 h-3" />
-                                                            {story.chapter_count} Kapitel
+                                                            {story.word_count ? `${story.word_count} Worte` : `${story.chapter_count} Kapitel`}
                                                         </span>
                                                         <span className="flex items-center gap-1">
                                                             <Calendar className="w-3 h-3" />

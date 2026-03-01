@@ -113,41 +113,66 @@ async def generate_tts_chunk(
                 client_options={"api_key": settings.GEMINI_API_KEY}
             )
             
-            synthesis_input = texttospeech.SynthesisInput(text=clean_text)
-            
-            # Select the voice
-            voice = texttospeech.VoiceSelectionParams(
-                language_code="de-DE",
-                name=voice_config["id"]
-            )
-            
-            try:
-                if rate.startswith("-") and rate.endswith("%"):
-                    val = int(rate[1:-1])
-                    speaking_rate = 1.0 - (val / 100.0)
-                elif rate.startswith("+") and rate.endswith("%"):
-                    val = int(rate[1:-1])
-                    speaking_rate = 1.0 + (val / 100.0)
-                else:
+            # Split text into chunks < 5000 bytes (safety margin at 4500)
+            def split_text(t, max_bytes=4500):
+                chunks = []
+                current_chunk = ""
+                # Split by sentences (rough approximation)
+                sentences = t.replace("\n", " ").split(". ")
+                for s in sentences:
+                    test_chunk = (current_chunk + ". " + s).strip() if current_chunk else s
+                    if len(test_chunk.encode("utf-8")) > max_bytes:
+                        if current_chunk:
+                            chunks.append(current_chunk)
+                        current_chunk = s
+                    else:
+                        current_chunk = test_chunk
+                if current_chunk:
+                    chunks.append(current_chunk)
+                return chunks
+
+            text_chunks = split_text(clean_text)
+            audio_contents = []
+
+            for i, chunk in enumerate(text_chunks):
+                logger.info(f"TTS Google: Processing chunk {i+1}/{len(text_chunks)} ({len(chunk.encode('utf-8'))} bytes)")
+                synthesis_input = texttospeech.SynthesisInput(text=chunk)
+                
+                # Select the voice
+                voice = texttospeech.VoiceSelectionParams(
+                    language_code="de-DE",
+                    name=voice_config["id"]
+                )
+                
+                try:
+                    if rate.startswith("-") and rate.endswith("%"):
+                        val = int(rate[1:-1])
+                        speaking_rate = 1.0 - (val / 100.0)
+                    elif rate.startswith("+") and rate.endswith("%"):
+                        val = int(rate[1:-1])
+                        speaking_rate = 1.0 + (val / 100.0)
+                    else:
+                        speaking_rate = 0.95 if rate == "-5%" else 1.0
+                except:
                     speaking_rate = 0.95 if rate == "-5%" else 1.0
-            except:
-                speaking_rate = 0.95 if rate == "-5%" else 1.0
 
-            if voice_key == "percy":
-                speaking_rate *= 0.92
+                if voice_key == "percy":
+                    speaking_rate *= 0.92
 
-            audio_config = texttospeech.AudioConfig(
-                audio_encoding=texttospeech.AudioEncoding.MP3,
-                speaking_rate=speaking_rate,
-                pitch=-1.5 if voice_key == "eliza" else 0.0
-            )
-            
-            response = await client.synthesize_speech(
-                input=synthesis_input, voice=voice, audio_config=audio_config
-            )
+                audio_config = texttospeech.AudioConfig(
+                    audio_encoding=texttospeech.AudioEncoding.MP3,
+                    speaking_rate=speaking_rate,
+                    pitch=-1.5 if voice_key == "eliza" else 0.0
+                )
+                
+                response = await client.synthesize_speech(
+                    input=synthesis_input, voice=voice, audio_config=audio_config
+                )
+                audio_contents.append(response.audio_content)
             
             with open(output_path, "wb") as out:
-                out.write(response.audio_content)
+                for content in audio_contents:
+                    out.write(content)
         elif engine == "openai":
             if not settings.OPENAI_API_KEY:
                 raise ValueError("OpenAI API Key is missing.")
@@ -227,9 +252,12 @@ async def chapters_to_audio(
 
     for i, chapter in enumerate(chapters):
         if on_progress:
+            # TTS is 30% to 80%
+            pct = 30 + int((i / len(chapters)) * 50)
             await on_progress(
                 "tts",
                 f"Vertone Kapitel {i + 1}/{len(chapters)}: {chapter['title']}",
+                pct
             )
 
         filename = f"chapter_{i + 1:02d}.mp3"

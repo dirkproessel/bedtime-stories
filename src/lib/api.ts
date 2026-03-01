@@ -23,10 +23,12 @@ export interface StoryMeta {
     voice_key: string;
     duration_seconds: number | null;
     chapter_count: number;
+    word_count?: number;
     image_url: string | null;
     is_on_spotify: boolean;
     status: 'generating' | 'done' | 'error';
     progress?: string;
+    progress_pct?: number;
     voice_name?: string;
     created_at: string;
 }

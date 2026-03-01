@@ -39,7 +39,7 @@ async def generate_full_story(
     style: str = "Douglas Adams",
     characters: list[str] | None = None,
     target_minutes: int = 20,
-    on_progress: callable = None,
+    on_progress: callable = None, # on_progress(status_type, message, pct)
 ) -> dict:
     """
     Generate a complete story. 
@@ -77,7 +77,7 @@ Antworte EXKLUSIV im JSON-Format:
 }}"""
 
     if on_progress:
-        await on_progress("generating_text", f"Schreibe '{style}'-Geschichte ({target_minutes} Min)...")
+        await on_progress("generating_text", f"Schreibe '{style}'-Geschichte ({target_minutes} Min)...", 5)
 
     import asyncio
     response = await asyncio.to_thread(
@@ -131,7 +131,7 @@ async def _generate_multi_pass(prompt, genre, style, characters, target_minutes,
     words_per_segment = total_words // num_segments
 
     if on_progress:
-        await on_progress("generating_text", f"Plane '{style}'-Epos ({target_minutes} Min, {num_segments} Akte)...")
+        await on_progress("generating_text", f"Plane '{style}'-Epos ({target_minutes} Min, {num_segments} Akte)...", 2)
 
     # Step 1: Generate Outline
     outline_prompt = f"""Erstelle eine detaillierte Gliederung für eine {target_minutes}-minütige Kurzgeschichte.
@@ -182,7 +182,8 @@ Antworte NUR im JSON-Format:
     # Step 2: Iterative Writing
     for i, seg in enumerate(segments):
         if on_progress:
-            await on_progress("generating_text", f"Schreibe Teil {i+1} von {num_segments}: {seg['title']}...")
+            pct = 5 + int((i / num_segments) * 25) # Up to 30%
+            await on_progress("generating_text", f"Schreibe Teil {i+1}/{num_segments}: {seg['title']}...", pct)
             
         context = f"Bisheriger Text: {full_story_text[-1000:]}" if full_story_text else "Beginn der Geschichte."
         
