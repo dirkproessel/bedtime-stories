@@ -23,6 +23,22 @@ from pathlib import Path
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Log buffer for remote debugging
+class LogBufferHandler(logging.Handler):
+    def __init__(self, capacity=100):
+        super().__init__()
+        self.capacity = capacity
+        self.buffer = []
+
+    def emit(self, record):
+        self.buffer.append(self.format(record))
+        if len(self.buffer) > self.capacity:
+            self.buffer.pop(0)
+
+log_buffer = LogBufferHandler()
+log_buffer.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+logging.getLogger().addHandler(log_buffer)
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse, Response
@@ -413,7 +429,7 @@ async def health():
     import os
     return {
         "status": "ok", 
-        "version": "1.3.1",
+        "version": "1.3.2",
         "build": "final-001",
         "worker_pid": os.getpid(),
         "store_path": str(store.db_path.absolute()),
@@ -429,3 +445,9 @@ async def debug_store():
         "count": len(stories),
         "stories": [s.model_dump(mode="json") for s in stories]
     }
+
+
+@app.get("/api/debug/logs")
+async def get_debug_logs():
+    """Return the last 100 log lines."""
+    return {"logs": log_buffer.buffer}
