@@ -4,14 +4,14 @@ import { getVoicePreviewUrl, type GenerationStatus } from '../lib/api';
 import { Sparkles, Mic, MicOff, Play, Pause, BookOpen, Venus, Mars, Users } from 'lucide-react';
 
 const GENRES = [
-    { value: 'Sci-Fi', label: 'Sci-Fi' },
-    { value: 'Fantasy', label: 'Fantasy' },
-    { value: 'Krimi', label: 'Krimi' },
-    { value: 'Abenteuer', label: 'Abenteuer' },
-    { value: 'Realismus', label: 'Realismus' },
-    { value: 'Grusel', label: 'Grusel' },
-    { value: 'Dystopie', label: 'Dystopie' },
-    { value: 'Satire', label: 'Satire' },
+    { value: 'Sci-Fi', label: 'Sci-Fi', desc: 'Technoid, philosophisch, glitchy' },
+    { value: 'Fantasy', label: 'Fantasy', desc: 'Mythisch, episch, jenseits' },
+    { value: 'Krimi', label: 'Krimi', desc: 'Düster, logisch, abgründig' },
+    { value: 'Abenteuer', label: 'Abenteuer', desc: 'Wagemutig, fern, heroisch' },
+    { value: 'Realismus', label: 'Realismus', desc: 'Nah, direkt, ungeschönt' },
+    { value: 'Grusel', label: 'Grusel', desc: 'Beklemmend, unheimlich, occult' },
+    { value: 'Dystopie', label: 'Dystopie', desc: 'Hoffnungslos, grau, systemisch' },
+    { value: 'Satire', label: 'Satire', desc: 'Bissig, entlarvend, komisch' },
 ];
 
 const STYLES = [
@@ -155,17 +155,18 @@ export default function StoryCreator() {
                 {/* Genre */}
                 <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-2">Genre</label>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
                         {GENRES.map(g => (
                             <button
                                 key={g.value}
                                 onClick={() => setGenre(g.value)}
-                                className={`p-3 rounded-xl text-sm font-medium transition-all border-2 ${genre === g.value
-                                    ? 'border-indigo-500 bg-indigo-50 text-indigo-700 shadow-sm'
+                                className={`p-3 rounded-xl text-left transition-all border-2 ${genre === g.value
+                                    ? 'border-indigo-500 bg-indigo-50 shadow-sm'
                                     : 'border-slate-100 bg-white text-slate-600 hover:border-slate-200'
                                     }`}
                             >
-                                {g.label}
+                                <div className={`text-sm font-bold ${genre === g.value ? 'text-indigo-700' : 'text-slate-700'}`}>{g.label}</div>
+                                <div className={`text-[10px] ${genre === g.value ? 'text-indigo-500' : 'text-slate-400'}`}>{g.desc}</div>
                             </button>
                         ))}
                     </div>
@@ -180,12 +181,12 @@ export default function StoryCreator() {
                                 key={s.value}
                                 onClick={() => setStyle(s.value)}
                                 className={`p-3 rounded-xl text-left transition-all border-2 ${style === s.value
-                                    ? 'border-purple-500 bg-purple-50'
+                                    ? 'border-indigo-500 bg-indigo-50'
                                     : 'border-slate-100 bg-white hover:border-slate-200'
                                     }`}
                             >
-                                <div className={`text-sm font-bold ${style === s.value ? 'text-purple-700' : 'text-slate-700'}`}>{s.label}</div>
-                                <div className={`text-xs ${style === s.value ? 'text-purple-500' : 'text-slate-400'}`}>{s.desc}</div>
+                                <div className={`text-sm font-bold ${style === s.value ? 'text-indigo-700' : 'text-slate-700'}`}>{s.label}</div>
+                                <div className={`text-xs ${style === s.value ? 'text-indigo-500' : 'text-slate-400'}`}>{s.desc}</div>
                             </button>
                         ))}
                     </div>
@@ -237,7 +238,7 @@ export default function StoryCreator() {
                                     <div className={`text-sm font-bold truncate ${voiceKey === v.key ? 'text-indigo-700' : 'text-slate-700'}`}>
                                         {v.name}
                                     </div>
-                                    <div className={`text-[10px] font-medium ${v.engine === 'openai' ? 'text-purple-600' :
+                                    <div className={`text-[10px] font-medium ${v.engine === 'openai' ? 'text-indigo-600' :
                                         v.engine === 'google' ? 'text-blue-600' : 'text-slate-400'
                                         }`}>
                                         {v.engine === 'openai' ? 'Premium ($)' :
