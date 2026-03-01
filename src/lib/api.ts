@@ -110,8 +110,10 @@ export async function deleteStory(storyId: string): Promise<void> {
 }
 
 export async function toggleSpotify(storyId: string, enabled: boolean): Promise<void> {
-    const res = await fetch(`${API_BASE}/api/stories/${storyId}/spotify?enabled=${enabled}`, {
+    const res = await fetch(`${API_BASE}/api/stories/${storyId}/spotify`, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled }),
     });
     if (!res.ok) {
         const detail = await res.text().catch(() => '');

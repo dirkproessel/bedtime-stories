@@ -22,7 +22,7 @@ from pathlib import Path
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse, Response
 from pydantic import BaseModel
@@ -79,8 +79,21 @@ def _save_stories():
     )
 
 
+def _migrate_stories():
+    """Backfill is_on_spotify=False for legacy stories that predate the field."""
+    changed = False
+    for story in _stories_db.values():
+        if "is_on_spotify" not in story:
+            story["is_on_spotify"] = False
+            changed = True
+    if changed:
+        logger.info(f"Migrated {sum(1 for s in _stories_db.values() if 'is_on_spotify' in s)} stories: set is_on_spotify=False")
+        _save_stories()
+
+
 # Load on startup
 _load_stories()
+_migrate_stories()
 
 
 # ──────────────────────────────────
@@ -377,17 +390,21 @@ async def get_story_image(story_id: str):
     return FileResponse(image_path, media_type="image/png")
 
 
+class SpotifyToggleRequest(BaseModel):
+    enabled: bool
+
+
 @app.post("/api/stories/{story_id}/spotify")
-async def toggle_spotify(story_id: str, enabled: bool = Query(...)):
+async def toggle_spotify(story_id: str, body: SpotifyToggleRequest):
     """Toggle whether a story is included in the Spotify RSS feed."""
     if story_id not in _stories_db:
         raise HTTPException(status_code=404, detail="Story not found")
-    
-    _stories_db[story_id]["is_on_spotify"] = enabled
+
+    _stories_db[story_id]["is_on_spotify"] = body.enabled
     _save_stories()
     _regenerate_rss()
-    
-    return {"id": story_id, "is_on_spotify": enabled}
+
+    return {"id": story_id, "is_on_spotify": body.enabled}
 
 
 # ──────────────────────────────────
