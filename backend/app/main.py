@@ -403,7 +403,7 @@ async def get_rss_feed():
 
 @app.get("/api/health")
 async def health():
-    return {"status": "ok", "version": "1.2.0"}
+    return {"status": "ok", "version": "1.2.2"}
 
 
 @app.get("/api/debug/store")
