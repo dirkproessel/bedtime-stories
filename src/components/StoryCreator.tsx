@@ -3,23 +3,26 @@ import { useStore } from '../store/useStore';
 import { getVoicePreviewUrl, type GenerationStatus } from '../lib/api';
 import { Sparkles, Mic, MicOff, Play, Pause, BookOpen, Wand2, MessageSquareText, Venus, Mars, Users } from 'lucide-react';
 
-const THEMES = [
-    { value: 'abenteuer', label: '🗺️ Abenteuer' },
-    { value: 'fantasie', label: '🧚 Fantasie' },
-    { value: 'tiere', label: '🐻 Tiere' },
-    { value: 'weltraum', label: '🚀 Weltraum' },
-    { value: 'unterwasser', label: '🐠 Unterwasser' },
-    { value: 'wald', label: '🌲 Wald & Natur' },
-    { value: 'freundschaft', label: '🤝 Freundschaft' },
-    { value: 'magie', label: '✨ Magie & Zauberei' },
+const GENRES = [
+    { value: 'Sci-Fi', label: '🚀 Sci-Fi' },
+    { value: 'Fantasy', label: '🧙 Fantasy' },
+    { value: 'Krimi', label: '🔍 Krimi' },
+    { value: 'Abenteuer', label: '🤠 Abenteuer' },
+    { value: 'Realismus', label: '🏠 Realismus' },
+    { value: 'Grusel', label: '👻 Grusel' },
+    { value: 'Dystopie', label: '🏙️ Dystopie' },
+    { value: 'Satire', label: '🤡 Satire' },
 ];
 
 const STYLES = [
-    { value: 'märchenhaft', label: '🏰 Märchenhaft' },
-    { value: 'lustig', label: '😄 Lustig' },
-    { value: 'spannend', label: '😮 Spannend' },
-    { value: 'beruhigend', label: '😴 Beruhigend' },
-    { value: 'poetisch', label: '🌸 Poetisch' },
+    { value: 'Douglas Adams', label: '🪐 Douglas Adams' },
+    { value: 'Ernest Hemingway', label: '🥃 Ernest Hemingway' },
+    { value: 'Edgar Allan Poe', label: '🌑 Edgar Allan Poe' },
+    { value: 'Virginia Woolf', label: '🌊 Virginia Woolf' },
+    { value: 'Charles Bukowski', label: '🍺 Charles Bukowski' },
+    { value: 'Franz Kafka', label: '🐜 Franz Kafka' },
+    { value: 'Hunter S. Thompson', label: '🌵 Hunter S. Thompson' },
+    { value: 'Roald Dahl', label: '🍫 Roald Dahl' },
 ];
 
 const LENGTHS = [
@@ -33,8 +36,8 @@ export default function StoryCreator() {
     const [mode, setMode] = useState<'guided' | 'free'>('guided');
 
     // Guided mode state
-    const [theme, setTheme] = useState('abenteuer');
-    const [style, setStyle] = useState('märchenhaft');
+    const [genre, setGenre] = useState('Realismus');
+    const [style, setStyle] = useState('Douglas Adams');
     const [characters, setCharacters] = useState('');
     const [targetMinutes, setTargetMinutes] = useState(20);
     const [voiceKey, setVoiceKey] = useState('seraphina');
@@ -97,10 +100,11 @@ export default function StoryCreator() {
 
     const handleGenerate = () => {
         if (mode === 'guided') {
-            const selectedTheme = THEMES.find(t => t.value === theme);
-            const prompt = `${selectedTheme?.label || theme}${characters ? ` mit den Charakteren: ${characters}` : ''}`;
+            const selectedGenre = GENRES.find(g => g.value === genre);
+            const prompt = `Kurzgeschichte im Genre ${selectedGenre?.label || genre}${characters ? ` mit den Charakteren: ${characters}` : ''}`;
             startGeneration({
                 prompt,
+                genre,
                 style,
                 characters: characters ? characters.split(',').map(c => c.trim()) : undefined,
                 target_minutes: targetMinutes,
@@ -122,8 +126,8 @@ export default function StoryCreator() {
                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 mb-4 shadow-lg shadow-indigo-500/25">
                     <BookOpen className="w-8 h-8 text-white" />
                 </div>
-                <h1 className="text-2xl font-bold text-slate-900">Abenteuer aus der Hosentasche</h1>
-                <p className="text-slate-500 mt-1">Erstelle eine einzigartige Gute-Nacht-Geschichte</p>
+                <h1 className="text-2xl font-bold text-slate-900">Kurzgeschichten Maker</h1>
+                <p className="text-slate-500 mt-1">Anspruchsvolle Literatur für Groß und Klein</p>
             </div>
 
             {/* Mode Toggle */}
@@ -136,7 +140,7 @@ export default function StoryCreator() {
                         }`}
                 >
                     <Wand2 className="w-4 h-4" />
-                    Geführt
+                    Baukasten
                 </button>
                 <button
                     onClick={() => setMode('free')}
@@ -146,26 +150,26 @@ export default function StoryCreator() {
                         }`}
                 >
                     <MessageSquareText className="w-4 h-4" />
-                    Freie Eingabe
+                    Freie Idee
                 </button>
             </div>
 
             {mode === 'guided' ? (
                 <div className="space-y-6">
-                    {/* Theme */}
+                    {/* Genre */}
                     <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">Thema</label>
+                        <label className="block text-sm font-semibold text-slate-700 mb-2">Genre</label>
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                            {THEMES.map(t => (
+                            {GENRES.map(g => (
                                 <button
-                                    key={t.value}
-                                    onClick={() => setTheme(t.value)}
-                                    className={`p-3 rounded-xl text-sm font-medium transition-all border-2 ${theme === t.value
+                                    key={g.value}
+                                    onClick={() => setGenre(g.value)}
+                                    className={`p-3 rounded-xl text-sm font-medium transition-all border-2 ${genre === g.value
                                         ? 'border-indigo-500 bg-indigo-50 text-indigo-700 shadow-sm'
                                         : 'border-slate-100 bg-white text-slate-600 hover:border-slate-200'
                                         }`}
                                 >
-                                    {t.label}
+                                    {g.label}
                                 </button>
                             ))}
                         </div>

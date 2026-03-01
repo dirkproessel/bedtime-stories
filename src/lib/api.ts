@@ -18,6 +18,7 @@ export interface StoryMeta {
     title: string;
     description: string;
     prompt: string;
+    genre: string;
     style: string;
     voice_key: string;
     duration_seconds: number | null;
@@ -40,6 +41,7 @@ export interface GenerationStatus {
 
 export interface StoryRequest {
     prompt: string;
+    genre?: string;
     style?: string;
     characters?: string[];
     target_minutes?: number;

@@ -128,6 +128,7 @@ async def start_generation(req: StoryRequest):
         _run_pipeline(
             story_id=story_id,
             prompt=req.prompt,
+            genre=req.genre,
             style=req.style,
             characters=req.characters,
             target_minutes=req.target_minutes,
@@ -154,7 +155,8 @@ async def start_free_generation(req: FreeTextRequest):
         _run_pipeline(
             story_id=story_id,
             prompt=req.text,
-            style="frei",
+            genre="Realismus",
+            style="Douglas Adams",
             characters=None,
             target_minutes=req.target_minutes,
             voice_key=req.voice_key,
@@ -168,6 +170,7 @@ async def start_free_generation(req: FreeTextRequest):
 async def _run_pipeline(
     story_id: str,
     prompt: str,
+    genre: str,
     style: str,
     characters: list[str] | None,
     target_minutes: int,
@@ -183,10 +186,10 @@ async def _run_pipeline(
         _generation_status[story_id]["progress"] = message
 
     try:
-        # Step 1: Generate story text
-        await on_progress("generating_text", "Generiere Gliederung...")
+        # Step 1: Generate story text (Single-pass)
         story_data = await generate_full_story(
             prompt=prompt,
+            genre=genre,
             style=style,
             characters=characters,
             target_minutes=target_minutes,
@@ -263,6 +266,7 @@ async def _run_pipeline(
             title=story_data["title"],
             description=story_data.get("synopsis", f"Geschichte: {prompt}"),
             prompt=prompt,
+            genre=genre,
             style=style,
             voice_key=voice_key,
             duration_seconds=duration,
@@ -431,8 +435,8 @@ async def health():
     logger.info("Health check ping - testing log buffer")
     return {
         "status": "ok", 
-        "version": "1.3.8",
-        "build": "final-001",
+        "version": "1.4.0",
+        "build": "pivot-001",
         "worker_pid": os.getpid(),
         "store_path": str(store.db_path.absolute()),
         "store_exists": store.db_path.exists()

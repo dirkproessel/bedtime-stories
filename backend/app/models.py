@@ -11,7 +11,8 @@ from datetime import datetime
 class StoryRequest(BaseModel):
     """Request to generate a new story."""
     prompt: str
-    style: str = "märchenhaft"
+    genre: str = "Realismus"
+    style: str = "Douglas Adams"
     characters: list[str] | None = None
     target_minutes: int = 20
     voice_key: str = "seraphina"
@@ -54,6 +55,7 @@ class StoryMeta(BaseModel):
     title: str
     description: str
     prompt: str
+    genre: str
     style: str
     voice_key: str
     duration_seconds: float | None = None
