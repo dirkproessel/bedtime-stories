@@ -400,9 +400,19 @@ async def get_rss_feed():
 
 
 # ──────────────────────────────────
-# Health
+# Health & Debug
 # ──────────────────────────────────
 
 @app.get("/api/health")
 async def health():
-    return {"status": "ok", "version": "1.1.0"}
+    return {"status": "ok", "version": "1.2.0"}
+
+
+@app.get("/api/debug/store")
+async def debug_store():
+    """Debug endpoint to inspect the store contents."""
+    stories = store.get_all()
+    return {
+        "count": len(stories),
+        "stories": [s.model_dump(mode="json") for s in stories]
+    }
