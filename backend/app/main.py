@@ -427,9 +427,10 @@ async def get_rss_feed():
 @app.get("/api/health")
 async def health():
     import os
+    logger.info("Health check ping - testing log buffer")
     return {
         "status": "ok", 
-        "version": "1.3.4",
+        "version": "1.3.5",
         "build": "final-001",
         "worker_pid": os.getpid(),
         "store_path": str(store.db_path.absolute()),
