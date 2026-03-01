@@ -23,9 +23,14 @@ class StoryStore:
             try:
                 data = json.loads(self.db_path.read_text(encoding="utf-8"))
                 for story_id, story_data in data.items():
-                    # Handle legacy date strings and missing fields via Pydantic
-                    self._stories[story_id] = StoryMeta(**story_data)
-                logger.info(f"Loaded {len(self._stories)} stories from {self.db_path}")
+                    try:
+                        # Handle legacy date strings and missing fields via Pydantic
+                        story = StoryMeta(**story_data)
+                        self._stories[story_id] = story
+                        logger.info(f"Loaded story {story_id}: is_on_spotify={story.is_on_spotify}")
+                    except Exception as ve:
+                        logger.error(f"Validation error for story {story_id}: {ve}")
+                logger.info(f"Total stories loaded: {len(self._stories)}")
             except Exception as e:
                 logger.error(f"Failed to load stories: {e}")
                 self._stories = {}

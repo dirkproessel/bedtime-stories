@@ -381,6 +381,8 @@ async def get_rss_feed():
     # Only include stories that have is_on_spotify=True
     stories = store.get_all(only_spotify=True)
     
+    logger.info(f"Generating RSS feed with {len(stories)} stories. IDs: {[s.id for s in stories]}")
+    
     image_url = f"{settings.BASE_URL}/api/podcast-cover.png"
     email = "dirk@proessel.de"  # Required by Spotify
     
