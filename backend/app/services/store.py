@@ -15,25 +15,35 @@ class StoryStore:
     def __init__(self, db_path: Path):
         self.db_path = db_path
         self._stories: dict[str, StoryMeta] = {}
+        self._last_loaded_at = 0.0
         self._load()
+
+    def _should_reload(self) -> bool:
+        """Check if the database file has changed since last load."""
+        if not self.db_path.exists():
+            return False
+        mtime = self.db_path.stat().st_mtime
+        if mtime > self._last_loaded_at:
+            return True
+        return False
 
     def _load(self):
         """Load stories from disk."""
         if self.db_path.exists():
             try:
                 data = json.loads(self.db_path.read_text(encoding="utf-8"))
+                new_stories = {}
                 for story_id, story_data in data.items():
                     try:
-                        # Handle legacy date strings and missing fields via Pydantic
-                        story = StoryMeta(**story_data)
-                        self._stories[story_id] = story
-                        logger.info(f"Loaded story {story_id}: is_on_spotify={story.is_on_spotify}")
+                        new_stories[story_id] = StoryMeta(**story_data)
                     except Exception as ve:
                         logger.error(f"Validation error for story {story_id}: {ve}")
-                logger.info(f"Total stories loaded: {len(self._stories)}")
+                
+                self._stories = new_stories
+                self._last_loaded_at = self.db_path.stat().st_mtime
+                logger.debug(f"Loaded {len(self._stories)} stories from disk.")
             except Exception as e:
                 logger.error(f"Failed to load stories: {e}")
-                self._stories = {}
         else:
             logger.info("No stories database found, starting fresh.")
 
@@ -50,11 +60,16 @@ class StoryStore:
                 json.dumps(data, ensure_ascii=False, indent=2),
                 encoding="utf-8"
             )
+            # Update last loaded time to avoid immediate reload
+            self._last_loaded_at = self.db_path.stat().st_mtime
         except Exception as e:
             logger.error(f"Failed to save stories: {e}")
 
     def get_all(self, only_spotify: bool = False) -> list[StoryMeta]:
         """Get all stories, sorted by creation date (newest first)."""
+        if self._should_reload():
+            self._load()
+            
         stories = list(self._stories.values())
         if only_spotify:
             stories = [s for s in stories if s.is_on_spotify]
@@ -63,6 +78,9 @@ class StoryStore:
 
     def get_by_id(self, story_id: str) -> StoryMeta | None:
         """Get a specific story by ID."""
+        if self._should_reload():
+            self._load()
+            
         return self._stories.get(story_id)
 
     def add_story(self, story: StoryMeta):

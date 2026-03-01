@@ -403,7 +403,14 @@ async def get_rss_feed():
 
 @app.get("/api/health")
 async def health():
-    return {"status": "ok", "version": "1.2.2"}
+    import os
+    return {
+        "status": "ok", 
+        "version": "1.2.3",
+        "worker_pid": os.getpid(),
+        "store_path": str(store.db_path.absolute()),
+        "store_exists": store.db_path.exists()
+    }
 
 
 @app.get("/api/debug/store")
