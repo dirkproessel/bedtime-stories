@@ -58,10 +58,7 @@ app.add_middleware(
 )
 
 # In-memory store for generation status & story metadata
-# In production this would be PocketBase, but this works standalone too
 _generation_status: dict[str, dict] = {}
-_stories_db: dict[str, dict] = {}
-_stories_db_path = settings.AUDIO_OUTPUT_DIR / "stories.json"
 
 
 from app.services.store import store
