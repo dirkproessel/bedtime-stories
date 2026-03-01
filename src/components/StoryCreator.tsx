@@ -15,14 +15,14 @@ const GENRES = [
 ];
 
 const STYLES = [
-    { value: 'Douglas Adams', label: 'Douglas Adams (Absurd, ironisch, kosmisch)' },
-    { value: 'Ernest Hemingway', label: 'Ernest Hemingway (Minimalistisch, knapp, präzise)' },
-    { value: 'Edgar Allan Poe', label: 'Edgar Allan Poe (Gothic, düster, schaurig)' },
-    { value: 'Virginia Woolf', label: 'Virginia Woolf (Poetisch, bildreich, fließend)' },
-    { value: 'Charles Bukowski', label: 'Charles Bukowski (Sarkastisch, bissig, ehrlich)' },
-    { value: 'Franz Kafka', label: 'Franz Kafka (Surreal, traumhaft, rätselhaft)' },
-    { value: 'Hunter S. Thompson', label: 'Hunter S. Thompson (Gonzo, wild, subjektiv)' },
-    { value: 'Roald Dahl', label: 'Roald Dahl (Makaber, witzig, unvorhersehbar)' },
+    { value: 'Douglas Adams', label: 'Douglas Adams', desc: 'Absurd, ironisch, kosmisch' },
+    { value: 'Ernest Hemingway', label: 'Ernest Hemingway', desc: 'Minimalistisch, knapp, präzise' },
+    { value: 'Edgar Allan Poe', label: 'Edgar Allan Poe', desc: 'Gothic, düster, schaurig' },
+    { value: 'Virginia Woolf', label: 'Virginia Woolf', desc: 'Poetisch, bildreich, fließend' },
+    { value: 'Charles Bukowski', label: 'Charles Bukowski', desc: 'Sarkastisch, bissig, ehrlich' },
+    { value: 'Franz Kafka', label: 'Franz Kafka', desc: 'Surreal, traumhaft, rätselhaft' },
+    { value: 'Hunter S. Thompson', label: 'Hunter S. Thompson', desc: 'Gonzo, wild, subjektiv' },
+    { value: 'Roald Dahl', label: 'Roald Dahl', desc: 'Makaber, witzig, unvorhersehbar' },
 ];
 
 const LENGTHS = [
@@ -34,14 +34,13 @@ const LENGTHS = [
 export default function StoryCreator() {
     const { voices, startGeneration, isGenerating, generationStatus } = useStore();
 
-    // Guided mode state
+    // Selection state
     const [genre, setGenre] = useState('Realismus');
     const [style, setStyle] = useState('Douglas Adams');
-    const [characters, setCharacters] = useState('');
     const [targetMinutes, setTargetMinutes] = useState(20);
     const [voiceKey, setVoiceKey] = useState('seraphina');
 
-    // Free mode state
+    // Input state
     const [freeText, setFreeText] = useState('');
 
     // Voice preview
@@ -101,13 +100,12 @@ export default function StoryCreator() {
         if (!freeText.trim()) return;
 
         const selectedGenre = GENRES.find(g => g.value === genre);
-        const prompt = `Kurzgeschichte im Genre ${selectedGenre?.label || genre}${characters ? ` mit den Charakteren: ${characters}` : ''}\n\nIdee: ${freeText}`;
+        const prompt = `Kurzgeschichte im Genre ${selectedGenre?.label || genre}\n\nIdee: ${freeText}`;
 
         startGeneration({
             prompt,
             genre,
             style,
-            characters: characters ? characters.split(',').map(c => c.trim()) : undefined,
             target_minutes: targetMinutes,
             voice_key: voiceKey,
         });
@@ -181,29 +179,16 @@ export default function StoryCreator() {
                             <button
                                 key={s.value}
                                 onClick={() => setStyle(s.value)}
-                                className={`p-3 rounded-xl text-left text-sm font-medium transition-all border-2 ${style === s.value
-                                    ? 'border-purple-500 bg-purple-50 text-purple-700'
-                                    : 'border-slate-100 bg-white text-slate-600 hover:border-slate-200'
+                                className={`p-3 rounded-xl text-left transition-all border-2 ${style === s.value
+                                    ? 'border-purple-500 bg-purple-50'
+                                    : 'border-slate-100 bg-white hover:border-slate-200'
                                     }`}
                             >
-                                {s.label}
+                                <div className={`text-sm font-bold ${style === s.value ? 'text-purple-700' : 'text-slate-700'}`}>{s.label}</div>
+                                <div className={`text-xs ${style === s.value ? 'text-purple-500' : 'text-slate-400'}`}>{s.desc}</div>
                             </button>
                         ))}
                     </div>
-                </div>
-
-                {/* Characters */}
-                <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-2">
-                        Charaktere <span className="font-normal text-slate-400">(optional)</span>
-                    </label>
-                    <input
-                        type="text"
-                        value={characters}
-                        onChange={(e) => setCharacters(e.target.value)}
-                        placeholder="z.B. Luna die Katze, Max der Bär"
-                        className="w-full px-4 py-3 bg-white border-2 border-slate-100 rounded-xl text-sm focus:outline-none focus:border-indigo-400 transition-colors placeholder:text-slate-300"
-                    />
                 </div>
 
                 {/* Length */}
@@ -252,7 +237,7 @@ export default function StoryCreator() {
                                     <div className={`text-sm font-bold truncate ${voiceKey === v.key ? 'text-indigo-700' : 'text-slate-700'}`}>
                                         {v.name}
                                     </div>
-                                    <div className={`text-[10px] font-semibold uppercase tracking-wider ${v.engine === 'openai' ? 'text-purple-600' :
+                                    <div className={`text-[10px] font-medium ${v.engine === 'openai' ? 'text-purple-600' :
                                         v.engine === 'google' ? 'text-blue-600' : 'text-slate-400'
                                         }`}>
                                         {v.engine === 'openai' ? 'Premium ($)' :
