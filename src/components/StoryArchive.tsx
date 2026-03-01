@@ -96,8 +96,8 @@ export default function StoryArchive() {
                                                     {story.progress || 'Wird erstellt...'}
                                                 </div>
                                             ) : story.status === 'error' ? (
-                                                <div className="mt-2 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-xs font-medium w-fit">
-                                                    Fehler bei der Erstellung
+                                                <div className="mt-2 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-xs font-medium w-fit border border-red-100 italic">
+                                                    {story.progress || 'Fehler bei der Erstellung'}
                                                 </div>
                                             ) : (
                                                 <div className="mt-1 space-y-2">

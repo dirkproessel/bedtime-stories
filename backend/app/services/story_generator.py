@@ -150,18 +150,32 @@ Antworte NUR im JSON-Format:
     ]
 }}"""
 
-    outline_res = await asyncio.to_thread(
-        client.models.generate_content,
-        model=MODEL,
-        contents=outline_prompt,
-        config={"response_mime_type": "application/json"}
-    )
-    import json
-    outline_data = json.loads(outline_res.text)
+    try:
+        outline_res = await asyncio.to_thread(
+            client.models.generate_content,
+            model=MODEL,
+            contents=outline_prompt,
+            config={"response_mime_type": "application/json"}
+        )
+        
+        text = outline_res.text.strip()
+        if text.startswith("```json"):
+            text = text.replace("```json", "", 1).replace("```", "", 1).strip()
+        elif text.startswith("```"):
+            text = text.replace("```", "", 2).strip()
+            
+        outline_data = json.loads(text)
+        title = outline_data.get("title", "Eine neue Geschichte")
+        synopsis = outline_data.get("synopsis", "Kurzgeschichte")
+        segments = outline_data.get("segments", [])
+    except Exception as e:
+        import logging
+        logging.error(f"Multi-pass outline failure: {e}")
+        # Graceful fallback to single-pass if outline fails
+        return await _generate_single_pass(prompt, genre, style, characters, target_minutes, on_progress)
     
-    title = outline_data["title"]
-    synopsis = outline_data["synopsis"]
-    segments = outline_data["segments"]
+    if not segments:
+        return await _generate_single_pass(prompt, genre, style, characters, target_minutes, on_progress)
     
     full_story_text = ""
     
