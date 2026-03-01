@@ -19,7 +19,8 @@ async def generate_story_image(prompt: str, output_path: Path):
     client = genai.Client(api_key=settings.GEMINI_API_KEY)
     
     try:
-        logger.info(f"Generating image via Google Imagen 3 for: {prompt[:100]}...")
+        logger.info(f"Generating image via Google Imagen 3. Prompt length: {len(prompt)}. Output: {output_path}")
+        logger.info(f"Prompt snippet: {prompt[:100]}...")
         
         # Optimize prompt for cover art
         enhanced_prompt = (
@@ -53,5 +54,5 @@ async def generate_story_image(prompt: str, output_path: Path):
             return None
 
     except Exception as e:
-        logger.error(f"Error generating image with Google Imagen 3: {e}")
+        logger.error(f"CRITICAL: Google Imagen 3 error: {type(e).__name__}: {str(e)}", exc_info=True)
         return None

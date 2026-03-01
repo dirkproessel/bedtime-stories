@@ -230,8 +230,15 @@ async def _run_pipeline(
         await on_progress("processing", "Generiere Titelbild...")
         image_path = story_dir / "cover.png"
         image_url = None
-        if await generate_story_image(story_data["synopsis"], image_path):
-            image_url = f"{settings.BASE_URL}/api/stories/{story_id}/image.png"
+        try:
+            res = await generate_story_image(story_data.get("synopsis", ""), image_path)
+            if res:
+                image_url = f"{settings.BASE_URL}/api/stories/{story_id}/image.png"
+                logger.info(f"Image generated successfully for {story_id}: {image_url}")
+            else:
+                logger.warning(f"Image generation returned None for {story_id}")
+        except Exception as e:
+            logger.error(f"Failed to call generate_story_image for {story_id}: {e}", exc_info=True)
 
         # Step 4: Save metadata
         story_meta = StoryMeta(
@@ -406,7 +413,7 @@ async def health():
     import os
     return {
         "status": "ok", 
-        "version": "1.3.0",
+        "version": "1.3.1",
         "build": "final-001",
         "worker_pid": os.getpid(),
         "store_path": str(store.db_path.absolute()),
