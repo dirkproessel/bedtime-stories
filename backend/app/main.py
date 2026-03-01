@@ -251,7 +251,7 @@ async def _run_pipeline(
         image_path = story_dir / "cover.png"
         image_url = None
         try:
-            res = await generate_story_image(story_data.get("synopsis", ""), image_path)
+            res = await generate_story_image(story_data.get("synopsis", ""), image_path, genre=genre, style=style)
             if res:
                 image_url = f"{settings.BASE_URL}/api/stories/{story_id}/image.png"
                 logger.info(f"Image generated successfully for {story_id}: {image_url}")

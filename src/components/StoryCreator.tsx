@@ -123,7 +123,7 @@ export default function StoryCreator() {
                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 mb-4 shadow-lg shadow-indigo-500/25">
                     <BookOpen className="w-8 h-8 text-white" />
                 </div>
-                <h1 className="text-2xl font-bold text-slate-900">Kurzgeschichten Maker</h1>
+                <h1 className="text-2xl font-bold text-slate-900">Kurzgeschichten-Labor</h1>
                 <p className="text-slate-500 mt-1">Anspruchsvolle Literatur für Groß und Klein</p>
             </div>
 
@@ -280,11 +280,11 @@ export default function StoryCreator() {
             {/* Generate Button */}
             <button
                 onClick={handleGenerate}
-                disabled={isGenerating || (mode === 'free' && !freeText.trim())}
-                className="mt-8 w-full flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold rounded-2xl shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={isGenerating || !freeText.trim()}
+                className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg shadow-indigo-200 hover:shadow-xl hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:translate-y-0 flex items-center justify-center gap-2"
             >
-                <Sparkles className="w-5 h-5" />
-                Geschichte generieren
+                <Sparkles className="w-6 h-6" />
+                {isGenerating ? 'Wird geschrieben...' : 'Geschichte jetzt schreiben'}
             </button>
         </div>
     );
