@@ -429,7 +429,7 @@ async def health():
     import os
     return {
         "status": "ok", 
-        "version": "1.3.3",
+        "version": "1.3.4",
         "build": "final-001",
         "worker_pid": os.getpid(),
         "store_path": str(store.db_path.absolute()),
