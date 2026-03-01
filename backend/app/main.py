@@ -431,7 +431,7 @@ async def health():
     logger.info("Health check ping - testing log buffer")
     return {
         "status": "ok", 
-        "version": "1.3.7",
+        "version": "1.3.8",
         "build": "final-001",
         "worker_pid": os.getpid(),
         "store_path": str(store.db_path.absolute()),

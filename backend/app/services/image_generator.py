@@ -29,13 +29,13 @@ async def generate_story_image(prompt: str, output_path: Path):
             f"Quadratisches Format ohne Text."
         )
 
-        # Note: generate_image is synchronous in the current google-genai SDK 
+        # Note: generate_images is synchronous in the current google-genai SDK 
         # but we wrap it in a thread if needed, or just call it directly if it's not a heavy load.
         # For simplicity in this script, we call it directly.
-        response = client.models.generate_image(
-            model='imagen-3.0-generate-001',
+        response = client.models.generate_images(
+            model='imagen-4.0-generate-001',
             prompt=enhanced_prompt,
-            config=types.GenerateImageConfig(
+            config=types.GenerateImagesConfig(
                 number_of_images=1,
                 include_rai_reason=True,
                 output_mime_type='image/png'
@@ -50,7 +50,7 @@ async def generate_story_image(prompt: str, output_path: Path):
             logger.info(f"Google Imagen 3 image saved to {output_path}")
             return output_path
         else:
-            logger.error("Google Imagen 3 returned no images.")
+            logger.error(f"Google Imagen 3 returned no images. RAI: {getattr(response, 'rai_reason', 'N/A')}")
             return None
 
     except Exception as e:
