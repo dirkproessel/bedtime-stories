@@ -23,6 +23,8 @@ from pathlib import Path
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+from app.config import settings
+
 # Log file for remote debugging (cross-worker)
 DEBUG_LOG_PATH = settings.AUDIO_OUTPUT_DIR / "debug.log"
 
@@ -43,7 +45,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse, Response
 from pydantic import BaseModel
 
-from app.config import settings
+
 from app.models import (
     StoryRequest,
     FreeTextRequest,
@@ -429,7 +431,7 @@ async def health():
     logger.info("Health check ping - testing log buffer")
     return {
         "status": "ok", 
-        "version": "1.3.6",
+        "version": "1.3.7",
         "build": "final-001",
         "worker_pid": os.getpid(),
         "store_path": str(store.db_path.absolute()),
