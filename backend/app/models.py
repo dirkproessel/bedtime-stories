@@ -58,10 +58,13 @@ class StoryMeta(BaseModel):
     genre: str | None = None
     style: str
     voice_key: str
+    voice_name: str | None = None
     duration_seconds: float | None = None
     chapter_count: int
     is_on_spotify: bool = False
     image_url: str | None = None
+    status: str = "done"  # "generating", "done", "error"
+    progress: str | None = None
     created_at: datetime
 
 

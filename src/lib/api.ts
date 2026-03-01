@@ -25,6 +25,9 @@ export interface StoryMeta {
     chapter_count: number;
     image_url: string | null;
     is_on_spotify: boolean;
+    status: 'generating' | 'done' | 'error';
+    progress?: string;
+    voice_name?: string;
     created_at: string;
 }
 

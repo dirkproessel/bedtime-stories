@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useStore } from '../store/useStore';
-import { getVoicePreviewUrl, type GenerationStatus } from '../lib/api';
+import { getVoicePreviewUrl } from '../lib/api';
 import { Sparkles, Mic, MicOff, Play, Pause, BookOpen, Venus, Mars, Users } from 'lucide-react';
 
 const GENRES = [
@@ -32,7 +32,7 @@ const LENGTHS = [
 ];
 
 export default function StoryCreator() {
-    const { voices, startGeneration, isGenerating, generationStatus } = useStore();
+    const { voices, startGeneration } = useStore();
 
     // Selection state
     const [genre, setGenre] = useState('Realismus');
@@ -111,10 +111,6 @@ export default function StoryCreator() {
         });
     };
 
-    if (isGenerating && generationStatus) {
-        return <GenerationProgress status={generationStatus} />;
-    }
-
     return (
         <div className="p-4 sm:p-6 max-w-2xl mx-auto">
             <div className="text-center mb-8">
@@ -166,7 +162,7 @@ export default function StoryCreator() {
                                     }`}
                             >
                                 <div className={`text-sm font-bold ${genre === g.value ? 'text-indigo-700' : 'text-slate-700'}`}>{g.label}</div>
-                                <div className={`text-[10px] ${genre === g.value ? 'text-indigo-500' : 'text-slate-400'}`}>{g.desc}</div>
+                                <div className={`text-xs ${genre === g.value ? 'text-indigo-500' : 'text-slate-400'}`}>{g.desc}</div>
                             </button>
                         ))}
                     </div>
@@ -238,9 +234,7 @@ export default function StoryCreator() {
                                     <div className={`text-sm font-bold truncate ${voiceKey === v.key ? 'text-indigo-700' : 'text-slate-700'}`}>
                                         {v.name}
                                     </div>
-                                    <div className={`text-[10px] font-medium ${v.engine === 'openai' ? 'text-indigo-600' :
-                                        v.engine === 'google' ? 'text-blue-600' : 'text-slate-400'
-                                        }`}>
+                                    <div className={`text-xs ${voiceKey === v.key ? 'text-indigo-500' : 'text-slate-400'}`}>
                                         {v.engine === 'openai' ? 'Premium ($)' :
                                             v.engine === 'google' ? 'Standard+' : 'Standard'}
                                     </div>
@@ -266,56 +260,11 @@ export default function StoryCreator() {
             {/* Generate Button */}
             <button
                 onClick={handleGenerate}
-                disabled={isGenerating || !freeText.trim()}
-                className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg shadow-indigo-200 hover:shadow-xl hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:translate-y-0 flex items-center justify-center gap-2"
+                className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg shadow-indigo-200 hover:shadow-xl hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2"
             >
                 <Sparkles className="w-6 h-6" />
-                {isGenerating ? 'Wird geschrieben...' : 'Geschichte jetzt schreiben'}
+                Geschichte jetzt schreiben
             </button>
-        </div>
-    );
-}
-
-function GenerationProgress({ status }: { status: GenerationStatus }) {
-    const stages = [
-        { key: 'outline', label: 'Gliederung erstellen' },
-        { key: 'chapter', label: 'Geschichte schreiben' },
-        { key: 'generating_text', label: 'Text generieren' },
-        { key: 'generating_audio', label: 'Audio erstellen' },
-        { key: 'tts', label: 'Vertonung' },
-        { key: 'processing', label: 'Zusammenfügen' },
-        { key: 'done', label: 'Fertig!' },
-    ];
-
-    const currentIndex = stages.findIndex(s => s.key === status.status);
-    const progress = status.status === 'done' ? 100 : Math.max(10, ((currentIndex + 1) / stages.length) * 100);
-
-    return (
-        <div className="p-6 max-w-md mx-auto flex flex-col items-center justify-center min-h-[60vh]">
-            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center mb-6 shadow-lg shadow-indigo-500/25 animate-pulse">
-                <Sparkles className="w-10 h-10 text-white" />
-            </div>
-
-            {status.title && (
-                <h2 className="text-lg font-bold text-slate-900 mb-2 text-center">
-                    {status.title}
-                </h2>
-            )}
-
-            <p className="text-sm text-slate-500 mb-6 text-center">{status.progress}</p>
-
-            <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                <div
-                    className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-700 ease-out"
-                    style={{ width: `${progress}%` }}
-                />
-            </div>
-
-            {status.status === 'error' && (
-                <div className="mt-4 p-3 bg-red-50 text-red-600 rounded-xl text-sm">
-                    {status.progress}
-                </div>
-            )}
         </div>
     );
 }

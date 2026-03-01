@@ -42,49 +42,38 @@ async def generate_full_story(
     on_progress: callable = None,
 ) -> dict:
     """
-    Generate a complete single-pass story using the Master Prompt.
-    Returns {"title": str, "synopsis": str, "full_text": str}
+    Generate a complete story. 
+    Short stories (<12 min) use single-pass.
+    Long stories (>12 min) use multi-pass (Outline -> Chapters) for reliability.
     """
     
+    if target_minutes <= 12:
+        return await _generate_single_pass(prompt, genre, style, characters, target_minutes, on_progress)
+    else:
+        return await _generate_multi_pass(prompt, genre, style, characters, target_minutes, on_progress)
+
+
+async def _generate_single_pass(prompt, genre, style, characters, target_minutes, on_progress):
+    """Original single-pass logic for shorter stories with improved JSON cleanup."""
     selected_style_info = STYLE_MAPPING.get(style, STYLE_MAPPING["Douglas Adams"])
     selected_genre_info = GENRE_MAPPING.get(genre, GENRE_MAPPING["Realismus"])
-    
-    # Target word count: approx 150 words per minute
     word_count = target_minutes * 150
-    
-    char_text = ""
-    if characters:
-        char_text = f"\nHauptcharaktere: {', '.join(characters)}"
+    char_text = f"\nHauptcharaktere: {', '.join(characters)}" if characters else ""
 
-    master_prompt = f"""Du bist ein preisgekrönter Kurzgeschichten-Autor mit einer Abneigung gegen Klischees. 
-Deine Aufgabe ist es, eine literarisch anspruchsvolle Kurzgeschichte zu schreiben, die auf den gewählten Parametern (Genre, Stil) und den Benutzerwünschen basiert. 
-Deine Aufgabe ist es, eine abgeschlossene Kurzgeschichte in einem einzigen Durchgang zu schreiben.
-
+    master_prompt = f"""Du bist ein preisgekrönter Autor. Schreibe eine abgeschlossene Kurzgeschichte.
 Parameter:
 Genre: {selected_genre_info}
 Stil: {selected_style_info}
-Inhaltliche Vorgabe: {prompt}{char_text}
+Inhalt: {prompt}{char_text}
 
-Strukturelle Anweisungen:
-Umfang & Pacing: > Die Geschichte muss exakt auf eine Vorlesedauer von {target_minutes} Minuten ausgelegt sein. Ziel-Wortzahl: {word_count} Wörter.
+Umfang: Vorlesedauer {target_minutes} Min (~{word_count} Wörter).
+Anweisung: Schreibe fließend, keine Kapitelüberschriften. Show, don't tell.
 
-Anweisung: Erzähle nicht schneller, um mehr Handlung unterzubringen. Wenn die Zeit lang ist (30 Min.), dehne die Szenen aus, beschreibe die Umgebung im Detail und gib den Dialogen mehr Raum. Wenn die Zeit kurz ist (10 Min.), bleibe fokussiert und temporeich.
-
-Bei 30min: WICHTIG: Erschöpfe das Output-Limit von 8.192 Tokens voll aus. Werde zum Ende hin nicht hastig, sondern behalte die Detailtiefe bis zum letzten Satz bei. Nutze diesen Raum für detaillierte Beschreibungen, Dialoge und Atmosphäre.
-
-Pacing: Hetze nicht durch die Handlung. Entwickle Szenen langsam. Beschreibe Texturen, Gerüche und die Umgebung so präzise, dass ein Kopfkino entsteht.
-
-Kein Kapitel-Modus: Schreibe die Geschichte als einen fließenden Text. Nutze lediglich szenische Absätze oder subtile Zeitensprünge, keine nummerierten Kapitel.
-
-Literarischer Anspruch: Halte dich strikt an den gewählten Autoren-Stil. Vermeide jegliche Floskeln, pädagogische Zeigefinger oder moralische Zusammenfassungen am Ende. Die Geschichte endet mit dem letzten narrativen Moment.
-
-Show, don't tell: Erkläre nicht, wie sich Charaktere fühlen – zeige es durch ihre Handlungen und Reaktionen.
-
-Antworte NUR im folgenden JSON-Format:
+Antworte EXKLUSIV im JSON-Format:
 {{
-    "title": "Ein kreativer, literarischer Titel (ohne Emojis/Kitsch)",
-    "synopsis": "Eine packende Zusammenfassung (3-4 Sätze).",
-    "full_text": "Der komplette, fließende Text der Geschichte..."
+    "title": "Titel",
+    "synopsis": "Zusammenfassung",
+    "full_text": "Text der Geschichte..."
 }}"""
 
     if on_progress:
@@ -93,30 +82,111 @@ Antworte NUR im folgenden JSON-Format:
     response = client.models.generate_content(
         model=MODEL,
         contents=master_prompt,
-        config={
-            "response_mime_type": "application/json",
-            "temperature": 0.9,
-            "max_output_tokens": 8192,
-        }
+        config={"response_mime_type": "application/json", "temperature": 0.85, "max_output_tokens": 8192}
     )
 
     import json
+    import re
+    
+    text = response.text.strip()
+    # Remove markdown code blocks if the model included them despite mime_type
+    if text.startswith("```json"):
+        text = text.replace("```json", "", 1).replace("```", "", 1).strip()
+    elif text.startswith("```"):
+        text = text.replace("```", "", 2).strip()
+
     try:
-        story_data = json.loads(response.text)
-        # Ensure it has chapters-like structure for the rest of the app if needed, 
-        # or main.py will handle it. We'll provide it as a single 'chapter' for now
-        # to minimize changes in audio pipeline.
+        data = json.loads(text)
+        # Handle cases where full_text itself contains JSON (recursive LLM error)
+        story_content = data.get("full_text", "")
+        if isinstance(story_content, dict):
+            story_content = story_content.get("full_text", str(story_content))
+            
         return {
-            "title": story_data["title"],
-            "synopsis": story_data.get("synopsis", ""),
-            "chapters": [{"title": "Die Geschichte", "text": story_data["full_text"]}]
+            "title": data.get("title", "Eine neue Geschichte"),
+            "synopsis": data.get("synopsis", "Kurzgeschichte"),
+            "chapters": [{"title": "Geschichte", "text": story_content}]
         }
     except Exception as e:
         import logging
-        logging.error(f"Failed to parse story JSON: {e}. Raw: {response.text[:500]}")
-        # Fallback if JSON is broken or format is wrong
+        logging.error(f"Failed to parse story JSON: {e}. Raw: {text[:200]}")
         return {
-            "title": "Eine neue Geschichte",
-            "synopsis": "Kurzgeschichte",
-            "chapters": [{"title": "Text", "text": response.text}]
+            "title": "Anomalie im Labor", 
+            "synopsis": "Die Geschichte konnte nicht korrekt formatiert werden.", 
+            "chapters": [{"title": "Text", "text": text}]
         }
+
+
+async def _generate_multi_pass(prompt, genre, style, characters, target_minutes, on_progress):
+    """Two-step generation for long stories to ensure length and flow."""
+    selected_style_info = STYLE_MAPPING.get(style, STYLE_MAPPING["Douglas Adams"])
+    selected_genre_info = GENRE_MAPPING.get(genre, GENRE_MAPPING["Realismus"])
+    
+    # Target total words
+    total_words = target_minutes * 150
+    # For a 30 min story (~4500 words), we'll do ~6 segments of ~750 words Each.
+    num_segments = max(4, target_minutes // 5)
+    words_per_segment = total_words // num_segments
+
+    if on_progress:
+        await on_progress("generating_text", f"Plane '{style}'-Epos ({target_minutes} Min, {num_segments} Akte)...")
+
+    # Step 1: Generate Outline
+    outline_prompt = f"""Erstelle eine detaillierte Gliederung für eine {target_minutes}-minütige Kurzgeschichte.
+Genre: {selected_genre_info}
+Stil: {selected_style_info}
+Inhalt: {prompt}
+
+Teile die Geschichte in {num_segments} logische Abschnitte (Akte) auf. Jeder Abschnitt muss etwa {words_per_segment} Wörter Text generieren.
+Antworte NUR im JSON-Format:
+{{
+    "title": "Titel",
+    "synopsis": "Detaillierte Zusammenfassung",
+    "segments": [
+        {{ "title": "Abschnitt 1", "goal": "Was in diesem Teil passiert..." }},
+        ...
+    ]
+}}"""
+
+    outline_res = client.models.generate_content(model=MODEL, contents=outline_prompt, config={"response_mime_type": "application/json"})
+    import json
+    outline_data = json.loads(outline_res.text)
+    
+    title = outline_data["title"]
+    synopsis = outline_data["synopsis"]
+    segments = outline_data["segments"]
+    
+    full_story_text = ""
+    
+    # Step 2: Iterative Writing
+    for i, seg in enumerate(segments):
+        if on_progress:
+            await on_progress("generating_text", f"Schreibe Teil {i+1} von {num_segments}: {seg['title']}...")
+            
+        context = f"Bisheriger Text: {full_story_text[-1000:]}" if full_story_text else "Beginn der Geschichte."
+        
+        write_prompt = f"""Schreibe den nächsten Teil der Geschichte im Stil von {style}.
+Titel: {title}
+Zusammenfassung der Geschichte: {synopsis}
+Ziel dieses Abschnitts: {seg['goal']} (~{words_per_segment} Wörter).
+{context}
+
+WICHTIG:
+- Schreibe extrem detailliert und atmosphärisch. 
+- Dehne die Szenen aus (Slow Pacing). Beschreibe Texturen, Licht und Dialoge ausführlich.
+- Der Text muss nahtlos an den bisherigen Text anknüpfen.
+- Keine Kapitelüberschriften! Nur der fließende Erzähltext.
+"""
+        response = client.models.generate_content(model=MODEL, contents=write_prompt, config={"temperature": 0.8})
+        segment_text = response.text.strip()
+        
+        # Simple cleanup if the model repeats markers
+        if i > 0:
+            full_story_text += "\n\n"
+        full_story_text += segment_text
+
+    return {
+        "title": title,
+        "synopsis": synopsis,
+        "chapters": [{"title": "Komplette Geschichte", "text": full_story_text}]
+    }

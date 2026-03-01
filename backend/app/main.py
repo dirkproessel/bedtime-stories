@@ -181,9 +181,42 @@ async def _run_pipeline(
     story_dir = settings.AUDIO_OUTPUT_DIR / story_id
     story_dir.mkdir(parents=True, exist_ok=True)
 
+    # Resolve voice name
+    voice_name = "Unbekannt"
+    all_voices = get_available_voices()
+    for v in all_voices:
+        if v["key"] == voice_key:
+            voice_name = v["name"]
+            break
+
+    # Initial record creation
+    story_meta = StoryMeta(
+        id=story_id,
+        title="Generierung läuft...",
+        description=f"Idee: {prompt[:100]}...",
+        prompt=prompt,
+        genre=genre,
+        style=style,
+        voice_key=voice_key,
+        voice_name=voice_name,
+        duration_seconds=0,
+        chapter_count=0,
+        is_on_spotify=False,
+        status="generating",
+        progress="Starte Generierung...",
+        created_at=datetime.now(timezone.utc),
+    )
+    store.add_story(story_meta)
+
     async def on_progress(status_type: str, message: str):
         _generation_status[story_id]["status"] = status_type
         _generation_status[story_id]["progress"] = message
+        # Also update persistent store
+        curr = store.get_by_id(story_id)
+        if curr:
+            curr.status = "generating" if status_type != "done" and status_type != "error" else status_type
+            curr.progress = message
+            store.add_story(curr)
 
     try:
         # Step 1: Generate story text (Single-pass)
@@ -197,6 +230,13 @@ async def _run_pipeline(
         )
 
         _generation_status[story_id]["title"] = story_data["title"]
+        
+        # Update title in store
+        curr = store.get_by_id(story_id)
+        if curr:
+            curr.title = story_data["title"]
+            curr.description = story_data.get("synopsis", curr.description)
+            store.add_story(curr)
 
         # Save text
         text_path = story_dir / "story.json"
@@ -260,29 +300,30 @@ async def _run_pipeline(
         except Exception as e:
             logger.error(f"Failed to call generate_story_image for {story_id}: {e}", exc_info=True)
 
-        # Step 4: Save metadata
-        story_meta = StoryMeta(
-            id=story_id,
-            title=story_data["title"],
-            description=story_data.get("synopsis", f"Geschichte: {prompt}"),
-            prompt=prompt,
-            genre=genre,
-            style=style,
-            voice_key=voice_key,
-            duration_seconds=duration,
-            chapter_count=len(story_data["chapters"]),
-            image_url=image_url,
-            is_on_spotify=False,
-            created_at=datetime.now(timezone.utc),
-        )
-
-        store.add_story(story_meta)
-
-        await on_progress("done", "Fertig! Geschichte bereit zum Anhören.")
+        # Step 4: Finalize metadata
+        story_meta = store.get_by_id(story_id)
+        if story_meta:
+            story_meta.title = story_data["title"]
+            story_meta.description = story_data.get("synopsis", story_meta.description)
+            story_meta.duration_seconds = duration
+            story_meta.chapter_count = len(story_data["chapters"])
+            story_meta.image_url = image_url
+            story_meta.voice_name = voice_name
+            story_meta.status = "done"
+            story_meta.progress = "Fertig! Geschichte bereit zum Anhören."
+            store.add_story(story_meta)
 
     except Exception as e:
         _generation_status[story_id]["status"] = "error"
         _generation_status[story_id]["progress"] = f"Fehler: {str(e)}"
+        
+        curr = store.get_by_id(story_id)
+        if curr:
+            curr.status = "error"
+            curr.progress = f"Fehler: {str(e)}"
+            store.add_story(curr)
+            
+        logger.error(f"Generation error: {e}", exc_info=True)
         logger.error(f"Generation error: {e}", exc_info=True)
 
 

@@ -2,13 +2,11 @@ import { create } from 'zustand';
 import {
     fetchVoices,
     fetchStories,
-    fetchStatus,
     generateStory,
     generateFreeStory,
     type VoiceProfile,
     type StoryMeta,
     type StoryRequest,
-    type GenerationStatus,
 } from '../lib/api';
 
 interface AppState {
@@ -21,9 +19,6 @@ interface AppState {
     loadStories: () => Promise<void>;
 
     // Generation
-    isGenerating: boolean;
-    currentGenerationId: string | null;
-    generationStatus: GenerationStatus | null;
     startGeneration: (req: StoryRequest) => Promise<void>;
     startFreeGeneration: (text: string, voiceKey: string, targetMinutes: number) => Promise<void>;
     pollStatus: () => Promise<void>;
@@ -48,9 +43,6 @@ let pollInterval: ReturnType<typeof setInterval> | null = null;
 export const useStore = create<AppState>((set, get) => ({
     voices: [],
     stories: [],
-    isGenerating: false,
-    currentGenerationId: null,
-    generationStatus: null,
     activeView: 'create',
     selectedStoryId: null,
     isLoading: false,
@@ -62,6 +54,7 @@ export const useStore = create<AppState>((set, get) => ({
         try {
             await Promise.all([get().loadVoices(), get().loadStories()]);
             set({ isInitialized: true });
+            get().pollStatus(); // Start polling if any stories are generating
         } catch (e: any) {
             set({ error: e.message || 'Verbindungsfehler' });
         } finally {
@@ -88,57 +81,49 @@ export const useStore = create<AppState>((set, get) => ({
     },
 
     startGeneration: async (req: StoryRequest) => {
-        set({ isGenerating: true, generationStatus: null });
+        set({ error: null });
         try {
-            const { id } = await generateStory(req);
-            set({ currentGenerationId: id });
+            await generateStory(req);
+            // Immediately switch to archive and reload to show the "Pending" story
+            set({ activeView: 'archive' });
+            await get().loadStories();
             get().pollStatus();
         } catch (e: any) {
-            set({ isGenerating: false, error: e.message });
+            set({ error: e.message });
         }
     },
 
     startFreeGeneration: async (text: string, voiceKey: string, targetMinutes: number) => {
-        set({ isGenerating: true, generationStatus: null });
+        set({ error: null });
         try {
-            const { id } = await generateFreeStory(text, voiceKey, targetMinutes);
-            set({ currentGenerationId: id });
+            await generateFreeStory(text, voiceKey, targetMinutes);
+            set({ activeView: 'archive' });
+            await get().loadStories();
             get().pollStatus();
         } catch (e: any) {
-            set({ isGenerating: false, error: e.message });
+            set({ error: e.message });
         }
     },
 
     pollStatus: async () => {
-        const { currentGenerationId } = get();
-        if (!currentGenerationId) return;
-
         // Clear any existing interval
         if (pollInterval) clearInterval(pollInterval);
 
         pollInterval = setInterval(async () => {
-            const { currentGenerationId } = get();
-            if (!currentGenerationId) return;
+            const { stories } = get();
+            const hasGenerating = stories.some(s => s.status === 'generating');
+
+            if (!hasGenerating) {
+                get().stopPolling();
+                return;
+            }
 
             try {
-                const status = await fetchStatus(currentGenerationId);
-                set({ generationStatus: status });
-
-                if (status.status === 'done' || status.status === 'error') {
-                    get().stopPolling();
-                    set({ isGenerating: false });
-                    if (status.status === 'done') {
-                        await get().loadStories();
-                        set({
-                            activeView: 'player',
-                            selectedStoryId: currentGenerationId,
-                        });
-                    }
-                }
+                await get().loadStories();
             } catch {
                 // Ignore poll errors
             }
-        }, 1500);
+        }, 2000);
     },
 
     stopPolling: () => {
