@@ -63,37 +63,7 @@ _stories_db: dict[str, dict] = {}
 _stories_db_path = settings.AUDIO_OUTPUT_DIR / "stories.json"
 
 
-def _load_stories():
-    """Load stories from JSON file on disk."""
-    global _stories_db
-    if _stories_db_path.exists():
-        _stories_db = json.loads(_stories_db_path.read_text(encoding="utf-8"))
-
-
-def _save_stories():
-    """Persist stories to JSON file."""
-    _stories_db_path.parent.mkdir(parents=True, exist_ok=True)
-    _stories_db_path.write_text(
-        json.dumps(_stories_db, default=str, ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
-
-
-def _migrate_stories():
-    """Backfill is_on_spotify=False for legacy stories that predate the field."""
-    changed = False
-    for story in _stories_db.values():
-        if "is_on_spotify" not in story:
-            story["is_on_spotify"] = False
-            changed = True
-    if changed:
-        logger.info(f"Migrated {sum(1 for s in _stories_db.values() if 'is_on_spotify' in s)} stories: set is_on_spotify=False")
-        _save_stories()
-
-
-# Load on startup
-_load_stories()
-_migrate_stories()
+from app.services.store import store
 
 
 # ──────────────────────────────────
@@ -266,33 +236,28 @@ async def _run_pipeline(
             image_url = f"{settings.BASE_URL}/api/stories/{story_id}/image.png"
 
         # Step 4: Save metadata
-        story_meta = {
-            "id": story_id,
-            "title": story_data["title"],
-            "description": story_data.get("synopsis", f"Geschichte: {prompt}"),
-            "prompt": prompt,
-            "style": style,
-            "voice_key": voice_key,
-            "duration_seconds": duration,
-            "chapter_count": len(story_data["chapters"]),
-            "filename": "story.mp3",
-            "image_url": image_url,
-            "is_on_spotify": False,
-            "created_at": datetime.now(timezone.utc).isoformat(),
-        }
+        story_meta = StoryMeta(
+            id=story_id,
+            title=story_data["title"],
+            description=story_data.get("synopsis", f"Geschichte: {prompt}"),
+            prompt=prompt,
+            style=style,
+            voice_key=voice_key,
+            duration_seconds=duration,
+            chapter_count=len(story_data["chapters"]),
+            image_url=image_url,
+            is_on_spotify=False,
+            created_at=datetime.now(timezone.utc),
+        )
 
-        _stories_db[story_id] = story_meta
-        _save_stories()
-
-        # Update RSS feed
-        _regenerate_rss()
+        store.add_story(story_meta)
 
         await on_progress("done", "Fertig! Geschichte bereit zum Anhören.")
 
     except Exception as e:
         _generation_status[story_id]["status"] = "error"
         _generation_status[story_id]["progress"] = f"Fehler: {str(e)}"
-        raise
+        logger.error(f"Generation error: {e}", exc_info=True)
 
 
 # ──────────────────────────────────
@@ -318,21 +283,16 @@ async def get_status(story_id: str):
 @app.get("/api/stories", response_model=StoryListResponse)
 async def list_stories():
     """List all generated stories."""
-    stories = sorted(
-        _stories_db.values(),
-        key=lambda s: s["created_at"],
-        reverse=True,
-    )
+    stories = store.get_all()
     return StoryListResponse(stories=stories, total=len(stories))
 
 
 @app.get("/api/stories/{story_id}")
 async def get_story(story_id: str):
     """Get story details including chapter text."""
-    if story_id not in _stories_db:
+    meta = store.get_by_id(story_id)
+    if not meta:
         raise HTTPException(status_code=404, detail="Story not found")
-
-    meta = _stories_db[story_id]
 
     # Load full text if available
     text_path = settings.AUDIO_OUTPUT_DIR / story_id / "story.json"
@@ -341,7 +301,7 @@ async def get_story(story_id: str):
         story_data = json.loads(text_path.read_text(encoding="utf-8"))
         chapters = story_data.get("chapters", [])
 
-    return {**meta, "chapters": chapters}
+    return {**meta.model_dump(), "chapters": chapters}
 
 
 @app.get("/api/stories/{story_id}/audio")
@@ -351,27 +311,26 @@ async def get_audio(story_id: str):
     if not audio_path.exists():
         raise HTTPException(status_code=404, detail="Audio not found")
 
+    meta = store.get_by_id(story_id)
+    filename = f"{meta.title if meta else story_id}.mp3"
+
     return FileResponse(
         audio_path,
         media_type="audio/mpeg",
-        filename=f"{_stories_db.get(story_id, {}).get('title', story_id)}.mp3",
+        filename=filename,
     )
 
 
 @app.delete("/api/stories/{story_id}")
 async def delete_story(story_id: str):
     """Delete a story and its files."""
-    if story_id not in _stories_db:
+    if not store.delete_story(story_id):
         raise HTTPException(status_code=404, detail="Story not found")
 
     import shutil
     story_dir = settings.AUDIO_OUTPUT_DIR / story_id
     if story_dir.exists():
         shutil.rmtree(story_dir)
-
-    del _stories_db[story_id]
-    _save_stories()
-    _regenerate_rss()
 
     return {"status": "deleted"}
 
@@ -397,13 +356,9 @@ class SpotifyToggleRequest(BaseModel):
 @app.post("/api/stories/{story_id}/spotify")
 async def toggle_spotify(story_id: str, body: SpotifyToggleRequest):
     """Toggle whether a story is included in the Spotify RSS feed."""
-    if story_id not in _stories_db:
+    if not store.update_spotify_status(story_id, body.enabled):
         raise HTTPException(status_code=404, detail="Story not found")
-
-    _stories_db[story_id]["is_on_spotify"] = body.enabled
-    _save_stories()
-    _regenerate_rss()
-
+    
     return {"id": story_id, "is_on_spotify": body.enabled}
 
 
@@ -422,36 +377,24 @@ async def get_podcast_cover():
 
 @app.get("/api/feed.xml")
 async def get_rss_feed():
-    """Serve the podcast RSS feed."""
-    rss_path = settings.AUDIO_OUTPUT_DIR / "feed.xml"
-    if not rss_path.exists():
-        _regenerate_rss()
-
-    if rss_path.exists():
-        return Response(
-            content=rss_path.read_text(encoding="utf-8"),
-            media_type="application/xml",
-        )
-    return Response(content="<rss></rss>", media_type="application/xml")
-
-
-def _regenerate_rss():
-    """Regenerate the RSS feed from current stories."""
+    """Serve the podcast RSS feed (generated dynamically)."""
     # Only include stories that have is_on_spotify=True
-    stories = [s for s in _stories_db.values() if s.get("is_on_spotify")]
-    rss_path = settings.AUDIO_OUTPUT_DIR / "feed.xml"
+    stories = store.get_all(only_spotify=True)
+    
     image_url = f"{settings.BASE_URL}/api/podcast-cover.png"
     email = "dirk@proessel.de"  # Required by Spotify
+    
     try:
-        generate_rss_feed(
+        xml_content = generate_rss_feed(
             stories,
             settings.BASE_URL,
-            rss_path,
             image_url=image_url,
             email=email,
         )
-    except Exception:
-        pass  # Non-critical
+        return Response(content=xml_content, media_type="application/xml")
+    except Exception as e:
+        logger.error(f"RSS generation error: {e}")
+        return Response(content="<rss><channel><title>Error</title></channel></rss>", media_type="application/xml")
 
 
 # ──────────────────────────────────
@@ -460,17 +403,4 @@ def _regenerate_rss():
 
 @app.get("/api/health")
 async def health():
-    return {"status": "ok", "version": "1.0.0"}
-
-# ──────────────────────────────────
-# Startup
-# ──────────────────────────────────
-
-# Force RSS regeneration on startup to update metadata/cover
-try:
-    rss_path = settings.AUDIO_OUTPUT_DIR / "feed.xml"
-    if rss_path.exists():
-        rss_path.unlink()
-    _regenerate_rss()
-except Exception as e:
-    logger.error(f"Failed to force RSS regeneration on startup: {e}")
+    return {"status": "ok", "version": "1.1.0"}

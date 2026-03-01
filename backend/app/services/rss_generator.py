@@ -8,23 +8,20 @@ from feedgen.feed import FeedGenerator
 
 
 def generate_rss_feed(
-    stories: list[dict],
+    stories: list,
     base_url: str,
-    output_path: Path,
     image_url: str | None = None,
     email: str | None = None,
-) -> Path:
+) -> str:
     """
-    Generate a podcast-compatible RSS feed.
+    Generate a podcast-compatible RSS feed XML.
 
     Args:
-        stories: List of story dicts with keys:
-            - id, title, description, duration_seconds, filename, created_at
+        stories: List of story dicts or StoryMeta Pydantic models.
         base_url: Base URL where audio files are served
-        output_path: Where to write the RSS XML file
 
     Returns:
-        Path to the generated RSS file
+        The RSS XML string
     """
     fg = FeedGenerator()
     fg.load_extension("podcast")
@@ -49,7 +46,10 @@ def generate_rss_feed(
         fg.podcast.itunes_owner(name="Sektion Unfug", email=email)
 
     # Add episodes (newest first)
-    for story in sorted(stories, key=lambda s: s["created_at"], reverse=True):
+    for s in stories:
+        # Normalize to dict if it's a Pydantic model
+        story = s.model_dump(mode="json") if hasattr(s, "model_dump") else s
+        
         fe = fg.add_entry()
         fe.id(f"{base_url}/audio/{story['id']}")
         fe.title(story["title"])
@@ -69,14 +69,13 @@ def generate_rss_feed(
             created = created.replace(tzinfo=timezone.utc)
         fe.published(created)
 
-    # Write RSS file
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    fg.rss_file(str(output_path), pretty=True)
-    return output_path
+    return fg.rss_str(pretty=True).decode("utf-8")
 
 
-def _seconds_to_hms(seconds: float) -> str:
+def _seconds_to_hms(seconds: float | None) -> str:
     """Convert seconds to HH:MM:SS format."""
+    if seconds is None:
+        return "00:00"
     h = int(seconds // 3600)
     m = int((seconds % 3600) // 60)
     s = int(seconds % 60)
