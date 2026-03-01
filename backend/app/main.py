@@ -23,21 +23,20 @@ from pathlib import Path
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Log buffer for remote debugging
-class LogBufferHandler(logging.Handler):
-    def __init__(self, capacity=100):
-        super().__init__()
-        self.capacity = capacity
-        self.buffer = []
+# Log file for remote debugging (cross-worker)
+DEBUG_LOG_PATH = settings.AUDIO_OUTPUT_DIR / "debug.log"
 
+class LogFileHandler(logging.Handler):
     def emit(self, record):
-        self.buffer.append(self.format(record))
-        if len(self.buffer) > self.capacity:
-            self.buffer.pop(0)
+        try:
+            with open(DEBUG_LOG_PATH, "a", encoding="utf-8") as f:
+                f.write(self.format(record) + "\n")
+        except:
+            pass
 
-log_buffer = LogBufferHandler()
-log_buffer.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
-logging.getLogger().addHandler(log_buffer)
+log_handler = LogFileHandler()
+log_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+logging.getLogger().addHandler(log_handler)
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -430,7 +429,7 @@ async def health():
     logger.info("Health check ping - testing log buffer")
     return {
         "status": "ok", 
-        "version": "1.3.5",
+        "version": "1.3.6",
         "build": "final-001",
         "worker_pid": os.getpid(),
         "store_path": str(store.db_path.absolute()),
@@ -450,5 +449,12 @@ async def debug_store():
 
 @app.get("/api/debug/logs")
 async def get_debug_logs():
-    """Return the last 100 log lines."""
-    return {"logs": log_buffer.buffer}
+    """Return the last 100 log lines from the shared file."""
+    if not DEBUG_LOG_PATH.exists():
+        return {"logs": []}
+    
+    try:
+        lines = DEBUG_LOG_PATH.read_text(encoding="utf-8").splitlines()
+        return {"logs": lines[-100:]}
+    except Exception as e:
+        return {"logs": [f"Error reading logs: {e}"]}
