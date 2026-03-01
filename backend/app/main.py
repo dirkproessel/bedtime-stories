@@ -12,6 +12,7 @@ Endpoints:
   GET  /api/status/{id}          – Generation status (SSE)
 """
 
+# Deploy Trigger: Live Feed Generation v1.2.1
 import asyncio
 import json
 import logging
