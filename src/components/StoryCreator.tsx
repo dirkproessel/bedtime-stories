@@ -1,28 +1,28 @@
 import { useState, useRef } from 'react';
 import { useStore } from '../store/useStore';
 import { getVoicePreviewUrl, type GenerationStatus } from '../lib/api';
-import { Sparkles, Mic, MicOff, Play, Pause, BookOpen, Wand2, MessageSquareText, Venus, Mars, Users } from 'lucide-react';
+import { Sparkles, Mic, MicOff, Play, Pause, BookOpen, Venus, Mars, Users } from 'lucide-react';
 
 const GENRES = [
-    { value: 'Sci-Fi', label: '🚀 Sci-Fi' },
-    { value: 'Fantasy', label: '🧙 Fantasy' },
-    { value: 'Krimi', label: '🔍 Krimi' },
-    { value: 'Abenteuer', label: '🤠 Abenteuer' },
-    { value: 'Realismus', label: '🏠 Realismus' },
-    { value: 'Grusel', label: '👻 Grusel' },
-    { value: 'Dystopie', label: '🏙️ Dystopie' },
-    { value: 'Satire', label: '🤡 Satire' },
+    { value: 'Sci-Fi', label: 'Sci-Fi' },
+    { value: 'Fantasy', label: 'Fantasy' },
+    { value: 'Krimi', label: 'Krimi' },
+    { value: 'Abenteuer', label: 'Abenteuer' },
+    { value: 'Realismus', label: 'Realismus' },
+    { value: 'Grusel', label: 'Grusel' },
+    { value: 'Dystopie', label: 'Dystopie' },
+    { value: 'Satire', label: 'Satire' },
 ];
 
 const STYLES = [
-    { value: 'Douglas Adams', label: '🪐 Douglas Adams' },
-    { value: 'Ernest Hemingway', label: '🥃 Ernest Hemingway' },
-    { value: 'Edgar Allan Poe', label: '🌑 Edgar Allan Poe' },
-    { value: 'Virginia Woolf', label: '🌊 Virginia Woolf' },
-    { value: 'Charles Bukowski', label: '🍺 Charles Bukowski' },
-    { value: 'Franz Kafka', label: '🐜 Franz Kafka' },
-    { value: 'Hunter S. Thompson', label: '🌵 Hunter S. Thompson' },
-    { value: 'Roald Dahl', label: '🍫 Roald Dahl' },
+    { value: 'Douglas Adams', label: 'Douglas Adams (Absurd, ironisch, kosmisch)' },
+    { value: 'Ernest Hemingway', label: 'Ernest Hemingway (Minimalistisch, knapp, präzise)' },
+    { value: 'Edgar Allan Poe', label: 'Edgar Allan Poe (Gothic, düster, schaurig)' },
+    { value: 'Virginia Woolf', label: 'Virginia Woolf (Poetisch, bildreich, fließend)' },
+    { value: 'Charles Bukowski', label: 'Charles Bukowski (Sarkastisch, bissig, ehrlich)' },
+    { value: 'Franz Kafka', label: 'Franz Kafka (Surreal, traumhaft, rätselhaft)' },
+    { value: 'Hunter S. Thompson', label: 'Hunter S. Thompson (Gonzo, wild, subjektiv)' },
+    { value: 'Roald Dahl', label: 'Roald Dahl (Makaber, witzig, unvorhersehbar)' },
 ];
 
 const LENGTHS = [
@@ -32,8 +32,7 @@ const LENGTHS = [
 ];
 
 export default function StoryCreator() {
-    const { voices, startGeneration, startFreeGeneration, isGenerating, generationStatus } = useStore();
-    const [mode, setMode] = useState<'guided' | 'free'>('guided');
+    const { voices, startGeneration, isGenerating, generationStatus } = useStore();
 
     // Guided mode state
     const [genre, setGenre] = useState('Realismus');
@@ -99,21 +98,19 @@ export default function StoryCreator() {
     };
 
     const handleGenerate = () => {
-        if (mode === 'guided') {
-            const selectedGenre = GENRES.find(g => g.value === genre);
-            const prompt = `Kurzgeschichte im Genre ${selectedGenre?.label || genre}${characters ? ` mit den Charakteren: ${characters}` : ''}`;
-            startGeneration({
-                prompt,
-                genre,
-                style,
-                characters: characters ? characters.split(',').map(c => c.trim()) : undefined,
-                target_minutes: targetMinutes,
-                voice_key: voiceKey,
-            });
-        } else {
-            if (!freeText.trim()) return;
-            startFreeGeneration(freeText.trim(), voiceKey, targetMinutes);
-        }
+        if (!freeText.trim()) return;
+
+        const selectedGenre = GENRES.find(g => g.value === genre);
+        const prompt = `Kurzgeschichte im Genre ${selectedGenre?.label || genre}${characters ? ` mit den Charakteren: ${characters}` : ''}\n\nIdee: ${freeText}`;
+
+        startGeneration({
+            prompt,
+            genre,
+            style,
+            characters: characters ? characters.split(',').map(c => c.trim()) : undefined,
+            target_minutes: targetMinutes,
+            voice_key: voiceKey,
+        });
     };
 
     if (isGenerating && generationStatus) {
@@ -130,150 +127,105 @@ export default function StoryCreator() {
                 <p className="text-slate-500 mt-1">Anspruchsvolle Literatur für Groß und Klein</p>
             </div>
 
-            {/* Mode Toggle */}
-            <div className="flex bg-slate-100 rounded-xl p-1 mb-6">
-                <button
-                    onClick={() => setMode('guided')}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${mode === 'guided'
-                        ? 'bg-white text-slate-900 shadow-sm'
-                        : 'text-slate-500 hover:text-slate-700'
-                        }`}
-                >
-                    <Wand2 className="w-4 h-4" />
-                    Baukasten
-                </button>
-                <button
-                    onClick={() => setMode('free')}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${mode === 'free'
-                        ? 'bg-white text-slate-900 shadow-sm'
-                        : 'text-slate-500 hover:text-slate-700'
-                        }`}
-                >
-                    <MessageSquareText className="w-4 h-4" />
-                    Freie Idee
-                </button>
-            </div>
-
-            {mode === 'guided' ? (
-                <div className="space-y-6">
-                    {/* Genre */}
-                    <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">Genre</label>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                            {GENRES.map(g => (
-                                <button
-                                    key={g.value}
-                                    onClick={() => setGenre(g.value)}
-                                    className={`p-3 rounded-xl text-sm font-medium transition-all border-2 ${genre === g.value
-                                        ? 'border-indigo-500 bg-indigo-50 text-indigo-700 shadow-sm'
-                                        : 'border-slate-100 bg-white text-slate-600 hover:border-slate-200'
-                                        }`}
-                                >
-                                    {g.label}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Style */}
-                    <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">Stil</label>
-                        <div className="flex flex-wrap gap-2">
-                            {STYLES.map(s => (
-                                <button
-                                    key={s.value}
-                                    onClick={() => setStyle(s.value)}
-                                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all border-2 ${style === s.value
-                                        ? 'border-purple-500 bg-purple-50 text-purple-700'
-                                        : 'border-slate-100 bg-white text-slate-600 hover:border-slate-200'
-                                        }`}
-                                >
-                                    {s.label}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Characters */}
-                    <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">
-                            Charaktere <span className="font-normal text-slate-400">(optional)</span>
-                        </label>
-                        <input
-                            type="text"
-                            value={characters}
-                            onChange={(e) => setCharacters(e.target.value)}
-                            placeholder="z.B. Luna die Katze, Max der Bär"
-                            className="w-full px-4 py-3 bg-white border-2 border-slate-100 rounded-xl text-sm focus:outline-none focus:border-indigo-400 transition-colors placeholder:text-slate-300"
-                        />
-                    </div>
-
-                    {/* Length */}
-                    <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">Länge</label>
-                        <div className="grid grid-cols-3 gap-2">
-                            {LENGTHS.map(l => (
-                                <button
-                                    key={l.value}
-                                    onClick={() => setTargetMinutes(l.value)}
-                                    className={`p-3 rounded-xl text-center transition-all border-2 ${targetMinutes === l.value
-                                        ? 'border-indigo-500 bg-indigo-50'
-                                        : 'border-slate-100 bg-white hover:border-slate-200'
-                                        }`}
-                                >
-                                    <div className={`text-sm font-bold ${targetMinutes === l.value ? 'text-indigo-700' : 'text-slate-700'}`}>{l.label}</div>
-                                    <div className={`text-xs ${targetMinutes === l.value ? 'text-indigo-500' : 'text-slate-400'}`}>{l.sub}</div>
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            ) : (
-                <div className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">
-                            Beschreibe deine Geschichte
-                        </label>
+            <div className="space-y-6">
+                {/* Description / Idea */}
+                <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">
+                        Beschreibe deine Idee
+                    </label>
+                    <div className="relative">
                         <textarea
                             value={freeText}
                             onChange={(e) => setFreeText(e.target.value)}
-                            placeholder="z.B. Eine Geschichte über einen kleinen Drachen, der lernt zu fliegen und dabei neue Freunde findet..."
-                            rows={5}
-                            className="w-full px-4 py-3 bg-white border-2 border-slate-100 rounded-xl text-sm focus:outline-none focus:border-indigo-400 transition-colors placeholder:text-slate-300 resize-none"
+                            placeholder="z.B. Ein Toaster gewinnt das Bewusstsein und versucht, die Welt zu verstehen. Er begegnet einer alten Kaffeemaschine mit existentialistischen Krisen..."
+                            rows={4}
+                            className="w-full px-4 py-3 bg-white border-2 border-slate-100 rounded-xl text-sm focus:outline-none focus:border-indigo-400 transition-colors placeholder:text-slate-300 resize-none pr-12"
                         />
-                    </div>
-                    <button
-                        onClick={isListening ? handleStopListening : handleStartListening}
-                        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${isListening
-                            ? 'bg-red-50 text-red-600 border-2 border-red-200'
-                            : 'bg-slate-50 text-slate-600 border-2 border-slate-100 hover:border-slate-200'
-                            }`}
-                    >
-                        {isListening ? <MicOff className="w-4 h-4 animate-pulse" /> : <Mic className="w-4 h-4" />}
-                        {isListening ? 'Aufnahme stoppen' : 'Spracheingabe'}
-                    </button>
-
-                    {/* Length */}
-                    <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">Länge</label>
-                        <div className="grid grid-cols-3 gap-2">
-                            {LENGTHS.map(l => (
-                                <button
-                                    key={l.value}
-                                    onClick={() => setTargetMinutes(l.value)}
-                                    className={`p-3 rounded-xl text-center transition-all border-2 ${targetMinutes === l.value
-                                        ? 'border-indigo-500 bg-indigo-50'
-                                        : 'border-slate-100 bg-white hover:border-slate-200'
-                                        }`}
-                                >
-                                    <div className={`text-sm font-bold ${targetMinutes === l.value ? 'text-indigo-700' : 'text-slate-700'}`}>{l.label}</div>
-                                    <div className={`text-xs ${targetMinutes === l.value ? 'text-indigo-500' : 'text-slate-400'}`}>{l.sub}</div>
-                                </button>
-                            ))}
-                        </div>
+                        <button
+                            onClick={isListening ? handleStopListening : handleStartListening}
+                            className={`absolute right-3 top-3 p-2 rounded-lg transition-all ${isListening
+                                ? 'bg-red-50 text-red-600'
+                                : 'text-slate-400 hover:text-indigo-500'
+                                }`}
+                            title={isListening ? 'Aufnahme stoppen' : 'Spracheingabe'}
+                        >
+                            {isListening ? <MicOff className="w-5 h-5 animate-pulse" /> : <Mic className="w-5 h-5" />}
+                        </button>
                     </div>
                 </div>
-            )}
+
+                {/* Genre */}
+                <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">Genre</label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        {GENRES.map(g => (
+                            <button
+                                key={g.value}
+                                onClick={() => setGenre(g.value)}
+                                className={`p-3 rounded-xl text-sm font-medium transition-all border-2 ${genre === g.value
+                                    ? 'border-indigo-500 bg-indigo-50 text-indigo-700 shadow-sm'
+                                    : 'border-slate-100 bg-white text-slate-600 hover:border-slate-200'
+                                    }`}
+                            >
+                                {g.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Style */}
+                <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">Stil</label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {STYLES.map(s => (
+                            <button
+                                key={s.value}
+                                onClick={() => setStyle(s.value)}
+                                className={`p-3 rounded-xl text-left text-sm font-medium transition-all border-2 ${style === s.value
+                                    ? 'border-purple-500 bg-purple-50 text-purple-700'
+                                    : 'border-slate-100 bg-white text-slate-600 hover:border-slate-200'
+                                    }`}
+                            >
+                                {s.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Characters */}
+                <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">
+                        Charaktere <span className="font-normal text-slate-400">(optional)</span>
+                    </label>
+                    <input
+                        type="text"
+                        value={characters}
+                        onChange={(e) => setCharacters(e.target.value)}
+                        placeholder="z.B. Luna die Katze, Max der Bär"
+                        className="w-full px-4 py-3 bg-white border-2 border-slate-100 rounded-xl text-sm focus:outline-none focus:border-indigo-400 transition-colors placeholder:text-slate-300"
+                    />
+                </div>
+
+                {/* Length */}
+                <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">Länge</label>
+                    <div className="grid grid-cols-3 gap-2">
+                        {LENGTHS.map(l => (
+                            <button
+                                key={l.value}
+                                onClick={() => setTargetMinutes(l.value)}
+                                className={`p-3 rounded-xl text-center transition-all border-2 ${targetMinutes === l.value
+                                    ? 'border-indigo-500 bg-indigo-50'
+                                    : 'border-slate-100 bg-white hover:border-slate-200'
+                                    }`}
+                            >
+                                <div className={`text-sm font-bold ${targetMinutes === l.value ? 'text-indigo-700' : 'text-slate-700'}`}>{l.label}</div>
+                                <div className={`text-xs ${targetMinutes === l.value ? 'text-indigo-500' : 'text-slate-400'}`}>{l.sub}</div>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            </div>
 
             {/* Voice Selection */}
             <div className="mt-6">

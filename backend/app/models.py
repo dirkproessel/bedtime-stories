@@ -55,7 +55,7 @@ class StoryMeta(BaseModel):
     title: str
     description: str
     prompt: str
-    genre: str
+    genre: str | None = None
     style: str
     voice_key: str
     duration_seconds: float | None = None
