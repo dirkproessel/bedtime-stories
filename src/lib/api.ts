@@ -44,11 +44,12 @@ export interface GenerationStatus {
 
 export interface StoryRequest {
     prompt: string;
-    genre?: string;
-    style?: string;
+    system_prompt?: string;
+    genre: string;
+    style: string;
     characters?: string[];
-    target_minutes?: number;
-    voice_key?: string;
+    target_minutes: number;
+    voice_key: string;
     speech_rate?: string;
 }
 

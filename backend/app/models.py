@@ -10,11 +10,12 @@ from datetime import datetime
 
 class StoryRequest(BaseModel):
     """Request to generate a new story."""
-    prompt: str
+    prompt: str  # The raw user idea
+    system_prompt: str | None = None  # Optional full formatted prompt
     genre: str = "Realismus"
     style: str = "Douglas Adams"
     characters: list[str] | None = None
-    target_minutes: int = 20
+    target_minutes: int = 5
     voice_key: str = "seraphina"
     speech_rate: str = "-5%"
 

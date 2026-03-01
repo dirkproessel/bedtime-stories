@@ -108,8 +108,8 @@ async def generate_tts_chunk(
             # Google Cloud TTS (Paid/Premium)
             from google.cloud import texttospeech
             
-            # Initialize client with API Key from settings
-            client = texttospeech.TextToSpeechClient(
+            # Initialize async client
+            client = texttospeech.TextToSpeechAsyncClient(
                 client_options={"api_key": settings.GEMINI_API_KEY}
             )
             
@@ -121,10 +121,6 @@ async def generate_tts_chunk(
                 name=voice_config["id"]
             )
             
-            # Select the type of audio file you want returned
-            # Select the type of audio file you want returned
-            # Convert rate string like "-5%" to a float speaking_rate
-            # 1.0 is default, 0.95 is 5% slower
             try:
                 if rate.startswith("-") and rate.endswith("%"):
                     val = int(rate[1:-1])
@@ -137,27 +133,24 @@ async def generate_tts_chunk(
             except:
                 speaking_rate = 0.95 if rate == "-5%" else 1.0
 
-            # Percy (Neural2-H) adjustment: Make him specifically slower as requested
             if voice_key == "percy":
-                speaking_rate *= 0.92  # Additional 8% slower than the requested base rate
+                speaking_rate *= 0.92
 
             audio_config = texttospeech.AudioConfig(
                 audio_encoding=texttospeech.AudioEncoding.MP3,
                 speaking_rate=speaking_rate,
-                # Eliza (Neural2-G) slightly deeper if requested
                 pitch=-1.5 if voice_key == "eliza" else 0.0
             )
             
-            response = client.synthesize_speech(
+            response = await client.synthesize_speech(
                 input=synthesis_input, voice=voice, audio_config=audio_config
             )
             
             with open(output_path, "wb") as out:
                 out.write(response.audio_content)
         elif engine == "openai":
-            # Direct OpenAI TTS API call via httpx to avoid library version/proxy issues
             if not settings.OPENAI_API_KEY:
-                raise ValueError("OpenAI API Key is missing. Please set OPENAI_API_KEY in the environment.")
+                raise ValueError("OpenAI API Key is missing.")
             
             import httpx
             headers = {
@@ -171,8 +164,8 @@ async def generate_tts_chunk(
                 "speed": 0.95 if rate == "-5%" else 1.0,
             }
             
-            with httpx.Client(timeout=60.0) as client:
-                response = client.post(
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                response = await client.post(
                     "https://api.openai.com/v1/audio/speech",
                     headers=headers,
                     json=payload

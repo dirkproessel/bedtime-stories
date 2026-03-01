@@ -100,15 +100,18 @@ export default function StoryCreator() {
         if (!freeText.trim()) return;
 
         const selectedGenre = GENRES.find(g => g.value === genre);
-        const prompt = `Kurzgeschichte im Genre ${selectedGenre?.label || genre}\n\nIdee: ${freeText}`;
+        // Create the system prompt for the LLM
+        const systemPrompt = `Kurzgeschichte im Genre ${selectedGenre?.label || genre}\n\nIdee: ${freeText}`;
 
+        // Start generation - use the freeText as the prompt for metadata display
         startGeneration({
-            prompt,
-            genre,
-            style,
-            target_minutes: targetMinutes,
-            voice_key: voiceKey,
-        });
+            prompt: freeText, // This will be stored and shown as "Idee"
+            system_prompt: systemPrompt, // NEW: Pass the full prompt separately if needed, or handle in backend
+            genre: selectedGenre?.label || genre,
+            style: style, // Keep original style variable
+            target_minutes: targetMinutes, // Keep original targetMinutes variable
+            voice_key: voiceKey // Keep original voiceKey variable
+        } as any);
     };
 
     return (

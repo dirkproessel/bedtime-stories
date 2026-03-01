@@ -79,7 +79,9 @@ Antworte EXKLUSIV im JSON-Format:
     if on_progress:
         await on_progress("generating_text", f"Schreibe '{style}'-Geschichte ({target_minutes} Min)...")
 
-    response = client.models.generate_content(
+    import asyncio
+    response = await asyncio.to_thread(
+        client.models.generate_content,
         model=MODEL,
         contents=master_prompt,
         config={"response_mime_type": "application/json", "temperature": 0.85, "max_output_tokens": 8192}
@@ -148,7 +150,12 @@ Antworte NUR im JSON-Format:
     ]
 }}"""
 
-    outline_res = client.models.generate_content(model=MODEL, contents=outline_prompt, config={"response_mime_type": "application/json"})
+    outline_res = await asyncio.to_thread(
+        client.models.generate_content,
+        model=MODEL,
+        contents=outline_prompt,
+        config={"response_mime_type": "application/json"}
+    )
     import json
     outline_data = json.loads(outline_res.text)
     
@@ -177,7 +184,12 @@ WICHTIG:
 - Der Text muss nahtlos an den bisherigen Text anknüpfen.
 - Keine Kapitelüberschriften! Nur der fließende Erzähltext.
 """
-        response = client.models.generate_content(model=MODEL, contents=write_prompt, config={"temperature": 0.8})
+        response = await asyncio.to_thread(
+            client.models.generate_content,
+            model=MODEL,
+            contents=write_prompt,
+            config={"temperature": 0.8}
+        )
         segment_text = response.text.strip()
         
         # Simple cleanup if the model repeats markers

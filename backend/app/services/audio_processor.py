@@ -1,16 +1,13 @@
-"""
-Audio post-processing: merge MP3 chunks, add silence between chapters,
-normalize loudness via FFmpeg.
-"""
-
+import asyncio
 import subprocess
 import tempfile
 from pathlib import Path
 
 
-def _create_silence(duration_ms: int, output_path: Path) -> Path:
+async def _create_silence(duration_ms: int, output_path: Path) -> Path:
     """Generate a silent MP3 of given duration."""
-    subprocess.run(
+    await asyncio.to_thread(
+        subprocess.run,
         [
             "ffmpeg", "-y",
             "-f", "lavfi",
@@ -26,7 +23,7 @@ def _create_silence(duration_ms: int, output_path: Path) -> Path:
     return output_path
 
 
-def merge_audio_files(
+async def merge_audio_files(
     audio_files: list[Path],
     output_path: Path,
     intro_path: Path | None = None,
@@ -37,29 +34,20 @@ def merge_audio_files(
 ) -> Path:
     """
     Merge multiple MP3 files with optional intro/outro, title announcement and normalization.
-
-    Args:
-        audio_files: List of MP3 file paths (in order)
-        output_path: Final output MP3 path
-        intro_path: Path to Intro MP3 (optional)
-        outro_path: Path to Outro MP3 (optional)
-        title_path: Path to Title TTS MP3 (optional)
-        silence_between_ms: Milliseconds of silence between chapters
-        fade_out_ms: Fade-out duration at the end in ms
     """
     if not audio_files:
         raise ValueError("No audio files provided")
 
     if len(audio_files) == 1:
         # Single file: just normalize
-        _normalize_audio(audio_files[0], output_path, fade_out_ms)
+        await _normalize_audio(audio_files[0], output_path, fade_out_ms)
         return output_path
 
     # Create a temporary concat file and silence file
     with tempfile.TemporaryDirectory() as tmpdir:
         tmpdir = Path(tmpdir)
         silence_path = tmpdir / "silence.mp3"
-        _create_silence(silence_between_ms, silence_path)
+        await _create_silence(silence_between_ms, silence_path)
 
         # Create FFmpeg concat list
         concat_list = tmpdir / "concat.txt"
@@ -92,7 +80,8 @@ def merge_audio_files(
 
         # Concatenate
         merged_raw = tmpdir / "merged_raw.mp3"
-        subprocess.run(
+        await asyncio.to_thread(
+            subprocess.run,
             [
                 "ffmpeg", "-y",
                 "-f", "concat",
@@ -107,15 +96,16 @@ def merge_audio_files(
         )
 
         # Normalize + fade out
-        _normalize_audio(merged_raw, output_path, fade_out_ms)
+        await _normalize_audio(merged_raw, output_path, fade_out_ms)
 
     return output_path
 
 
-def _normalize_audio(input_path: Path, output_path: Path, fade_out_ms: int = 3000):
+async def _normalize_audio(input_path: Path, output_path: Path, fade_out_ms: int = 3000):
     """Normalize loudness and optionally apply fade-out."""
     # Get duration for fade-out calculation
-    probe = subprocess.run(
+    probe = await asyncio.to_thread(
+        subprocess.run,
         [
             "ffprobe",
             "-v", "error",
@@ -135,7 +125,8 @@ def _normalize_audio(input_path: Path, output_path: Path, fade_out_ms: int = 300
         f"afade=t=out:st={fade_start}:d={fade_out_ms / 1000}"
     )
 
-    subprocess.run(
+    await asyncio.to_thread(
+        subprocess.run,
         [
             "ffmpeg", "-y",
             "-i", str(input_path),
@@ -149,9 +140,10 @@ def _normalize_audio(input_path: Path, output_path: Path, fade_out_ms: int = 300
     )
 
 
-def get_audio_duration(file_path: Path) -> float:
+async def get_audio_duration(file_path: Path) -> float:
     """Get duration of an audio file in seconds."""
-    result = subprocess.run(
+    result = await asyncio.to_thread(
+        subprocess.run,
         [
             "ffprobe",
             "-v", "error",

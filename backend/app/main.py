@@ -127,13 +127,14 @@ async def start_generation(req: StoryRequest):
     asyncio.create_task(
         _run_pipeline(
             story_id=story_id,
-            prompt=req.prompt,
+            prompt=req.system_prompt or req.prompt, # Use system_prompt for generation if available, else fallback
             genre=req.genre,
             style=req.style,
             characters=req.characters,
             target_minutes=req.target_minutes,
             voice_key=req.voice_key,
             speech_rate=req.speech_rate,
+            original_prompt=req.prompt, # Pass original prompt for metadata
         )
     )
 
@@ -161,6 +162,7 @@ async def start_free_generation(req: FreeTextRequest):
             target_minutes=req.target_minutes,
             voice_key=req.voice_key,
             speech_rate=req.speech_rate,
+            original_prompt=req.text,
         )
     )
 
@@ -176,6 +178,7 @@ async def _run_pipeline(
     target_minutes: int,
     voice_key: str,
     speech_rate: str,
+    original_prompt: str | None = None,
 ):
     """Full pipeline: text → TTS → merge → save."""
     story_dir = settings.AUDIO_OUTPUT_DIR / story_id
@@ -193,8 +196,8 @@ async def _run_pipeline(
     story_meta = StoryMeta(
         id=story_id,
         title="Generierung läuft...",
-        description=f"Idee: {prompt[:100]}...",
-        prompt=prompt,
+        description=f"Idee: {(original_prompt or prompt)[:100]}...",
+        prompt=original_prompt or prompt,
         genre=genre,
         style=style,
         voice_key=voice_key,
@@ -258,33 +261,27 @@ async def _run_pipeline(
 
         # Step 2.5: Generate title audio
         await on_progress("generating_audio", "Vertone Titel...")
-        title_path = chunks_dir / "title.mp3"
+        title_tts_path = chunks_dir / "title.mp3"
         await generate_tts_chunk(
             text=story_data["title"],
-            output_path=title_path,
+            output_path=title_tts_path,
             voice_key=voice_key,
             rate=speech_rate
         )
 
-        # Step 3: Merge & normalize
-        await on_progress("processing", "Zusammenfügen & Normalisieren...")
-        final_path = story_dir / "story.mp3"
-        
-        # Check for intro/outro in static dir
-        static_dir = Path(__file__).parent / "static"
-        intro_path = static_dir / "Intro.mp3"
-        outro_path = static_dir / "Outro.mp3"
-        
-        merge_audio_files(
-            audio_files, 
-            final_path,
-            intro_path=intro_path if intro_path.exists() else None,
-            outro_path=outro_path if outro_path.exists() else None,
-            title_path=title_path,
+        # Step 4: Merge and Post-process
+        await on_progress("processing", "Mische Audio-Spuren und optimiere Klang...")
+        final_audio_path = story_dir / "story.mp3"
+        await merge_audio_files(
+            audio_files=audio_files,
+            output_path=final_audio_path,
+            intro_path=settings.INTRO_MUSIC_PATH,
+            outro_path=settings.OUTRO_MUSIC_PATH,
+            title_path=title_tts_path,
         )
 
-        # Get duration
-        duration = get_audio_duration(final_path)
+        # Step 5: Get Final Duration
+        duration = await get_audio_duration(final_audio_path)
 
         # Step 3.5: Generate story image
         await on_progress("processing", "Generiere Titelbild...")
@@ -323,8 +320,7 @@ async def _run_pipeline(
             curr.progress = f"Fehler: {str(e)}"
             store.add_story(curr)
             
-        logger.error(f"Generation error: {e}", exc_info=True)
-        logger.error(f"Generation error: {e}", exc_info=True)
+        logger.error(f"Generation error for {story_id}: {e}", exc_info=True)
 
 
 # ──────────────────────────────────
