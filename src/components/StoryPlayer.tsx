@@ -158,7 +158,9 @@ export default function StoryPlayer() {
                     </div>
                 )}
                 <h1 className="text-xl font-bold text-slate-900">{story.title}</h1>
-                <p className="text-sm text-slate-400 mt-1">{story.chapter_count} Kapitel · {formatTime(story.duration_seconds || 0)}</p>
+                <p className="text-sm text-slate-400 mt-1">
+                    {story.word_count ? `${story.word_count} Worte` : `${story.chapter_count} Kapitel`} · {formatTime(story.duration_seconds || 0)}
+                </p>
             </div>
 
             {/* Progress */}
@@ -203,14 +205,13 @@ export default function StoryPlayer() {
                         onClick={() => setShowChapters(!showChapters)}
                         className="w-full flex items-center justify-between p-4 bg-white border-2 border-slate-100 rounded-2xl hover:border-slate-200 transition-all"
                     >
-                        <span className="text-sm font-semibold text-slate-700">📖 Kapitel & Text</span>
+                        <span className="text-sm font-semibold text-slate-700">📖 Text</span>
                         {showChapters ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
                     </button>
                     {showChapters && (
                         <div className="mt-2 space-y-3">
                             {story.chapters.map((ch, i) => (
                                 <div key={i} className="p-4 bg-white border-2 border-slate-100 rounded-2xl">
-                                    <h3 className="text-sm font-bold text-slate-700 mb-2">Kapitel {i + 1}: {ch.title}</h3>
                                     <p className="text-xs text-slate-500 leading-relaxed whitespace-pre-line">{ch.text}</p>
                                 </div>
                             ))}

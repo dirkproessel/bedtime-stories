@@ -47,7 +47,7 @@ async def generate_full_story(
     Long stories (>12 min) use multi-pass (Outline -> Chapters) for reliability.
     """
     
-    if target_minutes <= 12:
+    if target_minutes <= 8:
         return await _generate_single_pass(prompt, genre, style, characters, target_minutes, on_progress)
     else:
         return await _generate_multi_pass(prompt, genre, style, characters, target_minutes, on_progress)
@@ -57,17 +57,22 @@ async def _generate_single_pass(prompt, genre, style, characters, target_minutes
     """Original single-pass logic for shorter stories with improved JSON cleanup."""
     selected_style_info = STYLE_MAPPING.get(style, STYLE_MAPPING["Douglas Adams"])
     selected_genre_info = GENRE_MAPPING.get(genre, GENRE_MAPPING["Realismus"])
-    word_count = target_minutes * 150
+    word_count = target_minutes * 200
     char_text = f"\nHauptcharaktere: {', '.join(characters)}" if characters else ""
 
     master_prompt = f"""Du bist ein preisgekrönter Autor. Schreibe eine abgeschlossene Kurzgeschichte.
+
+STRIKTE REGELN:
+1. Literarischer Anspruch: Halte dich strikt an den gewählten Autoren-Stil. Vermeide jegliche Floskeln, pädagogische Zeigefinger oder moralische Zusammenfassungen am Ende. Die Geschichte endet mit dem letzten narrativen Moment. Kein Kitsch, keine Moral!
+2. Show, don't tell: Erkläre nicht, wie sich Charaktere fühlen – zeige es durch ihre Handlungen und Reaktionen.
+3. Pacing & Detail: Hetze nicht durch die Handlung. Entwickle Szenen langsam. Beschreibe Texturen, Gerüche und die Umgebung so präzise, dass ein Kopfkino entsteht (No Rush!).
+4. Format: Schreibe die Geschichte als einen fließenden Text. Nutze lediglich szenische Absätze oder subtile Zeitensprünge, keine nummerierten Kapitel.
+5. Umfang: Nutze das volle Output-Limit für maximale Detailtiefe. Ziel: Vorlesedauer {target_minutes} Min (~{word_count} Wörter).
+
 Parameter:
 Genre: {selected_genre_info}
 Stil: {selected_style_info}
-Inhalt: {prompt}{char_text}
-
-Umfang: Vorlesedauer {target_minutes} Min (~{word_count} Wörter).
-Anweisung: Schreibe fließend, keine Kapitelüberschriften. Show, don't tell.
+Inhalt/Zusatzwunsch: {prompt}{char_text}
 
 Antworte EXKLUSIV im JSON-Format:
 {{
@@ -125,9 +130,9 @@ async def _generate_multi_pass(prompt, genre, style, characters, target_minutes,
     selected_genre_info = GENRE_MAPPING.get(genre, GENRE_MAPPING["Realismus"])
     
     # Target total words
-    total_words = target_minutes * 150
-    # For a 30 min story (~4500 words), we'll do ~6 segments of ~750 words Each.
-    num_segments = max(4, target_minutes // 5)
+    total_words = target_minutes * 200
+    # For a 30 min story (~6000 words), we'll do segments of ~750-1000 words.
+    num_segments = max(4, target_minutes // 4)
     words_per_segment = total_words // num_segments
 
     if on_progress:
@@ -188,16 +193,19 @@ Antworte NUR im JSON-Format:
         context = f"Bisheriger Text: {full_story_text[-1000:]}" if full_story_text else "Beginn der Geschichte."
         
         write_prompt = f"""Schreibe den nächsten Teil der Geschichte im Stil von {style}.
+
+STRIKTE REGELN:
+1. Literarischer Anspruch: Halte dich strikt an den Autoren-Stil ({style}). Vermeide jegliche Floskeln, pädagogische Zeigefinger oder moralische Zusammenfassungen am Ende. Kein Kitsch, keine Moral!
+2. Show, don't tell: Erkläre nicht, wie sich Charaktere fühlen – zeige es durch ihre Handlungen und Reaktionen.
+3. Pacing & Detail: Dehne die Szenen aus (Slow Pacing). Beschreibe Texturen, Licht, Gerüche und Dialoge so ausführlich, dass Kopfkino entsteht. Schreibe langsam und bedächtig (No Rush!).
+4. Format: Keine Kapitelüberschriften! Nur der fließende Erzähltext. Nutze lediglich szenische Absätze oder subtile Zeitensprünge.
+5. Umfang: Du MUSST mindestens {words_per_segment} Wörter für diesen Teil schreiben.
+
+Rahmenbedingungen:
 Titel: {title}
 Zusammenfassung der Geschichte: {synopsis}
-Ziel dieses Abschnitts: {seg['goal']} (~{words_per_segment} Wörter).
+Ziel dieses Abschnitts: {seg['goal']}
 {context}
-
-WICHTIG:
-- Schreibe extrem detailliert und atmosphärisch. 
-- Dehne die Szenen aus (Slow Pacing). Beschreibe Texturen, Licht und Dialoge ausführlich.
-- Der Text muss nahtlos an den bisherigen Text anknüpfen.
-- Keine Kapitelüberschriften! Nur der fließende Erzähltext.
 """
         response = await asyncio.to_thread(
             client.models.generate_content,

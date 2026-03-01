@@ -17,7 +17,7 @@ class StoryRequest(BaseModel):
     characters: list[str] | None = None
     target_minutes: int = 5
     voice_key: str = "seraphina"
-    speech_rate: str = "-5%"
+    speech_rate: str = "-15%"
 
 
 class FreeTextRequest(BaseModel):
@@ -25,7 +25,7 @@ class FreeTextRequest(BaseModel):
     text: str
     voice_key: str = "seraphina"
     target_minutes: int = 20
-    speech_rate: str = "-5%"
+    speech_rate: str = "-15%"
 
 
 # --- Response Models ---
@@ -63,7 +63,6 @@ class StoryMeta(BaseModel):
     voice_name: str | None = None
     duration_seconds: float | None = None
     chapter_count: int
-    word_count: int | None = None
     word_count: int | None = None
     is_on_spotify: bool = False
     image_url: str | None = None

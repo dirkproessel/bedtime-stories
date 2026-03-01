@@ -192,12 +192,17 @@ async def _run_pipeline(
             voice_name = v["name"]
             break
 
+    # Clean up prompt for display: remove system prefixes if present
+    clean_prompt = original_prompt or prompt
+    if "Kurzgeschichte im Genre" in clean_prompt and "Idee:" in clean_prompt:
+        clean_prompt = clean_prompt.split("Idee:", 1)[-1].strip()
+    
     # Initial record creation
     story_meta = StoryMeta(
         id=story_id,
         title=f"Schreibe '{style}'-Geschichte ({target_minutes} Min)...",
-        description=f"Idee: {(original_prompt or prompt)[:100]}...",
-        prompt=original_prompt or prompt,
+        description=f"{(original_prompt or prompt)[:100]}...",
+        prompt=clean_prompt,
         genre=genre,
         style=style,
         voice_key=voice_key,
@@ -237,12 +242,19 @@ async def _run_pipeline(
             on_progress=on_progress,
         )
 
-        _generation_status[story_id]["title"] = story_data["title"]
+        real_title = story_data["title"]
+        _generation_status[story_id]["real_title"] = real_title
         
-        # Update title in store
+        # Update progress message to include the title from now on
+        async def on_progress_with_title(status_type: str, message: str, pct: int | None = None):
+            combined_message = f"{real_title}: {message}"
+            await on_progress(status_type, combined_message, pct)
+
+        # Update initial metadata with real title/synopsis if we want to keep the "Schreibe..." row 1, we don't change curr.title here!
         curr = store.get_by_id(story_id)
         if curr:
-            curr.title = story_data["title"]
+            # We keep curr.title as the "Schreibe..." intent for now.
+            # But we update description to the real synopsis
             curr.description = story_data.get("synopsis", curr.description)
             store.add_story(curr)
 
@@ -254,18 +266,18 @@ async def _run_pipeline(
         )
 
         # Step 2: TTS – chapters to audio
-        await on_progress("generating_audio", "Bereite Vertonung vor...", 30)
+        await on_progress_with_title("generating_audio", "Bereite Vertonung vor...", 30)
         chunks_dir = story_dir / "chunks"
         audio_files = await chapters_to_audio(
             chapters=story_data["chapters"],
             output_dir=chunks_dir,
             voice_key=voice_key,
             rate=speech_rate,
-            on_progress=on_progress,
+            on_progress=on_progress_with_title,
         )
 
         # Step 2.5: Generate title audio
-        await on_progress("generating_audio", "Vertone Titel...", 80)
+        await on_progress_with_title("generating_audio", "Vertone Titel...", 80)
         title_tts_path = chunks_dir / "title.mp3"
         await generate_tts_chunk(
             text=story_data["title"],
@@ -275,7 +287,7 @@ async def _run_pipeline(
         )
 
         # Step 4: Merge and Post-process
-        await on_progress("processing", "Mische Audio-Spuren und optimiere Klang...", 85)
+        await on_progress_with_title("processing", "Mische Audio-Spuren und optimiere Klang...", 85)
         final_audio_path = story_dir / "story.mp3"
         await merge_audio_files(
             audio_files=audio_files,
@@ -289,7 +301,7 @@ async def _run_pipeline(
         duration = await get_audio_duration(final_audio_path)
 
         # Step 3.5: Generate story image
-        await on_progress("processing", "Generiere Titelbild...", 95)
+        await on_progress_with_title("processing", "Generiere Titelbild...", 95)
         image_path = story_dir / "cover.png"
         image_url = None
         try:
