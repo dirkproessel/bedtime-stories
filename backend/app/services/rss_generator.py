@@ -27,23 +27,25 @@ def generate_rss_feed(
     fg.load_extension("podcast")
 
     # Feed metadata
-    fg.title("Abenteuer aus der Hosentasche")
+    fg.title("Kurzgeschichten-Labor")
     fg.link(href=base_url, rel="alternate")
-    fg.description("Alles, was zu groß für den Alltag ist, passt perfekt in diese Hosentasche. Die Sektion Unfug liefert echte Abenteuer zwischen Küchentresen und Sternenhimmel: ohne Kitsch, dafür als idealer Abschluss für den Tag und eine himmlisch gute Nacht.")
+    desc = "Hier werden Geschichten nicht geschrieben, sie werden gestanzt. Das Labor für anspruchsvolle Literatur kombiniert die DNA von vielen Meister-Autoren. Präzise geformt, individuell veredelt und garantiert ohne Einheitsbrei."
+    fg.description(desc)
     fg.language("de-DE")
+    
+    fg.podcast.itunes_category("Fiction", "Short Stories")
     fg.podcast.itunes_category("Kids & Family", "Stories for Kids")
-    fg.podcast.itunes_author("Sektion Unfug")
+    
+    fg.podcast.itunes_author("Stanzwerk")
     fg.podcast.itunes_explicit("no")
-    fg.podcast.itunes_summary(
-        "Alles, was zu groß für den Alltag ist, passt perfekt in diese Hosentasche. Die Sektion Unfug liefert echte Abenteuer zwischen Küchentresen und Sternenhimmel: ohne Kitsch, dafür als idealer Abschluss für den Tag und eine himmlisch gute Nacht."
-    )
+    fg.podcast.itunes_summary(desc)
 
     if image_url:
         fg.logo(image_url)
         fg.podcast.itunes_image(image_url)
 
     if email:
-        fg.podcast.itunes_owner(name="Sektion Unfug", email=email)
+        fg.podcast.itunes_owner(name="Stanzwerk", email=email)
 
     # Add episodes (newest first)
     for s in stories:
@@ -57,6 +59,14 @@ def generate_rss_feed(
 
         audio_url = f"{base_url}/api/stories/{story['id']}/audio"
         fe.enclosure(audio_url, 0, "audio/mpeg")
+        
+        # Add episode-specific image if available
+        # Note: Feedgen requires setting the image directly via the iTunes extension at the item level
+        if story.get("image_url"):
+            fe.podcast.itunes_image(story["image_url"])
+        else:
+            # Fallback to general podcast cover
+            fe.podcast.itunes_image(f"{base_url}/api/podcast-cover.png")
 
         fe.podcast.itunes_duration(
             _seconds_to_hms(story.get("duration_seconds", 0))

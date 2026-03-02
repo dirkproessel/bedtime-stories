@@ -41,7 +41,7 @@ log_handler = LogFileHandler()
 log_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
 logging.getLogger().addHandler(log_handler)
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse, Response
 from pydantic import BaseModel
@@ -419,20 +419,51 @@ async def get_story(story_id: str):
 
 
 @app.get("/api/stories/{story_id}/audio")
-async def get_audio(story_id: str):
-    """Stream the final MP3 audio file."""
+async def get_audio(story_id: str, request: Request):
+    """Stream the final MP3 audio file with Range support for seeking."""
     audio_path = settings.AUDIO_OUTPUT_DIR / story_id / "story.mp3"
     if not audio_path.exists():
         raise HTTPException(status_code=404, detail="Audio not found")
 
     meta = store.get_by_id(story_id)
     filename = f"{meta.title if meta else story_id}.mp3"
+    
+    file_size = audio_path.stat().st_size
+    range_header = request.headers.get("Range", None)
+    
+    if range_header:
+        byte1, byte2 = 0, None
+        match = range_header.replace("bytes=", "").split("-")
+        if match[0]:
+            byte1 = int(match[0])
+        if len(match) > 1 and match[1]:
+            byte2 = int(match[1])
 
-    return FileResponse(
+        length = file_size - byte1
+        if byte2 is not None:
+            length = byte2 + 1 - byte1
+
+        def stream_file_range(start, size):
+            with open(audio_path, "rb") as f:
+                f.seek(start)
+                f_read = f.read(size)
+                while f_read:
+                    yield f_read
+                    f_read = f.read(size)
+
+        response = StreamingResponse(stream_file_range(byte1, 8192), status_code=206, media_type="audio/mpeg")
+        response.headers["Content-Range"] = f"bytes {byte1}-{byte1 + length - 1}/{file_size}"
+        response.headers["Accept-Ranges"] = "bytes"
+        response.headers["Content-Length"] = str(length)
+        return response
+    
+    response = FileResponse(
         audio_path,
         media_type="audio/mpeg",
         filename=filename,
     )
+    response.headers["Accept-Ranges"] = "bytes"
+    return response
 
 
 @app.delete("/api/stories/{story_id}")

@@ -43,56 +43,61 @@ async def merge_audio_files(
         await _normalize_audio(audio_files[0], output_path, fade_out_ms)
         return output_path
 
-    # Create a temporary concat file and silence file
+    # We will use FFmpeg's filter_complex concat which is much more robust
+    # against different sample rates and formats than the concat demuxer.
     with tempfile.TemporaryDirectory() as tmpdir:
         tmpdir = Path(tmpdir)
         silence_path = tmpdir / "silence.mp3"
         await _create_silence(silence_between_ms, silence_path)
 
-        # Create FFmpeg concat list
-        concat_list = tmpdir / "concat.txt"
-        lines = []
-
+        # Build list of input files in exact order
+        inputs = []
+        
         # 1. Intro
         if intro_path and intro_path.exists():
-            lines.append(f"file '{intro_path.resolve()}'")
-            lines.append(f"file '{silence_path.resolve()}'")
+            inputs.append(intro_path)
+            inputs.append(silence_path)
 
         # 1.5 Title Announcement
         if title_path and title_path.exists():
-            lines.append(f"file '{title_path.resolve()}'")
-            lines.append(f"file '{silence_path.resolve()}'")
+            inputs.append(title_path)
+            inputs.append(silence_path)
 
         # 2. Chapters
         for i, af in enumerate(audio_files):
-            lines.append(f"file '{af.resolve()}'")
+            inputs.append(af)
             if i < len(audio_files) - 1:
-                lines.append(f"file '{silence_path.resolve()}'")
+                inputs.append(silence_path)
             elif outro_path and outro_path.exists():
-                # Silence before outro if it exists
-                lines.append(f"file '{silence_path.resolve()}'")
+                inputs.append(silence_path)
 
         # 3. Outro
         if outro_path and outro_path.exists():
-            lines.append(f"file '{outro_path.resolve()}'")
+            inputs.append(outro_path)
 
-        concat_list.write_text("\n".join(lines), encoding="utf-8")
-
-        # Concatenate
+        # Construct FFmpeg command
+        cmd = ["ffmpeg", "-y"]
+        for inp in inputs:
+            cmd.extend(["-i", str(inp.resolve())])
+            
+        # Build filter_complex string: [0:a][1:a]...concat=n=X:v=0:a=1[outa]
+        filter_str = "".join([f"[{i}:a]" for i in range(len(inputs))])
+        filter_str += f"concat=n={len(inputs)}:v=0:a=1[outa]"
+        
+        cmd.extend(["-filter_complex", filter_str, "-map", "[outa]"])
+        
         merged_raw = tmpdir / "merged_raw.mp3"
+        cmd.extend([
+            "-c:a", "libmp3lame",
+            "-ar", "44100",
+            "-ac", "2",
+            "-b:a", "64k",
+            str(merged_raw)
+        ])
+
         await asyncio.to_thread(
             subprocess.run,
-            [
-                "ffmpeg", "-y",
-                "-f", "concat",
-                "-safe", "0",
-                "-i", str(concat_list),
-                "-c:a", "libmp3lame",
-                "-ar", "44100",
-                "-ac", "2",
-                "-b:a", "64k",
-                str(merged_raw),
-            ],
+            cmd,
             capture_output=True,
             check=True,
         )
