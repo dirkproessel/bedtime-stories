@@ -5,6 +5,9 @@ Two-step process: 1) Generate outline  2) Write detailed chapters
 
 from google import genai
 from app.config import settings
+import asyncio
+import json
+import re
 
 client = genai.Client(api_key=settings.GEMINI_API_KEY)
 
@@ -85,9 +88,6 @@ Antworte EXKLUSIV im JSON-Format:
         config={"response_mime_type": "application/json", "temperature": 0.85, "max_output_tokens": 8192}
     )
 
-    import json
-    import re
-    
     text = response.text.strip()
     
     # Robust JSON extraction: Find the first { and the last }
