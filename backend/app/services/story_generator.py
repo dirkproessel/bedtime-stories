@@ -108,7 +108,11 @@ Gib NUR den genauen Text des Hooks zurück, keine Begrüßung, keine Anführungs
             client.models.generate_content,
             model=MODEL,
             contents=prompt,
-            config={"temperature": 0.9}
+            config={
+                "temperature": 0.9,
+                "max_output_tokens": 40,  # Strict limit for a max 12-word hook
+                "top_k": 20,
+            }
         )
         return response.text.strip().strip('"').strip("'")
     except Exception as e:
@@ -133,7 +137,8 @@ async def _generate_single_pass(prompt, genre, style, characters, target_minutes
     """Original single-pass logic for shorter stories with improved JSON cleanup."""
     selected_style_info = generate_modular_prompt(style)
     genre_data = GENRES_BIBLIOTHEK.get(genre, GENRES_BIBLIOTHEK["Abenteuer"])
-    word_count = target_minutes * 200
+    # 130 words per minute is a standard, relaxed reading pace for audiobooks
+    word_count = target_minutes * 130
     char_text = f"\nHauptcharaktere: {', '.join(characters)}" if characters else ""
     user_hook = prompt
 
@@ -146,7 +151,7 @@ Vermeide jegliche Floskeln, pädagogische Zeigefinger oder moralische Zusammenfa
 2. Show, don't tell: Erkläre nicht, wie sich Charaktere fühlen – zeige es durch ihre Handlungen und Reaktionen.
 3. Pacing & Detail: Hetze nicht durch die Handlung. Entwickle Szenen langsam. Beschreibe Texturen, Gerüche und die Umgebung so präzise, dass ein Kopfkino entsteht (No Rush!).
 4. Format: Schreibe die Geschichte als einen fließenden Text. Nutze lediglich szenische Absätze oder subtile Zeitensprünge, keine nummerierten Kapitel.
-5. Umfang: Nutze das volle Output-Limit für maximale Detailtiefe. Ziel: Vorlesedauer {target_minutes} Min (~{word_count} Wörter).
+5. Umfang: Fasse dich extrem präzise und meide überladene Füllwörter. Maximiere die sprachliche Dichte. Ziel: Vorlesedauer {target_minutes} Min (EXAKT ~{word_count} Wörter, KEINESFALLS mehr!). Blähe den Text nicht künstlich auf.
 
 Rahmenbedingungen:
 Schreibe eine Geschichte im Genre {genre_data['name']}. Der Kern der Handlung (Nutzer-Wunsch) ist: {user_hook}{char_text}. Folge dem Narrativ: {genre_data['ziel']} unter Verwendung von {genre_data['tropen']}.
@@ -211,10 +216,10 @@ async def _generate_multi_pass(prompt, genre, style, characters, target_minutes,
     user_hook = prompt
     char_text = f"\nHauptcharaktere: {', '.join(characters)}" if characters else ""
     
-    # Target total words
-    total_words = target_minutes * 200
+    # Target total words. 130 WPM is a better average for comfortable bedtime reading pacing.
+    total_words = target_minutes * 130
     
-    # Strictly enforce 5-minute chapters (1000 words each) based on the user selection.
+    # Enforce strictly 5-minute chapters (650 words each).
     # 10 min = 2 chapters, 15 min = 3 chapters, 20 min = 4 chapters
     num_segments = max(2, target_minutes // 5)
     words_per_segment = total_words // num_segments
@@ -231,7 +236,7 @@ Stil-Vorgaben:
 
 Teile die Geschichte in exakt {num_segments} logische Abschnitte (Akte) auf.
 Jeder Abschnitt entspricht chronologisch einem Kapitel der Geschichte.
-ACHTUNG ZUR LÄNGE: Die gesamte Geschichte soll {total_words} Wörter lang werden. Jeder Abschnitt muss daher Material für ca. {words_per_segment} Wörter Text bieten.
+ACHTUNG ZUR LÄNGE: Die gesamte Geschichte soll {total_words} Wörter lang werden. Jeder Abschnitt muss Material für maximal {words_per_segment} Wörter Text bieten. Keine überflüssigen Ausschweifungen!
 Antworte NUR im JSON-Format:
 {{
     "title": "Titel",
@@ -288,9 +293,9 @@ STRIKTE REGELN:
 {selected_style_info}
 Vermeide jegliche Floskeln, pädagogische Zeigefinger oder moralische Zusammenfassungen am Ende. Kein Kitsch, keine Moral!
 2. Show, don't tell: Erkläre nicht, wie sich Charaktere fühlen – zeige es durch ihre Handlungen und Reaktionen.
-3. Pacing & Detail: Dehne die Szenen aus (Slow Pacing). Beschreibe Texturen, Licht, Gerüche und Dialoge ausführlich, dass Kopfkino entsteht.
+3. Pacing & Detail: Beschreibe präzise und atmosphärisch, aber meide unnötige Füllwörter. Konzentriere die Geschichte.
 4. Format: Keine Kapitelüberschriften im generierten Text! Nur der fließende Erzähltext für dieses Kapitel.
-5. UMFANG & ENDE: Ziele auf etwa {words_per_segment} Wörter ab (ca. {target_minutes // num_segments} Minuten Vorlesezeit). Beende das Kapitel aber immer mit einem natürlichen Cliffhanger oder einem runden Abschluss der Szene. Brich nicht erzählerisch mittendrin ab, nur um ein Wortlimit zu erfüllen! Flüssiger Lesefluss und natürliches Pacing haben Vorrang vor der exakten Wortzahl.
+5. UMFANG & ENDE: Schreibe EXAKT {words_per_segment} Wörter (ca. {target_minutes // num_segments} Minuten Vorlesezeit). Blähe den Text nicht auf! Ein runder, dichter Erzählfluss ist Pflicht. Beende das Kapitel mit einem natürlichen Cliffhanger oder einem Abschluss.
 
 Rahmenbedingungen:
 Titel der Gesamtgeschichte: {title}
