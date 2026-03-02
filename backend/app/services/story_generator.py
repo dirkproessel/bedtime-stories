@@ -89,11 +89,28 @@ async def generate_story_hook(genre: str, author_id: str) -> str:
         
     author_desc = f"{author['name']} ({author['wortwahl']} / {author['atmosphaere']})" if author else "Ein klarer, sachlicher Literat."
         
-    prompt = f"""Du bist ein literarischer Visionär. Generiere einen Story-Hook (max. 12 Wörter), der eine alltägliche Situation durch eine existenzielle oder surreale Verschiebung aus den Angeln hebt.
+    stanzwerk_hooks = [
+        {"typ": "Der Kontrast-Hook", "logik": "Kombiniere ein banales Objekt mit einer unmöglichen biologischen Eigenschaft."},
+        {"typ": "Der Metaphysische Riss", "logik": "Beschreibe eine tägliche Routine, die durch eine surreale Zeitverschiebung gestört wird."},
+        {"typ": "Die Olfaktorische Falle", "logik": "Beginne mit einem Geruch, der an diesem Ort absolut unmöglich ist."},
+        {"typ": "Das Logik-Loch", "logik": "Stelle eine knochentrockene Behauptung auf, die ein physikalisches Gesetz ignoriert."},
+        {"typ": "Die haptische Miniatur", "logik": "Beschreibe ein Werkzeug oder Objekt so detailreich, dass man es spüren kann."},
+        {"typ": "Der Snob-Snapshot", "logik": "Betrachte eine luxuriöse Oberfläche mit extremer, gelangweilter Distanz."},
+        {"typ": "Der Psycho-Countdown", "logik": "Ein gewöhnliches Geräusch wird plötzlich zur unmittelbaren, tödlichen Bedrohung."},
+        {"typ": "Das Alltags-Geheimnis", "logik": "Ein Tier oder Objekt schließt einen geheimen Bund mit dem Protagonisten."},
+        {"typ": "Die Trümmer-Ehrlichkeit", "logik": "Ein extrem kurzer, harter Satz über Kälte, Hunger oder das nackte Überleben."},
+        {"typ": "Der Turbo-Slapstick", "logik": "Ein peinliches Missgeschick eskaliert innerhalb von Sekunden zur totalen Katastrophe."}
+    ]
+    
+    import random
+    selected_hook = random.choice(stanzwerk_hooks)
+        
+    prompt = f"""Du bist ein literarischer Visionär. Generiere einen Story-Hook (max. 15 Wörter), der eine alltägliche Situation durch eine existenzielle oder surreale Verschiebung aus den Angeln hebt.
 
 Deine Werkzeuge für die Inspiration:
 Genre: {genre_data['name']}
 Stil-Vibe: {author_desc}
+Struktur-Schablone: [{selected_hook['typ']}]: {selected_hook['logik']}
 
 Leitplanken für die Kreativität:
 Vermeide platte Witze. Suche nach Melancholie, Absurdität oder untergründiger Gefahr.
@@ -101,7 +118,7 @@ Setze dort an, wo die Logik des Alltags einen Riss bekommt.
 Nutze keine Standard-Adjektive (geheimnisvoll, magisch, spannend).
 Der Hook muss eine Frage im Kopf des Hörers hinterlassen, kein fertiges Szenario.
 
-Gib NUR den genauen Text des Hooks zurück, keine Begrüßung, keine Anführungszeichen, keine weiteren Erklärungen.
+WICHTIG: Antworte NUR mit dem Hook. Max. 15 Wörter. Beende den Satz zwingend mit einem Punkt.
 """
     try:
         response = await asyncio.to_thread(
