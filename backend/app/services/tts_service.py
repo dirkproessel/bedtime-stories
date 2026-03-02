@@ -17,12 +17,6 @@ EDGE_VOICES = {
 GOOGLE_VOICES = {
     "eliza": {"id": "de-DE-Neural2-G", "name": "Eliza", "gender": "female"},
     "percy": {"id": "de-DE-Neural2-H", "name": "Percy", "gender": "male"},
-    "neural2a": {"id": "de-DE-Neural2-A", "name": "Neural2 A", "gender": "female"},
-    "neural2b": {"id": "de-DE-Neural2-B", "name": "Neural2 B", "gender": "male"},
-    "neural2c": {"id": "de-DE-Neural2-C", "name": "Neural2 C", "gender": "female"},
-    "neural2d": {"id": "de-DE-Neural2-D", "name": "Neural2 D", "gender": "male"},
-    "neural2e": {"id": "de-DE-Neural2-E", "name": "Neural2 E", "gender": "male"},
-    "neural2f": {"id": "de-DE-Neural2-F", "name": "Neural2 F", "gender": "female"},
 }
 
 # OpenAI TTS voices (Temporarily Disabled)
@@ -109,12 +103,12 @@ async def generate_tts_chunk(
     if voice_key in GOOGLE_VOICES:
         voice_config = GOOGLE_VOICES[voice_key]
         engine = "google"
-    elif voice_key in GEMINI_VOICES:
-        voice_config = GEMINI_VOICES[voice_key]
-        engine = "gemini"
     # elif voice_key in OPENAI_VOICES:
     #     voice_config = OPENAI_VOICES[voice_key]
     #     engine = "openai"
+    elif voice_key in GEMINI_VOICES:
+        voice_config = GEMINI_VOICES[voice_key]
+        engine = "gemini"
 
     else:
         voice_config = EDGE_VOICES.get(voice_key, EDGE_VOICES[DEFAULT_VOICE])
@@ -228,14 +222,13 @@ async def generate_tts_chunk(
                 response.raise_for_status()
                 with open(output_path, "wb") as out:
                     out.write(response.content)
-        
+
         elif engine == "gemini":
             from google import genai
             from google.genai import types
             import asyncio
-            import tempfile
-            import subprocess
-            import os
+            import wave
+            import io
             
             client = genai.Client(api_key=settings.GEMINI_API_KEY)
             
@@ -267,30 +260,12 @@ async def generate_tts_chunk(
             if not pcm_data:
                 raise RuntimeError(f"No audio data returned from Gemini TTS for voice {voice_key}")
                 
-            # Use temp file and FFmpeg to encode raw PCM to MP3
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".pcm") as tmp:
-                tmp.write(pcm_data)
-                tmp_path = tmp.name
-                
-            try:
-                await asyncio.to_thread(
-                    subprocess.run,
-                    [
-                        "ffmpeg", "-y",
-                        "-f", "s16le",
-                        "-ar", "24000",
-                        "-ac", "1",
-                        "-i", tmp_path,
-                        "-c:a", "libmp3lame",
-                        "-q:a", "2",
-                        str(output_path),
-                    ],
-                    capture_output=True,
-                    check=True,
-                )
-            finally:
-                if os.path.exists(tmp_path):
-                    os.unlink(tmp_path)
+            # Use native Python 'wave' module to write valid WAV to the output_path 
+            with wave.open(str(output_path), 'wb') as wav_file:
+                wav_file.setnchannels(1)      # Mono
+                wav_file.setsampwidth(2)      # 16-bit
+                wav_file.setframerate(24000)  # 24 kHz
+                wav_file.writeframes(pcm_data)
 
 
         # Verify file was created and has content

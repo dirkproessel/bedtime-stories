@@ -89,11 +89,17 @@ Antworte EXKLUSIV im JSON-Format:
     import re
     
     text = response.text.strip()
-    # Remove markdown code blocks if the model included them despite mime_type
-    if text.startswith("```json"):
-        text = text.replace("```json", "", 1).replace("```", "", 1).strip()
-    elif text.startswith("```"):
-        text = text.replace("```", "", 2).strip()
+    
+    # Robust JSON extraction: Find the first { and the last }
+    json_match = re.search(r'\{.*\}', text, re.DOTALL)
+    if json_match:
+        text = json_match.group(0)
+    else:
+        # Fallback to basic markdown cleanup if regex fails
+        if text.startswith("```json"):
+            text = text.replace("```json", "", 1).replace("```", "", 1).strip()
+        elif text.startswith("```"):
+            text = text.replace("```", "", 2).strip()
 
     try:
         data = json.loads(text)
@@ -159,11 +165,17 @@ Antworte NUR im JSON-Format:
         )
         
         text = outline_res.text.strip()
-        if text.startswith("```json"):
-            text = text.replace("```json", "", 1).replace("```", "", 1).strip()
-        elif text.startswith("```"):
-            text = text.replace("```", "", 2).strip()
-            
+        
+        # Robust JSON extraction for outline
+        json_match = re.search(r'\{.*\}', text, re.DOTALL)
+        if json_match:
+            text = json_match.group(0)
+        else:
+            if text.startswith("```json"):
+                text = text.replace("```json", "", 1).replace("```", "", 1).strip()
+            elif text.startswith("```"):
+                text = text.replace("```", "", 2).strip()
+                
         outline_data = json.loads(text)
         title = outline_data.get("title", "Eine neue Geschichte")
         synopsis = outline_data.get("synopsis", "Kurzgeschichte")
