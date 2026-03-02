@@ -141,5 +141,5 @@ export async function toggleSpotify(storyId: string, enabled: boolean): Promise<
 }
 
 export function getRssFeedUrl(): string {
-    return `${API_BASE}/api/feed.xml`;
+    return `${API_BASE}/api/feed-labor.xml`;
 }

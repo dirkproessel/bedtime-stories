@@ -80,9 +80,14 @@ async def merge_audio_files(
         for inp in inputs:
             cmd.extend(["-i", str(inp.resolve())])
             
-        # Build filter_complex string: [0:a][1:a]...concat=n=X:v=0:a=1[outa]
-        filter_str = "".join([f"[{i}:a]" for i in range(len(inputs))])
-        filter_str += f"concat=n={len(inputs)}:v=0:a=1[outa]"
+        # Build filter_complex string: standardize each input individually first
+        filter_str = ""
+        for i in range(len(inputs)):
+            filter_str += f"[{i}:a]aresample=44100,aformat=sample_fmts=s16:channel_layouts=stereo[a{i}];"
+            
+        # Then concatenate the normalized streams
+        concat_inputs = "".join([f"[a{i}]" for i in range(len(inputs))])
+        filter_str += f"{concat_inputs}concat=n={len(inputs)}:v=0:a=1[outa]"
         
         cmd.extend(["-filter_complex", filter_str, "-map", "[outa]"])
         

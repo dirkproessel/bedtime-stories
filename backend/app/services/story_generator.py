@@ -105,11 +105,9 @@ async def generate_story_hook(genre: str, author_id: str) -> str:
     import random
     selected_hook = random.choice(stanzwerk_hooks)
         
-    prompt = f"""Du bist ein literarischer Visionär. Generiere einen Story-Hook (max. 15 Wörter), der eine alltägliche Situation durch eine existenzielle oder surreale Verschiebung aus den Angeln hebt.
+    prompt = f"""Du bist ein literarischer Visionär. Generiere einen Story-Hook, der eine alltägliche Situation durch eine existenzielle oder surreale Verschiebung aus den Angeln hebt.
 
 Deine Werkzeuge für die Inspiration:
-Genre: {genre_data['name']}
-Stil-Vibe: {author_desc}
 Struktur-Schablone: [{selected_hook['typ']}]: {selected_hook['logik']}
 
 Leitplanken für die Kreativität:
@@ -127,6 +125,7 @@ WICHTIG: Antworte NUR mit dem Hook. Max. 15 Wörter. Beende den Satz zwingend mi
             contents=prompt,
             config={
                 "temperature": 0.9,
+                "max_output_tokens": 500,
                 "top_k": 20,
             }
         )

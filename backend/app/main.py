@@ -315,7 +315,8 @@ async def _run_pipeline(
             text=story_data["title"],
             output_path=title_tts_path,
             voice_key=voice_key,
-            rate=speech_rate
+            rate=speech_rate,
+            is_title=True
         )
 
         # Step 4: Merge and Post-process
@@ -521,6 +522,7 @@ async def get_podcast_cover():
 
 
 @app.get("/api/feed.xml")
+@app.get("/api/feed-labor.xml")
 async def get_rss_feed():
     """Serve the podcast RSS feed (generated dynamically)."""
     # Only include stories that have is_on_spotify=True

@@ -91,6 +91,7 @@ async def generate_tts_chunk(
     output_path: Path,
     voice_key: str = DEFAULT_VOICE,
     rate: str = "-5%",
+    is_title: bool = False,
 ) -> Path:
     """
     Convert text to speech and save as MP3.
@@ -232,8 +233,8 @@ async def generate_tts_chunk(
             
             client = genai.Client(api_key=settings.GEMINI_API_KEY)
             
-            # Rate adjustment hint for Gemini
-            speed_hint = " (Sprich ruhig und langsam)" if "-15%" in rate else ""
+            # Rate adjustment hint for Gemini (but skip for titles as it distorts short sentences)
+            speed_hint = " (Sprich ruhig und langsam)" if ("-15%" in rate and not is_title) else ""
             
             # Split text into chunks < 4000 bytes (safety limit for Gemini API)
             def split_text(t, max_bytes=4000):
