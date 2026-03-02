@@ -110,7 +110,7 @@ Gib NUR den genauen Text des Hooks zurück, keine Begrüßung, keine Anführungs
             contents=prompt,
             config={
                 "temperature": 0.9,
-                "max_output_tokens": 80,  # Increased from 40 to ensure proper sentence endings
+                "max_output_tokens": 200,  # Increased from 80 to ensure proper sentence endings for longer hooks
                 "top_k": 20,
             }
         )
@@ -225,7 +225,7 @@ async def _generate_multi_pass(prompt, genre, style, characters, target_minutes,
     words_per_segment = total_words // num_segments
 
     if on_progress:
-        await on_progress("generating_text", f"Plane '{style}'-Geschichte ({target_minutes} Min, {num_segments} Kapitel)...", 2)
+        await on_progress("generating_text", f"Plane Geschichte ({target_minutes} Min, {num_segments} Kapitel)...", 2)
 
     # Step 1: Generate Outline
     outline_prompt = f"""Erstelle eine detaillierte Gliederung für eine {target_minutes}-minütige Kurzgeschichte.

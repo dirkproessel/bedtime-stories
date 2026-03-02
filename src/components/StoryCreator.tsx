@@ -170,9 +170,19 @@ export default function StoryCreator() {
             <div className="space-y-6">
                 {/* Description / Idea */}
                 <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-2">
-                        Beschreibe deine Idee
-                    </label>
+                    <div className="flex items-center justify-between mb-2">
+                        <label className="block text-sm font-semibold text-slate-700">
+                            Beschreibe deine Idee
+                        </label>
+                        <button
+                            onClick={handleDiceClick}
+                            disabled={isRolling}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-100 to-orange-100 text-amber-800 rounded-lg hover:from-amber-200 hover:to-orange-200 transition-all font-semibold text-xs shadow-sm shadow-orange-100/50 opacity-90 hover:opacity-100 disabled:opacity-50"
+                        >
+                            {isRolling ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Dices className="w-3.5 h-3.5" />}
+                            Inspirieren lassen
+                        </button>
+                    </div>
                     <div className="relative">
                         <textarea
                             value={freeText}
@@ -190,16 +200,6 @@ export default function StoryCreator() {
                             title={isListening ? 'Aufnahme stoppen' : 'Spracheingabe'}
                         >
                             {isListening ? <MicOff className="w-5 h-5 animate-pulse" /> : <Mic className="w-5 h-5" />}
-                        </button>
-                    </div>
-                    <div className="flex justify-start mt-2">
-                        <button
-                            onClick={handleDiceClick}
-                            disabled={isRolling}
-                            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-100 to-orange-100 text-amber-800 rounded-lg hover:from-amber-200 hover:to-orange-200 transition-all font-semibold text-sm shadow-sm opacity-90 hover:opacity-100 disabled:opacity-50"
-                        >
-                            {isRolling ? <Loader2 className="w-4 h-4 animate-spin" /> : <Dices className="w-4 h-4" />}
-                            Inspirieren lassen
                         </button>
                     </div>
                 </div>

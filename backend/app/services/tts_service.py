@@ -295,7 +295,7 @@ async def generate_tts_chunk(
                 sample_width=2,
                 frame_rate=24000,
                 channels=1
-            )
+            ).set_frame_rate(44100).set_channels(2)
             
             # Export directly to the specified output_path as MP3
             # This ensures smooth concatenation in audio_processor later
