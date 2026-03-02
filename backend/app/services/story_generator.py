@@ -105,12 +105,12 @@ async def generate_story_hook(genre: str, author_id: str) -> str:
     import random
     selected_hook = random.choice(stanzwerk_hooks)
         
-    prompt = f"""Du bist ein literarischer Visionär. Generiere einen Story-Hook, der eine alltägliche Situation aus den Angeln hebt. Vermeide platte Witze. Setze dort an, wo die Logik des Alltags einen Riss bekommt. Nutze keine Standard-Adjektive... Der Hook muss eine Frage hinterlassen.
+    prompt = f"""WICHTIGE REGEL: Antworte mit exakt 1 Satz! Maximal 15 Wörter! Kein Wort mehr!
+
+Du bist ein literarischer Visionär. Generiere einen Story-Hook, der eine alltägliche Situation aus den Angeln hebt. Vermeide platte Witze. Setze dort an, wo die Logik des Alltags einen Riss bekommt. Nutze keine Standard-Adjektive... Der Hook muss eine Frage hinterlassen.
 
 Werkzeug:
 Struktur-Schablone: [{selected_hook['typ']}]: {selected_hook['logik']}
-
-WICHTIG: Antworte NUR mit dem Hook. Halte dich extrem kurz, maximal 1 bis 2 knappe Sätze. Beende deine Antwort immer sauber mit einem Satzzeichen.
 """
     try:
         response = await asyncio.to_thread(
