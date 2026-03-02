@@ -26,9 +26,9 @@ const STYLES = [
 ];
 
 const LENGTHS = [
-    { value: 10, label: '~10 Min', sub: 'Kurz' },
-    { value: 20, label: '~20 Min', sub: 'Mittel' },
-    { value: 30, label: '~30 Min', sub: 'Lang' },
+    { value: 10, label: '~10 Min', sub: '2 Kapitel' },
+    { value: 15, label: '~15 Min', sub: '3 Kapitel' },
+    { value: 20, label: '~20 Min', sub: '4 Kapitel' },
 ];
 
 export default function StoryCreator() {
@@ -37,7 +37,7 @@ export default function StoryCreator() {
     // Selection state
     const [genre, setGenre] = useState('Realismus');
     const [style, setStyle] = useState('Douglas Adams');
-    const [targetMinutes, setTargetMinutes] = useState(20);
+    const [targetMinutes, setTargetMinutes] = useState(15);
     const [voiceKey, setVoiceKey] = useState('seraphina');
 
     // Input state

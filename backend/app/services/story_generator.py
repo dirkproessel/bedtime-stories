@@ -41,16 +41,9 @@ async def generate_full_story(
     target_minutes: int = 20,
     on_progress: callable = None, # on_progress(status_type, message, pct)
 ) -> dict:
-    """
-    Generate a complete story. 
-    Short stories (<12 min) use single-pass.
-    Long stories (>12 min) use multi-pass (Outline -> Chapters) for reliability.
-    """
-    
-    if target_minutes <= 8:
-        return await _generate_single_pass(prompt, genre, style, characters, target_minutes, on_progress)
-    else:
-        return await _generate_multi_pass(prompt, genre, style, characters, target_minutes, on_progress)
+    # Due to LLM word length limits (~1000 words max per request), 
+    # we always use the multi-pass (chapter-by-chapter) generation.
+    return await _generate_multi_pass(prompt, genre, style, characters, target_minutes, on_progress)
 
 
 async def _generate_single_pass(prompt, genre, style, characters, target_minutes, on_progress):
@@ -131,12 +124,14 @@ async def _generate_multi_pass(prompt, genre, style, characters, target_minutes,
     
     # Target total words
     total_words = target_minutes * 200
-    # For a 30 min story (~6000 words), we'll do segments of ~750-1000 words.
-    num_segments = max(4, target_minutes // 4)
+    
+    # Strictly enforce 5-minute chapters (1000 words each) based on the user selection.
+    # 10 min = 2 chapters, 15 min = 3 chapters, 20 min = 4 chapters
+    num_segments = max(2, target_minutes // 5)
     words_per_segment = total_words // num_segments
 
     if on_progress:
-        await on_progress("generating_text", f"Plane '{style}'-Epos ({target_minutes} Min, {num_segments} Akte)...", 2)
+        await on_progress("generating_text", f"Plane '{style}'-Geschichte ({target_minutes} Min, {num_segments} Kapitel)...", 2)
 
     # Step 1: Generate Outline
     outline_prompt = f"""Erstelle eine detaillierte Gliederung für eine {target_minutes}-minütige Kurzgeschichte.
@@ -182,29 +177,30 @@ Antworte NUR im JSON-Format:
     if not segments:
         return await _generate_single_pass(prompt, genre, style, characters, target_minutes, on_progress)
     
-    full_story_text = ""
+    full_chapters = []
     
     # Step 2: Iterative Writing
     for i, seg in enumerate(segments):
         if on_progress:
             pct = 5 + int((i / num_segments) * 25) # Up to 30%
-            await on_progress("generating_text", f"Schreibe Teil {i+1}/{num_segments}: {seg['title']}...", pct)
+            await on_progress("generating_text", f"Schreibe Kapitel {i+1}/{num_segments}: {seg['title']}...", pct)
             
-        context = f"Bisheriger Text: {full_story_text[-1000:]}" if full_story_text else "Beginn der Geschichte."
+        # Context is just the end of the previous chapter to maintain continuity
+        context = f"Ende des vorherigen Kapitels: {full_chapters[-1]['text'][-1000:]}" if full_chapters else "Dies ist der Beginn der Geschichte."
         
-        write_prompt = f"""Schreibe den nächsten Teil der Geschichte im Stil von {style}.
+        write_prompt = f"""Schreibe das nächste chronologische Kapitel der Geschichte im Stil von {style}.
 
 STRIKTE REGELN:
 1. Literarischer Anspruch: Halte dich strikt an den Autoren-Stil ({style}). Vermeide jegliche Floskeln, pädagogische Zeigefinger oder moralische Zusammenfassungen am Ende. Kein Kitsch, keine Moral!
 2. Show, don't tell: Erkläre nicht, wie sich Charaktere fühlen – zeige es durch ihre Handlungen und Reaktionen.
 3. Pacing & Detail: Dehne die Szenen aus (Slow Pacing). Beschreibe Texturen, Licht, Gerüche und Dialoge so ausführlich, dass Kopfkino entsteht. Schreibe langsam und bedächtig (No Rush!).
-4. Format: Keine Kapitelüberschriften! Nur der fließende Erzähltext. Nutze lediglich szenische Absätze oder subtile Zeitensprünge.
-5. Umfang: Du MUSST mindestens {words_per_segment} Wörter für diesen Teil schreiben.
+4. Format: Keine Kapitelüberschriften im generierten Text! Nur der fließende Erzähltext für dieses Kapitel.
+5. Umfang: Du MUSST ca. {words_per_segment} Wörter (ca. 5 Minuten Vorlesezeit) für dieses Kapitel schreiben. Nutze harte Dialoge und ausführliche Beschreibungen, um die Länge zu füllen.
 
 Rahmenbedingungen:
-Titel: {title}
+Titel der Gesamtgeschichte: {title}
 Zusammenfassung der Geschichte: {synopsis}
-Ziel dieses Abschnitts: {seg['goal']}
+Fokus / Ziel DIESES Kapitels: {seg['goal']}
 {context}
 """
         response = await asyncio.to_thread(
@@ -215,13 +211,13 @@ Ziel dieses Abschnitts: {seg['goal']}
         )
         segment_text = response.text.strip()
         
-        # Simple cleanup if the model repeats markers
-        if i > 0:
-            full_story_text += "\n\n"
-        full_story_text += segment_text
+        full_chapters.append({
+            "title": seg['title'],
+            "text": segment_text
+        })
 
     return {
         "title": title,
         "synopsis": synopsis,
-        "chapters": [{"title": "Komplette Geschichte", "text": full_story_text}]
+        "chapters": full_chapters
     }
