@@ -87,6 +87,17 @@ export async function generateFreeStory(text: string, voiceKey: string, targetMi
     return res.json();
 }
 
+export async function generateHook(genre: string, authorId: string): Promise<string> {
+    const res = await fetch(`${API_BASE}/api/generate-hook`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ genre, author_id: authorId }),
+    });
+    if (!res.ok) throw new Error('Failed to generate hook');
+    const data = await res.json();
+    return data.hook_text;
+}
+
 // Status polling
 export async function fetchStatus(storyId: string): Promise<GenerationStatus> {
     const res = await fetch(`${API_BASE}/api/status/${storyId}`);

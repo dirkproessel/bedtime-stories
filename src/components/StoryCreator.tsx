@@ -1,28 +1,32 @@
 import { useState, useRef } from 'react';
 import { useStore } from '../store/useStore';
-import { getVoicePreviewUrl } from '../lib/api';
-import { Sparkles, Mic, MicOff, Play, Pause, BookOpen, Venus, Mars, Users } from 'lucide-react';
+import { getVoicePreviewUrl, generateHook } from '../lib/api';
+import { Sparkles, Mic, MicOff, Play, Pause, BookOpen, Venus, Mars, Users, Dices, Loader2 } from 'lucide-react';
 
 const GENRES = [
-    { value: 'Sci-Fi', label: 'Sci-Fi', desc: 'Technoid, philosophisch, glitchy' },
-    { value: 'Fantasy', label: 'Fantasy', desc: 'Mythisch, episch, jenseits' },
-    { value: 'Krimi', label: 'Krimi', desc: 'Düster, logisch, abgründig' },
-    { value: 'Abenteuer', label: 'Abenteuer', desc: 'Wagemutig, fern, heroisch' },
-    { value: 'Realismus', label: 'Realismus', desc: 'Nah, direkt, ungeschönt' },
-    { value: 'Grusel', label: 'Grusel', desc: 'Beklemmend, unheimlich, occult' },
-    { value: 'Dystopie', label: 'Dystopie', desc: 'Hoffnungslos, grau, systemisch' },
-    { value: 'Satire', label: 'Satire', desc: 'Bissig, entlarvend, komisch' },
+    { value: 'Krimi', label: 'Krimi', desc: 'Indizien, Verdächtige, falsche Fährten' },
+    { value: 'Abenteuer', label: 'Abenteuer', desc: 'Aufbruch, Hindernisse, Heldenreise' },
+    { value: 'Science-Fiction', label: 'Science-Fiction', desc: 'Zukunfts-Technik, fremde Welten' },
+    { value: 'Märchen', label: 'Märchen', desc: 'Magische Wesen, Wandlung, Alltagsmagie' },
+    { value: 'Komödie', label: 'Komödie', desc: 'Situationskomik, Verwechslungen' },
+    { value: 'Thriller', label: 'Thriller', desc: 'Countdown, hohe Spannung, verborgene Gefahr' },
+    { value: 'Drama', label: 'Drama', desc: 'Tiefe Dialoge, Fokus auf Freundschaft' },
+    { value: 'Grusel', label: 'Grusel', desc: 'Schatten, alte Geheimnisse, Gänsehaut' },
 ];
 
-const STYLES = [
-    { value: 'Douglas Adams', label: 'Douglas Adams', desc: 'Absurd, ironisch, kosmisch' },
-    { value: 'Ernest Hemingway', label: 'Ernest Hemingway', desc: 'Minimalistisch, knapp, präzise' },
-    { value: 'Edgar Allan Poe', label: 'Edgar Allan Poe', desc: 'Gothic, düster, schaurig' },
-    { value: 'Virginia Woolf', label: 'Virginia Woolf', desc: 'Poetisch, bildreich, fließend' },
-    { value: 'Charles Bukowski', label: 'Charles Bukowski', desc: 'Sarkastisch, bissig, ehrlich' },
-    { value: 'Franz Kafka', label: 'Franz Kafka', desc: 'Surreal, traumhaft, rätselhaft' },
-    { value: 'Hunter S. Thompson', label: 'Hunter S. Thompson', desc: 'Gonzo, wild, subjektiv' },
-    { value: 'Roald Dahl', label: 'Roald Dahl', desc: 'Makaber, witzig, unvorhersehbar' },
+const AUTHORS = [
+    { id: 'kehlmann', name: 'Daniel Kehlmann', desc: 'Präzise, Geistreich, Verspielt.', group: 'Erwachsene' },
+    { id: 'zeh', name: 'Juli Zeh', desc: 'Analytisch, Kühl, Kritisch.', group: 'Erwachsene' },
+    { id: 'fitzek', name: 'Sebastian Fitzek', desc: 'Atemlos, Rasant, Düster.', group: 'Erwachsene' },
+    { id: 'sueskind', name: 'Patrick Süskind', desc: 'Sinnlich, Historisch, Exakt.', group: 'Erwachsene' },
+    { id: 'kracht', name: 'Christian Kracht', desc: 'Snobistisch, Dekadent, Distanziert.', group: 'Erwachsene' },
+    { id: 'bachmann', name: 'Ingeborg Bachmann', desc: 'Metaphorisch, Melancholisch, Intensiv.', group: 'Erwachsene' },
+    { id: 'kafka', name: 'Franz Kafka', desc: 'Surreal, Beklemmend, Trocken.', group: 'Erwachsene' },
+    { id: 'borchert', name: 'Wolfgang Borchert', desc: 'Hart, Kalt, Existenziell.', group: 'Erwachsene' },
+    { id: 'jaud', name: 'Tommy Jaud', desc: 'Lustig, Hektisch, Peinlich.', group: 'Erwachsene' },
+    { id: 'funke', name: 'Cornelia Funke', desc: 'Magisch, Bildstark, Abenteuerlich.', group: 'Kinder' },
+    { id: 'pantermueller', name: 'Alice Pantermüller', desc: 'Rotzig, Frech, Chaotisch.', group: 'Kinder' },
+    { id: 'auer', name: 'Margit Auer', desc: 'Geborgen, Geheimnisvoll, Empathisch.', group: 'Kinder' },
 ];
 
 const LENGTHS = [
@@ -35,13 +39,22 @@ export default function StoryCreator() {
     const { voices, startGeneration } = useStore();
 
     // Selection state
-    const [genre, setGenre] = useState('Realismus');
-    const [style, setStyle] = useState('Douglas Adams');
+    const [genre, setGenre] = useState('Abenteuer');
+    const [selectedAuthors, setSelectedAuthors] = useState<string[]>([]);
+
+    const toggleAuthor = (id: string) => {
+        setSelectedAuthors(prev => {
+            if (prev.includes(id)) return prev.filter(x => x !== id);
+            if (prev.length >= 3) return prev;
+            return [...prev, id];
+        });
+    };
     const [targetMinutes, setTargetMinutes] = useState(15);
     const [voiceKey, setVoiceKey] = useState('seraphina');
 
     // Input state
     const [freeText, setFreeText] = useState('');
+    const [isRolling, setIsRolling] = useState(false);
 
     // Voice preview
     const [previewVoice, setPreviewVoice] = useState<string | null>(null);
@@ -96,6 +109,36 @@ export default function StoryCreator() {
         setIsListening(false);
     };
 
+    const handleDiceClick = async () => {
+        if (isRolling) return;
+
+        setIsRolling(true);
+        try {
+            // Pick a random genre
+            const randomGenre = GENRES[Math.floor(Math.random() * GENRES.length)].value;
+            // Pick a random adult author (kids authors are less likely to give the surreal vibe)
+            const adultAuthors = AUTHORS.filter(a => a.group === 'Erwachsene');
+            const randomAuthor = adultAuthors[Math.floor(Math.random() * adultAuthors.length)].id;
+
+            // Set UI Defaults
+            setGenre(randomGenre);
+            setSelectedAuthors([randomAuthor]);
+            setTargetMinutes(10);
+            setVoiceKey('seraphina');
+            setFreeText('Würfel eine fantastische Idee...');
+
+            // Fetch hook from LLM
+            const hook = await generateHook(randomGenre, randomAuthor);
+            setFreeText(hook);
+
+        } catch (error) {
+            console.error("Dice error:", error);
+            setFreeText("Fehler beim Würfeln. Bitte nochmal probieren.");
+        } finally {
+            setIsRolling(false);
+        }
+    };
+
     const handleGenerate = () => {
         const idea = freeText.trim() || 'Überrasche mich mit einer wunderbaren Geschichte.';
 
@@ -108,7 +151,7 @@ export default function StoryCreator() {
             prompt: idea, // This will be stored and shown as "Idee"
             system_prompt: systemPrompt,
             genre: selectedGenre?.label || genre,
-            style: style,
+            style: selectedAuthors.length > 0 ? selectedAuthors.join(',') : 'kehlmann',
             target_minutes: targetMinutes,
             voice_key: voiceKey
         } as any);
@@ -149,6 +192,16 @@ export default function StoryCreator() {
                             {isListening ? <MicOff className="w-5 h-5 animate-pulse" /> : <Mic className="w-5 h-5" />}
                         </button>
                     </div>
+                    <div className="flex justify-start mt-2">
+                        <button
+                            onClick={handleDiceClick}
+                            disabled={isRolling}
+                            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-100 to-orange-100 text-amber-800 rounded-lg hover:from-amber-200 hover:to-orange-200 transition-all font-semibold text-sm shadow-sm opacity-90 hover:opacity-100 disabled:opacity-50"
+                        >
+                            {isRolling ? <Loader2 className="w-4 h-4 animate-spin" /> : <Dices className="w-4 h-4" />}
+                            Inspirieren lassen
+                        </button>
+                    </div>
                 </div>
 
                 {/* Genre */}
@@ -173,21 +226,71 @@ export default function StoryCreator() {
 
                 {/* Style */}
                 <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-2">Stil</label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {STYLES.map(s => (
-                            <button
-                                key={s.value}
-                                onClick={() => setStyle(s.value)}
-                                className={`p-3 rounded-xl text-left transition-all border-2 ${style === s.value
-                                    ? 'border-indigo-500 bg-indigo-50'
-                                    : 'border-slate-100 bg-white hover:border-slate-200'
-                                    }`}
-                            >
-                                <div className={`text-sm font-bold ${style === s.value ? 'text-indigo-700' : 'text-slate-700'}`}>{s.label}</div>
-                                <div className={`text-xs ${style === s.value ? 'text-indigo-500' : 'text-slate-400'}`}>{s.desc}</div>
-                            </button>
-                        ))}
+                    <div className="flex justify-between items-end mb-2">
+                        <label className="block text-sm font-semibold text-slate-700">Autoren (max. 3 mixen)</label>
+                        <div className="text-xs font-medium text-slate-500">
+                            {selectedAuthors.length === 0 ? "Stil wird gemixt" : `${selectedAuthors.length} von 3 gewählt`}
+                        </div>
+                    </div>
+
+                    <div className="space-y-4">
+                        {/* Erwachsene */}
+                        <div>
+                            <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Für Erwachsene</div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                                {AUTHORS.filter(a => a.group === 'Erwachsene').map(s => {
+                                    const isSelected = selectedAuthors.includes(s.id);
+                                    const index = selectedAuthors.indexOf(s.id);
+                                    return (
+                                        <button
+                                            key={s.id}
+                                            onClick={() => toggleAuthor(s.id)}
+                                            className={`relative p-3 rounded-xl text-left transition-all border-2 ${isSelected
+                                                ? 'border-indigo-500 bg-indigo-50 shadow-sm'
+                                                : 'border-slate-100 bg-white hover:border-slate-200'
+                                                }`}
+                                        >
+                                            {isSelected && (
+                                                <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-indigo-500 text-white flex items-center justify-center text-[10px] font-bold">
+                                                    {index + 1}
+                                                </div>
+                                            )}
+                                            <div className={`text-sm font-bold pr-6 ${isSelected ? 'text-indigo-700' : 'text-slate-700'}`}>{s.name}</div>
+                                            <div className={`text-xs ${isSelected ? 'text-indigo-500' : 'text-slate-400'}`}>{s.desc}</div>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Kinder */}
+                        <div>
+                            <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Für Kinder</div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                                {AUTHORS.filter(a => a.group === 'Kinder').map(s => {
+                                    const isSelected = selectedAuthors.includes(s.id);
+                                    const index = selectedAuthors.indexOf(s.id);
+                                    return (
+                                        <button
+                                            key={s.id}
+                                            onClick={() => toggleAuthor(s.id)}
+                                            className={`relative p-3 rounded-xl text-left transition-all border-2 ${isSelected
+                                                ? 'border-indigo-500 bg-indigo-50 shadow-sm'
+                                                : 'border-slate-100 bg-white hover:border-slate-200'
+                                                }`}
+                                        >
+                                            {isSelected && (
+                                                <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-indigo-500 text-white flex items-center justify-center text-[10px] font-bold">
+                                                    {index + 1}
+                                                </div>
+                                            )}
+                                            <div className={`text-sm font-bold pr-6 ${isSelected ? 'text-indigo-700' : 'text-slate-700'}`}>{s.name}</div>
+                                            <div className={`text-xs ${isSelected ? 'text-indigo-500' : 'text-slate-400'}`}>{s.desc}</div>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
                     </div>
                 </div>
 

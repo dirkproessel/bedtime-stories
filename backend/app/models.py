@@ -28,7 +28,16 @@ class FreeTextRequest(BaseModel):
     speech_rate: str = "-15%"
 
 
+class HookRequest(BaseModel):
+    """Request to generate a hook idea via the dice feature."""
+    genre: str
+    author_id: str
+
+
 # --- Response Models ---
+
+class HookResponse(BaseModel):
+    hook_text: str
 
 class VoiceProfile(BaseModel):
     key: str

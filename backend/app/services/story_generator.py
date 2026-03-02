@@ -14,27 +14,107 @@ client = genai.Client(api_key=settings.GEMINI_API_KEY)
 
 MODEL = "gemini-3-flash-preview"
 
-STYLE_MAPPING = {
-    "Douglas Adams": "Stil: Douglas Adams (Absurd, ironisch, kosmisch). Britisches Understatement, technologische Absurditäten und die Erkenntnis, dass das Universum ein seltsamer Ort ist.",
-    "Ernest Hemingway": "Stil: Ernest Hemingway (Minimalistisch, knapp, präzise). Kurze Sätze, keine unnötigen Adjektive. Der Fokus liegt auf dem Unausgesprochenen (Eisberg-Theorie).",
-    "Edgar Allan Poe": "Stil: Edgar Allan Poe (Gothic, düster, schaurig). Hohe atmosphärische Dichte, Fokus auf psychologischen Grusel, Schatten und Melancholie.",
-    "Virginia Woolf": "Stil: Virginia Woolf (Poetisch, bildreich, fließend). Bewusstseinsstrom, Fokus auf flüchtige Eindrücke, Lichtverhältnisse und die Dehnung von Momenten.",
-    "Charles Bukowski": "Stil: Charles Bukowski (Sarkastisch, bissig, ehrlich). Schmutziger Realismus, direkt, unsentimental und ein bisschen verbeult. Die nackte Wahrheit ohne Filter.",
-    "Franz Kafka": "Stil: Franz Kafka (Surreal, traumhaft, rätselhaft). Albtraumhafte Logik in sachlichem Ton. Das Unmögliche wird als völlig normal und bürokratisch behandelt.",
-    "Hunter S. Thompson": "Stil: Hunter S. Thompson (Gonzo, wild, subjektiv). Rauschhaftes Erzähltempo, radikale Subjektivität und eine aggressive, energetische Wortwahl.",
-    "Roald Dahl": "Stil: Roald Dahl (Makaber, witzig, unvorhersehbar). Kindliche Neugier trifft auf schwarzen Humor. Skurrile Wendungen und ein schadenfrohes Augenzwinkern."
+STANZWERK_BIBLIOTHEK = {
+    "adults": [
+        {"id": "kehlmann", "name": "Daniel Kehlmann", "wortwahl": "Präzise, intellektuell, elegant", "atmosphaere": "Magischer Realismus, geistreich, historisch distanziert", "erzaehlweise": "Auktorial, verspielt, ironisch"},
+        {"id": "zeh", "name": "Juli Zeh", "wortwahl": "Analytisch, präzise, juristisch kühl", "atmosphaere": "Gesellschaftskritisch, angespannt, realitätsnah", "erzaehlweise": "Multiperspektivisch, sezierend, kühl"},
+        {"id": "fitzek", "name": "Sebastian Fitzek", "wortwahl": "Atemlos, plakativ, treibend", "atmosphaere": "Düster, klaustrophobisch, spannungsgetrieben", "erzaehlweise": "Rasant, ständige Cliffhanger, unzuverlässig"},
+        {"id": "sueskind", "name": "Patrick Süskind", "wortwahl": "Sinnlich, olfaktorisch detailliert, historisch exakt", "atmosphaere": "Obsessiv, detailverliebt, grotesk-schön", "erzaehlweise": "Auktorial, intensiv, fast schon wissenschaftlich-beschreibend"},
+        {"id": "kracht", "name": "Christian Kracht", "wortwahl": "Snobistisch, affektiert, kühl", "atmosphaere": "Dekadent, entfremdet, neusachlich", "erzaehlweise": "Distanziert, dandyhaft, emotionslos berichtend"},
+        {"id": "bachmann", "name": "Ingeborg Bachmann", "wortwahl": "Metaphorisch, lyrisch, intensiv", "atmosphaere": "Melancholisch, existenziell bedroht, tiefgründig", "erzaehlweise": "Bewusstseinsnah, poetisch verdichtet"},
+        {"id": "kafka", "name": "Franz Kafka", "wortwahl": "Trocken, bürokratisch, glasklar", "atmosphaere": "Surreal, beklemmend, ausweglos", "erzaehlweise": "Sachlicher Bericht albtraumhafter Zustände"},
+        {"id": "borchert", "name": "Wolfgang Borchert", "wortwahl": "Hart, stakkatoartig, unverblümt", "atmosphaere": "Kalt, karg, nachkriegs-existenziell", "erzaehlweise": "Reduziert, expressionistisch, drängend"},
+        {"id": "jaud", "name": "Tommy Jaud", "wortwahl": "Alltagssprachlich, pointiert, humoristisch", "atmosphaere": "Hektisch, alltäglich, wunderbar peinlich", "erzaehlweise": "Aneinanderreihung von Fettnäpfchen, zynisch-komisch"}
+    ],
+    "kids": [
+        {"id": "funke", "name": "Cornelia Funke", "wortwahl": "Magisch, farbenfroh, bildstark", "atmosphaere": "Wundervoll, abenteuerlich, märchenhaft", "erzaehlweise": "Mitreißend, immersiv, warmherzig"},
+        {"id": "pantermueller", "name": "Alice Pantermüller", "wortwahl": "Rotzig, kindgerecht, umgangssprachlich", "atmosphaere": "Chaotisch, alltäglich, lustig", "erzaehlweise": "Frech, tagebuchartig, im Plauderton"},
+        {"id": "auer", "name": "Margit Auer", "wortwahl": "Empathisch, warm, verständlich", "atmosphaere": "Geborgen, geheimnisvoll, magisch-alltäglich", "erzaehlweise": "Pädagogisch wertvoll, spannungsvoll, auf Augenhöhe der Kinder"}
+    ]
 }
 
-GENRE_MAPPING = {
-    "Sci-Fi": "Genre: Sci-Fi (Technoid, philosophisch, glitchy). Fokus auf die Reibung zwischen Mensch und Technik. Keine Laser-Schlachten, sondern existenzielle Fragen in einer technisierten Welt.",
-    "Fantasy": "Genre: Fantasy (Magischer Realismus, seltsam, archaisch). Das Übernatürliche bricht subtil in den Alltag ein. Keine Standard-Drachen, sondern unerklärliche Phänomene und dunkle Mythen.",
-    "Krimi": "Genre: Krimi (Psychologisch, analytisch, dekonstruktiv). Es geht weniger um 'Wer war es?', sondern um das 'Warum'. Fokus auf Motive, Abgründe und versteckte Hinweise im Banalen.",
-    "Abenteuer": "Genre: Abenteuer (Existentiell, physisch, grenzgängerisch). Eine Reise, die den Charakter an seine Grenzen führt. Die Umgebung ist feindselig, schön und völlig unberechenbar.",
-    "Realismus": "Genre: Realismus (Schmutzig, hyper-fokussiert, ehrlich). Die ungeschönte Darstellung des Alltags. Fokus auf Geräusche, Gerüche und die kleinen Tragödien zwischen Kaffeemaschine und Haustür.",
-    "Grusel": "Genre: Grusel (Psychologisch, Uncanny Valley, beklemmend). Die Angst entsteht im Kopf. Das Vertraute wird schleichend fremd. Fokus auf Atmosphäre und das, was man nicht sieht.",
-    "Dystopie": "Genre: Dystopie (Bürokratisch, zerfallend, systemkritisch). Eine Welt, in der die Regeln gegen das Individuum arbeiten. Fokus auf Isolation, Zerfall und den absurden Kampf gegen das System.",
-    "Satire": "Genre: Satire (Bissig, entlarvend, meta). Die Gesellschaft wird durch Übersteigerung seziert. Fokus auf Doppelmoral, Absurdität und den Wahnsinn der Normalität."
+def generate_modular_prompt(style_string: str) -> str:
+    selected_ids = [s.strip() for s in style_string.split(",")] if style_string else []
+    all_authors = {a['id']: a for category in STANZWERK_BIBLIOTHEK.values() for a in category}
+    valid_authors = [all_authors[aid] for aid in selected_ids if aid in all_authors]
+    
+    if not valid_authors:
+        return "Stil: Neutraler, klarer Autorentyp."
+        
+    rules = [
+        "Basis-Stil (60%): Ein neutraler, professioneller, klarer und zugänglicher Schreibstil."
+    ]
+    
+    if len(valid_authors) == 1:
+        author = valid_authors[0]
+        rules.append(f"Zusätzlicher Einfluss (40%) von {author['name']}:")
+        rules.append(f"- Wortwahl: {author['wortwahl']}")
+        rules.append(f"- Atmosphäre: {author['atmosphaere']}")
+        rules.append(f"- Erzählweise: {author['erzaehlweise']}")
+    elif len(valid_authors) == 2:
+        a1, a2 = valid_authors
+        rules.append("Zusätzlicher Einfluss (40%), aufgeteilt auf zwei Autoren:")
+        rules.append(f"- Wortwahl ({a1['name']}): {a1['wortwahl']}")
+        rules.append(f"- Atmosphäre ({a2['name']}): {a2['atmosphaere']}")
+        rules.append(f"- Erzählweise (gemischt): Eine Synthese beider Ansätze ({a1['erzaehlweise']} UND {a2['erzaehlweise']})")
+    else:
+        a1, a2, a3 = valid_authors[:3]
+        rules.append("Zusätzlicher Einfluss (40%), strikt aufgeteilt auf drei Autoren:")
+        rules.append(f"- Wortwahl ({a1['name']}): {a1['wortwahl']}")
+        rules.append(f"- Atmosphäre ({a2['name']}): {a2['atmosphaere']}")
+        rules.append(f"- Erzählweise ({a3['name']}): {a3['erzaehlweise']}")
+        
+    return "\n".join(rules)
+
+GENRES_BIBLIOTHEK = {
+    "Krimi": {"name": "Krimi", "ziel": "Lösung eines Rätsels", "tropen": "Indizien, Verdächtige, falsche Fährten"},
+    "Abenteuer": {"name": "Abenteuer", "ziel": "Eine Reise bewältigen", "tropen": "Aufbruch, Hindernisse, Heldenreise"},
+    "Science-Fiction": {"name": "Science-Fiction", "ziel": "Was-wäre-wenn-Szenario", "tropen": "Zukunfts-Technik, fremde Welten"},
+    "Märchen": {"name": "Märchen", "ziel": "Ordnung wiederherstellen", "tropen": "Magische Wesen, Wandlung, Alltagsmagie"},
+    "Komödie": {"name": "Komödie", "ziel": "Absurdität entlarven", "tropen": "Situationskomik, Verwechslungen"},
+    "Thriller": {"name": "Thriller", "ziel": "Überleben / Bedrohung abwenden", "tropen": "Countdown, hohe Spannung, verborgene Gefahr"},
+    "Drama": {"name": "Drama", "ziel": "Innere Konflikte klären", "tropen": "Tiefe Dialoge, Fokus auf Freundschaft"},
+    "Grusel": {"name": "Grusel", "ziel": "Das Unheimliche erfahren", "tropen": "Schatten, alte Geheimnisse, Gänsehaut"}
 }
+
+async def generate_story_hook(genre: str, author_id: str) -> str:
+    """Generate a single max 12-line story hook based on a given genre and author ID."""
+    
+    # Try to find the genre and author objects
+    genre_data = GENRES_BIBLIOTHEK.get(genre, GENRES_BIBLIOTHEK["Abenteuer"])
+    author = None
+    all_authors = {a['id']: a for category in STANZWERK_BIBLIOTHEK.values() for a in category}
+    if author_id in all_authors:
+        author = all_authors[author_id]
+        
+    author_desc = f"{author['name']} ({author['wortwahl']} / {author['atmosphaere']})" if author else "Ein klarer, sachlicher Literat."
+        
+    prompt = f"""Du bist ein literarischer Visionär. Generiere einen Story-Hook (max. 12 Wörter), der eine alltägliche Situation durch eine existenzielle oder surreale Verschiebung aus den Angeln hebt.
+
+Deine Werkzeuge für die Inspiration:
+Genre: {genre_data['name']}
+Stil-Vibe: {author_desc}
+
+Leitplanken für die Kreativität:
+Vermeide platte Witze. Suche nach Melancholie, Absurdität oder untergründiger Gefahr.
+Setze dort an, wo die Logik des Alltags einen Riss bekommt.
+Nutze keine Standard-Adjektive (geheimnisvoll, magisch, spannend).
+Der Hook muss eine Frage im Kopf des Hörers hinterlassen, kein fertiges Szenario.
+
+Gib NUR den genauen Text des Hooks zurück, keine Begrüßung, keine Anführungszeichen, keine weiteren Erklärungen.
+"""
+    try:
+        response = await asyncio.to_thread(
+            client.models.generate_content,
+            model=MODEL,
+            contents=prompt,
+            config={"temperature": 0.9}
+        )
+        return response.text.strip().strip('"').strip("'")
+    except Exception as e:
+        import logging
+        logging.error(f"Failed to generate hook: {e}")
+        return "Ein Toaster erwacht und fragt nach dem Sinn des Brotes."
 
 async def generate_full_story(
     prompt: str,
@@ -51,24 +131,25 @@ async def generate_full_story(
 
 async def _generate_single_pass(prompt, genre, style, characters, target_minutes, on_progress):
     """Original single-pass logic for shorter stories with improved JSON cleanup."""
-    selected_style_info = STYLE_MAPPING.get(style, STYLE_MAPPING["Douglas Adams"])
-    selected_genre_info = GENRE_MAPPING.get(genre, GENRE_MAPPING["Realismus"])
+    selected_style_info = generate_modular_prompt(style)
+    genre_data = GENRES_BIBLIOTHEK.get(genre, GENRES_BIBLIOTHEK["Abenteuer"])
     word_count = target_minutes * 200
     char_text = f"\nHauptcharaktere: {', '.join(characters)}" if characters else ""
+    user_hook = prompt
 
     master_prompt = f"""Du bist ein preisgekrönter Autor. Schreibe eine abgeschlossene Kurzgeschichte.
 
 STRIKTE REGELN:
-1. Literarischer Anspruch: Halte dich strikt an den gewählten Autoren-Stil. Vermeide jegliche Floskeln, pädagogische Zeigefinger oder moralische Zusammenfassungen am Ende. Die Geschichte endet mit dem letzten narrativen Moment. Kein Kitsch, keine Moral!
+1. Literarischer Anspruch: Halte dich strikt an diese Stil-Vorgaben:
+{selected_style_info}
+Vermeide jegliche Floskeln, pädagogische Zeigefinger oder moralische Zusammenfassungen am Ende. Die Geschichte endet mit dem letzten narrativen Moment. Kein Kitsch, keine Moral!
 2. Show, don't tell: Erkläre nicht, wie sich Charaktere fühlen – zeige es durch ihre Handlungen und Reaktionen.
 3. Pacing & Detail: Hetze nicht durch die Handlung. Entwickle Szenen langsam. Beschreibe Texturen, Gerüche und die Umgebung so präzise, dass ein Kopfkino entsteht (No Rush!).
 4. Format: Schreibe die Geschichte als einen fließenden Text. Nutze lediglich szenische Absätze oder subtile Zeitensprünge, keine nummerierten Kapitel.
 5. Umfang: Nutze das volle Output-Limit für maximale Detailtiefe. Ziel: Vorlesedauer {target_minutes} Min (~{word_count} Wörter).
 
-Parameter:
-Genre: {selected_genre_info}
-Stil: {selected_style_info}
-Inhalt/Zusatzwunsch: {prompt}{char_text}
+Rahmenbedingungen:
+Schreibe eine Geschichte im Genre {genre_data['name']}. Der Kern der Handlung (Nutzer-Wunsch) ist: {user_hook}{char_text}. Folge dem Narrativ: {genre_data['ziel']} unter Verwendung von {genre_data['tropen']}.
 
 Antworte EXKLUSIV im JSON-Format:
 {{
@@ -125,8 +206,10 @@ Antworte EXKLUSIV im JSON-Format:
 
 async def _generate_multi_pass(prompt, genre, style, characters, target_minutes, on_progress):
     """Two-step generation for long stories to ensure length and flow."""
-    selected_style_info = STYLE_MAPPING.get(style, STYLE_MAPPING["Douglas Adams"])
-    selected_genre_info = GENRE_MAPPING.get(genre, GENRE_MAPPING["Realismus"])
+    selected_style_info = generate_modular_prompt(style)
+    genre_data = GENRES_BIBLIOTHEK.get(genre, GENRES_BIBLIOTHEK["Abenteuer"])
+    user_hook = prompt
+    char_text = f"\nHauptcharaktere: {', '.join(characters)}" if characters else ""
     
     # Target total words
     total_words = target_minutes * 200
@@ -141,9 +224,10 @@ async def _generate_multi_pass(prompt, genre, style, characters, target_minutes,
 
     # Step 1: Generate Outline
     outline_prompt = f"""Erstelle eine detaillierte Gliederung für eine {target_minutes}-minütige Kurzgeschichte.
-Genre: {selected_genre_info}
-Stil: {selected_style_info}
-Inhalt: {prompt}
+Schreibe eine Geschichte im Genre {genre_data['name']}. Der Kern der Handlung (Nutzer-Wunsch) ist: {user_hook}{char_text}. Folge dem Narrativ: {genre_data['ziel']} unter Verwendung von {genre_data['tropen']}.
+
+Stil-Vorgaben:
+{selected_style_info}
 
 Teile die Geschichte in exakt {num_segments} logische Abschnitte (Akte) auf.
 Jeder Abschnitt entspricht chronologisch einem Kapitel der Geschichte.
@@ -197,10 +281,12 @@ Antworte NUR im JSON-Format:
         # Context is just the end of the previous chapter to maintain continuity
         context = f"Ende des vorherigen Kapitels: {full_chapters[-1]['text'][-1000:]}" if full_chapters else "Dies ist der Beginn der Geschichte."
         
-        write_prompt = f"""Schreibe das nächste chronologische Kapitel der Geschichte im Stil von {style}.
+        write_prompt = f"""Schreibe das nächste chronologische Kapitel der Geschichte.
 
 STRIKTE REGELN:
-1. Literarischer Anspruch: Halte dich strikt an den Autoren-Stil ({style}). Vermeide jegliche Floskeln, pädagogische Zeigefinger oder moralische Zusammenfassungen am Ende. Kein Kitsch, keine Moral!
+1. Literarischer Anspruch: Halte dich strikt an diese Stil-Vorgaben:
+{selected_style_info}
+Vermeide jegliche Floskeln, pädagogische Zeigefinger oder moralische Zusammenfassungen am Ende. Kein Kitsch, keine Moral!
 2. Show, don't tell: Erkläre nicht, wie sich Charaktere fühlen – zeige es durch ihre Handlungen und Reaktionen.
 3. Pacing & Detail: Dehne die Szenen aus (Slow Pacing). Beschreibe Texturen, Licht, Gerüche und Dialoge ausführlich, dass Kopfkino entsteht.
 4. Format: Keine Kapitelüberschriften im generierten Text! Nur der fließende Erzähltext für dieses Kapitel.

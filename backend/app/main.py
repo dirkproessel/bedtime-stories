@@ -49,11 +49,13 @@ from pydantic import BaseModel
 from app.models import (
     StoryRequest,
     FreeTextRequest,
+    HookRequest,
+    HookResponse,
     StoryMeta,
     StoryListResponse,
     VoiceProfile,
 )
-from app.services.story_generator import generate_full_story
+from app.services.story_generator import generate_full_story, generate_story_hook
 from app.services.tts_service import (
     chapters_to_audio,
     get_available_voices,
@@ -168,6 +170,11 @@ async def start_free_generation(req: FreeTextRequest):
 
     return {"id": story_id, "status": "started"}
 
+@app.post("/api/generate-hook", response_model=HookResponse)
+async def api_generate_hook(req: HookRequest):
+    """Generate a quick surreal story idea hook based on genre and author."""
+    hook = await generate_story_hook(req.genre, req.author_id)
+    return HookResponse(hook_text=hook)
 
 async def _run_pipeline(
     story_id: str,
@@ -293,7 +300,6 @@ async def _run_pipeline(
             audio_files=audio_files,
             output_path=final_audio_path,
             intro_path=settings.INTRO_MUSIC_PATH,
-            outro_path=settings.OUTRO_MUSIC_PATH,
             title_path=title_tts_path,
         )
 
