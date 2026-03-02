@@ -208,7 +208,7 @@ async def _run_pipeline(
     # Initial record creation
     story_meta = StoryMeta(
         id=story_id,
-        title=f"Schreibe '{style}'-Geschichte ({target_minutes} Min)...",
+        title=f"Schreibe Deine Kurzgeschichte ({target_minutes} Min)...",
         description=f"{(original_prompt or prompt)[:100]}...",
         prompt=clean_prompt,
         genre=genre,
@@ -278,6 +278,22 @@ async def _run_pipeline(
             encoding="utf-8",
         )
 
+        # Step 1.5: Start background image generation
+        image_url = None
+        async def background_image_gen():
+            nonlocal image_url
+            try:
+                image_path = story_dir / "cover.png"
+                res = await generate_story_image(story_data.get("synopsis", ""), image_path, genre=genre, style=style)
+                if res:
+                    image_url = f"{settings.BASE_URL}/api/stories/{story_id}/image.png"
+                    logger.info(f"Image generated successfully in background for {story_id}")
+            except Exception as e:
+                logger.error(f"Background image gen failed for {story_id}: {e}")
+
+        logger.info(f"BENCHMARK [{story_id}]: Spawning background image generation task")
+        image_task = asyncio.create_task(background_image_gen())
+
         # Step 2: TTS – chapters to audio
         await on_progress_with_title("generating_audio", "Bereite Vertonung vor...", 30)
         start_time_tts = time.time()
@@ -318,19 +334,11 @@ async def _run_pipeline(
         # Step 5: Get Final Duration
         duration = await get_audio_duration(final_audio_path)
 
-        # Step 3.5: Generate story image
-        await on_progress_with_title("processing", "Generiere Titelbild...", 95)
-        image_path = story_dir / "cover.png"
-        image_url = None
-        try:
-            res = await generate_story_image(story_data.get("synopsis", ""), image_path, genre=genre, style=style)
-            if res:
-                image_url = f"{settings.BASE_URL}/api/stories/{story_id}/image.png"
-                logger.info(f"Image generated successfully for {story_id}: {image_url}")
-            else:
-                logger.warning(f"Image generation returned None for {story_id}")
-        except Exception as e:
-            logger.error(f"Failed to call generate_story_image for {story_id}: {e}", exc_info=True)
+        # Step 3.5: Wait for background image generation if not finished
+        start_time_img_wait = time.time()
+        await image_task
+        end_time_img_wait = time.time()
+        logger.info(f"BENCHMARK [{story_id}]: Waiting for background Image Generation to finish took {end_time_img_wait - start_time_img_wait:.2f} seconds")
 
         # Calculate word count
         total_text = "\n".join([c["text"] for c in story_data["chapters"]])

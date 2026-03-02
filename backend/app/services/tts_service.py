@@ -100,13 +100,13 @@ async def generate_tts_chunk(
     logger = logging.getLogger(__name__)
 
     # Determine which engine to use
-    if voice_key in GOOGLE_VOICES:
-        voice_config = GOOGLE_VOICES[voice_key]
-        engine = "google"
+    # if voice_key in GOOGLE_VOICES:
+    #     voice_config = GOOGLE_VOICES[voice_key]
+    #     engine = "google"
     # elif voice_key in OPENAI_VOICES:
     #     voice_config = OPENAI_VOICES[voice_key]
     #     engine = "openai"
-    elif voice_key in GEMINI_VOICES:
+    if voice_key in GEMINI_VOICES:
         voice_config = GEMINI_VOICES[voice_key]
         engine = "gemini"
 
@@ -356,26 +356,21 @@ async def chapters_to_audio(
         List of paths to generated MP3 files
     """
     output_dir.mkdir(parents=True, exist_ok=True)
-    audio_files = []
+    audio_files = [output_dir / f"chapter_{i + 1:02d}.mp3" for i in range(len(chapters))]
 
-    for i, chapter in enumerate(chapters):
-        if on_progress:
-            # TTS is 30% to 80%
-            pct = 30 + int((i / len(chapters)) * 50)
-            await on_progress(
-                "tts",
-                f"Vertone Kapitel {i + 1}/{len(chapters)}: {chapter['title']}",
-                pct
-            )
+    if on_progress:
+        await on_progress(
+            "tts",
+            f"Vertone {len(chapters)} Kapitel parallel...",
+            40
+        )
 
-        filename = f"chapter_{i + 1:02d}.mp3"
-        output_path = output_dir / filename
-
-        # No title announcement as per user request, just the text.
-        # AudioProcessor will handle the pause/merge.
+    async def process_chapter(i: int, chapter: dict):
         full_text = chapter["text"]
+        await generate_tts_chunk(full_text, audio_files[i], voice_key, rate)
 
-        await generate_tts_chunk(full_text, output_path, voice_key, rate)
-        audio_files.append(output_path)
+    # Run all chapter generations concurrently
+    import asyncio
+    await asyncio.gather(*(process_chapter(i, ch) for i, ch in enumerate(chapters)))
 
     return audio_files
