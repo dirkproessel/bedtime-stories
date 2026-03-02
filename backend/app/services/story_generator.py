@@ -166,15 +166,6 @@ Antworte NUR im JSON-Format:
         
         text = outline_res.text.strip()
         
-        # Robust JSON extraction for outline
-        json_match = re.search(r'\{.*\}', text, re.DOTALL)
-        if json_match:
-            text = json_match.group(0)
-        else:
-            if text.startswith("```json"):
-                text = text.replace("```json", "", 1).replace("```", "", 1).strip()
-            elif text.startswith("```"):
-                text = text.replace("```", "", 2).strip()
                 
         outline_data = json.loads(text)
         title = outline_data.get("title", "Eine neue Geschichte")
@@ -183,6 +174,10 @@ Antworte NUR im JSON-Format:
     except Exception as e:
         import logging
         logging.error(f"Multi-pass outline failure: {e}")
+        try:
+            logging.error(f"Raw Outline LLM Output was: {outline_res.text}")
+        except:
+            pass
         # Graceful fallback to single-pass if outline fails
         return await _generate_single_pass(prompt, genre, style, characters, target_minutes, on_progress)
     
