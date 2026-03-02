@@ -105,18 +105,12 @@ async def generate_story_hook(genre: str, author_id: str) -> str:
     import random
     selected_hook = random.choice(stanzwerk_hooks)
         
-    prompt = f"""Du bist ein literarischer Visionär. Generiere einen Story-Hook, der eine alltägliche Situation durch eine existenzielle oder surreale Verschiebung aus den Angeln hebt.
+    prompt = f"""Du bist ein literarischer Visionär. Generiere einen Story-Hook, der eine alltägliche Situation aus den Angeln hebt. Vermeide platte Witze. Setze dort an, wo die Logik des Alltags einen Riss bekommt. Nutze keine Standard-Adjektive... Der Hook muss eine Frage hinterlassen.
 
-Deine Werkzeuge für die Inspiration:
+Werkzeug:
 Struktur-Schablone: [{selected_hook['typ']}]: {selected_hook['logik']}
 
-Leitplanken für die Kreativität:
-Vermeide platte Witze. Suche nach Melancholie, Absurdität oder untergründiger Gefahr.
-Setze dort an, wo die Logik des Alltags einen Riss bekommt.
-Nutze keine Standard-Adjektive (geheimnisvoll, magisch, spannend).
-Der Hook muss eine Frage im Kopf des Hörers hinterlassen, kein fertiges Szenario.
-
-WICHTIG: Antworte NUR mit dem Hook. Max. 15 Wörter. Beende den Satz zwingend mit einem Punkt.
+WICHTIG: Antworte NUR mit dem Hook. Halte dich extrem kurz, maximal 1 bis 2 knappe Sätze. Beende deine Antwort immer sauber mit einem Satzzeichen.
 """
     try:
         response = await asyncio.to_thread(

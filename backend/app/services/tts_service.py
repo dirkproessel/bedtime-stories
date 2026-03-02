@@ -330,7 +330,7 @@ async def generate_voice_preview(
         output_path.unlink()
 
     preview_text = (
-        "Hallo! Ich bin deine Gute-Nacht-Geschichte-Stimme. "
+        "Hallo! Ich bin deine Stimme aus dem Kurzgeschichten-Labor. "
         "Komm, lass uns zusammen in ein Abenteuer eintauchen."
     )
     return await generate_tts_chunk(preview_text, output_path, voice_key)
