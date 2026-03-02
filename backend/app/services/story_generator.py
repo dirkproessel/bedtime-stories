@@ -110,7 +110,7 @@ Gib NUR den genauen Text des Hooks zurück, keine Begrüßung, keine Anführungs
             contents=prompt,
             config={
                 "temperature": 0.9,
-                "max_output_tokens": 40,  # Strict limit for a max 12-word hook
+                "max_output_tokens": 80,  # Increased from 40 to ensure proper sentence endings
                 "top_k": 20,
             }
         )
@@ -286,6 +286,13 @@ Antworte NUR im JSON-Format:
         # Context is just the end of the previous chapter to maintain continuity
         context = f"Ende des vorherigen Kapitels: {full_chapters[-1]['text'][-1000:]}" if full_chapters else "Dies ist der Beginn der Geschichte."
         
+        is_last_chapter = (i == num_segments - 1)
+        
+        if is_last_chapter:
+            ende_regel = f"5. UMFANG & ENDE: Schreibe ca. {words_per_segment} Wörter. DIES IST DAS FINALE KAPITEL! Führe die Geschichte zwingend zu einem runden, atmosphärischen Abschluss. Schließe die Handlung ab. Kein Cliffhanger mehr! Beende die Geschichte mit einem starken letzten Satz, niemals mit einem Cut."
+        else:
+            ende_regel = f"5. UMFANG & ENDE: Schreibe ca. {words_per_segment} Wörter. WICHTIG: Beende das Kapitel NIEMALS mitten in einem Satz (kein Hard Cut). Führe die Szene logisch zu Ende oder erzeuge einen weichen Übergang/Cliffhanger für das nächste Kapitel."
+        
         write_prompt = f"""Schreibe das nächste chronologische Kapitel der Geschichte.
 
 STRIKTE REGELN:
@@ -295,7 +302,7 @@ Vermeide jegliche Floskeln, pädagogische Zeigefinger oder moralische Zusammenfa
 2. Show, don't tell: Erkläre nicht, wie sich Charaktere fühlen – zeige es durch ihre Handlungen und Reaktionen.
 3. Pacing & Detail: Beschreibe präzise und atmosphärisch, aber meide unnötige Füllwörter. Konzentriere die Geschichte.
 4. Format: Keine Kapitelüberschriften im generierten Text! Nur der fließende Erzähltext für dieses Kapitel.
-5. UMFANG & ENDE: Schreibe EXAKT {words_per_segment} Wörter (ca. {target_minutes // num_segments} Minuten Vorlesezeit). Blähe den Text nicht auf! Ein runder, dichter Erzählfluss ist Pflicht. Beende das Kapitel mit einem natürlichen Cliffhanger oder einem Abschluss.
+{ende_regel}
 
 Rahmenbedingungen:
 Titel der Gesamtgeschichte: {title}

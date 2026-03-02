@@ -2,9 +2,29 @@ import { useStore } from '../store/useStore';
 import { deleteStory } from '../lib/api';
 import { Play, Trash2, BookOpen, Calendar, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useEffect } from 'react';
+
+const AUTHOR_LAST_NAMES: Record<string, string> = {
+    kehlmann: 'Kehlmann',
+    zeh: 'Zeh',
+    fitzek: 'Fitzek',
+    sueskind: 'Süskind',
+    kracht: 'Kracht',
+    bachmann: 'Bachmann',
+    kafka: 'Kafka',
+    borchert: 'Borchert',
+    jaud: 'Jaud',
+    funke: 'Funke',
+    pantermueller: 'Pantermüller',
+    auer: 'Auer'
+};
 
 export default function StoryArchive() {
     const { stories, setActiveView, setSelectedStoryId, loadStories, updateStorySpotify } = useStore();
+
+    useEffect(() => {
+        window.scrollTo(0, 0);
+    }, []);
 
     const formatDuration = (seconds: number | null) => {
         if (!seconds) return '—';
@@ -131,7 +151,9 @@ export default function StoryArchive() {
                                                         </div>
                                                         <div className="flex flex-col">
                                                             <span className="text-[9px] uppercase font-bold text-slate-400">Stil</span>
-                                                            <span className="text-[11px] text-slate-600 truncate font-semibold">{story.style}</span>
+                                                            <span className="text-[11px] text-slate-600 truncate font-semibold">
+                                                                {story.style.split(',').map(s => AUTHOR_LAST_NAMES[s.trim()] || s).join(', ')}
+                                                            </span>
                                                         </div>
                                                         <div className="flex flex-col">
                                                             <span className="text-[9px] uppercase font-bold text-slate-400">Stimme</span>

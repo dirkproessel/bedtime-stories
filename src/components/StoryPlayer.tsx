@@ -205,16 +205,14 @@ export default function StoryPlayer() {
                         onClick={() => setShowChapters(!showChapters)}
                         className="w-full flex items-center justify-between p-4 bg-white border-2 border-slate-100 rounded-2xl hover:border-slate-200 transition-all"
                     >
-                        <span className="text-sm font-semibold text-slate-700">📖 Text</span>
+                        <span className="text-sm font-semibold text-slate-700">📖 Kurzgeschichten-Text</span>
                         {showChapters ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
                     </button>
                     {showChapters && (
-                        <div className="mt-2 space-y-3">
-                            {story.chapters.map((ch, i) => (
-                                <div key={i} className="p-4 bg-white border-2 border-slate-100 rounded-2xl">
-                                    <p className="text-xs text-slate-500 leading-relaxed whitespace-pre-line">{ch.text}</p>
-                                </div>
-                            ))}
+                        <div className="mt-2 p-4 bg-white border-2 border-slate-100 rounded-2xl">
+                            <p className="text-xs text-slate-500 leading-relaxed whitespace-pre-line">
+                                {story.chapters.map(ch => ch.text).join('\n\n')}
+                            </p>
                         </div>
                     )}
                 </div>

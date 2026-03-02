@@ -13,11 +13,11 @@ EDGE_VOICES = {
     "florian": {"id": "de-DE-FlorianMultilingualNeural", "name": "Florian", "gender": "male"},
 }
 
-# Google Cloud TTS Neural2 voices
-GOOGLE_VOICES = {
-    "eliza": {"id": "de-DE-Neural2-G", "name": "Eliza", "gender": "female"},
-    "percy": {"id": "de-DE-Neural2-H", "name": "Percy", "gender": "male"},
-}
+# Google Cloud TTS Neural2 voices (Temporarily Disabled)
+# GOOGLE_VOICES = {
+#     "eliza": {"id": "de-DE-Neural2-G", "name": "Eliza", "gender": "female"},
+#     "percy": {"id": "de-DE-Neural2-H", "name": "Percy", "gender": "male"},
+# }
 
 # OpenAI TTS voices (Temporarily Disabled)
 # OPENAI_VOICES = {
@@ -55,14 +55,14 @@ def get_available_voices() -> list[dict]:
             "engine": "edge",
         })
         
-    # Google Voices
-    for key, v in GOOGLE_VOICES.items():
-        voices.append({
-            "key": key,
-            "name": v["name"],
-            "gender": v["gender"],
-            "engine": "google",
-        })
+    # Google Voices (Temporarily Disabled)
+    # for key, v in GOOGLE_VOICES.items():
+    #     voices.append({
+    #         "key": key,
+    #         "name": v["name"],
+    #         "gender": v["gender"],
+    #         "engine": "google",
+    #     })
 
     # OpenAI Voices (Temporarily Disabled)
     # for key, v in OPENAI_VOICES.items():
