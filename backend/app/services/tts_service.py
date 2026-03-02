@@ -17,17 +17,33 @@ EDGE_VOICES = {
 GOOGLE_VOICES = {
     "eliza": {"id": "de-DE-Neural2-G", "name": "Eliza", "gender": "female"},
     "percy": {"id": "de-DE-Neural2-H", "name": "Percy", "gender": "male"},
+    "neural2a": {"id": "de-DE-Neural2-A", "name": "Neural2 A", "gender": "female"},
+    "neural2b": {"id": "de-DE-Neural2-B", "name": "Neural2 B", "gender": "male"},
+    "neural2c": {"id": "de-DE-Neural2-C", "name": "Neural2 C", "gender": "female"},
+    "neural2d": {"id": "de-DE-Neural2-D", "name": "Neural2 D", "gender": "male"},
+    "neural2e": {"id": "de-DE-Neural2-E", "name": "Neural2 E", "gender": "male"},
+    "neural2f": {"id": "de-DE-Neural2-F", "name": "Neural2 F", "gender": "female"},
 }
 
-# OpenAI TTS voices
-OPENAI_VOICES = {
-    "shimmer": {"id": "shimmer", "name": "Shimmer", "gender": "female"},
-    "onyx": {"id": "onyx", "name": "Onyx", "gender": "male"},
-    "alloy": {"id": "alloy", "name": "Alloy", "gender": "neutral"},
-    "echo": {"id": "echo", "name": "Echo", "gender": "male"},
-    "fable": {"id": "fable", "name": "Fable", "gender": "neutral"},
-    "nova": {"id": "nova", "name": "Nova", "gender": "female"},
+# OpenAI TTS voices (Temporarily Disabled)
+# OPENAI_VOICES = {
+#     "shimmer": {"id": "shimmer", "name": "Shimmer", "gender": "female"},
+#     "onyx": {"id": "onyx", "name": "Onyx", "gender": "male"},
+#     "alloy": {"id": "alloy", "name": "Alloy", "gender": "neutral"},
+#     "echo": {"id": "echo", "name": "Echo", "gender": "male"},
+#     "fable": {"id": "fable", "name": "Fable", "gender": "neutral"},
+#     "nova": {"id": "nova", "name": "Nova", "gender": "female"},
+# }
+
+# Gemini TTS voices
+GEMINI_VOICES = {
+    "aoede": {"id": "Aoede", "name": "Aoede", "gender": "female"},
+    "enceladus": {"id": "Enceladus", "name": "Enceladus", "gender": "male"},
+    "puck": {"id": "Puck", "name": "Puck", "gender": "male"},
+    "charon": {"id": "Charon", "name": "Charon", "gender": "male"},
+    "kore": {"id": "Kore", "name": "Kore", "gender": "female"},
 }
+
 
 DEFAULT_VOICE = "seraphina"
 
@@ -54,14 +70,24 @@ def get_available_voices() -> list[dict]:
             "engine": "google",
         })
 
-    # OpenAI Voices
-    for key, v in OPENAI_VOICES.items():
+    # OpenAI Voices (Temporarily Disabled)
+    # for key, v in OPENAI_VOICES.items():
+    #     voices.append({
+    #         "key": key,
+    #         "name": v["name"],
+    #         "gender": v["gender"],
+    #         "engine": "openai",
+    #     })
+
+    # Gemini Voices
+    for key, v in GEMINI_VOICES.items():
         voices.append({
             "key": key,
             "name": v["name"],
             "gender": v["gender"],
-            "engine": "openai",
+            "engine": "gemini",
         })
+
         
     return voices
 
@@ -83,9 +109,13 @@ async def generate_tts_chunk(
     if voice_key in GOOGLE_VOICES:
         voice_config = GOOGLE_VOICES[voice_key]
         engine = "google"
-    elif voice_key in OPENAI_VOICES:
-        voice_config = OPENAI_VOICES[voice_key]
-        engine = "openai"
+    elif voice_key in GEMINI_VOICES:
+        voice_config = GEMINI_VOICES[voice_key]
+        engine = "gemini"
+    # elif voice_key in OPENAI_VOICES:
+    #     voice_config = OPENAI_VOICES[voice_key]
+    #     engine = "openai"
+
     else:
         voice_config = EDGE_VOICES.get(voice_key, EDGE_VOICES[DEFAULT_VOICE])
         engine = "edge"
@@ -198,6 +228,70 @@ async def generate_tts_chunk(
                 response.raise_for_status()
                 with open(output_path, "wb") as out:
                     out.write(response.content)
+        
+        elif engine == "gemini":
+            from google import genai
+            from google.genai import types
+            import asyncio
+            import tempfile
+            import subprocess
+            import os
+            
+            client = genai.Client(api_key=settings.GEMINI_API_KEY)
+            
+            # Rate adjustment hint for Gemini
+            speed_hint = " (Sprich ruhig und langsam)" if "-15%" in rate else ""
+            
+            response = await asyncio.to_thread(
+                client.models.generate_content,
+                model='models/gemini-2.5-flash-preview-tts',
+                contents=clean_text + speed_hint,
+                config=types.GenerateContentConfig(
+                    speech_config=types.SpeechConfig(
+                        voice_config=types.VoiceConfig(
+                            prebuilt_voice_config=types.PrebuiltVoiceConfig(
+                                voice_name=voice_config["id"]
+                            )
+                        )
+                    ),
+                    response_modalities=["AUDIO"]
+                )
+            )
+            
+            pcm_data = None
+            for part in response.candidates[0].content.parts:
+                if part.inline_data:
+                    pcm_data = part.inline_data.data
+                    break
+                    
+            if not pcm_data:
+                raise RuntimeError(f"No audio data returned from Gemini TTS for voice {voice_key}")
+                
+            # Use temp file and FFmpeg to encode raw PCM to MP3
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".pcm") as tmp:
+                tmp.write(pcm_data)
+                tmp_path = tmp.name
+                
+            try:
+                await asyncio.to_thread(
+                    subprocess.run,
+                    [
+                        "ffmpeg", "-y",
+                        "-f", "s16le",
+                        "-ar", "24000",
+                        "-ac", "1",
+                        "-i", tmp_path,
+                        "-c:a", "libmp3lame",
+                        "-q:a", "2",
+                        str(output_path),
+                    ],
+                    capture_output=True,
+                    check=True,
+                )
+            finally:
+                if os.path.exists(tmp_path):
+                    os.unlink(tmp_path)
+
 
         # Verify file was created and has content
         if not output_path.exists() or output_path.stat().st_size == 0:
