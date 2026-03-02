@@ -235,37 +235,62 @@ async def generate_tts_chunk(
             # Rate adjustment hint for Gemini
             speed_hint = " (Sprich ruhig und langsam)" if "-15%" in rate else ""
             
-            response = await asyncio.to_thread(
-                client.models.generate_content,
-                model='models/gemini-2.5-flash-preview-tts',
-                contents=clean_text + speed_hint,
-                config=types.GenerateContentConfig(
-                    speech_config=types.SpeechConfig(
-                        voice_config=types.VoiceConfig(
-                            prebuilt_voice_config=types.PrebuiltVoiceConfig(
-                                voice_name=voice_config["id"]
-                            )
-                        )
-                    ),
-                    response_modalities=["AUDIO"]
-                )
-            )
-            
-            pcm_data = None
-            for part in response.candidates[0].content.parts:
-                if part.inline_data:
-                    pcm_data = part.inline_data.data
-                    break
-                    
-            if not pcm_data:
-                raise RuntimeError(f"No audio data returned from Gemini TTS for voice {voice_key}")
+            # Split text into chunks < 4000 bytes (safety limit for Gemini API)
+            def split_text(t, max_bytes=4000):
+                chunks = []
+                current_chunk = ""
+                sentences = t.replace("\n", " ").split(". ")
+                for s in sentences:
+                    test_chunk = (current_chunk + ". " + s).strip() if current_chunk else s
+                    if len(test_chunk.encode("utf-8")) > max_bytes:
+                        if current_chunk:
+                            chunks.append(current_chunk)
+                        current_chunk = s
+                    else:
+                        current_chunk = test_chunk
+                if current_chunk:
+                    chunks.append(current_chunk)
+                return chunks
+
+            text_chunks = split_text(clean_text)
+            all_pcm_data = bytearray()
+
+            for i, chunk in enumerate(text_chunks):
+                logger.info(f"TTS Gemini: Processing chunk {i+1}/{len(text_chunks)} ({len(chunk.encode('utf-8'))} bytes)")
                 
-            # Use native Python 'wave' module to write valid WAV to the output_path 
+                response = await asyncio.to_thread(
+                    client.models.generate_content,
+                    model='models/gemini-2.5-flash-preview-tts',
+                    contents=chunk + speed_hint,
+                    config=types.GenerateContentConfig(
+                        speech_config=types.SpeechConfig(
+                            voice_config=types.VoiceConfig(
+                                prebuilt_voice_config=types.PrebuiltVoiceConfig(
+                                    voice_name=voice_config["id"]
+                                )
+                            )
+                        ),
+                        response_modalities=["AUDIO"]
+                    )
+                )
+                
+                pcm_data = None
+                for part in response.candidates[0].content.parts:
+                    if part.inline_data:
+                        pcm_data = part.inline_data.data
+                        break
+                        
+                if not pcm_data:
+                    raise RuntimeError(f"No audio data returned from Gemini TTS for voice {voice_key} on chunk {i+1}")
+                
+                all_pcm_data.extend(pcm_data)
+                
+            # Use native Python 'wave' module to write the fully accumulated valid WAV to the output_path 
             with wave.open(str(output_path), 'wb') as wav_file:
                 wav_file.setnchannels(1)      # Mono
                 wav_file.setsampwidth(2)      # 16-bit
                 wav_file.setframerate(24000)  # 24 kHz
-                wav_file.writeframes(pcm_data)
+                wav_file.writeframes(bytes(all_pcm_data))
 
 
         # Verify file was created and has content

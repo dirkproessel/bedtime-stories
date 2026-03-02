@@ -145,7 +145,9 @@ Genre: {selected_genre_info}
 Stil: {selected_style_info}
 Inhalt: {prompt}
 
-Teile die Geschichte in {num_segments} logische Abschnitte (Akte) auf. Jeder Abschnitt muss etwa {words_per_segment} Wörter Text generieren.
+Teile die Geschichte in exakt {num_segments} logische Abschnitte (Akte) auf.
+Jeder Abschnitt entspricht chronologisch einem Kapitel der Geschichte.
+ACHTUNG ZUR LÄNGE: Die gesamte Geschichte soll {total_words} Wörter lang werden. Jeder Abschnitt muss daher Material für ca. {words_per_segment} Wörter Text bieten.
 Antworte NUR im JSON-Format:
 {{
     "title": "Titel",
@@ -200,9 +202,9 @@ Antworte NUR im JSON-Format:
 STRIKTE REGELN:
 1. Literarischer Anspruch: Halte dich strikt an den Autoren-Stil ({style}). Vermeide jegliche Floskeln, pädagogische Zeigefinger oder moralische Zusammenfassungen am Ende. Kein Kitsch, keine Moral!
 2. Show, don't tell: Erkläre nicht, wie sich Charaktere fühlen – zeige es durch ihre Handlungen und Reaktionen.
-3. Pacing & Detail: Dehne die Szenen aus (Slow Pacing). Beschreibe Texturen, Licht, Gerüche und Dialoge so ausführlich, dass Kopfkino entsteht. Schreibe langsam und bedächtig (No Rush!).
+3. Pacing & Detail: Dehne die Szenen aus (Slow Pacing). Beschreibe Texturen, Licht, Gerüche und Dialoge ausführlich, dass Kopfkino entsteht.
 4. Format: Keine Kapitelüberschriften im generierten Text! Nur der fließende Erzähltext für dieses Kapitel.
-5. Umfang: Du MUSST ca. {words_per_segment} Wörter (ca. 5 Minuten Vorlesezeit) für dieses Kapitel schreiben. Nutze harte Dialoge und ausführliche Beschreibungen, um die Länge zu füllen.
+5. EXAKTER UMFANG: Du MUSST für dieses Kapitel exakt {words_per_segment} Wörter (ca. {target_minutes // num_segments} Minuten Vorlesezeit) generieren! Nicht mehr und nicht weniger. Zähle intern deine Wörter mit. Beende das Kapitel nicht zu früh, sondern fülle die exakte Länge mit harten Dialogen und Beschreibungen. Generiere AUF KEINEN FALL 1000 oder 2000 Wörter, wenn nur {words_per_segment} gefordert sind!
 
 Rahmenbedingungen:
 Titel der Gesamtgeschichte: {title}
