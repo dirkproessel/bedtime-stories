@@ -16,6 +16,7 @@ Endpoints:
 import asyncio
 import json
 import logging
+import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -239,7 +240,10 @@ async def _run_pipeline(
             store.add_story(curr)
 
     try:
+        start_time_total = time.time()
+        
         # Step 1: Generate story text (Single-pass)
+        start_time_text = time.time()
         story_data = await generate_full_story(
             prompt=prompt,
             genre=genre,
@@ -248,6 +252,8 @@ async def _run_pipeline(
             target_minutes=target_minutes,
             on_progress=on_progress,
         )
+        end_time_text = time.time()
+        logger.info(f"BENCHMARK [{story_id}]: Text Generation took {end_time_text - start_time_text:.2f} seconds")
 
         real_title = story_data["title"]
         _generation_status[story_id]["real_title"] = real_title
@@ -274,6 +280,7 @@ async def _run_pipeline(
 
         # Step 2: TTS – chapters to audio
         await on_progress_with_title("generating_audio", "Bereite Vertonung vor...", 30)
+        start_time_tts = time.time()
         chunks_dir = story_dir / "chunks"
         audio_files = await chapters_to_audio(
             chapters=story_data["chapters"],
@@ -282,6 +289,8 @@ async def _run_pipeline(
             rate=speech_rate,
             on_progress=on_progress_with_title,
         )
+        end_time_tts = time.time()
+        logger.info(f"BENCHMARK [{story_id}]: TTS Generation (All Chapters) took {end_time_tts - start_time_tts:.2f} seconds")
 
         # Step 2.5: Generate title audio
         await on_progress_with_title("generating_audio", "Vertone Titel...", 80)
@@ -295,6 +304,7 @@ async def _run_pipeline(
 
         # Step 4: Merge and Post-process
         await on_progress_with_title("processing", "Mische Audio-Spuren und optimiere Klang...", 85)
+        start_time_merge = time.time()
         final_audio_path = story_dir / "story.mp3"
         await merge_audio_files(
             audio_files=audio_files,
@@ -302,6 +312,8 @@ async def _run_pipeline(
             intro_path=settings.INTRO_MUSIC_PATH,
             title_path=title_tts_path,
         )
+        end_time_merge = time.time()
+        logger.info(f"BENCHMARK [{story_id}]: Audio Manipulation & Merging took {end_time_merge - start_time_merge:.2f} seconds")
 
         # Step 5: Get Final Duration
         duration = await get_audio_duration(final_audio_path)
@@ -338,6 +350,8 @@ async def _run_pipeline(
             story_meta.progress = "Fertig! Geschichte bereit zum Anhören."
             story_meta.progress_pct = 100
             store.add_story(story_meta)
+            
+        logger.info(f"BENCHMARK [{story_id}]: Total Pipeline Finished in {time.time() - start_time_total:.2f} seconds")
 
     except Exception as e:
         _generation_status[story_id]["status"] = "error"
