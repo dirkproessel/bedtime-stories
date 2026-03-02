@@ -204,7 +204,7 @@ STRIKTE REGELN:
 2. Show, don't tell: Erkläre nicht, wie sich Charaktere fühlen – zeige es durch ihre Handlungen und Reaktionen.
 3. Pacing & Detail: Dehne die Szenen aus (Slow Pacing). Beschreibe Texturen, Licht, Gerüche und Dialoge ausführlich, dass Kopfkino entsteht.
 4. Format: Keine Kapitelüberschriften im generierten Text! Nur der fließende Erzähltext für dieses Kapitel.
-5. EXAKTER UMFANG: Du MUSST für dieses Kapitel exakt {words_per_segment} Wörter (ca. {target_minutes // num_segments} Minuten Vorlesezeit) generieren! Nicht mehr und nicht weniger. Zähle intern deine Wörter mit. Beende das Kapitel nicht zu früh, sondern fülle die exakte Länge mit harten Dialogen und Beschreibungen. Generiere AUF KEINEN FALL 1000 oder 2000 Wörter, wenn nur {words_per_segment} gefordert sind!
+5. UMFANG & ENDE: Ziele auf etwa {words_per_segment} Wörter ab (ca. {target_minutes // num_segments} Minuten Vorlesezeit). Beende das Kapitel aber immer mit einem natürlichen Cliffhanger oder einem runden Abschluss der Szene. Brich nicht erzählerisch mittendrin ab, nur um ein Wortlimit zu erfüllen! Flüssiger Lesefluss und natürliches Pacing haben Vorrang vor der exakten Wortzahl.
 
 Rahmenbedingungen:
 Titel der Gesamtgeschichte: {title}

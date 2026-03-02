@@ -35,9 +35,10 @@ async def generate_story_image(synopsis: str, output_path: Path, genre: str = "R
         genre_hint = style_hints.get(genre, "Artistic illustration")
         
         enhanced_prompt = (
-            f"Anspruchsvolles Buchcover-Artwork (ohne Text): {synopsis}. "
+            f"Anspruchsvolles Szene-Artwork: {synopsis}. "
             f"Genre: {genre}. Visueller Stil: {genre_hint}, literarisch, hochwertig, ästhetisch ansprechend, keine Klischees. "
-            f"Passend zum Schreibstil von {style}. Minimalistisch und modern."
+            f"Passend zum Schreibstil von {style}. Minimalistisch und modern. "
+            f"WICHTIGE REGEL: KEIN TEXT! Generiere absolut keine Buchstaben, keine Wörter, keine Signaturen und keine Titel im Bild. Verwende ausschließlich reine Bildsprache."
         )
 
         # Note: generate_images is synchronous in the current google-genai SDK 
