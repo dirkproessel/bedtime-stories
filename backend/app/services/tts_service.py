@@ -285,12 +285,26 @@ async def generate_tts_chunk(
                 
                 all_pcm_data.extend(pcm_data)
                 
-            # Use native Python 'wave' module to write the fully accumulated valid WAV to the output_path 
-            with wave.open(str(output_path), 'wb') as wav_file:
-                wav_file.setnchannels(1)      # Mono
-                wav_file.setsampwidth(2)      # 16-bit
-                wav_file.setframerate(24000)  # 24 kHz
-                wav_file.writeframes(bytes(all_pcm_data))
+            # Use pydub to convert the raw PCM byte array into a valid MP3 file
+            from pydub import AudioSegment
+            import io
+            
+            # Create an AudioSegment from the raw PCM data (16-bit, Mono, 24kHz)
+            audio_segment = AudioSegment(
+                data=bytes(all_pcm_data),
+                sample_width=2,
+                frame_rate=24000,
+                channels=1
+            )
+            
+            # Export directly to the specified output_path as MP3
+            # This ensures smooth concatenation in audio_processor later
+            await asyncio.to_thread(
+                audio_segment.export,
+                str(output_path),
+                format="mp3",
+                bitrate="192k"
+            )
 
 
         # Verify file was created and has content
