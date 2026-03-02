@@ -127,7 +127,6 @@ WICHTIG: Antworte NUR mit dem Hook. Max. 15 Wörter. Beende den Satz zwingend mi
             contents=prompt,
             config={
                 "temperature": 0.9,
-                "max_output_tokens": 200,  # Increased from 80 to ensure proper sentence endings for longer hooks
                 "top_k": 20,
             }
         )
