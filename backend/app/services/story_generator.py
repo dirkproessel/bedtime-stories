@@ -119,7 +119,7 @@ WICHTIG: Antworte NUR mit dem Hook. Halte dich extrem kurz, maximal 1 bis 2 knap
             contents=prompt,
             config={
                 "temperature": 0.9,
-                "max_output_tokens": 500,
+                "max_output_tokens": 1000,
                 "top_k": 20,
             }
         )
