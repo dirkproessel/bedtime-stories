@@ -94,7 +94,7 @@ def generate_modular_prompt(style_string: str) -> str:
         return "Stil: Neutraler, klarer Autorentyp."
         
     rules = [
-        "Basis-Stil (40%): Ein klarer, zugänglicher und unkomplizierter Schreibstil. Nutze kurze, prägnante Sätze und vermeide Schachtelsätze."
+        "Basis-Stil (40%): Ein klarer, gut vorlesbarer Stil mit natürlichem Rhythmus. Nutze eine Mischung aus prägnanten Sätzen und eleganten Nebensätzen, um den Lesefluss lebendig zu gestalten."
     ]
     
     if len(valid_authors) == 1:
@@ -217,7 +217,7 @@ async def _generate_single_pass(prompt, genre, style, characters, target_minutes
     master_prompt = f"""Du bist ein preisgekrönter Autor. Schreibe eine abgeschlossene Kurzgeschichte.
 
 202: STRIKTE REGELN:
-203: 1. FOKUS: KURZE SÄTZE. Schreibe in kurzen, klaren Sätzen. Vermeide Verschachtelungen und lange Nebensatz-Ketten. Setze lieber einen Punkt zu viel als einen zu wenig. Das macht die Geschichte für das Vorlesen (Audio) deutlich angenehmer.
+203: 1. NATÜRLICHER RHYTHMUS: Achte auf einen abwechslungsreichen Satzbau. Nutze sowohl kurze, prägnante Aussagen als auch elegante Nebensätze, um einen flüssigen Leserythmus zu erzeugen. Das macht die Geschichte für das Vorlesen (Audio) lebendiger und interessanter. Vermeide jedoch extrem überladene Schachtelsätze.
 204: 2. Stil-Inspiration:
 205: {selected_style_info}
 206: Vermeide jegliche Floskeln, pädagogische Zeigefinger oder moralische Zusammenfassungen am Ende. Die Geschichte endet mit dem letzten narrativen Moment. Kein Kitsch, keine Moral!
@@ -368,7 +368,7 @@ Antworte NUR im JSON-Format:
         write_prompt = f"""Schreibe das nächste chronologische Kapitel der Geschichte.
 
 353: STRIKTE REGELN:
-354: 1. FOKUS: KURZE SÄTZE. Schreibe in kurzen, klaren Sätzen. Vermeide Verschachtelungen und lange Nebensatz-Ketten. Setze lieber einen Punkt zu viel als einen zu wenig. Ideal für Audio/TTS.
+354: 1. NATÜRLICHER RHYTHMUS: Achte auf einen abwechslungsreichen Satzbau. Nutze sowohl kurze, prägnante Aussagen als auch elegante Nebensätze, um einen flüssigen Leserythmus zu erzeugen. Ideal für Audio/TTS, um Monotonie zu vermeiden. Vermeide jedoch extrem überladene Schachtelsätze.
 355: 2. Stil-Inspiration:
 356: {selected_style_info}
 357: Vermeide jegliche Floskeln, pädagogische Zeigefinger oder moralische Zusammenfassungen am Ende. Kein Kitsch, keine Moral!
