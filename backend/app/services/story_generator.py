@@ -125,24 +125,35 @@ async def generate_story_hook(genre: str, author_id: str) -> str:
     author_desc = f"{author['name']} ({author['wortwahl']} / {author['atmosphaere']})" if author else "Ein klarer, sachlicher Literat."
         
     stanzwerk_hooks = [
-        {"typ": "Der Kontrast-Hook", "logik": "Kombiniere ein banales Objekt mit einer unmöglichen biologischen Eigenschaft."},
-        {"typ": "Der Metaphysische Riss", "logik": "Beschreibe eine tägliche Routine, die durch eine surreale Zeitverschiebung gestört wird."},
-        {"typ": "Die Olfaktorische Falle", "logik": "Beginne mit einem Geruch, der an diesem Ort absolut unmöglich ist."},
-        {"typ": "Das Logik-Loch", "logik": "Stelle eine knochentrockene Behauptung auf, die ein physikalisches Gesetz ignoriert."},
-        {"typ": "Die haptische Miniatur", "logik": "Beschreibe ein Werkzeug oder Objekt so detailreich, dass man es spüren kann."},
-        {"typ": "Der Snob-Snapshot", "logik": "Betrachte eine luxuriöse Oberfläche mit extremer, gelangweilter Distanz."},
-        {"typ": "Der Psycho-Countdown", "logik": "Ein gewöhnliches Geräusch wird plötzlich zur unmittelbaren, tödlichen Bedrohung."},
-        {"typ": "Das Alltags-Geheimnis", "logik": "Ein Tier oder Objekt schließt einen geheimen Bund mit dem Protagonisten."},
-        {"typ": "Die Trümmer-Ehrlichkeit", "logik": "Ein extrem kurzer, harter Satz über Kälte, Hunger oder das nackte Überleben."},
-        {"typ": "Der Turbo-Slapstick", "logik": "Ein peinliches Missgeschick eskaliert innerhalb von Sekunden zur totalen Katastrophe."}
+        {"typ": "Der soziale Bruch", "logik": "Eine banale Höflichkeit führt zu einer völlig unerwarteten Reaktion."},
+        {"typ": "Das falsche Detail", "logik": "An einem vertrauten Ort liegt ein Objekt, das dort absolut nicht hingehört."},
+        {"typ": "Die verschwiegene Wahrheit", "logik": "Ein Gespräch über Belangloses maskiert eine tiefe, unsichtbare Spannung."},
+        {"typ": "Die fatale Verwechslung", "logik": "Ein kleiner Griff ins falsche Regal löst eine unvorhersehbare Kette von Ereignissen aus."},
+        {"typ": "Das Familiengeheimnis", "logik": "Ein Erbstück entpuppt sich als Beweis für eine jahrzehntelange Lüge."},
+        {"typ": "Der rätselhafte Fund", "logik": "In der eigenen Tasche findet sich ein Hinweis auf ein fremdes Leben."},
+        {"typ": "Die plötzliche Erkenntnis", "logik": "Mitten im Smalltalk versteht er plötzlich die wahre Bedeutung eines alten Satzes."},
+        {"typ": "Der unheimliche Zufall", "logik": "Zwei fremde Ereignisse scheinen auf beängstigende Weise verknüpft."},
+        {"typ": "Die unterdrückte Angst", "logik": "Ein alltäglicher Vorgang triggert eine Erinnerung, die alles infrage stellt."},
+        {"typ": "Der stille Beobachter", "logik": "Ein winziger Hinweis macht aus einem Gefühl die Gewissheit, beobachtet zu werden."},
+        {"typ": "Die Physiognomische Entgleisung", "logik": "Ein flüchtiges Muskelzucken im Gesicht widerspricht der Aussage und enthüllt eine bittere Wahrheit."},
+        {"typ": "Das olfaktorisch-biografische Echo", "logik": "Ein banaler Geruch katapultiert den Protagonisten in eine lähmende Erinnerung."},
+        {"typ": "Die haptische Dissonanz", "logik": "Die Textur eines Gegenstandes fühlt sich 'falsch' an und deutet auf eine gezielte Täuschung hin."},
+        {"typ": "Das Milieu-Störgeräusch", "logik": "In einer geordneten Umgebung taucht ein Detail auf, das dort absolut deplatziert ist."},
+        {"typ": "Die rhetorische Sackgasse", "logik": "Ein Satz, der als Kompliment beginnt, lässt durch ein winziges Zögern Verachtung spürbar werden."},
+        {"typ": "Die statistische Anomalie", "logik": "Eine rein zufällige Beobachtung löst eine paranoide, aber logisch begründbare Schlussfolgerung aus."}
     ]
     
     import random
     selected_hook = random.choice(stanzwerk_hooks)
         
-    prompt = f"""WICHTIGE REGEL: Antworte mit exakt 1 Satz! Maximal 15 Wörter! Kein Wort mehr!
+    prompt = f"""Du bist ein Meister der präzisen Alltagsbeobachtung. Generiere einen Story-Hook, der eine realistische Situation durch eine unerwartete Wendung oder ein psychologisches Detail spannend macht.
 
-Du bist ein erfolgreicher Kinder- und Jugendbuchautor. Generiere einen Story-Hook, der eine alltägliche Situation aus den Angeln hebt. Vermeide platte Witze. Setze dort an, wo die Logik des Alltags einen Riss bekommt. Nutze keine Standard-Adjektive... Der Hook muss eine Frage hinterlassen.
+Regeln:
+- Bleibe innerhalb der physikalischen Gesetze (kein Surrealismus).
+- Finde die Spannung im Zwischenmenschlichen oder in einem verborgenen Geheimnis.
+- Nutze starke Verben statt Adjektiven.
+- Der Satz muss einen Konflikt andeuten, keine Lösung.
+- WICHTIG: Exakt 1 Satz, maximal 15 Wörter
 
 Werkzeug:
 Struktur-Schablone: [{selected_hook['typ']}]: {selected_hook['logik']}
