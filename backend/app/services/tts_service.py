@@ -237,8 +237,8 @@ async def generate_tts_chunk(
             # Rate adjustment hint for Gemini (but skip for titles as it distorts short sentences)
             speed_hint = " (Sprich ruhig und langsam)" if ("-15%" in rate and not is_title) else ""
             
-            # Split text into chunks < 800 bytes (to prevent Gemini TTS quality degradation over long texts)
-            def split_text(t, max_bytes=800):
+            # Split text into chunks < 1500 bytes (to save API quota while maintaining quality)
+            def split_text(t, max_bytes=1500):
                 chunks = []
                 current_chunk = ""
                 sentences = t.replace("\n", " ").split(". ")
