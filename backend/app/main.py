@@ -298,7 +298,7 @@ async def _run_pipeline(
         await on_progress_with_title("generating_audio", "Bereite Vertonung vor...", 30)
         start_time_tts = time.time()
         chunks_dir = story_dir / "chunks"
-        audio_files = await chapters_to_audio(
+        audio_files, actual_voice = await chapters_to_audio(
             chapters=story_data["chapters"],
             output_dir=chunks_dir,
             voice_key=voice_key,
@@ -314,7 +314,7 @@ async def _run_pipeline(
         await generate_tts_chunk(
             text=story_data["title"],
             output_path=title_tts_path,
-            voice_key=voice_key,
+            voice_key=actual_voice,
             rate=speech_rate,
             is_title=True
         )
@@ -345,6 +345,13 @@ async def _run_pipeline(
         total_text = "\n".join([c["text"] for c in story_data["chapters"]])
         word_count = len(total_text.split())
 
+        # Resolve actual voice name for metadata update
+        actual_voice_name = "Unbekannt"
+        for v in all_voices:
+            if v["key"] == actual_voice:
+                actual_voice_name = v["name"]
+                break
+
         # Step 4: Finalize metadata
         story_meta = store.get_by_id(story_id)
         if story_meta:
@@ -354,7 +361,8 @@ async def _run_pipeline(
             story_meta.chapter_count = len(story_data["chapters"])
             story_meta.word_count = word_count
             story_meta.image_url = image_url
-            story_meta.voice_name = voice_name
+            story_meta.voice_key = actual_voice
+            story_meta.voice_name = actual_voice_name
             story_meta.status = "done"
             story_meta.progress = "Fertig! Geschichte bereit zum Anhören."
             story_meta.progress_pct = 100

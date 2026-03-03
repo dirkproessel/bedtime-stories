@@ -92,7 +92,7 @@ async def generate_tts_chunk(
     voice_key: str = DEFAULT_VOICE,
     rate: str = "-5%",
     is_title: bool = False,
-) -> Path:
+) -> tuple[Path, str]:
     """
     Convert text to speech and save as MP3.
     Supports Edge TTS, Google Cloud TTS, and OpenAI TTS.
@@ -198,6 +198,7 @@ async def generate_tts_chunk(
             with open(output_path, "wb") as out:
                 for content in audio_contents:
                     out.write(content)
+            return output_path, voice_key
         elif engine == "openai":
             if not settings.OPENAI_API_KEY:
                 raise ValueError("OpenAI API Key is missing.")
@@ -303,7 +304,7 @@ async def generate_tts_chunk(
                 if str(e) == "GEMINI_429_FALLBACK":
                     return await generate_tts_chunk(text, output_path, voice_key="seraphina", rate=rate, is_title=is_title)
                 raise e
-                
+
             # Use pydub to convert the raw PCM byte array into a valid MP3 file
             from pydub import AudioSegment
             import io
@@ -325,6 +326,8 @@ async def generate_tts_chunk(
                 bitrate="192k"
             )
 
+            return output_path, voice_key
+
 
         # Verify file was created and has content
         if not output_path.exists() or output_path.stat().st_size == 0:
@@ -335,7 +338,7 @@ async def generate_tts_chunk(
         logger.error(f"TTS Error: {e}")
         raise
 
-    return output_path
+    return output_path, voice_key
 
 
 async def generate_voice_preview(
@@ -351,7 +354,8 @@ async def generate_voice_preview(
         "Hallo! Ich bin deine Stimme aus dem Kurzgeschichten-Labor. "
         "Komm, lass uns zusammen in ein Abenteuer eintauchen."
     )
-    return await generate_tts_chunk(preview_text, output_path, voice_key)
+    res_path, _ = await generate_tts_chunk(preview_text, output_path, voice_key)
+    return res_path
 
 
 async def chapters_to_audio(
@@ -376,6 +380,7 @@ async def chapters_to_audio(
     """
     output_dir.mkdir(parents=True, exist_ok=True)
     audio_files = [output_dir / f"chapter_{i + 1:02d}.mp3" for i in range(len(chapters))]
+    actual_voice = voice_key
 
     if on_progress:
         await on_progress(
@@ -385,11 +390,14 @@ async def chapters_to_audio(
         )
 
     async def process_chapter(i: int, chapter: dict):
+        nonlocal actual_voice
         full_text = chapter["text"]
-        await generate_tts_chunk(full_text, audio_files[i], voice_key, rate)
+        _, realized_voice = await generate_tts_chunk(full_text, audio_files[i], voice_key, rate)
+        if realized_voice != voice_key:
+            actual_voice = realized_voice
 
     # Run all chapter generations concurrently
     import asyncio
     await asyncio.gather(*(process_chapter(i, ch) for i, ch in enumerate(chapters)))
 
-    return audio_files
+    return audio_files, actual_voice
