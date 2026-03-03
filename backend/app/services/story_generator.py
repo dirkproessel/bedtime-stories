@@ -68,6 +68,16 @@ STANZWERK_BIBLIOTHEK = {
     ]
 }
 
+def get_author_names(style_string: str) -> str:
+    """Helper to resolve author IDs (comma separated) to their full names."""
+    selected_ids = [s.strip() for s in style_string.split(",")] if style_string else []
+    all_authors = {a['id']: a for category in STANZWERK_BIBLIOTHEK.values() for a in category}
+    valid_names = [all_authors[aid]['name'] for aid in selected_ids if aid in all_authors]
+    
+    if not valid_names:
+        return "Neutraler Autor"
+    return ", ".join(valid_names)
+
 def generate_modular_prompt(style_string: str) -> str:
     selected_ids = [s.strip() for s in style_string.split(",")] if style_string else []
     all_authors = {a['id']: a for category in STANZWERK_BIBLIOTHEK.values() for a in category}

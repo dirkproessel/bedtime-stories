@@ -56,7 +56,7 @@ from app.models import (
     StoryListResponse,
     VoiceProfile,
 )
-from app.services.story_generator import generate_full_story, generate_story_hook
+from app.services.story_generator import generate_full_story, generate_story_hook, get_author_names
 from app.services.tts_service import (
     chapters_to_audio,
     get_available_voices,
@@ -144,6 +144,133 @@ async def start_generation(req: StoryRequest):
     return {"id": story_id, "status": "started"}
 
 
+class RevoiceRequest(BaseModel):
+    voice_key: str
+    speech_rate: str = "-15%"
+
+
+@app.post("/api/stories/{story_id}/revoice")
+async def start_revoice(story_id: str, req: RevoiceRequest):
+    """Start async re-voicing of an existing story."""
+    meta = store.get_by_id(story_id)
+    if not meta:
+        raise HTTPException(status_code=404, detail="Story not found")
+
+    meta.status = "generating"
+    meta.progress = "Starte Neuvertonung..."
+    meta.voice_key = req.voice_key
+    meta.progress_pct = 0
+    store.add_story(meta)
+
+    _generation_status[story_id] = {
+        "status": "starting",
+        "progress": "Starte Neuvertonung...",
+        "title": meta.title,
+    }
+
+    # Run revoice in background
+    asyncio.create_task(
+        _run_revoice_pipeline(
+            story_id=story_id,
+            voice_key=req.voice_key,
+            speech_rate=req.speech_rate,
+        )
+    )
+
+    return {"id": story_id, "status": "revoicing"}
+
+
+async def _run_revoice_pipeline(
+    story_id: str,
+    voice_key: str,
+    speech_rate: str,
+):
+    """Revoice pipeline: load text → TTS → merge → save."""
+    story_dir = settings.AUDIO_OUTPUT_DIR / story_id
+    text_path = story_dir / "story.json"
+    
+    if not text_path.exists():
+        logger.error(f"Cannot revoice: {text_path} missing")
+        return
+
+    story_data = json.loads(text_path.read_text(encoding="utf-8"))
+    real_title = story_data["title"]
+
+    async def on_progress(status_type: str, message: str, pct: int | None = None):
+        combined_message = f"{real_title}: {message}"
+        _generation_status[story_id]["status"] = status_type
+        _generation_status[story_id]["progress"] = combined_message
+        if pct is not None:
+            _generation_status[story_id]["progress_pct"] = pct
+        
+        curr = store.get_by_id(story_id)
+        if curr:
+            curr.status = "generating" if status_type != "done" and status_type != "error" else status_type
+            curr.progress = combined_message
+            if pct is not None:
+                curr.progress_pct = pct
+            store.add_story(curr)
+
+    try:
+        # Step 1: TTS
+        await on_progress("generating_audio", "Bereite Neuvertonung vor...", 10)
+        chunks_dir = story_dir / "chunks"
+        # Clear old chunks
+        import shutil
+        if chunks_dir.exists():
+            shutil.rmtree(chunks_dir)
+        chunks_dir.mkdir(parents=True, exist_ok=True)
+
+        audio_files, actual_voice = await chapters_to_audio(
+            chapters=story_data["chapters"],
+            output_dir=chunks_dir,
+            voice_key=voice_key,
+            rate=speech_rate,
+            on_progress=on_progress,
+        )
+
+        # Step 2: Title audio
+        await on_progress("generating_audio", "Vertone Titel...", 80)
+        title_tts_path = chunks_dir / "title.mp3"
+        await generate_tts_chunk(
+            text=story_data["title"],
+            output_path=title_tts_path,
+            voice_key=actual_voice,
+            rate=speech_rate,
+            is_title=True
+        )
+
+        # Step 3: Merge
+        await on_progress("processing", "Mische Audio-Spuren...", 85)
+        final_audio_path = story_dir / "story.mp3"
+        await merge_audio_files(
+            audio_files=audio_files,
+            output_path=final_audio_path,
+            intro_path=settings.INTRO_MUSIC_PATH,
+            title_path=title_tts_path,
+        )
+
+        duration = await get_audio_duration(final_audio_path)
+
+        # Update metadata
+        all_voices = get_available_voices()
+        actual_voice_name = next((v["name"] for v in all_voices if v["key"] == actual_voice), "Unbekannt")
+
+        story_meta = store.get_by_id(story_id)
+        if story_meta:
+            story_meta.duration_seconds = duration
+            story_meta.voice_key = actual_voice
+            story_meta.voice_name = actual_voice_name
+            story_meta.status = "done"
+            story_meta.progress = "Neuvertonung fertig!"
+            story_meta.progress_pct = 100
+            store.add_story(story_meta)
+
+    except Exception as e:
+        logger.error(f"Revoice error for {story_id}: {e}", exc_info=True)
+        await on_progress("error", f"Neuvertonung fehlgeschlagen: {e}")
+
+
 @app.post("/api/stories/generate-free")
 async def start_free_generation(req: FreeTextRequest):
     """Start generation from free text prompt."""
@@ -170,6 +297,133 @@ async def start_free_generation(req: FreeTextRequest):
     )
 
     return {"id": story_id, "status": "started"}
+
+
+class RevoiceRequest(BaseModel):
+    voice_key: str
+    speech_rate: str = "-15%"
+
+
+@app.post("/api/stories/{story_id}/revoice")
+async def start_revoice(story_id: str, req: RevoiceRequest):
+    """Start async re-voicing of an existing story."""
+    meta = store.get_by_id(story_id)
+    if not meta:
+        raise HTTPException(status_code=404, detail="Story not found")
+
+    meta.status = "generating"
+    meta.progress = "Starte Neuvertonung..."
+    meta.voice_key = req.voice_key
+    meta.progress_pct = 0
+    store.add_story(meta)
+
+    _generation_status[story_id] = {
+        "status": "starting",
+        "progress": "Starte Neuvertonung...",
+        "title": meta.title,
+    }
+
+    # Run revoice in background
+    asyncio.create_task(
+        _run_revoice_pipeline(
+            story_id=story_id,
+            voice_key=req.voice_key,
+            speech_rate=req.speech_rate,
+        )
+    )
+
+    return {"id": story_id, "status": "revoicing"}
+
+
+async def _run_revoice_pipeline(
+    story_id: str,
+    voice_key: str,
+    speech_rate: str,
+):
+    """Revoice pipeline: load text → TTS → merge → save."""
+    story_dir = settings.AUDIO_OUTPUT_DIR / story_id
+    text_path = story_dir / "story.json"
+    
+    if not text_path.exists():
+        logger.error(f"Cannot revoice: {text_path} missing")
+        return
+
+    story_data = json.loads(text_path.read_text(encoding="utf-8"))
+    real_title = story_data["title"]
+
+    async def on_progress(status_type: str, message: str, pct: int | None = None):
+        combined_message = f"{real_title}: {message}"
+        _generation_status[story_id]["status"] = status_type
+        _generation_status[story_id]["progress"] = combined_message
+        if pct is not None:
+            _generation_status[story_id]["progress_pct"] = pct
+        
+        curr = store.get_by_id(story_id)
+        if curr:
+            curr.status = "generating" if status_type != "done" and status_type != "error" else status_type
+            curr.progress = combined_message
+            if pct is not None:
+                curr.progress_pct = pct
+            store.add_story(curr)
+
+    try:
+        # Step 1: TTS
+        await on_progress("generating_audio", "Bereite Neuvertonung vor...", 10)
+        chunks_dir = story_dir / "chunks"
+        # Clear old chunks
+        import shutil
+        if chunks_dir.exists():
+            shutil.rmtree(chunks_dir)
+        chunks_dir.mkdir(parents=True, exist_ok=True)
+
+        audio_files, actual_voice = await chapters_to_audio(
+            chapters=story_data["chapters"],
+            output_dir=chunks_dir,
+            voice_key=voice_key,
+            rate=speech_rate,
+            on_progress=on_progress,
+        )
+
+        # Step 2: Title audio
+        await on_progress("generating_audio", "Vertone Titel...", 80)
+        title_tts_path = chunks_dir / "title.mp3"
+        await generate_tts_chunk(
+            text=story_data["title"],
+            output_path=title_tts_path,
+            voice_key=actual_voice,
+            rate=speech_rate,
+            is_title=True
+        )
+
+        # Step 3: Merge
+        await on_progress("processing", "Mische Audio-Spuren...", 85)
+        final_audio_path = story_dir / "story.mp3"
+        await merge_audio_files(
+            audio_files=audio_files,
+            output_path=final_audio_path,
+            intro_path=settings.INTRO_MUSIC_PATH,
+            title_path=title_tts_path,
+        )
+
+        duration = await get_audio_duration(final_audio_path)
+
+        # Update metadata
+        all_voices = get_available_voices()
+        actual_voice_name = next((v["name"] for v in all_voices if v["key"] == actual_voice), "Unbekannt")
+
+        story_meta = store.get_by_id(story_id)
+        if story_meta:
+            story_meta.duration_seconds = duration
+            story_meta.voice_key = actual_voice
+            story_meta.voice_name = actual_voice_name
+            story_meta.status = "done"
+            story_meta.progress = "Neuvertonung fertig!"
+            story_meta.progress_pct = 100
+            store.add_story(story_meta)
+
+    except Exception as e:
+        logger.error(f"Revoice error for {story_id}: {e}", exc_info=True)
+        await on_progress("error", f"Neuvertonung fehlgeschlagen: {e}")
 
 @app.post("/api/generate-hook", response_model=HookResponse)
 async def api_generate_hook(req: HookRequest):
@@ -206,9 +460,10 @@ async def _run_pipeline(
         clean_prompt = clean_prompt.split("Idee:", 1)[-1].strip()
     
     # Initial record creation
+    author_display = get_author_names(style)
     story_meta = StoryMeta(
         id=story_id,
-        title=f"Schreibe Deine Kurzgeschichte ({target_minutes} Min)...",
+        title=f"Schreibe Dein {author_display}-Epos ({target_minutes} Min)...",
         description=f"{(original_prompt or prompt)[:100]}...",
         prompt=clean_prompt,
         genre=genre,

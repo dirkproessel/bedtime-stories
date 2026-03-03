@@ -140,6 +140,16 @@ export async function toggleSpotify(storyId: string, enabled: boolean): Promise<
     }
 }
 
+export async function revoiceStory(storyId: string, voiceKey: string, speechRate: string = '-15%'): Promise<{ id: string }> {
+    const res = await fetch(`${API_BASE}/api/stories/${storyId}/revoice`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ voice_key: voiceKey, speech_rate: speechRate }),
+    });
+    if (!res.ok) throw new Error('Failed to start re-voicing');
+    return res.json();
+}
+
 export function getRssFeedUrl(): string {
     return `${API_BASE}/api/feed-labor.xml`;
 }

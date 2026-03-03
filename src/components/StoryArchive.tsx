@@ -1,8 +1,8 @@
 import { useStore } from '../store/useStore';
-import { deleteStory } from '../lib/api';
-import { Play, Trash2, BookOpen, Calendar, Loader2 } from 'lucide-react';
+import { deleteStory, revoiceStory, getVoicePreviewUrl } from '../lib/api';
+import { Play, Trash2, BookOpen, Calendar, Loader2, Mic, X, Check, Venus, Mars, Users, Pause, Sparkles } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { useEffect } from 'react';
+import { useEffect, useState, useRef } from 'react';
 
 const AUTHOR_LAST_NAMES: Record<string, string> = {
     kehlmann: 'Kehlmann',
@@ -14,13 +14,24 @@ const AUTHOR_LAST_NAMES: Record<string, string> = {
     kafka: 'Kafka',
     borchert: 'Borchert',
     jaud: 'Jaud',
+    regener: 'Regener',
+    strunk: 'Strunk',
+    kling: 'Kling',
+    stuckrad_barre: 'Stuckrad-Barre',
+    evers: 'Evers',
     funke: 'Funke',
     pantermueller: 'Pantermüller',
     auer: 'Auer'
 };
 
 export default function StoryArchive() {
-    const { stories, setActiveView, setSelectedStoryId, loadStories, updateStorySpotify } = useStore();
+    const { stories, voices, setActiveView, setSelectedStoryId, loadStories, updateStorySpotify } = useStore();
+    const [revoiceTarget, setRevoiceTarget] = useState<string | null>(null);
+    const [selectedVoice, setSelectedVoice] = useState<string>('seraphina');
+    const [isRevoicing, setIsRevoicing] = useState(false);
+    const [confirmRevoice, setConfirmRevoice] = useState(false);
+    const [previewVoice, setPreviewVoice] = useState<string | null>(null);
+    const audioRef = useRef<HTMLAudioElement>(null);
 
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -60,6 +71,36 @@ export default function StoryArchive() {
             toast.success(enabled ? 'Zu Spotify hinzugefügt' : 'Von Spotify entfernt');
         } catch {
             toast.error('Fehler beim Aktualisieren');
+        }
+    };
+
+    const handleRevoice = async () => {
+        if (!revoiceTarget) return;
+        setIsRevoicing(true);
+        try {
+            await revoiceStory(revoiceTarget, selectedVoice);
+            toast.success('Neuvertonung gestartet');
+            setRevoiceTarget(null);
+            setConfirmRevoice(false);
+            await loadStories();
+        } catch (error) {
+            toast.error('Fehler beim Starten der Neuvertonung');
+        } finally {
+            setIsRevoicing(false);
+        }
+    };
+
+    const handlePreviewVoice = (key: string) => {
+        if (previewVoice === key) {
+            audioRef.current?.pause();
+            setPreviewVoice(null);
+            return;
+        }
+        setPreviewVoice(key);
+        if (audioRef.current) {
+            audioRef.current.src = getVoicePreviewUrl(key);
+            audioRef.current.play();
+            audioRef.current.onended = () => setPreviewVoice(null);
         }
     };
 
@@ -193,6 +234,17 @@ export default function StoryArchive() {
                                                 <Play className="w-3.5 h-3.5" />
                                                 Anhören
                                             </button>
+                                            <button
+                                                onClick={() => {
+                                                    setRevoiceTarget(story.id);
+                                                    setSelectedVoice(story.voice_key || 'seraphina');
+                                                }}
+                                                disabled={story.status !== 'done'}
+                                                className="flex items-center gap-1.5 text-xs font-medium text-amber-600 hover:text-amber-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                            >
+                                                <Mic className="w-3.5 h-3.5" />
+                                                Neu vertonen
+                                            </button>
                                             <label className={`flex items-center gap-1.5 cursor-pointer group/toggle ${story.status !== 'done' ? 'opacity-30 cursor-not-allowed' : ''}`}>
                                                 <div className="relative">
                                                     <input
@@ -224,6 +276,107 @@ export default function StoryArchive() {
                     ))}
                 </div>
             )}
+
+            {/* Re-voice Modal */}
+            {revoiceTarget && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+                    <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+                        <div className="p-6">
+                            <div className="flex items-center justify-between mb-6">
+                                <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                                    <Mic className="w-5 h-5 text-indigo-600" />
+                                    Neu vertonen
+                                </h2>
+                                <button
+                                    onClick={() => { setRevoiceTarget(null); setConfirmRevoice(false); }}
+                                    className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+
+                            {!confirmRevoice ? (
+                                <>
+                                    <p className="text-sm text-slate-500 mb-4">Wähle eine neue Stimme für diese Geschichte:</p>
+                                    <div className="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto mb-6 pr-1 custom-scrollbar">
+                                        {voices.map(v => (
+                                            <div
+                                                key={v.key}
+                                                className={`p-3 rounded-xl transition-all border-2 cursor-pointer flex items-center justify-between ${selectedVoice === v.key
+                                                    ? 'border-indigo-500 bg-indigo-50 shadow-sm'
+                                                    : 'border-slate-100 bg-white hover:border-slate-200'
+                                                    }`}
+                                                onClick={() => setSelectedVoice(v.key)}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${selectedVoice === v.key ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-50 text-slate-400'}`}>
+                                                        {v.gender === 'female' ? <Venus className="w-4 h-4" /> :
+                                                            v.gender === 'male' ? <Mars className="w-4 h-4" /> : <Users className="w-4 h-4" />}
+                                                    </div>
+                                                    <div>
+                                                        <div className={`text-xs font-bold capitalize ${selectedVoice === v.key ? 'text-indigo-700' : 'text-slate-700'}`}>
+                                                            {v.name}
+                                                        </div>
+                                                        <div className={`text-[10px] ${selectedVoice === v.key ? 'text-indigo-500' : 'text-slate-400'}`}>
+                                                            {v.engine === 'gemini' ? 'Premium ($)' : 'Standard'}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); handlePreviewVoice(v.key); }}
+                                                    className={`w-7 h-7 rounded-full flex items-center justify-center transition-all shrink-0 ${previewVoice === v.key
+                                                        ? 'bg-indigo-500 text-white'
+                                                        : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
+                                                        }`}
+                                                >
+                                                    {previewVoice === v.key ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3 ml-0.5" />}
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <button
+                                        onClick={() => setConfirmRevoice(true)}
+                                        className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold text-sm shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-colors"
+                                    >
+                                        Weiter
+                                    </button>
+                                </>
+                            ) : (
+                                <div className="text-center py-4">
+                                    <div className="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <Sparkles className="w-8 h-8 text-amber-500" />
+                                    </div>
+                                    <h3 className="font-bold text-slate-900 text-lg mb-2">Bist du sicher?</h3>
+                                    <p className="text-sm text-slate-500 mb-8 leading-relaxed">
+                                        Die aktuelle Audio-Version dieser Geschichte wird durch eine neue Vertonung mit der Stimme <span className="font-bold text-indigo-600 capitalize">{voices.find(v => v.key === selectedVoice)?.name}</span> ersetzt. Dieser Vorgang dauert ein paar Minuten.
+                                    </p>
+                                    <div className="flex gap-3">
+                                        <button
+                                            onClick={() => setConfirmRevoice(false)}
+                                            className="flex-1 px-4 py-3 rounded-xl font-bold text-sm text-slate-400 hover:bg-slate-50 transition-colors"
+                                        >
+                                            Zurück
+                                        </button>
+                                        <button
+                                            onClick={handleRevoice}
+                                            disabled={isRevoicing}
+                                            className="flex-1 bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-xl font-bold text-sm shadow-lg shadow-indigo-100 hover:opacity-90 transition-all flex items-center justify-center gap-2"
+                                        >
+                                            {isRevoicing ? (
+                                                <Loader2 className="w-4 h-4 animate-spin" />
+                                            ) : (
+                                                <Check className="w-4 h-4" />
+                                            )}
+                                            Ja, neu vertonen
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+            <audio ref={audioRef} className="hidden" />
         </div>
     );
 }
