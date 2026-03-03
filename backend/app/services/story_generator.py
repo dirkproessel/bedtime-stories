@@ -78,7 +78,7 @@ GENRES_BIBLIOTHEK = {
 }
 
 async def generate_story_hook(genre: str, author_id: str) -> str:
-    """Generate a single max 12-line story hook based on a given genre and author ID."""
+    """Generate a single max 15-word story hook based on a given genre and author ID."""
     
     # Try to find the genre and author objects
     genre_data = GENRES_BIBLIOTHEK.get(genre, GENRES_BIBLIOTHEK["Abenteuer"])
@@ -107,7 +107,7 @@ async def generate_story_hook(genre: str, author_id: str) -> str:
         
     prompt = f"""WICHTIGE REGEL: Antworte mit exakt 1 Satz! Maximal 15 Wörter! Kein Wort mehr!
 
-Du bist ein literarischer Visionär. Generiere einen Story-Hook, der eine alltägliche Situation aus den Angeln hebt. Vermeide platte Witze. Setze dort an, wo die Logik des Alltags einen Riss bekommt. Nutze keine Standard-Adjektive... Der Hook muss eine Frage hinterlassen.
+Du bist ein erfolgreicher Kinder- und Jugendbuchautor. Generiere einen Story-Hook, der eine alltägliche Situation aus den Angeln hebt. Vermeide platte Witze. Setze dort an, wo die Logik des Alltags einen Riss bekommt. Nutze keine Standard-Adjektive... Der Hook muss eine Frage hinterlassen.
 
 Werkzeug:
 Struktur-Schablone: [{selected_hook['typ']}]: {selected_hook['logik']}
@@ -154,7 +154,7 @@ async def _generate_single_pass(prompt, genre, style, characters, target_minutes
     master_prompt = f"""Du bist ein preisgekrönter Autor. Schreibe eine abgeschlossene Kurzgeschichte.
 
 STRIKTE REGELN:
-1. Literarischer Anspruch: Halte dich strikt an diese Stil-Vorgaben:
+1. Literarischer Anspruch: Lass Dich von den Stil-Vorgaben inspirieren:
 {selected_style_info}
 Vermeide jegliche Floskeln, pädagogische Zeigefinger oder moralische Zusammenfassungen am Ende. Die Geschichte endet mit dem letzten narrativen Moment. Kein Kitsch, keine Moral!
 2. Show, don't tell: Erkläre nicht, wie sich Charaktere fühlen – zeige es durch ihre Handlungen und Reaktionen.
@@ -305,7 +305,7 @@ Antworte NUR im JSON-Format:
         write_prompt = f"""Schreibe das nächste chronologische Kapitel der Geschichte.
 
 STRIKTE REGELN:
-1. Literarischer Anspruch: Halte dich strikt an diese Stil-Vorgaben:
+1. Literarischer Anspruch: Lass Dich von den Stil-Vorgaben inspirieren:
 {selected_style_info}
 Vermeide jegliche Floskeln, pädagogische Zeigefinger oder moralische Zusammenfassungen am Ende. Kein Kitsch, keine Moral!
 2. Show, don't tell: Erkläre nicht, wie sich Charaktere fühlen – zeige es durch ihre Handlungen und Reaktionen.

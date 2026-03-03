@@ -236,8 +236,8 @@ async def generate_tts_chunk(
             # Rate adjustment hint for Gemini (but skip for titles as it distorts short sentences)
             speed_hint = " (Sprich ruhig und langsam)" if ("-15%" in rate and not is_title) else ""
             
-            # Split text into chunks < 4000 bytes (safety limit for Gemini API)
-            def split_text(t, max_bytes=4000):
+            # Split text into chunks < 800 bytes (to prevent Gemini TTS quality degradation over long texts)
+            def split_text(t, max_bytes=800):
                 chunks = []
                 current_chunk = ""
                 sentences = t.replace("\n", " ").split(". ")
@@ -256,9 +256,8 @@ async def generate_tts_chunk(
             text_chunks = split_text(clean_text)
             all_pcm_data = bytearray()
 
-            for i, chunk in enumerate(text_chunks):
+            async def process_chunk(i, chunk):
                 logger.info(f"TTS Gemini: Processing chunk {i+1}/{len(text_chunks)} ({len(chunk.encode('utf-8'))} bytes)")
-                
                 try:
                     response = await asyncio.to_thread(
                         client.models.generate_content,
@@ -277,11 +276,10 @@ async def generate_tts_chunk(
                     )
                 except Exception as e:
                     if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
-                        logger.warning(f"Gemini API rate limit hit (429). Falling back to Edge TTS (Seraphina) for this chunk...")
-                        # Run Edge TTS fallback recursively
-                        return await generate_tts_chunk(text, output_path, voice_key="seraphina", rate=rate, is_title=is_title)
+                        logger.warning(f"Gemini API rate limit hit (429) on chunk {i+1}. Triggering Edge TTS Fallback...")
+                        raise RuntimeError("GEMINI_429_FALLBACK")
                     raise e
-                
+
                 pcm_data = None
                 for part in response.candidates[0].content.parts:
                     if part.inline_data:
@@ -291,7 +289,20 @@ async def generate_tts_chunk(
                 if not pcm_data:
                     raise RuntimeError(f"No audio data returned from Gemini TTS for voice {voice_key} on chunk {i+1}")
                 
-                all_pcm_data.extend(pcm_data)
+                return pcm_data
+
+            try:
+                tasks = [process_chunk(i, chunk) for i, chunk in enumerate(text_chunks)]
+                results = await asyncio.gather(*tasks)
+                
+                for pcm_data in results:
+                    all_pcm_data.extend(pcm_data)
+                    
+            except Exception as e:
+                # If any parallel chunk hit the quota limit, fall back for the entire chapter
+                if str(e) == "GEMINI_429_FALLBACK":
+                    return await generate_tts_chunk(text, output_path, voice_key="seraphina", rate=rate, is_title=is_title)
+                raise e
                 
             # Use pydub to convert the raw PCM byte array into a valid MP3 file
             from pydub import AudioSegment
