@@ -135,8 +135,8 @@ export const useStore = create<AppState>((set, get) => ({
 
     updateStorySpotify: async (id: string, enabled: boolean) => {
         try {
-            const { toggleSpotify } = await import('../lib/api');
-            await toggleSpotify(id, enabled);
+            const { updateStorySpotify: apiUpdateStorySpotify } = await import('../lib/api');
+            await apiUpdateStorySpotify(id, enabled);
             set((state) => ({
                 stories: state.stories.map((s) =>
                     s.id === id ? { ...s, is_on_spotify: enabled } : s
