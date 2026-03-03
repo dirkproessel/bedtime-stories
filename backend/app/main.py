@@ -836,6 +836,7 @@ async def export_to_kindle_api(story_id: str, req: KindleExportRequest):
         cover_path = story_dir / "cover.png"
         
         # Generate EPUB (space efficient)
+        story_data["id"] = story_id
         await generate_epub(story_data, cover_path if cover_path.exists() else None, epub_path)
         
         # Send via SMTP

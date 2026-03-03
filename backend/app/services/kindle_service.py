@@ -79,13 +79,17 @@ async def send_to_kindle(epub_path: Path, kindle_email: str, story_title: str):
     msg['To'] = kindle_email
     msg.set_content("Hier ist deine Geschichte aus dem Bedtime Story Labor.")
 
+    import re
+    safe_title = re.sub(r'[^\w\s-]', '', story_title).strip().replace(' ', '_')
+    filename = f"{safe_title}.epub"
+
     with open(epub_path, 'rb') as f:
         file_data = f.read()
         msg.add_attachment(
             file_data,
             maintype='application',
             subtype='epub+zip',
-            filename=epub_path.name
+            filename=filename
         )
 
     # Connect to SMTP
