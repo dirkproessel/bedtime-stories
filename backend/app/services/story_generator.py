@@ -77,7 +77,7 @@ def generate_modular_prompt(style_string: str) -> str:
         return "Stil: Neutraler, klarer Autorentyp."
         
     rules = [
-        "Basis-Stil (60%): Ein neutraler, professioneller, klarer und zugänglicher Schreibstil."
+        "Basis-Stil (60%): Ein klarer, zugänglicher und unkomplizierter Schreibstil. Nutze kurze, prägnante Sätze und vermeide Schachtelsätze."
     ]
     
     if len(valid_authors) == 1:
@@ -199,14 +199,14 @@ async def _generate_single_pass(prompt, genre, style, characters, target_minutes
 
     master_prompt = f"""Du bist ein preisgekrönter Autor. Schreibe eine abgeschlossene Kurzgeschichte.
 
-STRIKTE REGELN:
-1. Literarischer Anspruch: Lass Dich von den Stil-Vorgaben inspirieren:
-{selected_style_info}
-Vermeide jegliche Floskeln, pädagogische Zeigefinger oder moralische Zusammenfassungen am Ende. Die Geschichte endet mit dem letzten narrativen Moment. Kein Kitsch, keine Moral!
-2. Show, don't tell: Erkläre nicht, wie sich Charaktere fühlen – zeige es durch ihre Handlungen und Reaktionen.
-3. Pacing & Detail: Hetze nicht durch die Handlung. Entwickle Szenen langsam. Beschreibe Texturen, Gerüche und die Umgebung so präzise, dass ein Kopfkino entsteht (No Rush!).
-4. Format: Schreibe die Geschichte als einen fließenden Text. Nutze lediglich szenische Absätze oder subtile Zeitensprünge, keine nummerierten Kapitel.
-5. Umfang: Fasse dich extrem präzise und meide überladene Füllwörter. Maximiere die sprachliche Dichte. Ziel: Vorlesedauer {target_minutes} Min (EXAKT ~{word_count} Wörter, KEINESFALLS mehr!). Blähe den Text nicht künstlich auf.
+202: STRIKTE REGELN:
+203: 1. FOKUS: KURZE SÄTZE. Schreibe in kurzen, klaren Sätzen. Vermeide Verschachtelungen und lange Nebensatz-Ketten. Setze lieber einen Punkt zu viel als einen zu wenig. Das macht die Geschichte für das Vorlesen (Audio) deutlich angenehmer.
+204: 2. Stil-Inspiration:
+205: {selected_style_info}
+206: Vermeide jegliche Floskeln, pädagogische Zeigefinger oder moralische Zusammenfassungen am Ende. Die Geschichte endet mit dem letzten narrativen Moment. Kein Kitsch, keine Moral!
+207: 3. Show, don't tell: Erkläre nicht, wie sich Charaktere fühlen – zeige es durch ihre Handlungen und Reaktionen.
+208: 4. Pacing & Detail: Hetze nicht durch die Handlung. Entwickle Szenen durch konkrete Details, aber halte die Syntax (Satzbau) einfach.
+209: 5. Umfang: Nutze eine präzise Wortwahl statt vieler Adjektive. Ziel: Vorlesedauer {target_minutes} Min (EXAKT ~{word_count} Wörter).
 
 Rahmenbedingungen:
 Schreibe eine Geschichte im Genre {genre_data['name']}. Der Kern der Handlung (Nutzer-Wunsch) ist: {user_hook}{char_text}. Folge dem Narrativ: {genre_data['ziel']} unter Verwendung von {genre_data['tropen']}.
@@ -350,12 +350,13 @@ Antworte NUR im JSON-Format:
         
         write_prompt = f"""Schreibe das nächste chronologische Kapitel der Geschichte.
 
-STRIKTE REGELN:
-1. Literarischer Anspruch: Lass Dich von den Stil-Vorgaben inspirieren:
-{selected_style_info}
-Vermeide jegliche Floskeln, pädagogische Zeigefinger oder moralische Zusammenfassungen am Ende. Kein Kitsch, keine Moral!
-2. Show, don't tell: Erkläre nicht, wie sich Charaktere fühlen – zeige es durch ihre Handlungen und Reaktionen.
-3. Pacing & Detail: Beschreibe präzise und atmosphärisch, aber meide unnötige Füllwörter. Konzentriere die Geschichte.
+353: STRIKTE REGELN:
+354: 1. FOKUS: KURZE SÄTZE. Schreibe in kurzen, klaren Sätzen. Vermeide Verschachtelungen und lange Nebensatz-Ketten. Setze lieber einen Punkt zu viel als einen zu wenig. Ideal für Audio/TTS.
+355: 2. Stil-Inspiration:
+356: {selected_style_info}
+357: Vermeide jegliche Floskeln, pädagogische Zeigefinger oder moralische Zusammenfassungen am Ende. Kein Kitsch, keine Moral!
+358: 3. Show, don't tell: Erkläre nicht, wie sich Charaktere fühlen – zeige es durch ihre Handlungen und Reaktionen.
+359: 4. Pacing & Detail: Beschreibe präzise und atmosphärisch, aber halte den Satzbau einfach und direkt.
 4. Format: Keine Kapitelüberschriften im generierten Text! Nur der fließende Erzähltext für dieses Kapitel.
 {ende_regel}
 
