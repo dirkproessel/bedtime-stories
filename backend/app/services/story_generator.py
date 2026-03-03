@@ -59,6 +59,13 @@ STANZWERK_BIBLIOTHEK = {
             "wortwahl": "unaufgeregt, bodenständig und herrlich trocken",
             "atmosphaere": "eine warmherzige Welt, in der die Logik ständig falsch abbiegt",
             "erzaehlweise": "erzählende Schilderung von Alltagskatastrophen, die völlig eskalieren"
+        },
+        {
+            "id": "loriot",
+            "name": "Loriot",
+            "wortwahl": "gestochen scharfes, übertrieben höfliches Hochdeutsch und förmliche Floskeln",
+            "atmosphaere": "eine steife, bürgerliche Umgebung, in der die Etikette schwerer wiegt als die Logik",
+            "erzaehlweise": "minuziöse Schilderung von Kommunikationsstörungen und das Eskalieren von banalen Missverständnissen"
         }
     ],
     "kids": [
@@ -87,24 +94,24 @@ def generate_modular_prompt(style_string: str) -> str:
         return "Stil: Neutraler, klarer Autorentyp."
         
     rules = [
-        "Basis-Stil (60%): Ein klarer, zugänglicher und unkomplizierter Schreibstil. Nutze kurze, prägnante Sätze und vermeide Schachtelsätze."
+        "Basis-Stil (40%): Ein klarer, zugänglicher und unkomplizierter Schreibstil. Nutze kurze, prägnante Sätze und vermeide Schachtelsätze."
     ]
     
     if len(valid_authors) == 1:
         author = valid_authors[0]
-        rules.append(f"Zusätzlicher Einfluss (40%) von {author['name']}:")
+        rules.append(f"Zusätzlicher Einfluss (60%) von {author['name']}:")
         rules.append(f"- Wortwahl: {author['wortwahl']}")
         rules.append(f"- Atmosphäre: {author['atmosphaere']}")
         rules.append(f"- Erzählweise: {author['erzaehlweise']}")
     elif len(valid_authors) == 2:
         a1, a2 = valid_authors
-        rules.append("Zusätzlicher Einfluss (40%), aufgeteilt auf zwei Autoren:")
+        rules.append("Zusätzlicher Einfluss (60%), aufgeteilt auf zwei Autoren:")
         rules.append(f"- Wortwahl ({a1['name']}): {a1['wortwahl']}")
         rules.append(f"- Atmosphäre ({a2['name']}): {a2['atmosphaere']}")
         rules.append(f"- Erzählweise (gemischt): Eine Synthese beider Ansätze ({a1['erzaehlweise']} UND {a2['erzaehlweise']})")
     else:
         a1, a2, a3 = valid_authors[:3]
-        rules.append("Zusätzlicher Einfluss (40%), strikt aufgeteilt auf drei Autoren:")
+        rules.append("Zusätzlicher Einfluss (60%), strikt aufgeteilt auf drei Autoren:")
         rules.append(f"- Wortwahl ({a1['name']}): {a1['wortwahl']}")
         rules.append(f"- Atmosphäre ({a2['name']}): {a2['atmosphaere']}")
         rules.append(f"- Erzählweise ({a3['name']}): {a3['erzaehlweise']}")

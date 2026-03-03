@@ -29,6 +29,7 @@ const AUTHORS = [
     { id: 'kling', name: 'Marc-Uwe Kling', desc: 'Schlagfertig, Logisch, Trocken', group: 'Erwachsene' },
     { id: 'stuckrad_barre', name: 'Benjamin v. Stuckrad-Barre', desc: 'Nervös, Pop-affin, Hyper', group: 'Erwachsene' },
     { id: 'evers', name: 'Horst Evers', desc: 'Absurd, Gemütlich, Skurril', group: 'Erwachsene' },
+    { id: 'loriot', name: 'Loriot', desc: 'Bürgerlich, Präzise, Absurd', group: 'Erwachsene' },
     { id: 'funke', name: 'Cornelia Funke', desc: 'Magisch, Bildstark, Abenteuerlich.', group: 'Kinder' },
     { id: 'pantermueller', name: 'Alice Pantermüller', desc: 'Rotzig, Frech, Chaotisch.', group: 'Kinder' },
     { id: 'auer', name: 'Margit Auer', desc: 'Geborgen, Geheimnisvoll, Empathisch.', group: 'Kinder' },

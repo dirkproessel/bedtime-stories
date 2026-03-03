@@ -19,6 +19,7 @@ const AUTHOR_NAMES: Record<string, string> = {
     kling: 'Marc-Uwe Kling',
     stuckrad_barre: 'B. v. Stuckrad-Barre',
     evers: 'Horst Evers',
+    loriot: 'Loriot',
     funke: 'Cornelia Funke',
     pantermueller: 'Alice Pantermüller',
     auer: 'Margit Auer'
