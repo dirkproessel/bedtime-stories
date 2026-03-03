@@ -214,7 +214,15 @@ export default function StoryArchive() {
                                                         </div>
                                                         <div className="flex flex-col">
                                                             <span className="text-[9px] uppercase font-bold text-slate-400">Stil</span>
-                                                            <span className="text-[11px] text-slate-600 font-semibold leading-tight">
+                                                            <span
+                                                                className="text-[11px] text-slate-600 font-semibold leading-tight cursor-help border-b border-dotted border-slate-300 w-fit"
+                                                                title={(() => {
+                                                                    const names = story.style.split(',').map(s => AUTHOR_NAMES[s.trim()] || s.trim());
+                                                                    if (names.length === 1) return `Wortwahl: ${names[0]}\nAtmosphäre: ${names[0]}\nErzählweise: ${names[0]}`;
+                                                                    if (names.length === 2) return `Wortwahl: ${names[0]}\nAtmosphäre: ${names[1]}\nErzählweise: ${names[0]} & ${names[1]}`;
+                                                                    return `Wortwahl: ${names[0]}\nAtmosphäre: ${names[1]}\nErzählweise: ${names[2]}`;
+                                                                })()}
+                                                            >
                                                                 {story.style.split(',').map(s => AUTHOR_NAMES[s.trim()] || s).join(', ')}
                                                             </span>
                                                         </div>
