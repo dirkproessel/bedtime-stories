@@ -259,21 +259,28 @@ async def generate_tts_chunk(
             for i, chunk in enumerate(text_chunks):
                 logger.info(f"TTS Gemini: Processing chunk {i+1}/{len(text_chunks)} ({len(chunk.encode('utf-8'))} bytes)")
                 
-                response = await asyncio.to_thread(
-                    client.models.generate_content,
-                    model='models/gemini-2.5-flash-preview-tts',
-                    contents=chunk + speed_hint,
-                    config=types.GenerateContentConfig(
-                        speech_config=types.SpeechConfig(
-                            voice_config=types.VoiceConfig(
-                                prebuilt_voice_config=types.PrebuiltVoiceConfig(
-                                    voice_name=voice_config["id"]
+                try:
+                    response = await asyncio.to_thread(
+                        client.models.generate_content,
+                        model='models/gemini-2.5-flash-preview-tts',
+                        contents=chunk + speed_hint,
+                        config=types.GenerateContentConfig(
+                            speech_config=types.SpeechConfig(
+                                voice_config=types.VoiceConfig(
+                                    prebuilt_voice_config=types.PrebuiltVoiceConfig(
+                                        voice_name=voice_config["id"]
+                                    )
                                 )
-                            )
-                        ),
-                        response_modalities=["AUDIO"]
+                            ),
+                            response_modalities=["AUDIO"]
+                        )
                     )
-                )
+                except Exception as e:
+                    if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
+                        logger.warning(f"Gemini API rate limit hit (429). Falling back to Edge TTS (Seraphina) for this chunk...")
+                        # Run Edge TTS fallback recursively
+                        return await generate_tts_chunk(text, output_path, voice_key="seraphina", rate=rate, is_title=is_title)
+                    raise e
                 
                 pcm_data = None
                 for part in response.candidates[0].content.parts:
