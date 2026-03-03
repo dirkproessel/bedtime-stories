@@ -19,12 +19,47 @@ STANZWERK_BIBLIOTHEK = {
         {"id": "kehlmann", "name": "Daniel Kehlmann", "wortwahl": "Präzise, intellektuell, elegant", "atmosphaere": "Magischer Realismus, geistreich, historisch distanziert", "erzaehlweise": "Auktorial, verspielt, ironisch"},
         {"id": "zeh", "name": "Juli Zeh", "wortwahl": "Analytisch, präzise, juristisch kühl", "atmosphaere": "Gesellschaftskritisch, angespannt, realitätsnah", "erzaehlweise": "Multiperspektivisch, sezierend, kühl"},
         {"id": "fitzek", "name": "Sebastian Fitzek", "wortwahl": "Atemlos, plakativ, treibend", "atmosphaere": "Düster, klaustrophobisch, spannungsgetrieben", "erzaehlweise": "Rasant, ständige Cliffhanger, unzuverlässig"},
-        {"id": "sueskind", "name": "Patrick Süskind", "wortwahl": "Sinnlich, olfaktorisch detailliert, historisch exakt", "atmosphaere": "Obsessiv, detailverliebt, grotesk-schön", "erzaehlweise": "Auktorial, intensiv, fast schon wissenschaftlich-beschreibend"},
+        # {"id": "sueskind", "name": "Patrick Süskind", "wortwahl": "Sinnlich, olfaktorisch detailliert, historisch exakt", "atmosphaere": "Obsessiv, detailverliebt, grotesk-schön", "erzaehlweise": "Auktorial, intensiv, fast schon wissenschaftlich-beschreibend"},
         {"id": "kracht", "name": "Christian Kracht", "wortwahl": "Snobistisch, affektiert, kühl", "atmosphaere": "Dekadent, entfremdet, neusachlich", "erzaehlweise": "Distanziert, dandyhaft, emotionslos berichtend"},
-        {"id": "bachmann", "name": "Ingeborg Bachmann", "wortwahl": "Metaphorisch, lyrisch, intensiv", "atmosphaere": "Melancholisch, existenziell bedroht, tiefgründig", "erzaehlweise": "Bewusstseinsnah, poetisch verdichtet"},
+        # {"id": "bachmann", "name": "Ingeborg Bachmann", "wortwahl": "Metaphorisch, lyrisch, intensiv", "atmosphaere": "Melancholisch, existenziell bedroht, tiefgründig", "erzaehlweise": "Bewusstseinsnah, poetisch verdichtet"},
         {"id": "kafka", "name": "Franz Kafka", "wortwahl": "Trocken, bürokratisch, glasklar", "atmosphaere": "Surreal, beklemmend, ausweglos", "erzaehlweise": "Sachlicher Bericht albtraumhafter Zustände"},
-        {"id": "borchert", "name": "Wolfgang Borchert", "wortwahl": "Hart, stakkatoartig, unverblümt", "atmosphaere": "Kalt, karg, nachkriegs-existenziell", "erzaehlweise": "Reduziert, expressionistisch, drängend"},
-        {"id": "jaud", "name": "Tommy Jaud", "wortwahl": "Alltagssprachlich, pointiert, humoristisch", "atmosphaere": "Hektisch, alltäglich, wunderbar peinlich", "erzaehlweise": "Aneinanderreihung von Fettnäpfchen, zynisch-komisch"}
+        # {"id": "borchert", "name": "Wolfgang Borchert", "wortwahl": "Hart, stakkatoartig, unverblümt", "atmosphaere": "Kalt, karg, nachkriegs-existenziell", "erzaehlweise": "Reduziert, expressionistisch, drängend"},
+        {"id": "jaud", "name": "Tommy Jaud", "wortwahl": "Alltagssprachlich, pointiert, humoristisch", "atmosphaere": "Hektisch, alltäglich, wunderbar peinlich", "erzaehlweise": "Aneinanderreihung von Fettnäpfchen, zynisch-komisch"},
+        {
+            "id": "regener",
+            "name": "Sven Regener",
+            "wortwahl": "umgangssprachlich, berlinerisch und bewusst abschweifend",
+            "atmosphaere": "eine melancholische, aber gemütliche Alltagsstimmung",
+            "erzaehlweise": "endlose, urkomische Dialogschleifen über völlige Nichtigkeiten"
+        },
+        {
+            "id": "strunk",
+            "name": "Heinz Strunk",
+            "wortwahl": "eine Mischung aus derbem Vokabular und präziser, hässlicher Poesie",
+            "atmosphaere": "trostlos-komisch und leicht beklemmend",
+            "erzaehlweise": "sezierender Fokus auf das menschliche und soziale Scheitern"
+        },
+        {
+            "id": "kling",
+            "name": "Marc-Uwe Kling",
+            "wortwahl": "trocken, präzise und stark auf Pointen fixiert",
+            "atmosphaere": "eine logisch-absurde Welt mit gesellschaftskritischem Unterton",
+            "erzaehlweise": "schnelle, schlagfertige Dialoge und dialektische Wortspiele"
+        },
+        {
+            "id": "stuckrad_barre",
+            "name": "Benjamin von Stuckrad-Barre",
+            "wortwahl": "hyper-nervös, voller Markennamen und Anglizismen",
+            "atmosphaere": "hektisch, eitel und scharf-beobachtend",
+            "erzaehlweise": "atemlose Stakkato-Sätze und ironische Milieu-Studien"
+        },
+        {
+            "id": "evers",
+            "name": "Horst Evers",
+            "wortwahl": "unaufgeregt, bodenständig und herrlich trocken",
+            "atmosphaere": "eine warmherzige Welt, in der die Logik ständig falsch abbiegt",
+            "erzaehlweise": "erzählende Schilderung von Alltagskatastrophen, die völlig eskalieren"
+        }
     ],
     "kids": [
         {"id": "funke", "name": "Cornelia Funke", "wortwahl": "Magisch, farbenfroh, bildstark", "atmosphaere": "Wundervoll, abenteuerlich, märchenhaft", "erzaehlweise": "Mitreißend, immersiv, warmherzig"},
