@@ -209,8 +209,8 @@ async def _generate_single_pass(prompt, genre, style, characters, target_minutes
     """Original single-pass logic for shorter stories with improved JSON cleanup."""
     selected_style_info = generate_modular_prompt(style)
     genre_data = GENRES_BIBLIOTHEK.get(genre, GENRES_BIBLIOTHEK["Abenteuer"])
-    # 130 words per minute is a standard, relaxed reading pace for audiobooks
-    word_count = target_minutes * 130
+    # 120 words per minute is a safe target for natural prosody with subordinate clauses
+    word_count = target_minutes * 120
     char_text = f"\nHauptcharaktere: {', '.join(characters)}" if characters else ""
     user_hook = prompt
 
@@ -223,7 +223,7 @@ async def _generate_single_pass(prompt, genre, style, characters, target_minutes
 206: Vermeide jegliche Floskeln, pädagogische Zeigefinger oder moralische Zusammenfassungen am Ende. Die Geschichte endet mit dem letzten narrativen Moment. Kein Kitsch, keine Moral!
 207: 3. Show, don't tell: Erkläre nicht, wie sich Charaktere fühlen – zeige es durch ihre Handlungen und Reaktionen.
 208: 4. Pacing & Detail: Hetze nicht durch die Handlung. Entwickle Szenen durch konkrete Details, aber halte die Syntax (Satzbau) einfach.
-209: 5. Umfang: Nutze eine präzise Wortwahl statt vieler Adjektive. Ziel: Vorlesedauer {target_minutes} Min (EXAKT ~{word_count} Wörter).
+209: 5. UMFANG: STRENGES MAXIMUM von {word_count} Wörtern. Nutze eine präzise Wortwahl statt vieler Adjektive. Die neue sprachliche Freiheit darf NICHT zu unnötiger Länge führen. Vermeide Abschweifungen.
 
 Rahmenbedingungen:
 Schreibe eine Geschichte im Genre {genre_data['name']}. Der Kern der Handlung (Nutzer-Wunsch) ist: {user_hook}{char_text}. Folge dem Narrativ: {genre_data['ziel']} unter Verwendung von {genre_data['tropen']}.
@@ -288,8 +288,8 @@ async def _generate_multi_pass(prompt, genre, style, characters, target_minutes,
     user_hook = prompt
     char_text = f"\nHauptcharaktere: {', '.join(characters)}" if characters else ""
     
-    # Target total words. 130 WPM is a better average for comfortable bedtime reading pacing.
-    total_words = target_minutes * 130
+    # Target total words. 120 WPM is better for natural rhythm and prosody.
+    total_words = target_minutes * 120
     
     # Enforce strictly 5-minute chapters (650 words each).
     # 10 min = 2 chapters, 15 min = 3 chapters, 20 min = 4 chapters
@@ -308,7 +308,7 @@ Stil-Vorgaben:
 
 Teile die Geschichte in exakt {num_segments} logische Abschnitte (Akte) auf.
 Jeder Abschnitt entspricht chronologisch einem Kapitel der Geschichte.
-ACHTUNG ZUR LÄNGE: Die gesamte Geschichte soll {total_words} Wörter lang werden. Jeder Abschnitt muss Material für maximal {words_per_segment} Wörter Text bieten. Keine überflüssigen Ausschweifungen!
+311: ACHTUNG ZUR LÄNGE: Die gesamte Geschichte darf STRENGSTENS MAXIMAL {total_words} Wörter lang werden. Jeder Abschnitt muss Material für maximal {words_per_segment} Wörter Text bieten. Keine Abschweifungen oder Füllsätze!
 Antworte NUR im JSON-Format:
 {{
     "title": "Titel",
@@ -361,9 +361,9 @@ Antworte NUR im JSON-Format:
         is_last_chapter = (i == num_segments - 1)
         
         if is_last_chapter:
-            ende_regel = f"5. UMFANG & ENDE: Schreibe ca. {words_per_segment} Wörter. DIES IST DAS FINALE KAPITEL! Führe die Geschichte zwingend zu einem runden, atmosphärischen Abschluss. Schließe die Handlung ab. Kein Cliffhanger mehr! Beende die Geschichte mit einem starken letzten Satz, niemals mit einem Cut."
+            ende_regel = f"5. UMFANG & ENDE: Schreibe STRENG MAXIMAL {words_per_segment} Wörter. DIES IST DAS FINALE KAPITEL! Führe die Geschichte zwingend zu einem runden, atmosphärischen Abschluss. Schließe die Handlung ab. Kein Cliffhanger mehr!"
         else:
-            ende_regel = f"5. UMFANG & ENDE: Schreibe ca. {words_per_segment} Wörter. WICHTIG: Beende das Kapitel NIEMALS mitten in einem Satz (kein Hard Cut). Führe die Szene logisch zu Ende oder erzeuge einen weichen Übergang/Cliffhanger für das nächste Kapitel."
+            ende_regel = f"5. UMFANG & ENDE: Schreibe STRENG MAXIMAL {words_per_segment} Wörter. WICHTIG: Beende das Kapitel NIEMALS mitten in einem Satz. Führe die Szene logisch zu Ende oder erzeuge einen weichen Übergang/Cliffhanger."
         
         write_prompt = f"""Schreibe das nächste chronologische Kapitel der Geschichte.
 
