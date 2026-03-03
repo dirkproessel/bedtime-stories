@@ -212,7 +212,7 @@ export default function StoryCreator() {
                 {/* Genre */}
                 <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-2">Genre</label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2">
                         {GENRES.map(g => (
                             <button
                                 key={g.value}
@@ -242,7 +242,7 @@ export default function StoryCreator() {
                         {/* Erwachsene */}
                         <div>
                             <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Für Erwachsene</div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                                 {AUTHORS.filter(a => a.group === 'Erwachsene').map(s => {
                                     const isSelected = selectedAuthors.includes(s.id);
                                     const index = selectedAuthors.indexOf(s.id);
@@ -271,7 +271,7 @@ export default function StoryCreator() {
                         {/* Kinder */}
                         <div>
                             <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Für Kinder</div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                                 {AUTHORS.filter(a => a.group === 'Kinder').map(s => {
                                     const isSelected = selectedAuthors.includes(s.id);
                                     const index = selectedAuthors.indexOf(s.id);
