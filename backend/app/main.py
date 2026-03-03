@@ -55,6 +55,7 @@ from app.models import (
     StoryMeta,
     StoryListResponse,
     VoiceProfile,
+    KindleExportRequest,
 )
 from app.services.story_generator import generate_full_story, generate_story_hook, get_author_names
 from app.services.tts_service import (
@@ -66,6 +67,7 @@ from app.services.tts_service import (
 from app.services.audio_processor import merge_audio_files, get_audio_duration
 from app.services.rss_generator import generate_rss_feed
 from app.services.image_generator import generate_story_image
+from app.services.kindle_service import generate_epub, send_to_kindle
 
 app = FastAPI(title="Bedtime Stories API", version="1.0.0")
 
@@ -805,8 +807,45 @@ async def get_rss_feed():
         )
         return Response(content=xml_content, media_type="application/xml")
     except Exception as e:
-        logger.error(f"RSS generation error: {e}")
-        return Response(content="<rss><channel><title>Error</title></channel></rss>", media_type="application/xml")
+        logger.error(f"RSS Feed error: {e}")
+        raise HTTPException(status_code=500, detail="Error generating RSS feed")
+
+
+# ──────────────────────────────────
+# Kindle Export
+# ──────────────────────────────────
+
+@app.post("/api/stories/{story_id}/export-kindle")
+async def export_to_kindle_api(story_id: str, req: KindleExportRequest):
+    """Generate EPUB and send to Kindle via email."""
+    meta = store.get_by_id(story_id)
+    if not meta:
+        raise HTTPException(status_code=404, detail="Story not found")
+
+    # Load full text
+    story_dir = settings.AUDIO_OUTPUT_DIR / story_id
+    text_path = story_dir / "story.json"
+    if not text_path.exists():
+        raise HTTPException(status_code=404, detail="Story text data missing")
+
+    try:
+        story_data = json.loads(text_path.read_text(encoding="utf-8"))
+        
+        # Prepare paths
+        epub_path = story_dir / f"{story_id}.epub"
+        cover_path = story_dir / "cover.png"
+        
+        # Generate EPUB (space efficient)
+        await generate_epub(story_data, cover_path if cover_path.exists() else None, epub_path)
+        
+        # Send via SMTP
+        await send_to_kindle(epub_path, req.email)
+        
+        return {"status": "success", "message": f"Story an {req.email} gesendet"}
+        
+    except Exception as e:
+        logger.error(f"Kindle export failed for {story_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ──────────────────────────────────

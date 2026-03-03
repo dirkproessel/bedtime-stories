@@ -34,6 +34,11 @@ class HookRequest(BaseModel):
     author_id: str
 
 
+class KindleExportRequest(BaseModel):
+    """Request to export a story to Kindle via email."""
+    email: str
+
+
 # --- Response Models ---
 
 class HookResponse(BaseModel):

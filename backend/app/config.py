@@ -16,6 +16,13 @@ class Settings:
     INTRO_MUSIC_PATH: Path = Path(__file__).parent / "static" / "intro_new.mp3"
     OUTRO_MUSIC_PATH: Path | None = None
 
+    # SMTP Settings (Gmail)
+    SMTP_HOST: str = os.getenv("SMTP_HOST", "smtp.gmail.com")
+    SMTP_PORT: int = int(os.getenv("SMTP_PORT", "587"))
+    SMTP_USER: str = os.getenv("SMTP_USER", "dirk.proessel@gmail.com")
+    SMTP_PASSWORD: str = os.getenv("SMTP_PASSWORD", "")  # Needs App Password
+    KINDLE_EMAIL: str = os.getenv("KINDLE_EMAIL", "dirk.proessel.runthaler@kindle.com")
+
     def __init__(self):
         self.AUDIO_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 

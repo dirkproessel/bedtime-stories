@@ -128,16 +128,27 @@ export async function deleteStory(storyId: string): Promise<void> {
     if (!res.ok) throw new Error('Failed to delete story');
 }
 
-export async function toggleSpotify(storyId: string, enabled: boolean): Promise<void> {
-    const res = await fetch(`${API_BASE}/api/stories/${storyId}/spotify`, {
+export async function updateStorySpotify(id: string, enabled: boolean): Promise<any> {
+    const response = await fetch(`${API_BASE}/api/stories/${id}/spotify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ enabled }),
     });
-    if (!res.ok) {
-        const detail = await res.text().catch(() => '');
-        throw new Error(`Failed to toggle Spotify status: ${res.status} ${detail}`);
+    if (!response.ok) throw new Error('Failed to update Spotify status');
+    return response.json();
+}
+
+export async function exportStoryToKindle(id: string, email: string): Promise<any> {
+    const response = await fetch(`${API_BASE}/api/stories/${id}/export-kindle`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+    });
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || 'Email-Versand fehlgeschlagen');
     }
+    return response.json();
 }
 
 export async function revoiceStory(storyId: string, voiceKey: string, speechRate: string = '-15%'): Promise<{ id: string }> {

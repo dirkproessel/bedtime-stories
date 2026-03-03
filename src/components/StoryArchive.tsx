@@ -1,6 +1,6 @@
 import { useStore } from '../store/useStore';
-import { deleteStory, revoiceStory, getVoicePreviewUrl } from '../lib/api';
-import { Play, Trash2, BookOpen, Calendar, Loader2, Mic, X, Check, Venus, Mars, Users, Pause, Sparkles } from 'lucide-react';
+import { deleteStory, revoiceStory, getVoicePreviewUrl, exportStoryToKindle } from '../lib/api';
+import { Play, Trash2, BookOpen, Calendar, Loader2, Mic, X, Check, Venus, Mars, Users, Pause, Sparkles, Send } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useEffect, useState, useRef } from 'react';
 
@@ -31,6 +31,9 @@ export default function StoryArchive() {
     const [isRevoicing, setIsRevoicing] = useState(false);
     const [confirmRevoice, setConfirmRevoice] = useState(false);
     const [previewVoice, setPreviewVoice] = useState<string | null>(null);
+    const [kindleEmail, setKindleEmail] = useState<string>(() => localStorage.getItem('kindle_email') || 'dirk.proessel.runthaler@kindle.com');
+    const [isExporting, setIsExporting] = useState<string | null>(null);
+    const [showKindleModal, setShowKindleModal] = useState<string | null>(null);
     const audioRef = useRef<HTMLAudioElement>(null);
 
     useEffect(() => {
@@ -101,6 +104,24 @@ export default function StoryArchive() {
             audioRef.current.src = getVoicePreviewUrl(key);
             audioRef.current.play();
             audioRef.current.onended = () => setPreviewVoice(null);
+        }
+    };
+
+    const handleKindleExport = async (id: string) => {
+        if (!kindleEmail) {
+            toast.error('Bitte Kindle E-Mail Adresse eingeben');
+            return;
+        }
+        localStorage.setItem('kindle_email', kindleEmail);
+        setIsExporting(id);
+        try {
+            await exportStoryToKindle(id, kindleEmail);
+            toast.success('An Kindle gesendet!');
+            setShowKindleModal(null);
+        } catch (error: any) {
+            toast.error(error.message || 'Fehler beim Kindle-Export');
+        } finally {
+            setIsExporting(null);
         }
     };
 
@@ -245,6 +266,18 @@ export default function StoryArchive() {
                                                 <Mic className="w-3.5 h-3.5" />
                                                 Neu vertonen
                                             </button>
+                                            <button
+                                                onClick={() => setShowKindleModal(story.id)}
+                                                disabled={story.status !== 'done' || isExporting === story.id}
+                                                className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 hover:text-emerald-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                            >
+                                                {isExporting === story.id ? (
+                                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                                ) : (
+                                                    <Send className="w-3.5 h-3.5" />
+                                                )}
+                                                Kindle Export
+                                            </button>
                                             <label className={`flex items-center gap-1.5 cursor-pointer group/toggle ${story.status !== 'done' ? 'opacity-30 cursor-not-allowed' : ''}`}>
                                                 <div className="relative">
                                                     <input
@@ -372,6 +405,64 @@ export default function StoryArchive() {
                                     </div>
                                 </div>
                             )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Kindle Export Modal */}
+            {showKindleModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+                    <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+                        <div className="p-6">
+                            <div className="flex items-center justify-between mb-4">
+                                <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                                    <Send className="w-5 h-5 text-emerald-600" />
+                                    Kindle Export
+                                </h2>
+                                <button
+                                    onClick={() => setShowKindleModal(null)}
+                                    className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+
+                            <p className="text-sm text-slate-500 mb-6">
+                                Gib deine Kindle E-Mail Adresse ein, um die Geschichte als E-Book zu senden.
+                            </p>
+
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5 ml-1">
+                                        Kindle E-Mail Adresse
+                                    </label>
+                                    <input
+                                        type="email"
+                                        value={kindleEmail}
+                                        onChange={(e) => setKindleEmail(e.target.value)}
+                                        placeholder="beispiel@kindle.com"
+                                        className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-xl focus:border-emerald-500 focus:ring-0 transition-all text-sm font-medium"
+                                    />
+                                </div>
+
+                                <button
+                                    onClick={() => handleKindleExport(showKindleModal)}
+                                    disabled={isExporting === showKindleModal}
+                                    className="w-full bg-emerald-600 text-white py-3 rounded-xl font-bold text-sm shadow-lg shadow-emerald-100 hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2"
+                                >
+                                    {isExporting === showKindleModal ? (
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                        <Send className="w-4 h-4" />
+                                    )}
+                                    Jetzt senden
+                                </button>
+
+                                <p className="text-[10px] text-slate-400 text-center leading-relaxed">
+                                    Stelle sicher, dass <span className="text-slate-600 font-semibold">dirk.proessel@gmail.com</span> in deinem Amazon-Konto als zugelassener Absender eingetragen ist.
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </div>
