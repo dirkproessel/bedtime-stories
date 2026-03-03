@@ -17,10 +17,10 @@ async def generate_epub(story_data: dict, cover_image_path: Path | None, output_
     book = epub.EpubBook()
 
     # Metadata
-    book.set_identifier(f"story-{os.urandom(4).hex()}")
+    book.set_identifier(f"urn:uuid:{story_data.get('id', os.urandom(8).hex())}")
     book.set_title(story_data["title"])
     book.set_language('de')
-    book.add_author("Bedtime Story Labor")
+    book.add_author("Stanzwerk - Das Kurzgeschichten-Labor")
 
     # Cover Image (Optimized for Kindle)
     if cover_image_path and cover_image_path.exists():
@@ -66,7 +66,7 @@ async def generate_epub(story_data: dict, cover_image_path: Path | None, output_
     epub.write_epub(output_path, book, {})
     logger.info(f"EPUB generated at {output_path}")
 
-async def send_to_kindle(epub_path: Path, kindle_email: str):
+async def send_to_kindle(epub_path: Path, kindle_email: str, story_title: str):
     """
     Send the EPUB file to Kindle via SMTP.
     """
@@ -74,7 +74,7 @@ async def send_to_kindle(epub_path: Path, kindle_email: str):
         raise ValueError("SMTP_USER or SMTP_PASSWORD not configured.")
 
     msg = EmailMessage()
-    msg['Subject'] = f"Story Export: {epub_path.stem}"
+    msg['Subject'] = f"Story: {story_title}"
     msg['From'] = settings.SMTP_USER
     msg['To'] = kindle_email
     msg.set_content("Hier ist deine Geschichte aus dem Bedtime Story Labor.")

@@ -839,7 +839,7 @@ async def export_to_kindle_api(story_id: str, req: KindleExportRequest):
         await generate_epub(story_data, cover_path if cover_path.exists() else None, epub_path)
         
         # Send via SMTP
-        await send_to_kindle(epub_path, req.email)
+        await send_to_kindle(epub_path, req.email, story_data["title"])
         
         return {"status": "success", "message": f"Story an {req.email} gesendet"}
         
