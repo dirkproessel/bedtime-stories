@@ -21,12 +21,12 @@ EDGE_VOICES = {
 
 # OpenAI TTS voices
 OPENAI_VOICES = {
-    "shimmer": {"id": "shimmer", "name": "Shimmer", "gender": "female"},
-    "onyx": {"id": "onyx", "name": "Onyx", "gender": "male"},
-    "alloy": {"id": "alloy", "name": "Alloy", "gender": "neutral"},
-    "echo": {"id": "echo", "name": "Echo", "gender": "male"},
-    "fable": {"id": "fable", "name": "Fable", "gender": "neutral"},
-    "nova": {"id": "nova", "name": "Nova", "gender": "female"},
+    "shimmer": {"id": "shimmer", "name": "Shimmer (Premium $)", "gender": "female"},
+    "onyx": {"id": "onyx", "name": "Onyx (Premium $)", "gender": "male"},
+    "alloy": {"id": "alloy", "name": "Alloy (Premium $)", "gender": "neutral"},
+    "echo": {"id": "echo", "name": "Echo (Premium $)", "gender": "male"},
+    "fable": {"id": "fable", "name": "Fable (Premium $)", "gender": "neutral"},
+    "nova": {"id": "nova", "name": "Nova (Premium $)", "gender": "female"},
 }
 
 # Gemini TTS voices
@@ -372,8 +372,8 @@ async def generate_voice_preview(
         output_path.unlink()
 
     preview_text = (
-        "Hallo! Ich bin deine Stimme aus dem Kurzgeschichten-Labor. "
-        "Komm, lass uns zusammen in ein Abenteuer eintauchen."
+        "Hallo! Willkommen im Labor für Kurzgeschichten. "
+        "Lass uns gemeinsam in ein neues Abenteuer starten."
     )
     res_path, _ = await generate_tts_chunk(preview_text, output_path, voice_key)
     return res_path
