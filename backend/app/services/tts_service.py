@@ -214,26 +214,60 @@ async def generate_tts_chunk(
                 raise ValueError("OpenAI API Key is missing.")
             
             import httpx
+            import asyncio
+
+            # OpenAI TTS has a 4096 character limit per request; split text into safe chunks
+            def split_text_openai(t, max_chars=4000):
+                chunks = []
+                current_chunk = ""
+                sentences = t.replace("\n", " ").split(". ")
+                for s in sentences:
+                    test_chunk = (current_chunk + ". " + s).strip() if current_chunk else s
+                    if len(test_chunk) > max_chars:
+                        if current_chunk:
+                            chunks.append(current_chunk)
+                        current_chunk = s
+                    else:
+                        current_chunk = test_chunk
+                if current_chunk:
+                    chunks.append(current_chunk)
+                return chunks
+
+            text_chunks = split_text_openai(clean_text)
+            speed = 0.85 if "-15%" in rate else (0.95 if "-5%" in rate else 1.0)
+
             headers = {
                 "Authorization": f"Bearer {settings.OPENAI_API_KEY.strip()}",
                 "Content-Type": "application/json",
             }
-            payload = {
-                "model": "tts-1",
-                "input": clean_text,
-                "voice": voice_config["id"],
-                "speed": 0.95 if rate == "-5%" else 1.0,
-            }
-            
-            async with httpx.AsyncClient(timeout=60.0) as client:
-                response = await client.post(
-                    "https://api.openai.com/v1/audio/speech",
-                    headers=headers,
-                    json=payload
-                )
-                response.raise_for_status()
-                with open(output_path, "wb") as out:
-                    out.write(response.content)
+
+            audio_segments = []
+            async with httpx.AsyncClient(timeout=90.0) as client:
+                for i, chunk in enumerate(text_chunks):
+                    logger.info(f"TTS OpenAI: Processing chunk {i+1}/{len(text_chunks)} ({len(chunk)} chars)")
+                    payload = {
+                        "model": "tts-1",
+                        "input": chunk,
+                        "voice": voice_config["id"],
+                        "speed": speed,
+                    }
+                    response = await client.post(
+                        "https://api.openai.com/v1/audio/speech",
+                        headers=headers,
+                        json=payload
+                    )
+                    response.raise_for_status()
+                    audio_segments.append(response.content)
+
+            # Merge all MP3 chunks with pydub
+            from pydub import AudioSegment
+            import io
+            combined = AudioSegment.empty()
+            for mp3_data in audio_segments:
+                seg = AudioSegment.from_mp3(io.BytesIO(mp3_data))
+                combined += seg
+            combined = combined.set_frame_rate(44100).set_channels(2)
+            await asyncio.to_thread(combined.export, str(output_path), format="mp3", bitrate="192k")
 
         elif engine == "gemini":
             from google import genai
