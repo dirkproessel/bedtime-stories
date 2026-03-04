@@ -63,7 +63,7 @@ export async function fetchVoices(): Promise<VoiceProfile[]> {
 }
 
 export function getVoicePreviewUrl(voiceKey: string): string {
-    return `${API_BASE}/api/voices/${voiceKey}/preview`;
+    return `${API_BASE}/api/voices/${voiceKey}/preview?t=${Date.now()}`;
 }
 
 // Story generation

@@ -370,7 +370,7 @@ export default function StoryArchive() {
                                                             {v.name}
                                                         </div>
                                                         <div className={`text-[10px] ${selectedVoice === v.key ? 'text-indigo-500' : 'text-slate-400'}`}>
-                                                            {v.engine === 'gemini' ? 'Premium ($)' : 'Standard'}
+                                                            {v.engine === 'gemini' || v.engine === 'openai' ? 'Premium ($)' : 'Standard'}
                                                         </div>
                                                     </div>
                                                 </div>

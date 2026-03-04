@@ -29,8 +29,8 @@ async def merge_audio_files(
     intro_path: Path | None = None,
     outro_path: Path | None = None,
     title_path: Path | None = None,
-    silence_between_ms: int = 2500,
-    fade_out_ms: int = 3000,
+    silence_between_ms: int = 1000,
+    fade_out_ms: int = 0,
 ) -> Path:
     """
     Merge multiple MP3 files with optional intro/outro, title announcement and normalization.
@@ -75,6 +75,9 @@ async def merge_audio_files(
         if outro_path and outro_path.exists():
             inputs.append(outro_path)
 
+        # 4. Final pause
+        inputs.append(silence_path)
+
         # Construct FFmpeg command
         cmd = ["ffmpeg", "-y"]
         for inp in inputs:
@@ -113,29 +116,32 @@ async def merge_audio_files(
     return output_path
 
 
-async def _normalize_audio(input_path: Path, output_path: Path, fade_out_ms: int = 3000):
+async def _normalize_audio(input_path: Path, output_path: Path, fade_out_ms: int = 0):
     """Normalize loudness and optionally apply fade-out."""
-    # Get duration for fade-out calculation
-    probe = await asyncio.to_thread(
-        subprocess.run,
-        [
-            "ffprobe",
-            "-v", "error",
-            "-show_entries", "format=duration",
-            "-of", "default=noprint_wrappers=1:nokey=1",
-            str(input_path),
-        ],
-        capture_output=True,
-        text=True,
-    )
-    duration = float(probe.stdout.strip())
-    fade_start = max(0, duration - (fade_out_ms / 1000))
+    if fade_out_ms > 0:
+        # Get duration for fade-out calculation
+        probe = await asyncio.to_thread(
+            subprocess.run,
+            [
+                "ffprobe",
+                "-v", "error",
+                "-show_entries", "format=duration",
+                "-of", "default=noprint_wrappers=1:nokey=1",
+                str(input_path),
+            ],
+            capture_output=True,
+            text=True,
+        )
+        duration = float(probe.stdout.strip())
+        fade_start = max(0, duration - (fade_out_ms / 1000))
 
-    # Normalize loudness (EBU R128) + fade out
-    filter_chain = (
-        f"loudnorm=I=-16:TP=-1.5:LRA=11,"
-        f"afade=t=out:st={fade_start}:d={fade_out_ms / 1000}"
-    )
+        # Normalize loudness (EBU R128) + fade out
+        filter_chain = (
+            f"loudnorm=I=-16:TP=-1.5:LRA=11,"
+            f"afade=t=out:st={fade_start}:d={fade_out_ms / 1000}"
+        )
+    else:
+        filter_chain = f"loudnorm=I=-16:TP=-1.5:LRA=11"
 
     await asyncio.to_thread(
         subprocess.run,

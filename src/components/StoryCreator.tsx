@@ -347,7 +347,7 @@ export default function StoryCreator() {
                                         {v.name}
                                     </div>
                                     <div className={`text-xs ${voiceKey === v.key ? 'text-indigo-500' : 'text-slate-400'}`}>
-                                        {v.engine === 'gemini' ? 'Premium ($)' : 'Standard'}
+                                        {v.engine === 'gemini' || v.engine === 'openai' ? 'Premium ($)' : 'Standard'}
                                     </div>
                                 </div>
 
