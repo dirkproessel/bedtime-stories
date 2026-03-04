@@ -216,14 +216,14 @@ async def generate_tts_chunk(
             import httpx
             import asyncio
 
-            # OpenAI TTS has a 4096 character limit per request; split text into safe chunks
-            def split_text_openai(t, max_chars=4000):
+            # OpenAI TTS limit: ~4096 chars, we split to 2000 bytes for uniform chunking with Gemini
+            def split_text_openai(t, max_bytes=2000):
                 chunks = []
                 current_chunk = ""
                 sentences = t.replace("\n", " ").split(". ")
                 for s in sentences:
                     test_chunk = (current_chunk + ". " + s).strip() if current_chunk else s
-                    if len(test_chunk) > max_chars:
+                    if len(test_chunk.encode("utf-8")) > max_bytes:
                         if current_chunk:
                             chunks.append(current_chunk)
                         current_chunk = s
@@ -281,8 +281,8 @@ async def generate_tts_chunk(
             # Rate adjustment hint for Gemini (but skip for titles as it distorts short sentences)
             speed_hint = " (Sprich ruhig und langsam)" if ("-15%" in rate and not is_title) else ""
             
-            # Split text into chunks < 1500 bytes (to save API quota while maintaining quality)
-            def split_text(t, max_bytes=1500):
+            # Split text into chunks < 2000 bytes (unified with OpenAI chunk size)
+            def split_text(t, max_bytes=2000):
                 chunks = []
                 current_chunk = ""
                 sentences = t.replace("\n", " ").split(". ")
@@ -463,11 +463,12 @@ async def chapters_to_audio(
         if realized_voice != voice_key:
             actual_voice = realized_voice
 
-    # Run chapter generations concurrently, but limit concurrency for Gemini
+    # Run chapter generations concurrently
+    # Premium voices (Gemini, OpenAI) are rate-limited: max 2 parallel chapters
+    # Edge has no API limits: allow up to 10
     import asyncio
-    
-    is_gemini = voice_key in GEMINI_VOICES and not GEMINI_QUOTA_EXHAUSTED
-    concurrency_limit = 2 if is_gemini else 10
+    is_premium = (voice_key in GEMINI_VOICES and not GEMINI_QUOTA_EXHAUSTED) or voice_key in OPENAI_VOICES
+    concurrency_limit = 2 if is_premium else 10
     semaphore = asyncio.Semaphore(concurrency_limit)
     
     async def run_with_semaphore(i: int, ch: dict):
