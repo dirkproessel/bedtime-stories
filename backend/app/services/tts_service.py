@@ -19,15 +19,15 @@ EDGE_VOICES = {
 #     "percy": {"id": "de-DE-Neural2-H", "name": "Percy", "gender": "male"},
 # }
 
-# OpenAI TTS voices (Temporarily Disabled)
-# OPENAI_VOICES = {
-#     "shimmer": {"id": "shimmer", "name": "Shimmer", "gender": "female"},
-#     "onyx": {"id": "onyx", "name": "Onyx", "gender": "male"},
-#     "alloy": {"id": "alloy", "name": "Alloy", "gender": "neutral"},
-#     "echo": {"id": "echo", "name": "Echo", "gender": "male"},
-#     "fable": {"id": "fable", "name": "Fable", "gender": "neutral"},
-#     "nova": {"id": "nova", "name": "Nova", "gender": "female"},
-# }
+# OpenAI TTS voices
+OPENAI_VOICES = {
+    "shimmer": {"id": "shimmer", "name": "Shimmer", "gender": "female"},
+    "onyx": {"id": "onyx", "name": "Onyx", "gender": "male"},
+    "alloy": {"id": "alloy", "name": "Alloy", "gender": "neutral"},
+    "echo": {"id": "echo", "name": "Echo", "gender": "male"},
+    "fable": {"id": "fable", "name": "Fable", "gender": "neutral"},
+    "nova": {"id": "nova", "name": "Nova", "gender": "female"},
+}
 
 # Gemini TTS voices
 GEMINI_VOICES = {
@@ -68,14 +68,14 @@ def get_available_voices() -> list[dict]:
     #         "engine": "google",
     #     })
 
-    # OpenAI Voices (Temporarily Disabled)
-    # for key, v in OPENAI_VOICES.items():
-    #     voices.append({
-    #         "key": key,
-    #         "name": v["name"],
-    #         "gender": v["gender"],
-    #         "engine": "openai",
-    #     })
+    # OpenAI Voices
+    for key, v in OPENAI_VOICES.items():
+        voices.append({
+            "key": key,
+            "name": v["name"],
+            "gender": v["gender"],
+            "engine": "openai",
+        })
 
     # Gemini Voices
     for key, v in GEMINI_VOICES.items():
@@ -108,10 +108,10 @@ async def generate_tts_chunk(
     # if voice_key in GOOGLE_VOICES:
     #     voice_config = GOOGLE_VOICES[voice_key]
     #     engine = "google"
-    # elif voice_key in OPENAI_VOICES:
-    #     voice_config = OPENAI_VOICES[voice_key]
-    #     engine = "openai"
-    if voice_key in GEMINI_VOICES:
+    if voice_key in OPENAI_VOICES:
+        voice_config = OPENAI_VOICES[voice_key]
+        engine = "openai"
+    elif voice_key in GEMINI_VOICES:
         global GEMINI_QUOTA_EXHAUSTED
         if GEMINI_QUOTA_EXHAUSTED:
             logger.warning(f"Global Gemini quota flag is set. Immediately falling back to Edge TTS for voice {voice_key}.")
