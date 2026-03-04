@@ -41,6 +41,10 @@ GEMINI_VOICES = {
 
 DEFAULT_VOICE = "seraphina"
 
+# Global flag to track if the daily Gemini Flash TTS quota is exhausted.
+# If True, all subsequent requests in the current session will immediately fall back to Edge TTS.
+GEMINI_QUOTA_EXHAUSTED = False
+
 
 def get_available_voices() -> list[dict]:
     """Return list of available voice profiles."""
@@ -108,8 +112,14 @@ async def generate_tts_chunk(
     #     voice_config = OPENAI_VOICES[voice_key]
     #     engine = "openai"
     if voice_key in GEMINI_VOICES:
-        voice_config = GEMINI_VOICES[voice_key]
-        engine = "gemini"
+        global GEMINI_QUOTA_EXHAUSTED
+        if GEMINI_QUOTA_EXHAUSTED:
+            logger.warning(f"Global Gemini quota flag is set. Immediately falling back to Edge TTS for voice {voice_key}.")
+            voice_config = EDGE_VOICES.get(DEFAULT_VOICE, EDGE_VOICES["seraphina"])
+            engine = "edge"
+        else:
+            voice_config = GEMINI_VOICES[voice_key]
+            engine = "gemini"
 
     else:
         voice_config = EDGE_VOICES.get(voice_key, EDGE_VOICES[DEFAULT_VOICE])
@@ -278,6 +288,8 @@ async def generate_tts_chunk(
                 except Exception as e:
                     if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
                         logger.warning(f"Gemini API rate limit hit (429) on chunk {i+1}. Triggering Edge TTS Fallback...")
+                        global GEMINI_QUOTA_EXHAUSTED
+                        GEMINI_QUOTA_EXHAUSTED = True
                         raise RuntimeError("GEMINI_429_FALLBACK")
                     raise e
 
@@ -293,15 +305,18 @@ async def generate_tts_chunk(
                 return pcm_data
 
             try:
-                tasks = [process_chunk(i, chunk) for i, chunk in enumerate(text_chunks)]
-                results = await asyncio.gather(*tasks)
-                
-                for pcm_data in results:
+                # Process chunks sequentially to prevent RPM (Requests Per Minute) spikes 
+                # which can quickly trigger the daily quota and rate limits.
+                for i, chunk in enumerate(text_chunks):
+                    pcm_data = await process_chunk(i, chunk)
                     all_pcm_data.extend(pcm_data)
+                    # Add a very small delay between chunks to further smooth out the RPM
+                    await asyncio.sleep(0.5)
                     
             except Exception as e:
-                # If any parallel chunk hit the quota limit, fall back for the entire chapter
+                # If any chunk hit the quota limit, fall back for the entire chapter
                 if str(e) == "GEMINI_429_FALLBACK":
+                    logger.warning(f"Chapter fallback triggered due to Gemini API limits. Using Edge TTS.")
                     return await generate_tts_chunk(text, output_path, voice_key="seraphina", rate=rate, is_title=is_title)
                 raise e
 
@@ -346,8 +361,14 @@ async def generate_voice_preview(
     output_path: Path,
 ) -> Path:
     """Generate a short preview clip for a voice."""
-    # Delete existing empty preview files so they get regenerated
-    if output_path.exists() and output_path.stat().st_size == 0:
+    # Check if a valid preview already exists to save API quota
+    if output_path.exists() and output_path.stat().st_size > 1000:
+        import logging
+        logging.getLogger(__name__).info(f"Using cached preview for voice {voice_key} from {output_path}")
+        return output_path
+        
+    # Delete existing empty/corrupt preview files
+    if output_path.exists():
         output_path.unlink()
 
     preview_text = (
@@ -396,8 +417,17 @@ async def chapters_to_audio(
         if realized_voice != voice_key:
             actual_voice = realized_voice
 
-    # Run all chapter generations concurrently
+    # Run chapter generations concurrently, but limit concurrency for Gemini
     import asyncio
-    await asyncio.gather(*(process_chapter(i, ch) for i, ch in enumerate(chapters)))
+    
+    is_gemini = voice_key in GEMINI_VOICES and not GEMINI_QUOTA_EXHAUSTED
+    concurrency_limit = 2 if is_gemini else 10
+    semaphore = asyncio.Semaphore(concurrency_limit)
+    
+    async def run_with_semaphore(i: int, ch: dict):
+        async with semaphore:
+            await process_chapter(i, ch)
+            
+    await asyncio.gather(*(run_with_semaphore(i, ch) for i, ch in enumerate(chapters)))
 
     return audio_files, actual_voice
