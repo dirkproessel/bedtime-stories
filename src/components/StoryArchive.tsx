@@ -233,7 +233,7 @@ export default function StoryArchive() {
                                                         <div className="flex flex-col">
                                                             <span className="text-[9px] uppercase font-bold text-slate-400">Stimme</span>
                                                             <span className="text-[11px] text-slate-600 truncate font-semibold capitalize">
-                                                                {story.voice_name || story.voice_key}
+                                                                {(story.voice_name || story.voice_key).replace(' (Premium $)', '')}
                                                             </span>
                                                         </div>
                                                         <div className="flex flex-col">
