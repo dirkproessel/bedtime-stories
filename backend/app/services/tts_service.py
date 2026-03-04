@@ -21,12 +21,12 @@ EDGE_VOICES = {
 
 # OpenAI TTS voices
 OPENAI_VOICES = {
-    "shimmer": {"id": "shimmer", "name": "Shimmer (Premium $)", "gender": "female"},
-    "onyx": {"id": "onyx", "name": "Onyx (Premium $)", "gender": "male"},
-    "alloy": {"id": "alloy", "name": "Alloy (Premium $)", "gender": "neutral"},
-    "echo": {"id": "echo", "name": "Echo (Premium $)", "gender": "male"},
-    "fable": {"id": "fable", "name": "Fable (Premium $)", "gender": "neutral"},
-    "nova": {"id": "nova", "name": "Nova (Premium $)", "gender": "female"},
+    "shimmer": {"id": "shimmer", "name": "Shimmer", "gender": "female"},
+    "onyx": {"id": "onyx", "name": "Onyx", "gender": "male"},
+    "alloy": {"id": "alloy", "name": "Alloy", "gender": "neutral"},
+    "echo": {"id": "echo", "name": "Echo", "gender": "male"},
+    "fable": {"id": "fable", "name": "Fable", "gender": "neutral"},
+    "nova": {"id": "nova", "name": "Nova", "gender": "female"},
 }
 
 # Gemini TTS voices
@@ -395,21 +395,33 @@ async def generate_voice_preview(
     output_path: Path,
 ) -> Path:
     """Generate a short preview clip for a voice."""
-    # Check if a valid preview already exists to save API quota
-    if output_path.exists() and output_path.stat().st_size > 1000:
-        import logging
-        logging.getLogger(__name__).info(f"Using cached preview for voice {voice_key} from {output_path}")
-        return output_path
-        
-    # Delete existing empty/corrupt preview files
-    if output_path.exists():
-        output_path.unlink()
+    import hashlib
+    import logging
+    logger = logging.getLogger(__name__)
 
     preview_text = (
         "Hallo! Willkommen im Labor für Kurzgeschichten. "
         "Lass uns gemeinsam in ein neues Abenteuer starten."
     )
+
+    # Hash-based cache invalidation: if preview_text changes the hash changes
+    # and the old mp3 is automatically deleted before regenerating.
+    text_hash = hashlib.md5(preview_text.encode()).hexdigest()[:8]
+    hash_marker = output_path.parent / f".{output_path.stem}.hash"
+
+    if output_path.exists() and output_path.stat().st_size > 1000:
+        stored_hash = hash_marker.read_text().strip() if hash_marker.exists() else ""
+        if stored_hash == text_hash:
+            logger.info(f"Using cached preview for {voice_key}")
+            return output_path
+        logger.info(f"Preview text changed for {voice_key} – regenerating.")
+        output_path.unlink(missing_ok=True)
+
+    if output_path.exists():
+        output_path.unlink()
+
     res_path, _ = await generate_tts_chunk(preview_text, output_path, voice_key)
+    hash_marker.write_text(text_hash)
     return res_path
 
 
