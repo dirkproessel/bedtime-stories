@@ -4,26 +4,7 @@ import { Play, Trash2, BookOpen, Calendar, Loader2, Mic, X, Check, Venus, Mars, 
 import toast from 'react-hot-toast';
 import { useEffect, useState, useRef } from 'react';
 
-const AUTHOR_NAMES: Record<string, string> = {
-    kehlmann: 'Daniel Kehlmann',
-    zeh: 'Juli Zeh',
-    fitzek: 'Sebastian Fitzek',
-    sueskind: 'Patrick Süskind',
-    kracht: 'Christian Kracht',
-    bachmann: 'Ingeborg Bachmann',
-    kafka: 'Franz Kafka',
-    borchert: 'Wolfgang Borchert',
-    jaud: 'Tommy Jaud',
-    regener: 'Sven Regener',
-    strunk: 'Heinz Strunk',
-    kling: 'Marc-Uwe Kling',
-    stuckrad_barre: 'B. v. Stuckrad-Barre',
-    evers: 'Horst Evers',
-    loriot: 'Loriot',
-    funke: 'Cornelia Funke',
-    pantermueller: 'Alice Pantermüller',
-    auer: 'Margit Auer'
-};
+import { AUTHOR_NAMES } from '../lib/authors';
 
 export default function StoryArchive() {
     const { stories, voices, setActiveView, setSelectedStoryId, loadStories, updateStorySpotify } = useStore();

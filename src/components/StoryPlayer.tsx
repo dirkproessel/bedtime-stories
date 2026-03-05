@@ -3,8 +3,9 @@ import { useStore } from '../store/useStore';
 import { getAudioUrl, fetchStory, getRssFeedUrl, type StoryDetail } from '../lib/api';
 import {
     Play, Pause, SkipBack, SkipForward,
-    ChevronDown, ChevronUp, Rss, Copy, ArrowLeft, Moon
+    ChevronDown, ChevronUp, Rss, Copy, ArrowLeft, Moon, BookOpen
 } from 'lucide-react';
+import { AUTHOR_NAMES } from '../lib/authors';
 import toast from 'react-hot-toast';
 
 export default function StoryPlayer() {
@@ -158,8 +159,41 @@ export default function StoryPlayer() {
                     </div>
                 )}
                 <h1 className="text-xl font-bold text-slate-900">{story.title}</h1>
-                <p className="text-sm text-slate-400 mt-1">
-                    {story.word_count ? `${story.word_count} Worte` : `${story.chapter_count} Kapitel`} · {formatTime(story.duration_seconds || 0)}
+
+                {/* Metadata Row */}
+                <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 mt-3 text-[11px] font-medium text-slate-500">
+                    {story.genre && (
+                        <div className="flex items-center gap-1">
+                            <span className="text-slate-400">Genre:</span>
+                            <span className="text-slate-700">{story.genre}</span>
+                        </div>
+                    )}
+                    {story.style && (
+                        <div className="flex items-center gap-1">
+                            <span className="text-slate-400">Stil:</span>
+                            <span
+                                className="text-slate-700 cursor-help border-b border-dotted border-slate-300"
+                                title={story.style.split(',').map(s => AUTHOR_NAMES[s.trim().toLowerCase()] || s.trim().toLowerCase()).join(', ')}
+                            >
+                                {story.style.split(',').map(s => AUTHOR_NAMES[s.trim().toLowerCase()] || s.trim().toLowerCase()).join(', ')}
+                            </span>
+                        </div>
+                    )}
+                    <div className="flex items-center gap-1">
+                        <span className="text-slate-400">Stimme:</span>
+                        <span className="text-slate-700 capitalize">
+                            {(story.voice_name || story.voice_key).replace(' (Premium $)', '')}
+                        </span>
+                    </div>
+                </div>
+
+                <p className="text-xs text-slate-400 mt-3 flex items-center justify-center gap-2">
+                    <span className="flex items-center gap-1">
+                        <BookOpen className="w-3.5 h-3.5" />
+                        {story.word_count ? `${story.word_count} Worte` : `${story.chapter_count} Kapitel`}
+                    </span>
+                    <span>·</span>
+                    <span>{formatTime(story.duration_seconds || 0)}</span>
                 </p>
             </div>
 
