@@ -273,8 +273,8 @@ async def generate_tts_chunk(
             from google import genai
             from google.genai import types
             import asyncio
-            import wave
-            import io
+            import subprocess
+            import tempfile
             
             client = genai.Client(api_key=settings.GEMINI_API_KEY)
             
@@ -304,21 +304,27 @@ async def generate_tts_chunk(
             async def process_chunk(i, chunk):
                 logger.info(f"TTS Gemini: Processing chunk {i+1}/{len(text_chunks)} ({len(chunk.encode('utf-8'))} bytes)")
                 try:
-                    response = await asyncio.to_thread(
-                        client.models.generate_content,
-                        model='models/gemini-2.5-flash-preview-tts',
-                        contents=chunk + speed_hint,
-                        config=types.GenerateContentConfig(
-                            speech_config=types.SpeechConfig(
-                                voice_config=types.VoiceConfig(
-                                    prebuilt_voice_config=types.PrebuiltVoiceConfig(
-                                        voice_name=voice_config["id"]
+                    # Added wait_for to prevent infinite network hangs
+                    response = await asyncio.wait_for(
+                        client.aio.models.generate_content(
+                            model='models/gemini-2.5-flash-preview-tts',
+                            contents=chunk + speed_hint,
+                            config=types.GenerateContentConfig(
+                                speech_config=types.SpeechConfig(
+                                    voice_config=types.VoiceConfig(
+                                        prebuilt_voice_config=types.PrebuiltVoiceConfig(
+                                            voice_name=voice_config["id"]
+                                        )
                                     )
-                                )
-                            ),
-                            response_modalities=["AUDIO"]
-                        )
+                                ),
+                                response_modalities=["AUDIO"]
+                            )
+                        ),
+                        timeout=90.0
                     )
+                except asyncio.TimeoutError:
+                    logger.error(f"Gemini API timed out on chunk {i+1}. Triggering Fallback...")
+                    raise RuntimeError("GEMINI_TIMEOUT_FALLBACK")
                 except Exception as e:
                     if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
                         logger.warning(f"Gemini API rate limit hit (429) on chunk {i+1}. Triggering Edge TTS Fallback...")
@@ -349,31 +355,39 @@ async def generate_tts_chunk(
                     
             except Exception as e:
                 # If any chunk hit the quota limit, fall back for the entire chapter
-                if str(e) == "GEMINI_429_FALLBACK":
+                if str(e) in ["GEMINI_429_FALLBACK", "GEMINI_TIMEOUT_FALLBACK"]:
                     logger.warning(f"Chapter fallback triggered due to Gemini API limits. Using Edge TTS.")
                     return await generate_tts_chunk(text, output_path, voice_key="seraphina", rate=rate, is_title=is_title)
                 raise e
 
-            # Use pydub to convert the raw PCM byte array into a valid MP3 file
-            from pydub import AudioSegment
-            import io
-            
-            # Create an AudioSegment from the raw PCM data (16-bit, Mono, 24kHz)
-            audio_segment = AudioSegment(
-                data=bytes(all_pcm_data),
-                sample_width=2,
-                frame_rate=24000,
-                channels=1
-            ).set_frame_rate(44100).set_channels(2)
-            
-            # Export directly to the specified output_path as MP3
-            # This ensures smooth concatenation in audio_processor later
-            await asyncio.to_thread(
-                audio_segment.export,
-                str(output_path),
-                format="mp3",
-                bitrate="192k"
-            )
+            # Convert raw PCM byte array to MP3 directly using FFmpeg subprocess instead of pydub.
+            # Avoids Popen buffering hangs on Windows common with pydub.
+            def _export_mp3(data, out_path):
+                # We pipe the 16-bit Mono 24kHz PCM to stdin, encode to 44.1kHz Stereo MP3.
+                cmd = [
+                    "ffmpeg", "-y",
+                    "-f", "s16le",       # 16-bit signed little-endian PCM
+                    "-ar", "24000",      # 24kHz sample rate (Gemini default)
+                    "-ac", "1",          # Mono
+                    "-i", "pipe:0",      # Read from stdin
+                    "-ar", "44100",      # Target 44.1kHz
+                    "-ac", "2",          # Target stereo
+                    "-c:a", "libmp3lame",
+                    "-b:a", "192k",
+                    str(out_path)
+                ]
+                
+                process = subprocess.run(
+                    cmd,
+                    input=bytes(data),
+                    capture_output=True,
+                    check=False
+                )
+                
+                if process.returncode != 0:
+                    raise RuntimeError(f"FFmpeg failed to convert Gemini PCM to MP3:\n{process.stderr.decode(errors='replace')}")
+
+            await asyncio.to_thread(_export_mp3, all_pcm_data, output_path)
 
             return output_path, voice_key
 

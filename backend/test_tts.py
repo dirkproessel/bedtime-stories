@@ -1,50 +1,31 @@
+import asyncio
 import os
-from google import genai
-from google.genai import types
-from pydub import AudioSegment
+from pathlib import Path
+import sys
 
-try:
-    api_key = os.environ.get("GEMINI_API_KEY")
-    if not api_key:
-        from dotenv import load_dotenv
-        load_dotenv("c:/Dirk/Codings/bedtime-stories/backend/.env")
-        api_key = os.environ.get("GEMINI_API_KEY", "")
-        
-    client = genai.Client(api_key=api_key)
-    print("Generating audio...")
-    response = client.models.generate_content(
-        model='models/gemini-2.5-flash-preview-tts',
-        contents='Dies ist ein Funktionstest für die MP3 Konvertierung.',
-        config=types.GenerateContentConfig(
-            speech_config=types.SpeechConfig(
-                voice_config=types.VoiceConfig(
-                    prebuilt_voice_config=types.PrebuiltVoiceConfig(
-                        voice_name="Aoede"
-                    )
-                )
-            ),
-            response_modalities=["AUDIO"]
-        )
-    )
+# Add backend directory to path
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from app.services.tts_service import generate_tts_chunk
+import logging
+
+logging.basicConfig(level=logging.INFO)
+
+async def main():
+    text = "Dies ist ein Test für die Google Flash TTS. Wir überprüfen, ob der Prozess hängen bleibt. " * 5
+    out_path = Path("test_output.mp3")
+    if out_path.exists():
+        out_path.unlink()
     
-    pcm_data = None
-    for part in response.candidates[0].content.parts:
-        if part.inline_data:
-            pcm_data = part.inline_data.data
-            print(f"Got {len(pcm_data)} bytes of PCM data.")
-            break
-            
-    if pcm_data:
-        # L16 means 16-bit (2 bytes sample width), little-endian. 
-        # Usually API returns raw PCM. 
-        audio = AudioSegment(
-            data=pcm_data,
-            sample_width=2,
-            frame_rate=24000,
-            channels=1
+    print("Starting generation...")
+    try:
+        await asyncio.wait_for(
+            generate_tts_chunk(text, out_path, voice_key="aoede", rate="-5%"),
+            timeout=60
         )
-        audio.export("c:/tmp/test_gemini.mp3", format="mp3")
-        print("Successfully exported test_gemini.mp3")
-        
-except Exception as e:
-    print(f"Error: {e}")
+        print("Generation finished successfully.")
+    except Exception as e:
+        print(f"Generation failed: {e}")
+
+if __name__ == "__main__":
+    asyncio.run(main())
