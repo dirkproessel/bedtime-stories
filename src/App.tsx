@@ -13,11 +13,61 @@ const NAV_ITEMS = [
 ];
 
 function App() {
-  const { fetchData, isLoading, error, isInitialized, activeView, setActiveView } = useStore();
+  const { fetchData, isLoading, error, isInitialized, activeView, setActiveView, selectedStoryId, setSelectedStoryId } = useStore();
 
+  // Initial Data Fetch
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Sync URL Hash -> Store State (Listeners for Back/Forward & direct link access)
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace('#', '');
+
+      if (hash.startsWith('/player/')) {
+        const storyId = hash.split('/')[2];
+        if (storyId) {
+          setActiveView('player');
+          setSelectedStoryId(storyId);
+          return;
+        }
+      }
+
+      if (hash === '/archive') {
+        setActiveView('archive');
+        return;
+      }
+
+      if (hash === '/create' || hash === '') {
+        setActiveView('create');
+        return;
+      }
+    };
+
+    // Run once on load to catch direct entries like `bedtime.proessel.de/#/archive`
+    handleHashChange();
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, [setActiveView, setSelectedStoryId]);
+
+  // Sync Store State -> URL Hash (When clicking buttons in the UI)
+  useEffect(() => {
+    let desiredHash = '';
+    if (activeView === 'player' && selectedStoryId) {
+      desiredHash = `#/player/${selectedStoryId}`;
+    } else if (activeView === 'archive') {
+      desiredHash = `#/archive`;
+    } else if (activeView === 'create') {
+      desiredHash = `#/create`;
+    }
+
+    // Only push if the hash is actually different to avoid infinite loops or noisy history
+    if (desiredHash && window.location.hash !== desiredHash) {
+      window.history.pushState(null, '', desiredHash);
+    }
+  }, [activeView, selectedStoryId]);
 
   if (isLoading && !isInitialized) {
     return (
