@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import { useEffect, useState, useRef } from 'react';
 
 import { AUTHOR_NAMES } from '../lib/authors';
+import { voiceName, voiceDesc } from '../lib/voices';
 
 export default function StoryArchive() {
     const { stories, voices, setActiveView, setSelectedStoryId, loadStories, updateStorySpotify } = useStore();
@@ -213,8 +214,8 @@ export default function StoryArchive() {
                                                         </div>
                                                         <div className="flex flex-col">
                                                             <span className="text-[9px] uppercase font-bold text-slate-400">Stimme</span>
-                                                            <span className="text-[11px] text-slate-600 truncate font-semibold capitalize">
-                                                                {(story.voice_name || story.voice_key).replace(' (Premium $)', '')}
+                                                            <span className="text-[11px] text-slate-600 truncate font-semibold">
+                                                                {voiceName(story.voice_key)}
                                                             </span>
                                                         </div>
                                                         <div className="flex flex-col">
@@ -347,11 +348,11 @@ export default function StoryArchive() {
                                                             v.gender === 'male' ? <Mars className="w-4 h-4" /> : <Users className="w-4 h-4" />}
                                                     </div>
                                                     <div>
-                                                        <div className={`text-xs font-bold capitalize ${selectedVoice === v.key ? 'text-indigo-700' : 'text-slate-700'}`}>
-                                                            {v.name}
+                                                        <div className={`text-xs font-bold ${selectedVoice === v.key ? 'text-indigo-700' : 'text-slate-700'}`}>
+                                                            {voiceName(v.key)}
                                                         </div>
                                                         <div className={`text-[10px] ${selectedVoice === v.key ? 'text-indigo-500' : 'text-slate-400'}`}>
-                                                            {v.engine === 'gemini' || v.engine === 'openai' ? 'Premium ($)' : 'Standard'}
+                                                            {voiceDesc(v.key)}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -381,7 +382,7 @@ export default function StoryArchive() {
                                     </div>
                                     <h3 className="font-bold text-slate-900 text-lg mb-2">Bist du sicher?</h3>
                                     <p className="text-sm text-slate-500 mb-8 leading-relaxed">
-                                        Die aktuelle Audio-Version dieser Geschichte wird durch eine neue Vertonung mit der Stimme <span className="font-bold text-indigo-600 capitalize">{voices.find(v => v.key === selectedVoice)?.name}</span> ersetzt. Dieser Vorgang dauert ein paar Minuten.
+                                        Die aktuelle Audio-Version dieser Geschichte wird durch eine neue Vertonung mit der Stimme <span className="font-bold text-indigo-600">{voiceName(selectedVoice)}</span> ersetzt. Dieser Vorgang dauert ein paar Minuten.
                                     </p>
                                     <div className="flex gap-3">
                                         <button

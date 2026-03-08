@@ -168,6 +168,7 @@ export function getRssFeedUrl(): string {
 export interface PopularityData {
     genres: string[];   // genre values sorted by usage, desc
     authors: string[];  // author IDs sorted by usage, desc
+    voices: string[];   // voice keys sorted by usage, desc
 }
 
 export async function fetchPopularity(): Promise<PopularityData> {

@@ -883,12 +883,13 @@ async def debug_store():
 
 @app.get("/api/stats/popularity")
 async def get_popularity():
-    """Return genres and authors sorted by usage frequency from the archive."""
+    """Return genres, authors and voices sorted by usage frequency from the archive."""
     from collections import Counter
     stories = store.get_all()
 
     genre_counter: Counter = Counter()
     author_counter: Counter = Counter()
+    voice_counter: Counter = Counter()
 
     for s in stories:
         if s.status != "done":
@@ -898,10 +899,13 @@ async def get_popularity():
         if s.style:
             for author_id in [a.strip() for a in s.style.split(",") if a.strip()]:
                 author_counter[author_id] += 1
+        if s.voice_key:
+            voice_counter[s.voice_key] += 1
 
     return {
         "genres": [g for g, _ in genre_counter.most_common()],
         "authors": [a for a, _ in author_counter.most_common()],
+        "voices": [v for v, _ in voice_counter.most_common()],
     }
 
 

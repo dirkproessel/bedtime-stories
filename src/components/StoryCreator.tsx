@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { getVoicePreviewUrl, generateHook, fetchPopularity } from '../lib/api';
 import { Sparkles, Mic, MicOff, Play, Pause, BookOpen, Venus, Mars, Users, Dices, Loader2, ChevronDown } from 'lucide-react';
+import { voiceName, voiceDesc } from '../lib/voices';
 
 const GENRES = [
     { value: 'Krimi', label: 'Krimi', desc: 'Indizien, Verdächtige, falsche Fährten' },
@@ -88,6 +89,7 @@ export default function StoryCreator() {
     // Popularity-sorted lists
     const [sortedGenres, setSortedGenres] = useState(GENRES);
     const [sortedAuthors, setSortedAuthors] = useState(AUTHORS);
+    const [sortedVoices, setSortedVoices] = useState(voices);
     const [showAllGenres, setShowAllGenres] = useState(false);
     const [showAllAuthors, setShowAllAuthors] = useState(false);
     const [showAllVoices, setShowAllVoices] = useState(false);
@@ -97,9 +99,14 @@ export default function StoryCreator() {
             .then(data => {
                 setSortedGenres(sortByPopularity(GENRES, data.genres, g => g.value));
                 setSortedAuthors(sortByPopularity(AUTHORS, data.authors, a => a.id));
+                if (data.voices?.length > 0) {
+                    setSortedVoices(sortByPopularity(voices, data.voices, v => v.key));
+                } else {
+                    setSortedVoices(voices);
+                }
             })
             .catch(() => { /* keep default order on failure */ });
-    }, []);
+    }, [voices]);
 
     // Input state
     const [freeText, setFreeText] = useState('');
@@ -351,7 +358,7 @@ export default function StoryCreator() {
             <div className="mt-6">
                 <label className="block text-sm font-semibold text-slate-700 mb-2">Stimme</label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {(showAllVoices ? voices : voices.slice(0, BEST_OF_COUNT)).map(v => (
+                    {(showAllVoices ? sortedVoices : sortedVoices.slice(0, BEST_OF_COUNT)).map(v => (
                         <div
                             key={v.key}
                             className={`p-3 rounded-xl transition-all border-2 cursor-pointer ${voiceKey === v.key
@@ -367,13 +374,13 @@ export default function StoryCreator() {
                                         v.gender === 'male' ? <Mars className="w-5 h-5" /> : <Users className="w-5 h-5" />}
                                 </div>
 
-                                {/* Name & Quality Center */}
+                                {/* Name & Charakter */}
                                 <div className="flex-1 min-w-0 text-left">
-                                    <div className={`text-sm font-bold truncate capitalize ${voiceKey === v.key ? 'text-indigo-700' : 'text-slate-700'}`}>
-                                        {v.name}
+                                    <div className={`text-sm font-bold truncate ${voiceKey === v.key ? 'text-indigo-700' : 'text-slate-700'}`}>
+                                        {voiceName(v.key)}
                                     </div>
                                     <div className={`text-xs ${voiceKey === v.key ? 'text-indigo-500' : 'text-slate-400'}`}>
-                                        {v.engine === 'gemini' || v.engine === 'openai' ? 'Premium ($)' : 'Standard'}
+                                        {voiceDesc(v.key)}
                                     </div>
                                 </div>
 
@@ -391,13 +398,13 @@ export default function StoryCreator() {
                         </div>
                     ))}
                 </div>
-                {!showAllVoices && voices.length > BEST_OF_COUNT && (
+                {!showAllVoices && sortedVoices.length > BEST_OF_COUNT && (
                     <button
                         onClick={() => setShowAllVoices(true)}
                         className="mt-2 w-full py-2 rounded-xl border-2 border-dashed border-slate-200 text-xs text-slate-400 hover:border-slate-300 hover:text-slate-500 transition-all flex items-center justify-center gap-1"
                     >
                         <ChevronDown className="w-3 h-3" />
-                        {voices.length - BEST_OF_COUNT} weitere Stimmen anzeigen
+                        {sortedVoices.length - BEST_OF_COUNT} weitere Stimmen anzeigen
                     </button>
                 )}
                 <audio ref={audioRef} className="hidden" />
