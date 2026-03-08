@@ -253,11 +253,8 @@ export default function StoryCreator() {
 
                 {/* Genre */}
                 <div>
-                    <div className="flex justify-between items-baseline mb-2">
-                        <label className="block text-sm font-semibold text-slate-700">Genre</label>
-                        {!showAllGenres && sortedGenres.length > BEST_OF_COUNT && (
-                            <span className="text-xs text-slate-400">{sortedGenres.length - BEST_OF_COUNT} weitere</span>
-                        )}
+                    <div className="mb-2">
+                        <label className="block text-sm font-semibold text-slate-700">Genre <span className="font-normal text-slate-400">(bestimmt Ton & Struktur)</span></label>
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2">
                         {(showAllGenres ? sortedGenres : sortedGenres.slice(0, BEST_OF_COUNT)).map(g => (
@@ -287,11 +284,10 @@ export default function StoryCreator() {
 
                 {/* Style */}
                 <div>
-                    <div className="flex justify-between items-end mb-2">
-                        <label className="block text-sm font-semibold text-slate-700">Autoren (max. 3 mixen)</label>
-                        <div className="text-xs font-medium text-slate-500">
-                            {selectedAuthors.length === 0 ? "Stil wird gemixt" : `${selectedAuthors.length} von 3 gewählt`}
-                        </div>
+                    <div className="mb-2">
+                        <label className="block text-sm font-semibold text-slate-700">
+                            Autoren <span className="font-normal text-slate-400">(max. 3 auswählen, Stil wird gemixt)</span>
+                        </label>
                     </div>
 
                     <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2">
