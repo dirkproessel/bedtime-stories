@@ -90,6 +90,7 @@ export default function StoryCreator() {
     const [sortedAuthors, setSortedAuthors] = useState(AUTHORS);
     const [showAllGenres, setShowAllGenres] = useState(false);
     const [showAllAuthors, setShowAllAuthors] = useState(false);
+    const [showAllVoices, setShowAllVoices] = useState(false);
 
     useEffect(() => {
         fetchPopularity()
@@ -350,7 +351,7 @@ export default function StoryCreator() {
             <div className="mt-6">
                 <label className="block text-sm font-semibold text-slate-700 mb-2">Stimme</label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {voices.map(v => (
+                    {(showAllVoices ? voices : voices.slice(0, BEST_OF_COUNT)).map(v => (
                         <div
                             key={v.key}
                             className={`p-3 rounded-xl transition-all border-2 cursor-pointer ${voiceKey === v.key
@@ -390,6 +391,15 @@ export default function StoryCreator() {
                         </div>
                     ))}
                 </div>
+                {!showAllVoices && voices.length > BEST_OF_COUNT && (
+                    <button
+                        onClick={() => setShowAllVoices(true)}
+                        className="mt-2 w-full py-2 rounded-xl border-2 border-dashed border-slate-200 text-xs text-slate-400 hover:border-slate-300 hover:text-slate-500 transition-all flex items-center justify-center gap-1"
+                    >
+                        <ChevronDown className="w-3 h-3" />
+                        {voices.length - BEST_OF_COUNT} weitere Stimmen anzeigen
+                    </button>
+                )}
                 <audio ref={audioRef} className="hidden" />
             </div>
 

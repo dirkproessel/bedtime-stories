@@ -31,11 +31,24 @@ OPENAI_VOICES = {
 
 # Gemini TTS voices
 GEMINI_VOICES = {
-    "aoede": {"id": "Aoede", "name": "Aoede", "gender": "female"},
-    "enceladus": {"id": "Enceladus", "name": "Enceladus", "gender": "male"},
-    "puck": {"id": "Puck", "name": "Puck", "gender": "male"},
-    "charon": {"id": "Charon", "name": "Charon", "gender": "male"},
-    "kore": {"id": "Kore", "name": "Kore", "gender": "female"},
+    # --- Standard / Top 8 ---
+    "aoede":      {"id": "Aoede",      "name": "Aoede",      "gender": "female"},   # Breezy, klar
+    "kore":       {"id": "Kore",       "name": "Kore",        "gender": "female"},   # Firm, energetisch
+    "sulafat":    {"id": "Sulafat",    "name": "Sulafat",     "gender": "female"},   # Warm, überzeugend
+    "gacrux":     {"id": "Gacrux",     "name": "Gacrux",      "gender": "male"},     # Smooth, tief-resonant
+    "charon":     {"id": "Charon",     "name": "Charon",      "gender": "male"},     # Informative, smooth
+    "fenrir":     {"id": "Fenrir",     "name": "Fenrir",      "gender": "male"},     # Excitable, warm
+    "orus":       {"id": "Orus",       "name": "Orus",        "gender": "male"},     # Firm, klar
+    "zephyr":     {"id": "Zephyr",     "name": "Zephyr",      "gender": "neutral"},  # Bright, frisch
+    # --- Weitere 8 (Show More) ---
+    "enceladus":  {"id": "Enceladus",  "name": "Enceladus",   "gender": "male"},     # Breathy, sanft
+    "puck":       {"id": "Puck",       "name": "Puck",        "gender": "male"},     # Upbeat, lebendig
+    "schedar":    {"id": "Schedar",    "name": "Schedar",     "gender": "male"},     # Even, entspannt
+    "iapetus":    {"id": "Iapetus",    "name": "Iapetus",     "gender": "male"},     # Clear, Everyman
+    "algenib":    {"id": "Algenib",    "name": "Algenib",     "gender": "female"},   # Gravelly, charakterstark
+    "laomedeia":  {"id": "Laomedeia", "name": "Laomedeia",   "gender": "female"},   # Upbeat, inquisitiv
+    "despina":    {"id": "Despina",    "name": "Despina",     "gender": "female"},   # Smooth, fließend
+    "umbriel":    {"id": "Umbriel",    "name": "Umbriel",     "gender": "neutral"},  # Easy-going, vielseitig
 }
 
 
