@@ -66,6 +66,69 @@ STANZWERK_BIBLIOTHEK = {
             "wortwahl": "gestochen scharfes, übertrieben höfliches Hochdeutsch und förmliche Floskeln",
             "atmosphaere": "eine steife, bürgerliche Umgebung, in der die Etikette schwerer wiegt als die Logik",
             "erzaehlweise": "minuziöse Schilderung von Kommunikationsstörungen und das Eskalieren von banalen Missverständnissen"
+        },
+        {
+            "id": "pratchett",
+            "name": "Terry Pratchett",
+            "wortwahl": "Scharfsinnig, metaphernreich, britisch-trocken",
+            "atmosphaere": "Satirisch-warmherzig; eine Welt auf dem Rücken von Elefanten",
+            "erzaehlweise": "Parodie von Fantasy-Tropen, brillante Fußnoten, Entlarvung von Dummheit"
+        },
+        {
+            "id": "adams",
+            "name": "Douglas Adams",
+            "wortwahl": "Technisch-absurd, lakonisch, kosmisch-kühl",
+            "atmosphaere": "Kosmisches Chaos, in dem ständig die Parkuhr abläuft",
+            "erzaehlweise": "Philosophischer Blödsinn, trockene Oneliner, totale Vernichtung der Logik"
+        },
+        {
+            "id": "kinney",
+            "name": "Jeff Kinney",
+            "wortwahl": "Einfach, authentisch, pubertär-ironisch",
+            "atmosphaere": "Die ungeschönte, peinliche Welt des Schulhofs",
+            "erzaehlweise": "Tagebuch-Stil, pointiertes Scheitern, Fokus auf Alltags-Fettnäpfchen"
+        },
+        {
+            "id": "kaestner",
+            "name": "Erich Kästner",
+            "wortwahl": "Klar, ironisch, moralisch ohne erhobenen Zeigefinger",
+            "atmosphaere": "Menschlich, hoffnungsvoll, geprägt von scharfem Witz",
+            "erzaehlweise": "Beobachtend, ehrlich, mit großem Herz für die kleinen Leute"
+        },
+        {
+            "id": "lindgren",
+            "name": "Astrid Lindgren",
+            "wortwahl": "Herzlich, mutig, kindlich-weise",
+            "atmosphaere": "Sommerlich-melancholisch, tief geborgen und frei",
+            "erzaehlweise": "Voller Empathie, Fokus auf Gerechtigkeit und kindliche Stärke"
+        },
+        {
+            "id": "dahl",
+            "name": "Roald Dahl",
+            "wortwahl": "Erfinderisch, drastisch, leicht grausam",
+            "atmosphaere": "Skurril, makaber-lustig, herrlich respektlos",
+            "erzaehlweise": "Schadenfreude, klare Parteinahme für Kinder gegen fiese Erwachsene"
+        },
+        {
+            "id": "christie",
+            "name": "Agatha Christie",
+            "wortwahl": "Sachlich, britisch-höflich, bieder",
+            "atmosphaere": "Trügerisch idyllisch, logisch-kalt und analytisch",
+            "erzaehlweise": "Strenges Rätsel-Design (Whodunnit), Fokus auf psychologische Motive"
+        },
+        {
+            "id": "king",
+            "name": "Stephen King",
+            "wortwahl": "Detailreich, volksnah, markenfixiert",
+            "atmosphaere": "Alltäglich, langsam ins Unheimliche und Grauenvolle kippend",
+            "erzaehlweise": "Psychologischer Horror, Fokus auf Urängste in der Vorstadt"
+        },
+        {
+            "id": "hemingway",
+            "name": "Ernest Hemingway",
+            "wortwahl": "Karg, substantivlastig, fast keine Adjektive",
+            "atmosphaere": "Stoisch, unterkühlt, emotional beherrscht",
+            "erzaehlweise": "Kurze Sätze, Eisberg-Modell (das Wichtigste steht zwischen den Zeilen)"
         }
     ],
     "kids": [
@@ -119,14 +182,22 @@ def generate_modular_prompt(style_string: str) -> str:
     return "\n".join(rules)
 
 GENRES_BIBLIOTHEK = {
-    "Krimi": {"name": "Krimi", "ziel": "Lösung eines Rätsels", "tropen": "Indizien, Verdächtige, falsche Fährten"},
-    "Abenteuer": {"name": "Abenteuer", "ziel": "Eine Reise bewältigen", "tropen": "Aufbruch, Hindernisse, Heldenreise"},
-    "Science-Fiction": {"name": "Science-Fiction", "ziel": "Was-wäre-wenn-Szenario", "tropen": "Zukunfts-Technik, fremde Welten"},
-    "Märchen": {"name": "Märchen", "ziel": "Ordnung wiederherstellen", "tropen": "Magische Wesen, Wandlung, Alltagsmagie"},
-    "Komödie": {"name": "Komödie", "ziel": "Absurdität entlarven", "tropen": "Situationskomik, Verwechslungen"},
-    "Thriller": {"name": "Thriller", "ziel": "Überleben / Bedrohung abwenden", "tropen": "Countdown, hohe Spannung, verborgene Gefahr"},
-    "Drama": {"name": "Drama", "ziel": "Innere Konflikte klären", "tropen": "Tiefe Dialoge, Fokus auf Freundschaft"},
-    "Grusel": {"name": "Grusel", "ziel": "Das Unheimliche erfahren", "tropen": "Schatten, alte Geheimnisse, Gänsehaut"}
+    "Krimi": {"name": "Krimi", "ziel": "Lösung eines Rätsels", "tropen": "Whodunnit-Struktur, Alibi-Prüfung, Rote Heringe (falsche Fährten), Deduktion, der entscheidende Sachbeweis"},
+    "Abenteuer": {"name": "Abenteuer", "ziel": "Eine Reise bewältigen", "tropen": "In-Medias-Res-Start, physische Hindernisse, das magische Artefakt, die Mentor-Figur, exotische Schauplätze"},
+    "Science-Fiction": {"name": "Science-Fiction", "ziel": "Was-wäre-wenn-Szenario", "tropen": "Technobabble, ethisches Dilemma, Worldbuilding-Details, futuristischer Slang, spekulative Biologie"},
+    "Märchen": {"name": "Märchen", "ziel": "Ordnung wiederherstellen", "tropen": "Die Zahl Drei (Wiederholungen), sprechende Objekte, klare Gut-Böse-Moral, Prüfungen des Herzens, Anthropomorphismus"},
+    "Komödie": {"name": "Komödie", "ziel": "Absurdität entlarven", "tropen": "Schlagabtausch (Banter), Running Gags, komische Fallhöhe, Ironie, absurde Logikketten, Slapstick-Elemente"},
+    "Thriller": {"name": "Thriller", "ziel": "Überleben / Bedrohung abwenden", "tropen": "Tickende Uhr (Zeitdruck), unzuverlässiger Erzähler, Paranoia, Cliffhanger am Kapitelende, Twists"},
+    "Drama": {"name": "Drama", "ziel": "Innere Konflikte klären", "tropen": "Subtext in Gesprächen, Flashbacks, innere Monologe, emotionaler Wendepunkt, Katharsis"},
+    "Grusel": {"name": "Grusel", "ziel": "Das Unheimliche erfahren", "tropen": "Das Unheimliche (Uncanny), Foreshadowing, Isolation, Verfall, das Unbekannte (Andeutungen statt Zeigen)"},
+    "Fantasy": {"name": "Fantasy", "ziel": "Das Böse bezwingen", "tropen": "Das Erwählten-Motiv, Magie-System mit Regeln, Companions, epische Landschaften, das Artefakt der Macht"},
+    "Satire": {"name": "Satire", "ziel": "Absurdes entlarven", "tropen": "Überzeichnung, ironische Umkehrung, fiktive Institutionen, der naive Erzähler, Brecht'scher Verfremdungseffekt"},
+    "Dystopie": {"name": "Dystopie", "ziel": "Unterdrückung entkommen oder aufdecken", "tropen": "Die Lüge des Systems, das verbotene Objekt/Wort, innerer Widerstand, Propaganda als Kulisse, Hope Spot"},
+    "Historisch": {"name": "Historisch", "ziel": "Vergangenes lebendig machen", "tropen": "Period-accurate Details, Zeitgeist als Antagonist, historische Nebenfiguren, Anachronismus als Stilmittel"},
+    "Mythologie": {"name": "Mythologie", "ziel": "Kosmische Ordnung erklären", "tropen": "Göttliche Intervention, Hybris als Motor, das Orakel, Sterblicher vs. Unsterblicher, Metamorphose als Auflösung"},
+    "Roadtrip": {"name": "Roadtrip", "ziel": "Sich selbst (wieder)finden", "tropen": "Der unfreiwillige Begleiter, Orte als Charaktere, das Gespräch im Auto, die unerwartete Abzweigung, Ankommen als Metapher"},
+    "Gute Nacht": {"name": "Gute Nacht", "ziel": "Zur Ruhe kommen, sicher ankommen", "tropen": "Langsames Tempo, sinkende Energie-Kurve, beruhigende Wiederholungen, warme Bilder (Licht, Wärme, Stille), offenes Ende ohne Auflösungsdruck"},
+    "Fabel": {"name": "Fabel", "ziel": "Eine Lebensweisheit illustrieren", "tropen": "Tierprotagonisten mit menschlichen Eigenschaften, die Moral am Ende, klare Gut/Falsch-Zuordnung, einfache Sprache, zeitlose Schauplätze (Wald, Dorf, Marktplatz)"}
 }
 
 async def generate_story_hook(genre: str, author_id: str) -> str:

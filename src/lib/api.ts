@@ -164,3 +164,14 @@ export async function revoiceStory(storyId: string, voiceKey: string, speechRate
 export function getRssFeedUrl(): string {
     return `${API_BASE}/api/feed-labor.xml`;
 }
+
+export interface PopularityData {
+    genres: string[];   // genre values sorted by usage, desc
+    authors: string[];  // author IDs sorted by usage, desc
+}
+
+export async function fetchPopularity(): Promise<PopularityData> {
+    const res = await fetch(`${API_BASE}/api/stats/popularity`);
+    if (!res.ok) throw new Error('Failed to fetch popularity');
+    return res.json();
+}

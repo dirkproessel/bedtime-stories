@@ -1,7 +1,7 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useStore } from '../store/useStore';
-import { getVoicePreviewUrl, generateHook } from '../lib/api';
-import { Sparkles, Mic, MicOff, Play, Pause, BookOpen, Venus, Mars, Users, Dices, Loader2 } from 'lucide-react';
+import { getVoicePreviewUrl, generateHook, fetchPopularity } from '../lib/api';
+import { Sparkles, Mic, MicOff, Play, Pause, BookOpen, Venus, Mars, Users, Dices, Loader2, ChevronDown } from 'lucide-react';
 
 const GENRES = [
     { value: 'Krimi', label: 'Krimi', desc: 'Indizien, Verdächtige, falsche Fährten' },
@@ -12,27 +12,41 @@ const GENRES = [
     { value: 'Thriller', label: 'Thriller', desc: 'Countdown, hohe Spannung, verborgene Gefahr' },
     { value: 'Drama', label: 'Drama', desc: 'Tiefe Dialoge, Fokus auf Freundschaft' },
     { value: 'Grusel', label: 'Grusel', desc: 'Schatten, alte Geheimnisse, Gänsehaut' },
+    { value: 'Fantasy', label: 'Fantasy', desc: 'Magie, Quests, fremde Welten' },
+    { value: 'Satire', label: 'Satire', desc: 'Gesellschaft im Zerrspiegel' },
+    { value: 'Dystopie', label: 'Dystopie', desc: 'Überwachung, Kontrolle, Widerstand' },
+    { value: 'Historisch', label: 'Historisch', desc: 'Vergangene Zeiten, echte Kulissen' },
+    { value: 'Mythologie', label: 'Mythologie', desc: 'Götter, Helden, Ursprungsgeschichten' },
+    { value: 'Roadtrip', label: 'Roadtrip', desc: 'Unterwegs, Begegnungen, Umwege' },
+    { value: 'Gute Nacht', label: 'Gute Nacht', desc: 'Sanft, ruhig, zum Einschlafen' },
+    { value: 'Fabel', label: 'Fabel', desc: 'Tiere, Moral, Lebensweisheit' },
 ];
 
 const AUTHORS = [
-    { id: 'kehlmann', name: 'Daniel Kehlmann', desc: 'Präzise, Geistreich, Verspielt.', group: 'Erwachsene' },
-    { id: 'zeh', name: 'Juli Zeh', desc: 'Analytisch, Kühl, Kritisch.', group: 'Erwachsene' },
-    { id: 'fitzek', name: 'Sebastian Fitzek', desc: 'Atemlos, Rasant, Düster.', group: 'Erwachsene' },
-    // { id: 'sueskind', name: 'Patrick Süskind', desc: 'Sinnlich, Historisch, Exakt.', group: 'Erwachsene' },
-    { id: 'kracht', name: 'Christian Kracht', desc: 'Snobistisch, Dekadent, Distanziert.', group: 'Erwachsene' },
-    // { id: 'bachmann', name: 'Ingeborg Bachmann', desc: 'Metaphorisch, Melancholisch, Intensiv.', group: 'Erwachsene' },
-    { id: 'kafka', name: 'Franz Kafka', desc: 'Surreal, Beklemmend, Trocken.', group: 'Erwachsene' },
-    // { id: 'borchert', name: 'Wolfgang Borchert', desc: 'Hart, Kalt, Existenziell.', group: 'Erwachsene' },
-    { id: 'jaud', name: 'Tommy Jaud', desc: 'Lustig, Hektisch, Peinlich.', group: 'Erwachsene' },
-    { id: 'regener', name: 'Sven Regener', desc: 'Lakonisch, Echt, Schnodderig', group: 'Erwachsene' },
-    { id: 'strunk', name: 'Heinz Strunk', desc: 'Grotesk, Erbarmungslos, Schräg', group: 'Erwachsene' },
-    { id: 'kling', name: 'Marc-Uwe Kling', desc: 'Schlagfertig, Logisch, Trocken', group: 'Erwachsene' },
-    { id: 'stuckrad_barre', name: 'Benjamin v. Stuckrad-Barre', desc: 'Nervös, Pop-affin, Hyper', group: 'Erwachsene' },
-    { id: 'evers', name: 'Horst Evers', desc: 'Absurd, Gemütlich, Skurril', group: 'Erwachsene' },
-    { id: 'loriot', name: 'Loriot', desc: 'Bürgerlich, Präzise, Absurd', group: 'Erwachsene' },
-    { id: 'funke', name: 'Cornelia Funke', desc: 'Magisch, Bildstark, Abenteuerlich.', group: 'Kinder' },
-    { id: 'pantermueller', name: 'Alice Pantermüller', desc: 'Rotzig, Frech, Chaotisch.', group: 'Kinder' },
-    { id: 'auer', name: 'Margit Auer', desc: 'Geborgen, Geheimnisvoll, Empathisch.', group: 'Kinder' },
+    { id: 'kehlmann', name: 'Daniel Kehlmann', desc: 'Präzise, Geistreich, Verspielt.' },
+    { id: 'zeh', name: 'Juli Zeh', desc: 'Analytisch, Kühl, Kritisch.' },
+    { id: 'fitzek', name: 'Sebastian Fitzek', desc: 'Atemlos, Rasant, Düster.' },
+    { id: 'kracht', name: 'Christian Kracht', desc: 'Snobistisch, Dekadent, Distanziert.' },
+    { id: 'kafka', name: 'Franz Kafka', desc: 'Surreal, Beklemmend, Trocken.' },
+    { id: 'jaud', name: 'Tommy Jaud', desc: 'Lustig, Hektisch, Peinlich.' },
+    { id: 'regener', name: 'Sven Regener', desc: 'Lakonisch, Echt, Schnodderig.' },
+    { id: 'strunk', name: 'Heinz Strunk', desc: 'Grotesk, Erbarmungslos, Schräg.' },
+    { id: 'kling', name: 'Marc-Uwe Kling', desc: 'Schlagfertig, Logisch, Trocken.' },
+    { id: 'stuckrad_barre', name: 'Benjamin v. Stuckrad-Barre', desc: 'Nervös, Pop-affin, Hyper.' },
+    { id: 'evers', name: 'Horst Evers', desc: 'Absurd, Gemütlich, Skurril.' },
+    { id: 'loriot', name: 'Loriot', desc: 'Bürgerlich, Präzise, Absurd.' },
+    { id: 'funke', name: 'Cornelia Funke', desc: 'Magisch, Bildstark, Abenteuerlich.' },
+    { id: 'pantermueller', name: 'Alice Pantermüller', desc: 'Rotzig, Frech, Chaotisch.' },
+    { id: 'auer', name: 'Margit Auer', desc: 'Geborgen, Geheimnisvoll, Empathisch.' },
+    { id: 'pratchett', name: 'Terry Pratchett', desc: 'Scharfsinnig, Satirisch, Trocken.' },
+    { id: 'adams', name: 'Douglas Adams', desc: 'Absurd, Lakonisch, Kosmisch.' },
+    { id: 'kinney', name: 'Jeff Kinney', desc: 'Pubertär, Ironisch, Authentisch.' },
+    { id: 'kaestner', name: 'Erich Kästner', desc: 'Ironisch, Klar, Herzlich.' },
+    { id: 'lindgren', name: 'Astrid Lindgren', desc: 'Herzlich, Mutig, Kindlich-weise.' },
+    { id: 'dahl', name: 'Roald Dahl', desc: 'Skurril, Drastisch, Respektlos.' },
+    { id: 'christie', name: 'Agatha Christie', desc: 'Sachlich, Analytisch, Rätselhaft.' },
+    { id: 'king', name: 'Stephen King', desc: 'Detailreich, Volksnah, Unheimlich.' },
+    { id: 'hemingway', name: 'Ernest Hemingway', desc: 'Karg, Trocken, Präzise.' },
 ];
 
 const LENGTHS = [
@@ -40,6 +54,19 @@ const LENGTHS = [
     { value: 15, label: '~15 Min', sub: '3 Kapitel' },
     { value: 20, label: '~20 Min', sub: '4 Kapitel' },
 ];
+
+const BEST_OF_COUNT = 8;
+
+// Sort items array so that popularIds come first (in order), rest follow in original order.
+function sortByPopularity<T>(items: T[], popularIds: string[], getKey: (item: T) => string): T[] {
+    if (popularIds.length === 0) return items;
+    const popularSet = new Set(popularIds);
+    const frontRow = popularIds
+        .map(id => items.find(i => getKey(i) === id))
+        .filter(Boolean) as T[];
+    const rest = items.filter(i => !popularSet.has(getKey(i)));
+    return [...frontRow, ...rest];
+}
 
 export default function StoryCreator() {
     const { voices, startGeneration } = useStore();
@@ -57,6 +84,21 @@ export default function StoryCreator() {
     };
     const [targetMinutes, setTargetMinutes] = useState(15);
     const [voiceKey, setVoiceKey] = useState('seraphina');
+
+    // Popularity-sorted lists
+    const [sortedGenres, setSortedGenres] = useState(GENRES);
+    const [sortedAuthors, setSortedAuthors] = useState(AUTHORS);
+    const [showAllGenres, setShowAllGenres] = useState(false);
+    const [showAllAuthors, setShowAllAuthors] = useState(false);
+
+    useEffect(() => {
+        fetchPopularity()
+            .then(data => {
+                setSortedGenres(sortByPopularity(GENRES, data.genres, g => g.value));
+                setSortedAuthors(sortByPopularity(AUTHORS, data.authors, a => a.id));
+            })
+            .catch(() => { /* keep default order on failure */ });
+    }, []);
 
     // Input state
     const [freeText, setFreeText] = useState('');
@@ -122,9 +164,8 @@ export default function StoryCreator() {
         try {
             // Pick a random genre
             const randomGenre = GENRES[Math.floor(Math.random() * GENRES.length)].value;
-            // Pick a random adult author (kids authors are less likely to give the surreal vibe)
-            const adultAuthors = AUTHORS.filter(a => a.group === 'Erwachsene');
-            const randomAuthor = adultAuthors[Math.floor(Math.random() * adultAuthors.length)].id;
+            // Pick a random author from the full list
+            const randomAuthor = AUTHORS[Math.floor(Math.random() * AUTHORS.length)].id;
 
             // Set UI Defaults
             setGenre(randomGenre);
@@ -170,7 +211,7 @@ export default function StoryCreator() {
                     <BookOpen className="w-8 h-8 text-white" />
                 </div>
                 <h1 className="text-2xl font-bold text-slate-900">Kurzgeschichten-Labor</h1>
-                <p className="text-slate-500 mt-1">Anspruchsvolle Literatur für Groß und Klein</p>
+                <p className="text-slate-500 mt-1">Literatur auf Knopfdruck, exakt nach deinem Maß</p>
             </div>
 
             <div className="space-y-6">
@@ -212,9 +253,14 @@ export default function StoryCreator() {
 
                 {/* Genre */}
                 <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-2">Genre</label>
+                    <div className="flex justify-between items-baseline mb-2">
+                        <label className="block text-sm font-semibold text-slate-700">Genre</label>
+                        {!showAllGenres && sortedGenres.length > BEST_OF_COUNT && (
+                            <span className="text-xs text-slate-400">{sortedGenres.length - BEST_OF_COUNT} weitere</span>
+                        )}
+                    </div>
                     <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2">
-                        {GENRES.map(g => (
+                        {(showAllGenres ? sortedGenres : sortedGenres.slice(0, BEST_OF_COUNT)).map(g => (
                             <button
                                 key={g.value}
                                 onClick={() => setGenre(g.value)}
@@ -228,6 +274,15 @@ export default function StoryCreator() {
                             </button>
                         ))}
                     </div>
+                    {!showAllGenres && sortedGenres.length > BEST_OF_COUNT && (
+                        <button
+                            onClick={() => setShowAllGenres(true)}
+                            className="mt-2 w-full py-2 rounded-xl border-2 border-dashed border-slate-200 text-xs text-slate-400 hover:border-slate-300 hover:text-slate-500 transition-all flex items-center justify-center gap-1"
+                        >
+                            <ChevronDown className="w-3 h-3" />
+                            {sortedGenres.length - BEST_OF_COUNT} weitere Genres anzeigen
+                        </button>
+                    )}
                 </div>
 
                 {/* Style */}
@@ -239,65 +294,39 @@ export default function StoryCreator() {
                         </div>
                     </div>
 
-                    <div className="space-y-4">
-                        {/* Erwachsene */}
-                        <div>
-                            <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Für Erwachsene</div>
-                            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                                {AUTHORS.filter(a => a.group === 'Erwachsene').map(s => {
-                                    const isSelected = selectedAuthors.includes(s.id);
-                                    const index = selectedAuthors.indexOf(s.id);
-                                    return (
-                                        <button
-                                            key={s.id}
-                                            onClick={() => toggleAuthor(s.id)}
-                                            className={`relative p-3 rounded-xl text-left transition-all border-2 ${isSelected
-                                                ? 'border-indigo-500 bg-indigo-50 shadow-sm'
-                                                : 'border-slate-100 bg-white hover:border-slate-200'
-                                                }`}
-                                        >
-                                            {isSelected && (
-                                                <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-indigo-500 text-white flex items-center justify-center text-[10px] font-bold">
-                                                    {index + 1}
-                                                </div>
-                                            )}
-                                            <div className={`text-sm font-bold pr-6 ${isSelected ? 'text-indigo-700' : 'text-slate-700'}`}>{s.name}</div>
-                                            <div className={`text-xs ${isSelected ? 'text-indigo-500' : 'text-slate-400'}`}>{s.desc}</div>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
-
-                        {/* Kinder */}
-                        <div>
-                            <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Für Kinder</div>
-                            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                                {AUTHORS.filter(a => a.group === 'Kinder').map(s => {
-                                    const isSelected = selectedAuthors.includes(s.id);
-                                    const index = selectedAuthors.indexOf(s.id);
-                                    return (
-                                        <button
-                                            key={s.id}
-                                            onClick={() => toggleAuthor(s.id)}
-                                            className={`relative p-3 rounded-xl text-left transition-all border-2 ${isSelected
-                                                ? 'border-indigo-500 bg-indigo-50 shadow-sm'
-                                                : 'border-slate-100 bg-white hover:border-slate-200'
-                                                }`}
-                                        >
-                                            {isSelected && (
-                                                <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-indigo-500 text-white flex items-center justify-center text-[10px] font-bold">
-                                                    {index + 1}
-                                                </div>
-                                            )}
-                                            <div className={`text-sm font-bold pr-6 ${isSelected ? 'text-indigo-700' : 'text-slate-700'}`}>{s.name}</div>
-                                            <div className={`text-xs ${isSelected ? 'text-indigo-500' : 'text-slate-400'}`}>{s.desc}</div>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                        {(showAllAuthors ? sortedAuthors : sortedAuthors.slice(0, BEST_OF_COUNT)).map(s => {
+                            const isSelected = selectedAuthors.includes(s.id);
+                            const index = selectedAuthors.indexOf(s.id);
+                            return (
+                                <button
+                                    key={s.id}
+                                    onClick={() => toggleAuthor(s.id)}
+                                    className={`relative p-3 rounded-xl text-left transition-all border-2 ${isSelected
+                                        ? 'border-indigo-500 bg-indigo-50 shadow-sm'
+                                        : 'border-slate-100 bg-white hover:border-slate-200'
+                                        }`}
+                                >
+                                    {isSelected && (
+                                        <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-indigo-500 text-white flex items-center justify-center text-[10px] font-bold">
+                                            {index + 1}
+                                        </div>
+                                    )}
+                                    <div className={`text-sm font-bold pr-6 ${isSelected ? 'text-indigo-700' : 'text-slate-700'}`}>{s.name}</div>
+                                    <div className={`text-xs ${isSelected ? 'text-indigo-500' : 'text-slate-400'}`}>{s.desc}</div>
+                                </button>
+                            );
+                        })}
                     </div>
+                    {!showAllAuthors && sortedAuthors.length > BEST_OF_COUNT && (
+                        <button
+                            onClick={() => setShowAllAuthors(true)}
+                            className="mt-2 w-full py-2 rounded-xl border-2 border-dashed border-slate-200 text-xs text-slate-400 hover:border-slate-300 hover:text-slate-500 transition-all flex items-center justify-center gap-1"
+                        >
+                            <ChevronDown className="w-3 h-3" />
+                            {sortedAuthors.length - BEST_OF_COUNT} weitere Autoren anzeigen
+                        </button>
+                    )}
                 </div>
 
                 {/* Length */}
