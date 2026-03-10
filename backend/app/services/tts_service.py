@@ -294,24 +294,67 @@ async def generate_tts_chunk(
             # Rate adjustment hint for Gemini (but skip for titles as it distorts short sentences)
             speed_hint = " (Sprich ruhig und langsam)" if ("-15%" in rate and not is_title) else ""
             
-            # Split text into chunks < 2000 bytes (unified with OpenAI chunk size)
-            def split_text(t, max_bytes=2000):
+            MIN_CHUNK_BYTES = 500
+            MAX_CHUNK_BYTES = 800
+
+            def split_text_paragraphs(t: str, min_bytes=MIN_CHUNK_BYTES, max_bytes=MAX_CHUNK_BYTES):
                 chunks = []
                 current_chunk = ""
-                sentences = t.replace("\n", " ").split(". ")
-                for s in sentences:
-                    test_chunk = (current_chunk + ". " + s).strip() if current_chunk else s
-                    if len(test_chunk.encode("utf-8")) > max_bytes:
+                
+                # Basis-Split nach Doppelumbruch (Absätze)
+                paragraphs = [p.strip() for p in t.replace("\r\n", "\n").split("\n\n") if p.strip()]
+                
+                for p in paragraphs:
+                    p_bytes = len(p.encode("utf-8"))
+                    curr_bytes = len(current_chunk.encode("utf-8"))
+                    
+                    # Regel 1: Wenn der Absatz massiv ist (größer als max_bytes), muss er hart gesplittet werden
+                    if p_bytes > max_bytes:
+                        # Schließe aktuellen Sammel-Chunk ab, falls vorhanden
                         if current_chunk:
-                            chunks.append(current_chunk)
-                        current_chunk = s
+                            chunks.append(current_chunk.strip())
+                            current_chunk = ""
+                            curr_bytes = 0
+                            
+                        # Notfall-Split nach Sätzen für diesen riesigen Absatz
+                        sentences = p.replace("\n", " ").split(". ")
+                        temp_chunk = ""
+                        for s in sentences:
+                            s = s.strip()
+                            if not s: continue
+                            s_mit_punkt = s + ". " if not s.endswith(".") else s + " "
+                            
+                            if len(temp_chunk.encode("utf-8")) + len(s_mit_punkt.encode("utf-8")) > max_bytes:
+                                if temp_chunk:
+                                    chunks.append(temp_chunk.strip())
+                                temp_chunk = s_mit_punkt
+                            else:
+                                temp_chunk += s_mit_punkt
+                                
+                        if temp_chunk:
+                            chunks.append(temp_chunk.strip())
+                        continue
+                        
+                    # Regel 2: Passen wir den aktuellen Absatz noch in den aktuellen Chunk?
+                    if curr_bytes + p_bytes <= max_bytes:
+                        current_chunk = current_chunk + "\n\n" + p if current_chunk else p
                     else:
-                        current_chunk = test_chunk
-                if current_chunk:
-                    chunks.append(current_chunk)
+                        # Regel 3: Absatz passt nicht mehr, aber haben wir schon genug gesammelt (>= MIN)?
+                        if curr_bytes >= min_bytes:
+                            chunks.append(current_chunk.strip())
+                            current_chunk = p
+                        else:
+                            # Wir sind noch unter dem Minimum, also müssen wir ihn zwingend noch reinquetschen
+                            # (Selbst wenn wir leicht übers Ziel schießen, Fluss geht vor Hartem Limit hier)
+                            current_chunk = current_chunk + "\n\n" + p if current_chunk else p
+                            
+                # Letzten Rest anfügen
+                if current_chunk.strip():
+                    chunks.append(current_chunk.strip())
+                    
                 return chunks
 
-            text_chunks = split_text(clean_text)
+            text_chunks = split_text_paragraphs(clean_text)
             all_pcm_data = bytearray()
 
             async def process_chunk(i, chunk):

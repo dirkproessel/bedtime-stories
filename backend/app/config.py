@@ -14,7 +14,7 @@ class Settings:
     BASE_URL: str = os.getenv("BASE_URL", "http://localhost:8000")
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
     INTRO_MUSIC_PATH: Path = Path(__file__).parent / "static" / "intro_new.mp3"
-    OUTRO_MUSIC_PATH: Path | None = None
+    OUTRO_MUSIC_PATH: Path = Path(__file__).parent / "static" / "outro_new.mp3"
 
     # SMTP Settings (Gmail)
     SMTP_HOST: str = os.getenv("SMTP_HOST", "smtp.gmail.com")

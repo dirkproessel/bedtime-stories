@@ -249,6 +249,7 @@ async def _run_revoice_pipeline(
             audio_files=audio_files,
             output_path=final_audio_path,
             intro_path=settings.INTRO_MUSIC_PATH,
+            outro_path=settings.OUTRO_MUSIC_PATH,
             title_path=title_tts_path,
         )
 
@@ -404,6 +405,7 @@ async def _run_revoice_pipeline(
             audio_files=audio_files,
             output_path=final_audio_path,
             intro_path=settings.INTRO_MUSIC_PATH,
+            outro_path=settings.OUTRO_MUSIC_PATH,
             title_path=title_tts_path,
         )
 
@@ -584,6 +586,7 @@ async def _run_pipeline(
             audio_files=audio_files,
             output_path=final_audio_path,
             intro_path=settings.INTRO_MUSIC_PATH,
+            outro_path=settings.OUTRO_MUSIC_PATH,
             title_path=title_tts_path,
         )
         end_time_merge = time.time()
