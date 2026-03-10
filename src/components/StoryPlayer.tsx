@@ -6,6 +6,7 @@ import {
     ChevronDown, ChevronUp, Rss, Copy, ArrowLeft, Moon, BookOpen
 } from 'lucide-react';
 import { AUTHOR_NAMES } from '../lib/authors';
+import { voiceName } from '../lib/voices';
 import toast from 'react-hot-toast';
 
 export default function StoryPlayer() {
@@ -181,8 +182,8 @@ export default function StoryPlayer() {
                     )}
                     <div className="flex items-center gap-1">
                         <span className="text-slate-400">Stimme:</span>
-                        <span className="text-slate-700 capitalize">
-                            {(story.voice_name || story.voice_key).replace(' (Premium $)', '')}
+                        <span className="text-slate-700">
+                            {voiceName(story.voice_key)}
                         </span>
                     </div>
                 </div>
