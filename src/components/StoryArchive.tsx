@@ -255,7 +255,7 @@ export default function StoryArchive() {
                                                     setRevoiceTarget(story.id);
                                                     setSelectedVoice(story.voice_key || 'seraphina');
                                                 }}
-                                                disabled={story.status !== 'done'}
+                                                disabled={story.status !== 'done' && story.status !== 'error'}
                                                 className="flex items-center justify-center sm:justify-start gap-1.5 px-3 py-2 bg-amber-50 sm:bg-transparent rounded-lg sm:rounded-none text-xs font-semibold text-amber-600 hover:text-amber-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                                             >
                                                 <Mic className="w-3.5 h-3.5" />
@@ -263,7 +263,7 @@ export default function StoryArchive() {
                                             </button>
                                             <button
                                                 onClick={() => setShowKindleModal(story.id)}
-                                                disabled={story.status !== 'done' || isExporting === story.id}
+                                                disabled={(story.status !== 'done' && story.status !== 'error') || isExporting === story.id}
                                                 className="flex items-center justify-center sm:justify-start gap-1.5 px-3 py-2 bg-emerald-50 sm:bg-transparent rounded-lg sm:rounded-none text-xs font-semibold text-emerald-600 hover:text-emerald-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                                             >
                                                 {isExporting === story.id ? (

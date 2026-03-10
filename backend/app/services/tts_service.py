@@ -358,47 +358,64 @@ async def generate_tts_chunk(
             all_pcm_data = bytearray()
 
             async def process_chunk(i, chunk):
-                logger.info(f"TTS Gemini: Processing chunk {i+1}/{len(text_chunks)} ({len(chunk.encode('utf-8'))} bytes)")
-                try:
-                    # Added wait_for to prevent infinite network hangs
-                    response = await asyncio.wait_for(
-                        client.aio.models.generate_content(
-                            model='models/gemini-2.5-flash-preview-tts',
-                            contents=chunk + speed_hint,
-                            config=types.GenerateContentConfig(
-                                speech_config=types.SpeechConfig(
-                                    voice_config=types.VoiceConfig(
-                                        prebuilt_voice_config=types.PrebuiltVoiceConfig(
-                                            voice_name=voice_config["id"]
+                max_retries = 3
+                for attempt in range(max_retries):
+                    logger.info(f"TTS Gemini: Processing chunk {i+1}/{len(text_chunks)} ({len(chunk.encode('utf-8'))} bytes) - Attempt {attempt+1}")
+                    try:
+                        # Added wait_for to prevent infinite network hangs
+                        response = await asyncio.wait_for(
+                            client.aio.models.generate_content(
+                                model='models/gemini-2.5-flash-preview-tts',
+                                contents=chunk + speed_hint,
+                                config=types.GenerateContentConfig(
+                                    speech_config=types.SpeechConfig(
+                                        voice_config=types.VoiceConfig(
+                                            prebuilt_voice_config=types.PrebuiltVoiceConfig(
+                                                voice_name=voice_config["id"]
+                                            )
                                         )
-                                    )
-                                ),
-                                response_modalities=["AUDIO"]
-                            )
-                        ),
-                        timeout=90.0
-                    )
-                except asyncio.TimeoutError:
-                    logger.error(f"Gemini API timed out on chunk {i+1}. Triggering Fallback...")
-                    raise RuntimeError("GEMINI_TIMEOUT_FALLBACK")
-                except Exception as e:
-                    if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
-                        logger.warning(f"Gemini API rate limit hit (429) on chunk {i+1}. Triggering Edge TTS Fallback...")
-                        global GEMINI_QUOTA_EXHAUSTED
-                        GEMINI_QUOTA_EXHAUSTED = True
-                        raise RuntimeError("GEMINI_429_FALLBACK")
-                    raise e
+                                    ),
+                                    response_modalities=["AUDIO"]
+                                )
+                            ),
+                            timeout=90.0
+                        )
+                    except asyncio.TimeoutError:
+                        if attempt == max_retries - 1:
+                            logger.error(f"Gemini API timed out on chunk {i+1} after {max_retries} attempts. Triggering Fallback...")
+                            raise RuntimeError("GEMINI_TIMEOUT_FALLBACK")
+                        logger.warning(f"Timeout on chunk {i+1}. Retrying...")
+                        await asyncio.sleep(2)
+                        continue
+                    except Exception as e:
+                        if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
+                            logger.warning(f"Gemini API rate limit hit (429) on chunk {i+1}. Triggering Edge TTS Fallback...")
+                            global GEMINI_QUOTA_EXHAUSTED
+                            GEMINI_QUOTA_EXHAUSTED = True
+                            raise RuntimeError("GEMINI_429_FALLBACK")
+                        elif "500" in str(e) or "INTERNAL" in str(e).upper():
+                            if attempt == max_retries - 1:
+                                logger.error(f"Gemini API 500 Internal Error on chunk {i+1} after {max_retries} attempts. Triggering Fallback...")
+                                raise RuntimeError("GEMINI_500_FALLBACK")
+                            logger.warning(f"500 Internal Error on chunk {i+1}. Retrying... ({e})")
+                            await asyncio.sleep(2)
+                            continue
+                        raise e
 
-                pcm_data = None
-                for part in response.candidates[0].content.parts:
-                    if part.inline_data:
-                        pcm_data = part.inline_data.data
-                        break
-                        
-                if not pcm_data:
-                    raise RuntimeError(f"No audio data returned from Gemini TTS for voice {voice_key} on chunk {i+1}")
-                
-                return pcm_data
+                    pcm_data = None
+                    for part in response.candidates[0].content.parts:
+                        if part.inline_data:
+                            pcm_data = part.inline_data.data
+                            break
+                            
+                    if not pcm_data:
+                        if attempt == max_retries - 1:
+                            raise RuntimeError(f"No audio data returned from Gemini TTS for voice {voice_key} on chunk {i+1}")
+                        logger.warning(f"No audio data in response for chunk {i+1}. Retrying...")
+                        await asyncio.sleep(2)
+                        continue
+                    
+                    return pcm_data
 
             try:
                 # Process chunks sequentially to prevent RPM (Requests Per Minute) spikes 
@@ -411,8 +428,8 @@ async def generate_tts_chunk(
                     
             except Exception as e:
                 # If any chunk hit the quota limit, fall back for the entire chapter
-                if str(e) in ["GEMINI_429_FALLBACK", "GEMINI_TIMEOUT_FALLBACK"]:
-                    logger.warning(f"Chapter fallback triggered due to Gemini API limits. Using Edge TTS.")
+                if str(e) in ["GEMINI_429_FALLBACK", "GEMINI_TIMEOUT_FALLBACK", "GEMINI_500_FALLBACK"]:
+                    logger.warning(f"Chapter fallback triggered due to Gemini API limits/errors. Using Edge TTS.")
                     return await generate_tts_chunk(text, output_path, voice_key="seraphina", rate=rate, is_title=is_title)
                 raise e
 
