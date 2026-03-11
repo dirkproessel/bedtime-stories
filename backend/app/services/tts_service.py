@@ -6,6 +6,7 @@ Generates MP3 chunks per chapter.
 import edge_tts
 from pathlib import Path
 from app.config import settings
+from app.services.rate_limiter import rate_limiter
 
 # Available Edge TTS German voices (Simplified)
 EDGE_VOICES = {
@@ -53,10 +54,6 @@ GEMINI_VOICES = {
 
 
 DEFAULT_VOICE = "seraphina"
-
-# Global flag to track if the daily Gemini Flash TTS quota is exhausted.
-# If True, all subsequent requests in the current session will immediately fall back to Edge TTS.
-GEMINI_QUOTA_EXHAUSTED = False
 
 
 def get_available_voices() -> list[dict]:
@@ -125,9 +122,8 @@ async def generate_tts_chunk(
         voice_config = OPENAI_VOICES[voice_key]
         engine = "openai"
     elif voice_key in GEMINI_VOICES:
-        global GEMINI_QUOTA_EXHAUSTED
-        if GEMINI_QUOTA_EXHAUSTED:
-            logger.warning(f"Global Gemini quota flag is set. Immediately falling back to Edge TTS for voice {voice_key}.")
+        if not rate_limiter.has_daily_quota():
+            logger.warning(f"Rate Limiter: Daily Gemini quota reached. Immediately falling back to Edge TTS for voice {voice_key}.")
             voice_config = EDGE_VOICES.get(DEFAULT_VOICE, EDGE_VOICES["seraphina"])
             engine = "edge"
         else:
@@ -362,6 +358,9 @@ async def generate_tts_chunk(
                 for attempt in range(max_retries):
                     logger.info(f"TTS Gemini: Processing chunk {i+1}/{len(text_chunks)} ({len(chunk.encode('utf-8'))} bytes) - Attempt {attempt+1}")
                     try:
+                        # Wait for capacity before making request
+                        await rate_limiter.wait_for_capacity()
+                        
                         # Added wait_for to prevent infinite network hangs
                         response = await asyncio.wait_for(
                             client.aio.models.generate_content(
@@ -380,6 +379,9 @@ async def generate_tts_chunk(
                             ),
                             timeout=90.0
                         )
+                        
+                        # Record successful request towards daily quota
+                        rate_limiter.increment_daily_quota()
                     except asyncio.TimeoutError:
                         if attempt == max_retries - 1:
                             logger.error(f"Gemini API timed out on chunk {i+1} after {max_retries} attempts. Triggering Fallback...")
@@ -390,8 +392,7 @@ async def generate_tts_chunk(
                     except Exception as e:
                         if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
                             logger.warning(f"Gemini API rate limit hit (429) on chunk {i+1}. Triggering Edge TTS Fallback...")
-                            global GEMINI_QUOTA_EXHAUSTED
-                            GEMINI_QUOTA_EXHAUSTED = True
+                            # If we hit 429, we likely exhausted the exact daily quota from Google's side
                             raise RuntimeError("GEMINI_429_FALLBACK")
                         elif "500" in str(e) or "INTERNAL" in str(e).upper():
                             if attempt == max_retries - 1:
@@ -423,8 +424,7 @@ async def generate_tts_chunk(
                 for i, chunk in enumerate(text_chunks):
                     pcm_data = await process_chunk(i, chunk)
                     all_pcm_data.extend(pcm_data)
-                    # Add a very small delay between chunks to further smooth out the RPM
-                    await asyncio.sleep(0.5)
+                    # No manual sleep needed here anymore, the RateLimiter handles RPM automatically!
                     
             except Exception as e:
                 # If any chunk hit the quota limit, fall back for the entire chapter
@@ -554,7 +554,7 @@ async def chapters_to_audio(
     # Premium voices (Gemini, OpenAI) are rate-limited: max 2 parallel chapters
     # Edge has no API limits: allow up to 10
     import asyncio
-    is_premium = (voice_key in GEMINI_VOICES and not GEMINI_QUOTA_EXHAUSTED) or voice_key in OPENAI_VOICES
+    is_premium = voice_key in GEMINI_VOICES or voice_key in OPENAI_VOICES
     concurrency_limit = 2 if is_premium else 10
     semaphore = asyncio.Semaphore(concurrency_limit)
     

@@ -8,6 +8,7 @@ from app.config import settings
 import asyncio
 import json
 import re
+from app.services.rate_limiter import rate_limiter
 
 client = genai.Client(api_key=settings.GEMINI_API_KEY)
 
@@ -247,6 +248,10 @@ Werkzeug:
 Struktur-Schablone: [{selected_hook['typ']}]: {selected_hook['logik']}
 """
     try:
+        if not rate_limiter.has_daily_quota():
+            return "Das Tageslimit für Geschichten ist leider erreicht. Bitte versuche es morgen wieder."
+            
+        await rate_limiter.wait_for_capacity()
         response = await asyncio.to_thread(
             client.models.generate_content,
             model=MODEL,
@@ -257,6 +262,7 @@ Struktur-Schablone: [{selected_hook['typ']}]: {selected_hook['logik']}
                 "top_k": 20,
             }
         )
+        rate_limiter.increment_daily_quota()
         return response.text.strip().strip('"').strip("'")
     except Exception as e:
         import logging
@@ -309,6 +315,10 @@ Antworte EXKLUSIV im JSON-Format:
     if on_progress:
         await on_progress("generating_text", f"Schreibe '{style}'-Geschichte ({target_minutes} Min)...", 5)
 
+    if not rate_limiter.has_daily_quota():
+        raise RuntimeError("Das Tageslimit für KI-Generierungen ist heute leider erreicht.")
+
+    await rate_limiter.wait_for_capacity()
     import asyncio
     response = await asyncio.to_thread(
         client.models.generate_content,
@@ -316,6 +326,7 @@ Antworte EXKLUSIV im JSON-Format:
         contents=master_prompt,
         config={"response_mime_type": "application/json", "temperature": 0.85, "max_output_tokens": 8192}
     )
+    rate_limiter.increment_daily_quota()
 
     text = response.text.strip()
     
@@ -391,12 +402,17 @@ Antworte NUR im JSON-Format:
 }}"""
 
     try:
+        if not rate_limiter.has_daily_quota():
+            raise RuntimeError("Das Tageslimit für KI-Generierungen ist heute leider erreicht.")
+            
+        await rate_limiter.wait_for_capacity()
         outline_res = await asyncio.to_thread(
             client.models.generate_content,
             model=MODEL,
             contents=outline_prompt,
             config={"response_mime_type": "application/json"}
         )
+        rate_limiter.increment_daily_quota()
         
         text = outline_res.text.strip()
         
@@ -454,12 +470,17 @@ Zusammenfassung der Geschichte: {synopsis}
 Fokus / Ziel DIESES Kapitels: {seg['goal']}
 {context}
 """
+        if not rate_limiter.has_daily_quota():
+            raise RuntimeError("Das Tageslimit für KI-Generierungen wurde während der Geschichte erreicht.")
+            
+        await rate_limiter.wait_for_capacity()
         response = await asyncio.to_thread(
             client.models.generate_content,
             model=MODEL,
             contents=write_prompt,
             config={"temperature": 0.8}
         )
+        rate_limiter.increment_daily_quota()
         segment_text = response.text.strip()
         
         full_chapters.append({
