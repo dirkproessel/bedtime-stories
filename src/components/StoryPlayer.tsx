@@ -20,12 +20,13 @@ export default function StoryPlayer() {
     const [showChapters, setShowChapters] = useState(false);
     const [showRss, setShowRss] = useState(false);
 
-    // Audio object lives outside React's render tree — never recreated, never causes src reload
-    const audioRef = useRef<HTMLAudioElement>(new Audio());
+    // Use DOM element instead of memory object for iOS Safari compatibility
+    const audioRef = useRef<HTMLAudioElement>(null);
 
     // Attach event listeners once on mount
     useEffect(() => {
         const audio = audioRef.current;
+        if (!audio) return;
 
         const onTimeUpdate = () => setCurrentTime(audio.currentTime);
         const onLoaded = () => { if (audio.duration && isFinite(audio.duration)) setDuration(audio.duration); };
@@ -56,6 +57,7 @@ export default function StoryPlayer() {
     // Load new audio when story changes
     useEffect(() => {
         const audio = audioRef.current;
+        if (!audio) return;
         setCurrentTime(0);
         setDuration(0);
         setIsPlaying(false);
@@ -79,11 +81,23 @@ export default function StoryPlayer() {
 
     const togglePlay = () => {
         const audio = audioRef.current;
-        if (isPlaying) { audio.pause(); } else { audio.play(); }
+        if (!audio) return;
+        if (isPlaying) {
+            audio.pause();
+        } else {
+            const playPromise = audio.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(err => {
+                    console.error("Playback failed:", err);
+                    toast.error("Wiedergabe durch iOS blockiert. Bitte nochmal tippen.");
+                });
+            }
+        }
     };
 
     const skip = (seconds: number) => {
         const audio = audioRef.current;
+        if (!audio) return;
         audio.currentTime = Math.max(0, Math.min(audio.currentTime + seconds, duration));
     };
 
@@ -100,7 +114,9 @@ export default function StoryPlayer() {
 
     const handleSeekEnd = (e: React.PointerEvent<HTMLInputElement>) => {
         const time = parseFloat((e.target as HTMLInputElement).value);
-        audioRef.current.currentTime = time;
+        if (audioRef.current) {
+            audioRef.current.currentTime = time;
+        }
         setCurrentTime(time);
         setIsDragging(false);
     };
@@ -282,6 +298,9 @@ export default function StoryPlayer() {
                     </div>
                 )}
             </div>
+
+            {/* Audio Element for iOS Compatibility */}
+            <audio ref={audioRef} preload="metadata" playsInline />
         </div>
     );
 }
