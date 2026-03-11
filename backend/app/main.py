@@ -86,6 +86,18 @@ _generation_status: dict[str, dict] = {}
 from app.services.store import store
 
 
+async def _generate_thumbnail(source: Path, dest: Path, size: int = 256):
+    """Create a small JPEG thumbnail from a full-size cover image."""
+    import asyncio
+    def _resize():
+        from PIL import Image
+        with Image.open(source) as img:
+            img = img.convert("RGB")
+            img.thumbnail((size, size), Image.LANCZOS)
+            img.save(dest, "JPEG", quality=80, optimize=True)
+    await asyncio.to_thread(_resize)
+
+
 # ──────────────────────────────────
 # Voices
 # ──────────────────────────────────
@@ -547,6 +559,11 @@ async def _run_pipeline(
                 if res:
                     image_url = f"{settings.BASE_URL}/api/stories/{story_id}/image.png"
                     logger.info(f"Image generated successfully in background for {story_id}")
+                    # Generate thumbnail for faster loading in archive/player
+                    try:
+                        await _generate_thumbnail(image_path, story_dir / "cover_thumb.jpg")
+                    except Exception as te:
+                        logger.warning(f"Thumbnail generation failed for {story_id}: {te}")
             except Exception as e:
                 logger.error(f"Background image gen failed for {story_id}: {e}")
 
@@ -761,6 +778,26 @@ async def get_story_image(story_id: str):
         raise HTTPException(status_code=404, detail="Image not found")
         
     return FileResponse(image_path, media_type="image/png")
+
+
+@app.get("/api/stories/{story_id}/thumb.jpg")
+async def get_story_thumbnail(story_id: str):
+    """Serve a small JPEG thumbnail (256x256) for fast loading in lists."""
+    story_dir = settings.AUDIO_OUTPUT_DIR / story_id
+    thumb_path = story_dir / "cover_thumb.jpg"
+    cover_path = story_dir / "cover.png"
+    
+    # Generate on demand if thumbnail doesn't exist yet but cover does
+    if not thumb_path.exists() and cover_path.exists():
+        try:
+            await _generate_thumbnail(cover_path, thumb_path)
+        except Exception:
+            pass
+    
+    if not thumb_path.exists():
+        raise HTTPException(status_code=404, detail="Thumbnail not found")
+    
+    return FileResponse(thumb_path, media_type="image/jpeg")
 
 
 class SpotifyToggleRequest(BaseModel):

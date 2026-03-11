@@ -1,5 +1,5 @@
 import { useStore } from '../store/useStore';
-import { deleteStory, revoiceStory, getVoicePreviewUrl, exportStoryToKindle } from '../lib/api';
+import { deleteStory, revoiceStory, getVoicePreviewUrl, exportStoryToKindle, getThumbUrl } from '../lib/api';
 import { Play, Trash2, BookOpen, Calendar, Loader2, Mic, X, Check, Venus, Mars, Users, Pause, Sparkles, Send } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useEffect, useState, useRef } from 'react';
@@ -138,7 +138,7 @@ export default function StoryArchive() {
                                         className="w-20 h-20 rounded-xl overflow-hidden shrink-0 shadow-sm border border-slate-100 cursor-pointer"
                                         onClick={() => handlePlay(story.id)}
                                     >
-                                        <img src={story.image_url} alt={story.title} className="w-full h-full object-cover" />
+                                        <img src={getThumbUrl(story.id)} alt={story.title} className="w-full h-full object-cover" />
                                     </div>
                                 ) : (
                                     <div

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useStore } from '../store/useStore';
-import { getAudioUrl, fetchStory, getRssFeedUrl, type StoryDetail } from '../lib/api';
+import { getAudioUrl, fetchStory, getRssFeedUrl, getThumbUrl, type StoryDetail } from '../lib/api';
 import {
     Play, Pause, SkipBack, SkipForward,
     ChevronDown, ChevronUp, Rss, Copy, ArrowLeft, Moon, BookOpen
@@ -29,7 +29,7 @@ export default function StoryPlayer() {
         if (!audio) return;
 
         const onTimeUpdate = () => setCurrentTime(audio.currentTime);
-        const onLoaded = () => { if (audio.duration && isFinite(audio.duration)) setDuration(audio.duration); };
+        const onLoaded = () => { if (audio.duration && isFinite(audio.duration) && audio.duration > 0) setDuration(audio.duration); };
         const onEnded = () => setIsPlaying(false);
         const onPlay = () => setIsPlaying(true);
         const onPause = () => setIsPlaying(false);
@@ -74,7 +74,13 @@ export default function StoryPlayer() {
         setStory(null);
         if (selectedStoryId) {
             fetchStory(selectedStoryId)
-                .then(setStory)
+                .then(s => {
+                    setStory(s);
+                    // Use API duration as fallback (iOS Safari often can't read MP3 duration)
+                    if (s.duration_seconds && s.duration_seconds > 0) {
+                        setDuration(prev => prev > 0 ? prev : s.duration_seconds!);
+                    }
+                })
                 .catch(() => toast.error('Geschichte konnte nicht geladen werden'));
         }
     }, [selectedStoryId]);
@@ -180,7 +186,7 @@ export default function StoryPlayer() {
                     <div className="text-center mb-8">
                         {story.image_url ? (
                             <div className="w-48 h-48 mx-auto rounded-3xl overflow-hidden mb-6 shadow-xl border-4 border-white">
-                                <img src={story.image_url} alt={story.title} className="w-full h-full object-cover" />
+                                <img src={getThumbUrl(story.id)} alt={story.title} className="w-full h-full object-cover" />
                             </div>
                         ) : (
                             <div className="w-32 h-32 mx-auto rounded-3xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center mb-6 shadow-xl shadow-purple-500/25">

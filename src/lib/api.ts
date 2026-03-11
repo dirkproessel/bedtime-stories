@@ -123,6 +123,10 @@ export function getAudioUrl(storyId: string): string {
     return `${API_BASE}/api/stories/${storyId}/audio`;
 }
 
+export function getThumbUrl(storyId: string): string {
+    return `${API_BASE}/api/stories/${storyId}/thumb.jpg`;
+}
+
 export async function deleteStory(storyId: string): Promise<void> {
     const res = await fetch(`${API_BASE}/api/stories/${storyId}`, { method: 'DELETE' });
     if (!res.ok) throw new Error('Failed to delete story');
