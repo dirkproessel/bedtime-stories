@@ -1,10 +1,14 @@
 export interface VoiceMeta {
     name: string;
     desc: string;
+    isStandard?: boolean;
 }
 
 export const VOICE_META: Record<string, VoiceMeta> = {
-    // Gemini voices
+    // Edge TTS voices (Standard)
+    seraphina: { name: 'Seraphina', desc: 'Warm & melodisch', isStandard: true },
+    florian: { name: 'Florian', desc: 'Klar & natürlich', isStandard: true },
+    // Gemini voices (KI)
     aoede: { name: 'Lara', desc: 'Leicht & klar' },
     kore: { name: 'Mira', desc: 'Fest & energetisch' },
     sulafat: { name: 'Sofia', desc: 'Warm & überzeugend' },
@@ -21,10 +25,10 @@ export const VOICE_META: Record<string, VoiceMeta> = {
     iapetus: { name: 'Thomas', desc: 'Bodenständig & klar' },
     zephyr: { name: 'Robin', desc: 'Hell & frisch' },
     umbriel: { name: 'Alex', desc: 'Entspannt & vielseitig' },
-    // Edge TTS voices
-    seraphina: { name: 'Seraphina', desc: 'Warm & melodisch' },
-    florian: { name: 'Florian', desc: 'Klar & natürlich' },
 };
+
+/** Two standard voice keys, always shown first. */
+export const STANDARD_VOICE_KEYS = ['seraphina', 'florian'];
 
 /** Returns the display name for a voice key, falling back to the key itself. */
 export function voiceName(key: string): string {
@@ -34,4 +38,9 @@ export function voiceName(key: string): string {
 /** Returns the character description for a voice key. */
 export function voiceDesc(key: string): string {
     return VOICE_META[key]?.desc ?? '';
+}
+
+/** Returns true if the voice key is a standard voice. */
+export function isStandardVoice(key: string): boolean {
+    return VOICE_META[key]?.isStandard === true;
 }

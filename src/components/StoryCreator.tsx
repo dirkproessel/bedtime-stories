@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { getVoicePreviewUrl, generateHook, fetchPopularity } from '../lib/api';
 import { Sparkles, Mic, MicOff, Play, Pause, BookOpen, Venus, Mars, Users, Dices, Loader2, ChevronDown } from 'lucide-react';
-import { voiceName, voiceDesc } from '../lib/voices';
+import { voiceName, voiceDesc, STANDARD_VOICE_KEYS, isStandardVoice } from '../lib/voices';
 
 const GENRES = [
     { value: 'Krimi', label: 'Krimi', desc: 'Indizien, Verdächtige, falsche Fährten' },
@@ -357,8 +357,14 @@ export default function StoryCreator() {
             {/* Voice Selection */}
             <div className="mt-6">
                 <label className="block text-sm font-semibold text-slate-700 mb-2">Stimme</label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {(showAllVoices ? sortedVoices : sortedVoices.slice(0, BEST_OF_COUNT)).map(v => (
+
+                {/* --- Standard voices (always visible, pinned) --- */}
+                <p className="text-xs font-medium text-slate-400 mb-1.5 tracking-wide uppercase">Standardstimmen</p>
+                <div className="grid grid-cols-2 gap-2 mb-4">
+                    {voices
+                        .filter(v => STANDARD_VOICE_KEYS.includes(v.key))
+                        .sort((a, b) => STANDARD_VOICE_KEYS.indexOf(a.key) - STANDARD_VOICE_KEYS.indexOf(b.key))
+                        .map(v => (
                         <div
                             key={v.key}
                             className={`p-3 rounded-xl transition-all border-2 cursor-pointer ${voiceKey === v.key
@@ -368,7 +374,7 @@ export default function StoryCreator() {
                             onClick={() => setVoiceKey(v.key)}
                         >
                             <div className="flex items-center gap-3">
-                                {/* Icon Left */}
+                                {/* Icon */}
                                 <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${voiceKey === v.key ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-50 text-slate-400'}`}>
                                     {v.gender === 'female' ? <Venus className="w-5 h-5" /> :
                                         v.gender === 'male' ? <Mars className="w-5 h-5" /> : <Users className="w-5 h-5" />}
@@ -384,7 +390,7 @@ export default function StoryCreator() {
                                     </div>
                                 </div>
 
-                                {/* Play Right */}
+                                {/* Play */}
                                 <button
                                     onClick={(e) => { e.stopPropagation(); handlePreviewVoice(v.key); }}
                                     className={`w-8 h-8 rounded-full flex items-center justify-center transition-all shrink-0 ${previewVoice === v.key
@@ -398,13 +404,60 @@ export default function StoryCreator() {
                         </div>
                     ))}
                 </div>
-                {!showAllVoices && sortedVoices.length > BEST_OF_COUNT && (
+
+                {/* --- Premium voices (popularity-sorted, with expansion) --- */}
+                <p className="text-xs font-medium text-slate-400 mb-1.5 tracking-wide uppercase">Premiumstimmen</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {(() => {
+                        const aiVoices = sortedVoices.filter(v => !isStandardVoice(v.key));
+                        return (showAllVoices ? aiVoices : aiVoices.slice(0, BEST_OF_COUNT)).map(v => (
+                            <div
+                                key={v.key}
+                                className={`p-3 rounded-xl transition-all border-2 cursor-pointer ${voiceKey === v.key
+                                    ? 'border-indigo-500 bg-indigo-50 shadow-sm'
+                                    : 'border-slate-100 bg-white hover:border-slate-200'
+                                    }`}
+                                onClick={() => setVoiceKey(v.key)}
+                            >
+                                <div className="flex items-center gap-3">
+                                    {/* Icon Left */}
+                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${voiceKey === v.key ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-50 text-slate-400'}`}>
+                                        {v.gender === 'female' ? <Venus className="w-5 h-5" /> :
+                                            v.gender === 'male' ? <Mars className="w-5 h-5" /> : <Users className="w-5 h-5" />}
+                                    </div>
+
+                                    {/* Name & Charakter */}
+                                    <div className="flex-1 min-w-0 text-left">
+                                        <div className={`text-sm font-bold truncate ${voiceKey === v.key ? 'text-indigo-700' : 'text-slate-700'}`}>
+                                            {voiceName(v.key)}
+                                        </div>
+                                        <div className={`text-xs ${voiceKey === v.key ? 'text-indigo-500' : 'text-slate-400'}`}>
+                                            {voiceDesc(v.key)}
+                                        </div>
+                                    </div>
+
+                                    {/* Play Right */}
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); handlePreviewVoice(v.key); }}
+                                        className={`w-8 h-8 rounded-full flex items-center justify-center transition-all shrink-0 ${previewVoice === v.key
+                                            ? 'bg-indigo-500 text-white'
+                                            : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
+                                            }`}
+                                    >
+                                        {previewVoice === v.key ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 ml-0.5" />}
+                                    </button>
+                                </div>
+                            </div>
+                        ));
+                    })()}
+                </div>
+                {!showAllVoices && sortedVoices.filter(v => !isStandardVoice(v.key)).length > BEST_OF_COUNT && (
                     <button
                         onClick={() => setShowAllVoices(true)}
                         className="mt-2 w-full py-2 rounded-xl border-2 border-dashed border-slate-200 text-xs text-slate-400 hover:border-slate-300 hover:text-slate-500 transition-all flex items-center justify-center gap-1"
                     >
                         <ChevronDown className="w-3 h-3" />
-                        {sortedVoices.length - BEST_OF_COUNT} weitere Stimmen anzeigen
+                        {sortedVoices.filter(v => !isStandardVoice(v.key)).length - BEST_OF_COUNT} weitere Stimmen anzeigen
                     </button>
                 )}
                 <audio ref={audioRef} className="hidden" />
