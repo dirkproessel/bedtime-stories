@@ -729,15 +729,19 @@ async def get_audio(story_id: str, request: Request):
         if byte2 is not None:
             length = byte2 + 1 - byte1
 
-        def stream_file_range(start, size):
+        def stream_file_range(start, length_to_read, chunk_size=8192):
             with open(audio_path, "rb") as f:
                 f.seek(start)
-                f_read = f.read(size)
-                while f_read:
-                    yield f_read
-                    f_read = f.read(size)
+                remaining = length_to_read
+                while remaining > 0:
+                    read_size = min(chunk_size, remaining)
+                    data = f.read(read_size)
+                    if not data:
+                        break
+                    yield data
+                    remaining -= len(data)
 
-        response = StreamingResponse(stream_file_range(byte1, 8192), status_code=206, media_type="audio/mpeg")
+        response = StreamingResponse(stream_file_range(byte1, length), status_code=206, media_type="audio/mpeg")
         response.headers["Content-Range"] = f"bytes {byte1}-{byte1 + length - 1}/{file_size}"
         response.headers["Accept-Ranges"] = "bytes"
         response.headers["Content-Length"] = str(length)
