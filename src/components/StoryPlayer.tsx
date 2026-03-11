@@ -85,11 +85,26 @@ export default function StoryPlayer() {
         if (isPlaying) {
             audio.pause();
         } else {
+            // Ensure audio source is loaded (defensive for iOS)
+            if (!audio.src && selectedStoryId) {
+                audio.src = getAudioUrl(selectedStoryId);
+                audio.load();
+            }
             const playPromise = audio.play();
             if (playPromise !== undefined) {
                 playPromise.catch(err => {
-                    console.error("Playback failed:", err);
-                    toast.error("Wiedergabe durch iOS blockiert. Bitte nochmal tippen.");
+                    console.warn("Playback failed:", err.name, err.message);
+                    // AbortError = audio not ready yet → auto-retry when ready
+                    if (err.name === 'AbortError' || err.name === 'NotSupportedError') {
+                        const onReady = () => {
+                            audio.removeEventListener('canplay', onReady);
+                            audio.play().catch(() => {});
+                        };
+                        audio.addEventListener('canplay', onReady, { once: true });
+                        audio.load();
+                    }
+                    // NotAllowedError = genuine iOS autoplay block (should be rare from tap)
+                    // Don't show toast — just let the user tap again naturally
                 });
             }
         }
@@ -138,7 +153,7 @@ export default function StoryPlayer() {
     return (
         <>
             {/* Audio Element for iOS Compatibility */}
-            <audio ref={audioRef} preload="metadata" playsInline />
+            <audio ref={audioRef} preload="auto" playsInline />
 
             {!selectedStoryId ? (
                 <div className="p-6 flex flex-col items-center justify-center min-h-[60vh]">
