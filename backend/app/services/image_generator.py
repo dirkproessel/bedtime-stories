@@ -40,9 +40,8 @@ async def generate_story_image(synopsis: str, output_path: Path, genre: str = "R
             f"WICHTIGE REGEL: KEIN TEXT! Generiere absolut keine Buchstaben, keine Wörter, keine Signaturen und keine Titel im Bild. Verwende ausschließlich reine Bildsprache."
         )
 
-        # Try Imagen 3.0 Generate 002 if fast fails or for better quality
-        # Note: generate_images is synchronous in the current google-genai SDK 
-        model_id = 'imagen-3.0-generate-002'
+        # Use Imagen 3.0 Fast for better cost-efficiency as requested
+        model_id = 'imagen-3.0-fast-generate-001'
         logger.info(f"Using Google Image model: {model_id}")
         
         response = client.models.generate_images(

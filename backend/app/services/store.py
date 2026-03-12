@@ -62,12 +62,14 @@ class StoryStore:
                     # 1. Ensure story metadata is in DB
                     existing = session.get(StoryMeta, story_id)
                     
-                    # Legacy ID mapping: Dirk's old ID -> new ADMIN_ID
-                    LEGACY_DIRK_ID = "efe71098-9416-4906-aff3-6acccf03c479"
+                    # USE ORIGINAL IDs (Do not force to ADMIN_ID anymore)
                     owner_id = story_data.get("user_id")
-                    if not owner_id or owner_id == LEGACY_DIRK_ID:
-                        story_data["user_id"] = ADMIN_ID
-                        story_data["user_email"] = settings.ADMIN_EMAIL
+                    owner_email = story_data.get("user_email")
+                    
+                    # Only fallback to admin if absolutely no owner info exists
+                    if not owner_id:
+                        owner_id = ADMIN_ID
+                        owner_email = settings.ADMIN_EMAIL
                     
                     if not existing:
                         # Ensure created_at is a datetime object
@@ -75,14 +77,27 @@ class StoryStore:
                             story_data["created_at"] = parse_date(story_data["created_at"])
                             
                         # Extract chapters before creating StoryMeta (which doesn't have chapters field)
-                        chapters = story_data.pop("chapters", [])
-                        story = StoryMeta(**story_data)
+                        story_data_for_meta = story_data.copy()
+                        chapters = story_data_for_meta.pop("chapters", [])
+                        
+                        # Re-assign calculated owner
+                        story_data_for_meta["user_id"] = owner_id
+                        story_data_for_meta["user_email"] = owner_email
+                        
+                        story = StoryMeta(**story_data_for_meta)
                         session.add(story)
-                        # Add back for JSON saving below
-                        story_data["chapters"] = chapters
                         migrated_count += 1
                     else:
                         chapters = story_data.get("chapters", [])
+                        # RESTORATION: If the story exists but was incorrectly remapped to Admin, restore original owner
+                        if existing.user_id == ADMIN_ID and owner_id != ADMIN_ID:
+                            logger.info(f"Restoring ownership of story {story_id} to original owner {owner_id}")
+                            existing.user_id = owner_id
+                            existing.user_email = owner_email
+                            session.add(existing)
+                            repaired_count += 1
+
+                    # 2. Ensure story.json exists in the subdirectory
 
                     # 2. Ensure story.json exists in the subdirectory
                     story_dir = settings.AUDIO_OUTPUT_DIR / story_id
@@ -170,24 +185,16 @@ class StoryStore:
                 logger.error(f"Failed to seed admin user: {e}")
 
     def _repair_unassigned_stories(self):
-        """Find stories without user_id or with legacy IDs and assign them to the main admin."""
+        """Find stories without user_id and assign them to the main admin."""
         with Session(engine) as session:
-            # 1. Handle actual orphans (user_id is None)
+            # Handle actual orphans (user_id is None)
             orphans = session.exec(select(StoryMeta).where(StoryMeta.user_id == None)).all()
             
-            # 2. Handle legacy Dirk ID mapping
-            LEGACY_DIRK_ID = "efe71098-9416-4906-aff3-6acccf03c479"
-            legacy_stories = session.exec(select(StoryMeta).where(StoryMeta.user_id == LEGACY_DIRK_ID)).all()
-            
-            to_repair = orphans + legacy_stories
-            
-            if to_repair:
-                logger.info(f"Repairing {len(to_repair)} stories (orphans or legacy IDs) - assigning to Admin.")
-                for story in to_repair:
+            if orphans:
+                logger.info(f"Repairing {len(orphans)} orphaned stories - assigning to Admin.")
+                for story in orphans:
                     story.user_id = ADMIN_ID
-                    # Sync email if it was missing or old
-                    if not story.user_email or story.user_id == LEGACY_DIRK_ID:
-                        story.user_email = settings.ADMIN_EMAIL
+                    story.user_email = settings.ADMIN_EMAIL
                     session.add(story)
                 session.commit()
 
