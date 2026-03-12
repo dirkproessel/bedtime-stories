@@ -19,10 +19,15 @@ class Settings:
     ADMIN_EMAIL: str = (_env_admin_email or "").strip()
     ADMIN_PASSWORD: str = (_env_admin_pass or "").strip()
     
+    # Emergency Fallback: If environment is misconfigured, ensure Dirk still has access
     if not ADMIN_EMAIL:
-        # Emergency fallback for production stability if env is broken
-        # Only if we are sure this is the intended email
-        print("CRITICAL: ADMIN_EMAIL not found in environment!")
+        print("CRITICAL: ADMIN_EMAIL not found in environment! Using safety fallback.")
+        ADMIN_EMAIL = "dirk.proessel@web.de"
+    
+    if not ADMIN_PASSWORD:
+        # We don't hardcode the password, but we warn loudly. 
+        # The store.py seeding will skip if password is missing.
+        print("WARNING: ADMIN_PASSWORD not found in environment!")
     
     AUDIO_OUTPUT_DIR: Path = Path(os.getenv("AUDIO_OUTPUT_DIR", "./audio_output"))
     BASE_URL: str = os.getenv("BASE_URL", "http://localhost:8000")
