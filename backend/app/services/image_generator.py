@@ -12,13 +12,12 @@ async def generate_story_image(synopsis: str, output_path: Path, genre: str = "R
     Target format: 1024x1024 (Spotify-friendly).
     """
     if not settings.GEMINI_API_KEY:
-        logger.warning("GEMINI_API_KEY not set. Skipping image generation.")
+        logger.warning("GEMINI_API_KEY not set in settings. Skipping image generation.")
         return None
 
-    client = genai.Client(api_key=settings.GEMINI_API_KEY)
-    
     try:
-        logger.info(f"Generating image. Genre: {genre}, Style: {style}. Prompt length: {len(synopsis)}")
+        client = genai.Client(api_key=settings.GEMINI_API_KEY)
+        logger.info(f"Generating image for story. Genre: {genre}, Style: {style}. Prompt length: {len(synopsis)}")
         
         # Professional Artistic Style Mapping
         style_hints = {
