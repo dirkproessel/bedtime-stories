@@ -27,7 +27,17 @@ export default function StoryArchive() {
 
     useEffect(() => {
         window.scrollTo(0, 0);
+        loadStories();
     }, []);
+
+    // Sync adminFilter when user loaded
+    useEffect(() => {
+        if (user?.is_admin) {
+            setAdminFilter('all');
+        } else {
+            setAdminFilter('my');
+        }
+    }, [user?.is_admin]);
 
     const formatDuration = (seconds: number | null) => {
         if (!seconds) return '—';
