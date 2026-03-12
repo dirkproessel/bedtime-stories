@@ -1,0 +1,117 @@
+import React, { useState } from 'react';
+import { useStore } from '../store/useStore';
+import { Moon, Mail, Lock, Loader2 } from 'lucide-react';
+
+export default function LoginScreen() {
+    const { login, register, isLoading, error } = useStore();
+    const [isLoginMode, setIsLoginMode] = useState(true);
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [localError, setLocalError] = useState<string | null>(null);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLocalError(null);
+
+        if (!email || !password) {
+            setLocalError('Bitte fülle alle Felder aus.');
+            return;
+        }
+
+        try {
+            if (isLoginMode) {
+                await login(email, password);
+            } else {
+                await register(email, password);
+            }
+        } catch (err: any) {
+            // Error is already handled/set in the store, but we can catch it here if we want local UI effects
+        }
+    };
+
+    return (
+        <div className="flex flex-col items-center justify-center min-h-[80vh] px-6">
+            <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/25 mb-8">
+                <Moon className="w-10 h-10 text-white" />
+            </div>
+
+            <h1 className="text-2xl font-bold text-slate-800 mb-2">
+                {isLoginMode ? 'Willkommen zurück' : 'Konto erstellen'}
+            </h1>
+            <p className="text-slate-500 mb-8 text-center max-w-sm">
+                Melde dich an, um neue Gutenachtgeschichten zu generieren und deine Favoriten zu speichern.
+            </p>
+
+            <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4">
+                {(error || localError) && (
+                    <div className="p-3 rounded-xl bg-red-50 text-red-600 text-sm font-medium text-center border border-red-100">
+                        {localError || error}
+                    </div>
+                )}
+                
+                <div className="relative">
+                    <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                        <Mail className="w-5 h-5 text-slate-400" />
+                    </div>
+                    <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="E-Mail Adresse"
+                        className="w-full pl-12 pr-4 py-3.5 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 outline-none transition-all placeholder:text-slate-400 font-medium"
+                        required
+                    />
+                </div>
+
+                <div className="relative">
+                    <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                        <Lock className="w-5 h-5 text-slate-400" />
+                    </div>
+                    <input
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Passwort"
+                        className="w-full pl-12 pr-4 py-3.5 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 outline-none transition-all placeholder:text-slate-400 font-medium"
+                        required
+                    />
+                </div>
+
+                <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="w-full flex items-center justify-center gap-2 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl shadow-lg shadow-indigo-600/20 transition-all active:scale-[0.98] disabled:opacity-70"
+                >
+                    {isLoading ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                        isLoginMode ? 'Anmelden' : 'Registrieren'
+                    )}
+                </button>
+            </form>
+
+            <div className="mt-6 flex flex-col items-center gap-4">
+                <button 
+                    onClick={() => setIsLoginMode(!isLoginMode)}
+                    className="text-sm font-medium text-slate-500 hover:text-indigo-600 transition-colors"
+                >
+                    {isLoginMode 
+                        ? 'Noch kein Konto? Hier registrieren.' 
+                        : 'Bereits ein Konto? Hier anmelden.'}
+                </button>
+
+                <div className="w-12 h-px bg-slate-100" />
+
+                <button 
+                    onClick={() => {
+                        const { setActiveView } = useStore.getState();
+                        setActiveView('create');
+                    }}
+                    className="text-sm font-bold text-indigo-500 hover:text-indigo-600 transition-colors"
+                >
+                    Als Gast fortfahren
+                </button>
+            </div>
+        </div>
+    );
+}

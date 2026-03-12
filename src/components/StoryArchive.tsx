@@ -1,6 +1,6 @@
 import { useStore } from '../store/useStore';
 import { deleteStory, revoiceStory, getVoicePreviewUrl, exportStoryToKindle, getThumbUrl } from '../lib/api';
-import { Play, Trash2, BookOpen, Calendar, Loader2, Mic, X, Check, Venus, Mars, Users, Pause, Sparkles, Send } from 'lucide-react';
+import { Play, Trash2, BookOpen, Calendar, Loader2, Mic, X, Check, Venus, Mars, Users, Pause, Sparkles, Send, ChevronLeft, ChevronRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useEffect, useState, useRef } from 'react';
 
@@ -8,15 +8,21 @@ import { AUTHOR_NAMES } from '../lib/authors';
 import { voiceName, voiceDesc } from '../lib/voices';
 
 export default function StoryArchive() {
-    const { stories, voices, setActiveView, setSelectedStoryId, loadStories, updateStorySpotify } = useStore();
+    const { 
+        stories, totalStories, currArchivePage, voices, 
+        setActiveView, setSelectedStoryId, loadStories, 
+        updateStorySpotify, toggleStoryVisibility, user 
+    } = useStore();
     const [revoiceTarget, setRevoiceTarget] = useState<string | null>(null);
     const [selectedVoice, setSelectedVoice] = useState<string>('seraphina');
     const [isRevoicing, setIsRevoicing] = useState(false);
     const [confirmRevoice, setConfirmRevoice] = useState(false);
     const [previewVoice, setPreviewVoice] = useState<string | null>(null);
-    const [kindleEmail, setKindleEmail] = useState<string>(() => localStorage.getItem('kindle_email') || 'dirk.proessel.runthaler@kindle.com');
+    const [kindleEmail, setKindleEmail] = useState<string>(() => user?.kindle_email || localStorage.getItem('kindle_email') || 'dirk.proessel.runthaler@kindle.com');
     const [isExporting, setIsExporting] = useState<string | null>(null);
     const [showKindleModal, setShowKindleModal] = useState<string | null>(null);
+    const [adminFilter, setAdminFilter] = useState<'my' | 'all'>(user?.is_admin ? 'all' : 'my');
+    const [isPublicLoading, setIsPublicLoading] = useState<string | null>(null);
     const audioRef = useRef<HTMLAudioElement>(null);
 
     useEffect(() => {
@@ -115,7 +121,26 @@ export default function StoryArchive() {
                     <BookOpen className="w-8 h-8 text-white" />
                 </div>
                 <h1 className="text-2xl font-bold text-slate-900">Archiv</h1>
-                <p className="text-slate-500 mt-1">{stories.length} Geschichte{stories.length !== 1 ? 'n' : ''}</p>
+                <p className="text-slate-500 mt-1">{totalStories} Geschichte{totalStories !== 1 ? 'n' : ''}</p>
+                
+                {user && (
+                    <div className="flex items-center justify-center mt-6">
+                        <div className="bg-slate-100 p-1 rounded-xl flex gap-1">
+                            <button
+                                onClick={() => setAdminFilter('my')}
+                                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${adminFilter === 'my' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                            >
+                                {user.is_admin ? 'Meine' : 'Persönlich'}
+                            </button>
+                            <button
+                                onClick={() => setAdminFilter('all')}
+                                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${adminFilter === 'all' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                            >
+                                {user.is_admin ? 'Alle Geschichten' : 'Öffentliche'}
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {stories.length === 0 ? (
@@ -127,7 +152,17 @@ export default function StoryArchive() {
                 </div>
             ) : (
                 <div className="space-y-3">
-                    {stories.map(story => (
+                    {stories
+                        .filter(s => {
+                            if (!user) return s.is_public; // Guests only public
+                            if (user.is_admin) {
+                                return adminFilter === 'all' || s.user_id === user.id;
+                            }
+                            // Standard users
+                            if (adminFilter === 'all') return s.is_public;
+                            return s.user_id === user.id;
+                        })
+                        .map(story => (
                         <div
                             key={story.id}
                             className="bg-white border-2 border-slate-100 rounded-2xl p-4 hover:border-slate-200 transition-all group"
@@ -234,6 +269,17 @@ export default function StoryArchive() {
                                                             <Calendar className="w-3 h-3" />
                                                             {formatDate(story.created_at)}
                                                         </span>
+                                                        {user?.is_admin && adminFilter === 'all' && (
+                                                            <span className="flex items-center gap-1 border-l border-slate-200 pl-3">
+                                                                <Users className="w-3 h-3" />
+                                                                {story.user_id === user.id ? 'Von mir' : (story.user_email || story.user_id || 'Gast')}
+                                                            </span>
+                                                        )}
+                                                        {story.is_public && (
+                                                            <span className="flex items-center gap-1 border-l border-slate-200 pl-3 text-emerald-600 font-bold">
+                                                                Öffentlich
+                                                            </span>
+                                                        )}
                                                     </div>
                                                 </div>
                                             )}
@@ -250,17 +296,46 @@ export default function StoryArchive() {
                                                 <Play className="w-3.5 h-3.5" />
                                                 Anhören
                                             </button>
-                                            <button
-                                                onClick={() => {
-                                                    setRevoiceTarget(story.id);
-                                                    setSelectedVoice(story.voice_key || 'seraphina');
-                                                }}
-                                                disabled={story.status !== 'done' && story.status !== 'error'}
-                                                className="flex items-center justify-center sm:justify-start gap-1.5 px-3 py-2 bg-amber-50 sm:bg-transparent rounded-lg sm:rounded-none text-xs font-semibold text-amber-600 hover:text-amber-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                                            >
-                                                <Mic className="w-3.5 h-3.5" />
-                                                Neu vertonen
-                                            </button>
+                                            {user?.is_admin && story.user_id === user.id && (
+                                                <button
+                                                    onClick={async () => {
+                                                        setIsPublicLoading(story.id);
+                                                        try {
+                                                            await toggleStoryVisibility(story.id, !story.is_public);
+                                                            toast.success(story.is_public ? 'Story privatisiert' : 'Story veröffentlicht!');
+                                                        } finally {
+                                                            setIsPublicLoading(null);
+                                                        }
+                                                    }}
+                                                    disabled={isPublicLoading === story.id}
+                                                    className={`hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
+                                                        story.is_public 
+                                                        ? 'bg-emerald-50 text-emerald-600' 
+                                                        : 'bg-slate-50 text-slate-500 hover:bg-slate-100'
+                                                    }`}
+                                                >
+                                                    {isPublicLoading === story.id ? (
+                                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                                    ) : (
+                                                        <Users className="w-3.5 h-3.5" />
+                                                    )}
+                                                    {story.is_public ? 'Öffentlich' : 'Privat'}
+                                                </button>
+                                            )}
+                                            
+                                            {user?.is_admin && (
+                                                <button
+                                                    onClick={() => {
+                                                        setRevoiceTarget(story.id);
+                                                        setSelectedVoice(story.voice_key || 'seraphina');
+                                                    }}
+                                                    disabled={story.status !== 'done' && story.status !== 'error'}
+                                                    className="flex items-center justify-center sm:justify-start gap-1.5 px-3 py-2 bg-amber-50 sm:bg-transparent rounded-lg sm:rounded-none text-xs font-semibold text-amber-600 hover:text-amber-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                                >
+                                                    <Mic className="w-3.5 h-3.5" />
+                                                    Neu vertonen
+                                                </button>
+                                            )}
                                             <button
                                                 onClick={() => setShowKindleModal(story.id)}
                                                 disabled={(story.status !== 'done' && story.status !== 'error') || isExporting === story.id}
@@ -308,6 +383,31 @@ export default function StoryArchive() {
                             </div>
                         </div>
                     ))}
+                </div>
+            )}
+
+            {/* Pagination Controls */}
+            {totalStories > 30 && (
+                <div className="mt-8 flex items-center justify-center gap-4">
+                    <button
+                        onClick={() => loadStories(currArchivePage - 1)}
+                        disabled={currArchivePage <= 1}
+                        className="p-2 rounded-xl border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-100 disabled:opacity-30 disabled:hover:text-slate-400 disabled:hover:border-slate-200 transition-all"
+                    >
+                        <ChevronLeft className="w-5 h-5" />
+                    </button>
+                    
+                    <div className="text-sm font-semibold text-slate-500">
+                        Seite <span className="text-indigo-600">{currArchivePage}</span> von {Math.ceil(totalStories / 30)}
+                    </div>
+                    
+                    <button
+                        onClick={() => loadStories(currArchivePage + 1)}
+                        disabled={currArchivePage >= Math.ceil(totalStories / 30)}
+                        className="p-2 rounded-xl border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-100 disabled:opacity-30 disabled:hover:text-slate-400 disabled:hover:border-slate-200 transition-all"
+                    >
+                        <ChevronRight className="w-5 h-5" />
+                    </button>
                 </div>
             )}
 
@@ -448,7 +548,7 @@ export default function StoryArchive() {
                                 </div>
 
                                 <button
-                                    onClick={() => handleKindleExport(showKindleModal)}
+                                    onClick={() => showKindleModal && handleKindleExport(showKindleModal)}
                                     disabled={isExporting === showKindleModal}
                                     className="w-full bg-emerald-600 text-white py-3 rounded-xl font-bold text-sm shadow-lg shadow-emerald-100 hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2"
                                 >

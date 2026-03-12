@@ -17,6 +17,25 @@ dist-ssr
 !.vscode/extensions.json
 .idea
 .DS_Store
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
 *.suo
 *.ntvs*
 *.njsproj
@@ -25,9 +44,9 @@ dist-ssr
 
 # Backend
 backend/venv/
-backend/.env
 backend/__pycache__/
-backend/app/__pycache__/
-backend/app/services/__pycache__/
+backend/.env
+backend/.env.staging
 backend/audio_output/
+backend/audio_output_staging/
 *.pyc

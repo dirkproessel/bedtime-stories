@@ -56,7 +56,12 @@ from app.models import (
     StoryListResponse,
     VoiceProfile,
     KindleExportRequest,
+    User,
 )
+from app.auth_utils import get_current_active_user, get_optional_user
+from fastapi import Depends
+from app.database import create_db_and_tables
+from app.models import StoryUpdate
 from app.services.story_generator import generate_full_story, generate_story_hook, get_author_names
 from app.services.tts_service import (
     chapters_to_audio,
@@ -71,6 +76,10 @@ from app.services.kindle_service import generate_epub, send_to_kindle
 
 app = FastAPI(title="Bedtime Stories API", version="1.0.0")
 
+@app.on_event("startup")
+def on_startup():
+    create_db_and_tables()
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -79,9 +88,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Register Authentication Router
+from app.routers import auth
+app.include_router(auth.router)
+
 # In-memory store for generation status & story metadata
 _generation_status: dict[str, dict] = {}
-
 
 from app.services.store import store
 
@@ -130,7 +142,7 @@ async def preview_voice(voice_key: str):
 # ──────────────────────────────────
 
 @app.post("/api/stories/generate")
-async def start_generation(req: StoryRequest):
+async def start_generation(req: StoryRequest, current_user: User = Depends(get_current_active_user)):
     """Start async story generation. Returns story ID to poll status."""
     story_id = str(uuid.uuid4())[:8]
 
@@ -152,6 +164,7 @@ async def start_generation(req: StoryRequest):
             voice_key=req.voice_key,
             speech_rate=req.speech_rate,
             original_prompt=req.prompt, # Pass original prompt for metadata
+            user_id=current_user.id,
         )
     )
 
@@ -164,8 +177,15 @@ class RevoiceRequest(BaseModel):
 
 
 @app.post("/api/stories/{story_id}/revoice")
-async def start_revoice(story_id: str, req: RevoiceRequest):
-    """Start async re-voicing of an existing story."""
+async def start_revoice(
+    story_id: str, 
+    req: RevoiceRequest,
+    current_user: User = Depends(get_current_active_user)
+):
+    """Start async re-voicing of an existing story (Admin only)."""
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Nur Admins dürfen neu vertonen.")
+
     meta = store.get_by_id(story_id)
     if not meta:
         raise HTTPException(status_code=404, detail="Story not found")
@@ -287,7 +307,7 @@ async def _run_revoice_pipeline(
 
 
 @app.post("/api/stories/generate-free")
-async def start_free_generation(req: FreeTextRequest):
+async def start_free_generation(req: FreeTextRequest, current_user: User = Depends(get_current_active_user)):
     """Start generation from free text prompt."""
     story_id = str(uuid.uuid4())[:8]
 
@@ -308,138 +328,13 @@ async def start_free_generation(req: FreeTextRequest):
             voice_key=req.voice_key,
             speech_rate=req.speech_rate,
             original_prompt=req.text,
+            user_id=current_user.id,
         )
     )
 
     return {"id": story_id, "status": "started"}
 
 
-class RevoiceRequest(BaseModel):
-    voice_key: str
-    speech_rate: str = "-15%"
-
-
-@app.post("/api/stories/{story_id}/revoice")
-async def start_revoice(story_id: str, req: RevoiceRequest):
-    """Start async re-voicing of an existing story."""
-    meta = store.get_by_id(story_id)
-    if not meta:
-        raise HTTPException(status_code=404, detail="Story not found")
-
-    meta.status = "generating"
-    meta.progress = "Starte Neuvertonung..."
-    meta.voice_key = req.voice_key
-    meta.progress_pct = 0
-    store.add_story(meta)
-
-    _generation_status[story_id] = {
-        "status": "starting",
-        "progress": "Starte Neuvertonung...",
-        "title": meta.title,
-    }
-
-    # Run revoice in background
-    asyncio.create_task(
-        _run_revoice_pipeline(
-            story_id=story_id,
-            voice_key=req.voice_key,
-            speech_rate=req.speech_rate,
-        )
-    )
-
-    return {"id": story_id, "status": "revoicing"}
-
-
-async def _run_revoice_pipeline(
-    story_id: str,
-    voice_key: str,
-    speech_rate: str,
-):
-    """Revoice pipeline: load text → TTS → merge → save."""
-    story_dir = settings.AUDIO_OUTPUT_DIR / story_id
-    text_path = story_dir / "story.json"
-    
-    if not text_path.exists():
-        logger.error(f"Cannot revoice: {text_path} missing")
-        return
-
-    story_data = json.loads(text_path.read_text(encoding="utf-8"))
-    real_title = story_data["title"]
-
-    async def on_progress(status_type: str, message: str, pct: int | None = None):
-        combined_message = f"{real_title}: {message}"
-        _generation_status[story_id]["status"] = status_type
-        _generation_status[story_id]["progress"] = combined_message
-        if pct is not None:
-            _generation_status[story_id]["progress_pct"] = pct
-        
-        curr = store.get_by_id(story_id)
-        if curr:
-            curr.status = "generating" if status_type != "done" and status_type != "error" else status_type
-            curr.progress = combined_message
-            if pct is not None:
-                curr.progress_pct = pct
-            store.add_story(curr)
-
-    try:
-        # Step 1: TTS
-        await on_progress("generating_audio", "Bereite Neuvertonung vor...", 10)
-        chunks_dir = story_dir / "chunks"
-        # Clear old chunks
-        import shutil
-        if chunks_dir.exists():
-            shutil.rmtree(chunks_dir)
-        chunks_dir.mkdir(parents=True, exist_ok=True)
-
-        audio_files, actual_voice = await chapters_to_audio(
-            chapters=story_data["chapters"],
-            output_dir=chunks_dir,
-            voice_key=voice_key,
-            rate=speech_rate,
-            on_progress=on_progress,
-        )
-
-        # Step 2: Title audio
-        await on_progress("generating_audio", "Vertone Titel...", 80)
-        title_tts_path = chunks_dir / "title.mp3"
-        await generate_tts_chunk(
-            text=story_data["title"],
-            output_path=title_tts_path,
-            voice_key=actual_voice,
-            rate=speech_rate,
-            is_title=True
-        )
-
-        # Step 3: Merge
-        await on_progress("processing", "Mische Audio-Spuren...", 85)
-        final_audio_path = story_dir / "story.mp3"
-        await merge_audio_files(
-            audio_files=audio_files,
-            output_path=final_audio_path,
-            intro_path=settings.INTRO_MUSIC_PATH,
-            outro_path=settings.OUTRO_MUSIC_PATH,
-            title_path=title_tts_path,
-        )
-
-        duration = await get_audio_duration(final_audio_path)
-
-        # Update metadata
-        all_voices = get_available_voices()
-        actual_voice_name = next((v["name"] for v in all_voices if v["key"] == actual_voice), "Unbekannt")
-
-        story_meta = store.get_by_id(story_id)
-        if story_meta:
-            story_meta.duration_seconds = duration
-            story_meta.voice_key = actual_voice
-            story_meta.voice_name = actual_voice_name
-            story_meta.status = "done"
-            story_meta.progress = "Neuvertonung fertig!"
-            story_meta.progress_pct = 100
-            store.add_story(story_meta)
-
-    except Exception as e:
-        logger.error(f"Revoice error for {story_id}: {e}", exc_info=True)
-        await on_progress("error", f"Neuvertonung fehlgeschlagen: {e}")
 
 @app.post("/api/generate-hook", response_model=HookResponse)
 async def api_generate_hook(req: HookRequest):
@@ -457,6 +352,7 @@ async def _run_pipeline(
     voice_key: str,
     speech_rate: str,
     original_prompt: str | None = None,
+    user_id: str | None = None,
 ):
     """Full pipeline: text → TTS → merge → save."""
     story_dir = settings.AUDIO_OUTPUT_DIR / story_id
@@ -492,6 +388,7 @@ async def _run_pipeline(
         status="generating",
         progress="Starte Generierung...",
         created_at=datetime.now(timezone.utc),
+        user_id=user_id,
     )
     store.add_story(story_meta)
 
@@ -681,10 +578,35 @@ async def get_status(story_id: str):
 # ──────────────────────────────────
 
 @app.get("/api/stories", response_model=StoryListResponse)
-async def list_stories():
-    """List all generated stories."""
-    stories = store.get_all()
-    return StoryListResponse(stories=stories, total=len(stories))
+async def list_stories(
+    page: int = 1,
+    page_size: int = 30,
+    current_user: User | None = Depends(get_optional_user)
+):
+    """List all stories based on user role and visibility with pagination."""
+    all_stories = store.get_all()
+    
+    if not current_user:
+        # Guests see only public stories
+        stories = [s for s in all_stories if s.is_public]
+    elif current_user.is_admin:
+        # Admins see everything + user emails
+        stories = all_stories
+        # Attach emails for admin view
+        users = {u.id: u.email for u in store.get_all_users()}
+        for s in stories:
+            if s.user_id:
+                s.user_email = users.get(s.user_id)
+    else:
+        # Standard users see their own + public stories
+        stories = [s for s in all_stories if s.user_id == current_user.id or s.is_public]
+    
+    total = len(stories)
+    start = (page - 1) * page_size
+    end = start + page_size
+    paginated_stories = stories[start:end]
+        
+    return StoryListResponse(stories=paginated_stories, total=total)
 
 
 @app.get("/api/stories/{story_id}")
@@ -756,9 +678,46 @@ async def get_audio(story_id: str, request: Request):
     return response
 
 
+@app.patch("/api/stories/{story_id}")
+async def update_story(
+    story_id: str, 
+    req: StoryUpdate,
+    current_user: User = Depends(get_current_active_user)
+):
+    """Update story metadata or visibility (Admin only for public toggle)."""
+    meta = store.get_by_id(story_id)
+    if not meta:
+        raise HTTPException(status_code=404, detail="Story not found")
+
+    # Permissions
+    if req.is_public is not None:
+        if not current_user.is_admin:
+            raise HTTPException(status_code=403, detail="Nur Admins dürfen die Sichtbarkeit ändern.")
+        meta.is_public = req.is_public
+
+    if req.title is not None:
+        # Only owner or admin can change title
+        if meta.user_id != current_user.id and not current_user.is_admin:
+            raise HTTPException(status_code=403, detail="Keine Berechtigung.")
+        meta.title = req.title
+
+    store.add_story(meta)
+    return meta
+
+
 @app.delete("/api/stories/{story_id}")
-async def delete_story(story_id: str):
-    """Delete a story and its files."""
+async def delete_story(
+    story_id: str,
+    current_user: User = Depends(get_current_active_user)
+):
+    """Delete a story and its files (Owner or Admin only)."""
+    meta = store.get_by_id(story_id)
+    if not meta:
+        raise HTTPException(status_code=404, detail="Story not found")
+
+    if meta.user_id != current_user.id and not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Keine Berechtigung zum Löschen.")
+
     if not store.delete_story(story_id):
         raise HTTPException(status_code=404, detail="Story not found")
 
@@ -833,14 +792,14 @@ async def get_podcast_cover():
 @app.get("/api/feed.xml")
 @app.get("/api/feed-labor.xml")
 async def get_rss_feed():
-    """Serve the podcast RSS feed (generated dynamically)."""
+    """Serve the global podcast RSS feed (all public/spotify stories)."""
     # Only include stories that have is_on_spotify=True
     stories = store.get_all(only_spotify=True)
     
-    logger.info(f"Generating RSS feed with {len(stories)} stories. IDs: {[s.id for s in stories]}")
+    logger.info(f"Generating global RSS feed with {len(stories)} stories.")
     
     image_url = f"{settings.BASE_URL}/api/podcast-cover.png"
-    email = "dirk@proessel.de"  # Required by Spotify
+    email = "dirk@proessel.de"
     
     try:
         xml_content = generate_rss_feed(
@@ -853,6 +812,32 @@ async def get_rss_feed():
     except Exception as e:
         logger.error(f"RSS Feed error: {e}")
         raise HTTPException(status_code=500, detail="Error generating RSS feed")
+
+
+@app.get("/api/feed/{user_id}.xml")
+async def get_personal_rss_feed(user_id: str):
+    """Serve a personalized podcast RSS feed for a specific user."""
+    # Only include stories for this user that have is_on_spotify=True
+    stories = store.get_all(only_spotify=True, user_id=user_id)
+    
+    logger.info(f"Generating personal RSS feed for user {user_id} with {len(stories)} stories.")
+    
+    # We might want a different title or image for personal feeds in the future
+    image_url = f"{settings.BASE_URL}/api/podcast-cover.png"
+    email = "dirk@proessel.de"
+    
+    try:
+        xml_content = generate_rss_feed(
+            stories,
+            settings.BASE_URL,
+            title=f"Bedtime Stories (Privat)",
+            image_url=image_url,
+            email=email,
+        )
+        return Response(content=xml_content, media_type="application/xml")
+    except Exception as e:
+        logger.error(f"Personal RSS Feed error: {e}")
+        raise HTTPException(status_code=500, detail="Error generating personal RSS feed")
 
 
 # ──────────────────────────────────

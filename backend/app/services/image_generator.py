@@ -45,7 +45,7 @@ async def generate_story_image(synopsis: str, output_path: Path, genre: str = "R
         # but we wrap it in a thread if needed, or just call it directly if it's not a heavy load.
         # For simplicity in this script, we call it directly.
         response = client.models.generate_images(
-            model='imagen-4.0-generate-001',
+            model='imagen-3.0-fast-generate-001',
             prompt=enhanced_prompt,
             config=types.GenerateImagesConfig(
                 number_of_images=1,

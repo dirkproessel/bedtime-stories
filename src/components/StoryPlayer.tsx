@@ -3,11 +3,12 @@ import { useStore } from '../store/useStore';
 import { getAudioUrl, fetchStory, getRssFeedUrl, getThumbUrl, type StoryDetail } from '../lib/api';
 import {
     Play, Pause, SkipBack, SkipForward,
-    ChevronDown, ChevronUp, Rss, Copy, ArrowLeft, Moon, BookOpen
+    ChevronDown, ChevronUp, Rss, Copy, ArrowLeft, Moon, BookOpen, Send, Loader2, X, Calendar
 } from 'lucide-react';
 import { AUTHOR_NAMES } from '../lib/authors';
 import { voiceName } from '../lib/voices';
 import toast from 'react-hot-toast';
+import { exportStoryToKindle } from '../lib/api';
 
 export default function StoryPlayer() {
     const { selectedStoryId, setActiveView } = useStore();
@@ -19,6 +20,10 @@ export default function StoryPlayer() {
     const [dragTime, setDragTime] = useState(0);
     const [showChapters, setShowChapters] = useState(false);
     const [showRss, setShowRss] = useState(false);
+    const { user, updateStorySpotify } = useStore();
+    const [isExporting, setIsExporting] = useState(false);
+    const [showKindleModal, setShowKindleModal] = useState(false);
+    const [kindleEmail, setKindleEmail] = useState<string>(() => user?.kindle_email || localStorage.getItem('kindle_email') || '');
 
     // Use DOM element instead of memory object for iOS Safari compatibility
     const audioRef = useRef<HTMLAudioElement>(null);
@@ -156,6 +161,42 @@ export default function StoryPlayer() {
         toast.success('RSS-Feed URL kopiert!');
     };
 
+    const handleKindleExport = async () => {
+        if (!selectedStoryId) return;
+        if (!user) {
+            setActiveView('login');
+            toast.error('Bitte melde dich an, um Kindle-Export zu nutzen');
+            return;
+        }
+        if (!kindleEmail) {
+            toast.error('Bitte Kindle E-Mail Adresse eingeben');
+            return;
+        }
+        setIsExporting(true);
+        try {
+            await exportStoryToKindle(selectedStoryId, kindleEmail);
+            toast.success('An Kindle gesendet!');
+            setShowKindleModal(false);
+        } catch (error: any) {
+            toast.error(error.message || 'Fehler beim Kindle-Export');
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
+    const handleSpotifyToggle = async (enabled: boolean) => {
+        if (!selectedStoryId) return;
+        try {
+            await updateStorySpotify(selectedStoryId, enabled);
+            toast.success(enabled ? 'Zu Spotify hinzugefügt' : 'Von Spotify entfernt');
+            // Refresh local story state
+            if (story) setStory({ ...story, is_on_spotify: enabled });
+        } catch {
+            toast.error('Fehler beim Aktualisieren');
+        }
+    };
+
+
     return (
         <>
             {/* Audio Element for iOS Compatibility */}
@@ -232,6 +273,32 @@ export default function StoryPlayer() {
                         </p>
                     </div>
 
+                    {/* Action Buttons (Kindle / Spotify) */}
+                    <div className="flex items-center justify-center gap-3 mb-8">
+                        <button
+                            onClick={() => setShowKindleModal(true)}
+                            className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl text-xs font-bold hover:bg-emerald-100 transition-all border border-emerald-100"
+                        >
+                            <Send className="w-3.5 h-3.5" />
+                            Kindle
+                        </button>
+                        {user && (
+                            <button
+                                onClick={() => handleSpotifyToggle(!story.is_on_spotify)}
+                                disabled={user.is_admin && story.user_id !== user.id}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
+                                    story.is_on_spotify 
+                                    ? 'bg-green-50 text-green-600 border-green-100' 
+                                    : 'bg-slate-50 text-slate-500 border-slate-100 opacity-60 hover:opacity-100'
+                                } ${(user.is_admin && story.user_id !== user.id) ? 'opacity-30 cursor-not-allowed hidden' : ''}`}
+                            >
+                                <Calendar className="w-3.5 h-3.5" />
+                                Spotify
+                            </button>
+                        )}
+                    </div>
+
+
                     {/* Progress */}
                     <div className="mb-4">
                         <input
@@ -287,34 +354,90 @@ export default function StoryPlayer() {
                         </div>
                     )}
 
-                    {/* RSS Feed */}
-                    <div className="mb-4">
-                        <button
-                            onClick={() => setShowRss(!showRss)}
-                            className="w-full flex items-center justify-between p-4 bg-white border-2 border-slate-100 rounded-2xl hover:border-slate-200 transition-all"
-                        >
-                            <span className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                                <Rss className="w-4 h-4 text-orange-500" />
-                                Podcast-Feed
-                            </span>
-                            {showRss ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
-                        </button>
-                        {showRss && (
-                            <div className="mt-2 p-4 bg-white border-2 border-slate-100 rounded-2xl">
-                                <p className="text-xs text-slate-500 mb-3">Füge diese URL in deine Podcast-App ein:</p>
-                                <div className="flex items-center gap-2">
-                                    <code className="flex-1 text-xs bg-slate-50 text-slate-600 p-2.5 rounded-lg truncate">
-                                        {getRssFeedUrl()}
-                                    </code>
-                                    <button
-                                        onClick={copyRssUrl}
-                                        className="shrink-0 w-10 h-10 rounded-xl bg-slate-50 text-slate-400 flex items-center justify-center hover:bg-indigo-50 hover:text-indigo-500 transition-colors"
-                                    >
-                                        <Copy className="w-4 h-4" />
-                                    </button>
+                    {/* RSS Feed (Admin/Owner only or just hidden for Guest/Std?) - Plan says "Kein Podcast RSS-Feed im Player sichtbar" for Standard & Guest */}
+                    {user?.is_admin && (
+                        <div className="mb-4">
+                            <button
+                                onClick={() => setShowRss(!showRss)}
+                                className="w-full flex items-center justify-between p-4 bg-white border-2 border-slate-100 rounded-2xl hover:border-slate-200 transition-all"
+                            >
+                                <span className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                                    <Rss className="w-4 h-4 text-orange-500" />
+                                    Podcast-Feed
+                                </span>
+                                {showRss ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                            </button>
+                            {showRss && (
+                                <div className="mt-2 p-4 bg-white border-2 border-slate-100 rounded-2xl">
+                                    <p className="text-xs text-slate-500 mb-3">Füge diese URL in deine Podcast-App ein:</p>
+                                    <div className="flex items-center gap-2">
+                                        <code className="flex-1 text-xs bg-slate-50 text-slate-600 p-2.5 rounded-lg truncate">
+                                            {getRssFeedUrl()}
+                                        </code>
+                                        <button
+                                            onClick={copyRssUrl}
+                                            className="shrink-0 w-10 h-10 rounded-xl bg-slate-50 text-slate-400 flex items-center justify-center hover:bg-indigo-50 hover:text-indigo-500 transition-colors"
+                                        >
+                                            <Copy className="w-4 h-4" />
+                                        </button>
+                                    </div>
                                 </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Kindle Export Modal */}
+            {showKindleModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+                    <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+                        <div className="p-6">
+                            <div className="flex items-center justify-between mb-4">
+                                <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                                    <Send className="w-5 h-5 text-emerald-600" />
+                                    Kindle Export
+                                </h2>
+                                <button
+                                    onClick={() => setShowKindleModal(false)}
+                                    className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
                             </div>
-                        )}
+
+                            <p className="text-sm text-slate-500 mb-6">
+                                Sende diese Geschichte als E-Book auf deinen Kindle.
+                            </p>
+
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5 ml-1">
+                                        Kindle E-Mail Adresse
+                                    </label>
+                                    <input
+                                        type="email"
+                                        value={kindleEmail}
+                                        onChange={(e) => setKindleEmail(e.target.value)}
+                                        placeholder="beispiel@kindle.com"
+                                        className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-xl focus:border-emerald-500 focus:ring-0 transition-all text-sm font-medium"
+                                    />
+                                </div>
+
+                                <button
+                                    onClick={handleKindleExport}
+                                    disabled={isExporting}
+                                    className="w-full bg-emerald-600 text-white py-3 rounded-xl font-bold text-sm shadow-lg shadow-emerald-100 hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2"
+                                >
+                                    {isExporting ? (
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                        <Send className="w-4 h-4" />
+                                    )}
+                                    Jetzt senden
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}

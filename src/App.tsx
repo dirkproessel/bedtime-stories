@@ -1,28 +1,41 @@
 import { useEffect } from 'react';
 import { useStore } from './store/useStore';
-import { Loader2, PenTool, BookOpen, Headphones, Moon } from 'lucide-react';
+import { Loader2, PenTool, BookOpen, Headphones, Moon, User } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
 import StoryCreator from './components/StoryCreator';
 import StoryArchive from './components/StoryArchive';
 import StoryPlayer from './components/StoryPlayer';
+import LoginScreen from './components/LoginScreen';
+import AccountScreen from './components/AccountScreen';
 
 const NAV_ITEMS = [
   { key: 'create' as const, label: 'Erstellen', icon: PenTool },
   { key: 'archive' as const, label: 'Archiv', icon: BookOpen },
   { key: 'player' as const, label: 'Player', icon: Headphones },
+  { key: 'account' as const, label: 'Konto', icon: User },
 ];
 
 function App() {
-  const { fetchData, isLoading, error, isInitialized, activeView, setActiveView, selectedStoryId, setSelectedStoryId } = useStore();
+  const { fetchData, isLoading, error, isInitialized, activeView, setActiveView, selectedStoryId, setSelectedStoryId, user, token } = useStore();
 
   // Initial Data Fetch
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
+  // Auth Guard: Only redirect to login if we are in 'account' view and not logged in
+  useEffect(() => {
+    if (isInitialized && !user && !token && activeView === 'account') {
+        setActiveView('login');
+    }
+  }, [isInitialized, user, token, activeView, setActiveView]);
+
   // Sync URL Hash -> Store State (Listeners for Back/Forward & direct link access)
   useEffect(() => {
     const handleHashChange = () => {
+      // If we are definitely not logged in, don't change route
+      if (!localStorage.getItem('auth_token')) return;
+
       const hash = window.location.hash.replace('#', '');
 
       if (hash.startsWith('/player/')) {
@@ -39,13 +52,18 @@ function App() {
         return;
       }
 
+      if (hash === '/account') {
+        setActiveView('account');
+        return;
+      }
+
       if (hash === '/create' || hash === '') {
         setActiveView('create');
         return;
       }
     };
 
-    // Run once on load to catch direct entries like `bedtime.proessel.de/#/archive`
+    // Run once on load
     handleHashChange();
 
     window.addEventListener('hashchange', handleHashChange);
@@ -61,10 +79,13 @@ function App() {
       desiredHash = `#/archive`;
     } else if (activeView === 'create') {
       desiredHash = `#/create`;
+    } else if (activeView === 'account') {
+      desiredHash = `#/account`;
+    } else if (activeView === 'login') {
+      desiredHash = ``; // Clear hash for login
     }
 
-    // Only push if the hash is actually different to avoid infinite loops or noisy history
-    if (desiredHash && window.location.hash !== desiredHash) {
+    if (desiredHash !== '' && window.location.hash !== desiredHash) {
       window.history.pushState(null, '', desiredHash);
     }
   }, [activeView, selectedStoryId]);
@@ -80,7 +101,8 @@ function App() {
     );
   }
 
-  if (error) {
+
+  if (error && activeView !== 'login') {
     return (
       <div className="min-h-screen bg-gradient-to-b from-slate-50 to-indigo-50/30 flex flex-col items-center justify-center w-full p-6 text-center">
         <div className="w-16 h-16 bg-red-100 text-red-500 rounded-2xl flex items-center justify-center mb-4 text-2xl">!</div>
@@ -97,30 +119,42 @@ function App() {
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-indigo-50/30 flex flex-col w-full">
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto pb-24">
+        {activeView === 'login' && <LoginScreen />}
         {activeView === 'create' && <StoryCreator />}
         {activeView === 'archive' && <StoryArchive />}
         {activeView === 'player' && <StoryPlayer />}
+        {activeView === 'account' && <AccountScreen />}
       </main>
 
       {/* Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t border-slate-100 safe-area-bottom z-50">
         <div className="max-w-2xl mx-auto flex items-center justify-around py-2">
-          {NAV_ITEMS.map(({ key, label, icon: Icon }) => (
-            <button
-              key={key}
-              onClick={() => setActiveView(key)}
-              className={`flex flex-col items-center gap-1 px-6 py-2 rounded-xl transition-all ${activeView === key
-                ? 'text-indigo-600'
-                : 'text-slate-400 hover:text-slate-600'
-                }`}
-            >
-              <Icon className={`w-5 h-5 ${activeView === key ? 'stroke-[2.5]' : ''}`} />
-              <span className="text-[10px] font-semibold">{label}</span>
-              {activeView === key && (
-                <div className="w-1 h-1 rounded-full bg-indigo-500" />
-              )}
-            </button>
-          ))}
+          {NAV_ITEMS.map(({ key, label, icon: Icon }) => {
+            const isAccount = key === 'account';
+            const isGuest = isAccount && !user;
+            
+            return (
+              <button
+                key={key}
+                onClick={() => setActiveView(key)}
+                className={`flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all relative ${activeView === key
+                  ? 'text-indigo-600'
+                  : 'text-slate-400 hover:text-slate-600'
+                  }`}
+              >
+                <Icon className={`w-5 h-5 ${activeView === key ? 'stroke-[2.5]' : ''}`} />
+                <span className="text-[10px] font-semibold">
+                  {isGuest ? 'Anmelden' : label}
+                </span>
+                {isGuest && (
+                  <div className="absolute top-1 right-2 w-2 h-2 rounded-full bg-amber-400 border-2 border-white shadow-sm" />
+                )}
+                {activeView === key && !isGuest && (
+                  <div className="w-1 h-1 rounded-full bg-indigo-500" />
+                )}
+              </button>
+            );
+          })}
         </div>
       </nav>
 

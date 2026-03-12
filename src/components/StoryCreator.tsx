@@ -3,6 +3,7 @@ import { useStore } from '../store/useStore';
 import { getVoicePreviewUrl, generateHook, fetchPopularity } from '../lib/api';
 import { Sparkles, Mic, MicOff, Play, Pause, BookOpen, Venus, Mars, Users, Dices, Loader2, ChevronDown } from 'lucide-react';
 import { voiceName, voiceDesc, STANDARD_VOICE_KEYS, isStandardVoice } from '../lib/voices';
+import toast from 'react-hot-toast';
 
 const GENRES = [
     { value: 'Krimi', label: 'Krimi', desc: 'Indizien, Verdächtige, falsche Fährten' },
@@ -70,21 +71,22 @@ function sortByPopularity<T>(items: T[], popularIds: string[], getKey: (item: T)
 }
 
 export default function StoryCreator() {
-    const { voices, startGeneration } = useStore();
-
-    // Selection state
-    const [genre, setGenre] = useState('Abenteuer');
-    const [selectedAuthors, setSelectedAuthors] = useState<string[]>([]);
+    const { 
+        startGeneration, voices, user, setActiveView,
+        generatorPrompt: freeText, setGeneratorPrompt: setFreeText,
+        generatorGenre: genre, setGeneratorGenre: setGenre,
+        generatorAuthors: selectedAuthors, setGeneratorAuthors: setSelectedAuthors,
+        generatorMinutes: targetMinutes, setGeneratorMinutes: setTargetMinutes,
+        generatorVoice: voiceKey, setGeneratorVoice: setVoiceKey
+    } = useStore();
 
     const toggleAuthor = (id: string) => {
-        setSelectedAuthors(prev => {
-            if (prev.includes(id)) return prev.filter(x => x !== id);
-            if (prev.length >= 3) return prev;
-            return [...prev, id];
-        });
+        setSelectedAuthors(
+            selectedAuthors.includes(id) 
+                ? selectedAuthors.filter(x => x !== id) 
+                : (selectedAuthors.length >= 3 ? selectedAuthors : [...selectedAuthors, id])
+        );
     };
-    const [targetMinutes, setTargetMinutes] = useState(15);
-    const [voiceKey, setVoiceKey] = useState('seraphina');
 
     // Popularity-sorted lists
     const [sortedGenres, setSortedGenres] = useState(GENRES);
@@ -109,7 +111,7 @@ export default function StoryCreator() {
     }, [voices]);
 
     // Input state
-    const [freeText, setFreeText] = useState('');
+    // freeText moved to store
     const [isRolling, setIsRolling] = useState(false);
 
     // Voice preview
@@ -195,15 +197,18 @@ export default function StoryCreator() {
     };
 
     const handleGenerate = () => {
-        const idea = freeText.trim() || 'Überrasche mich mit einer wunderbaren Geschichte.';
+        if (!user) {
+            setActiveView('login');
+            toast.error('Bitte melde dich an, um eine Geschichte zu generieren.');
+            return;
+        }
 
+        const idea = freeText.trim() || 'Überrasche mich mit einer wunderbaren Geschichte.';
         const selectedGenre = GENRES.find(g => g.value === genre);
-        // Create the system prompt for the LLM
         const systemPrompt = `Kurzgeschichte im Genre ${selectedGenre?.label || genre}\n\nIdee: ${freeText}`;
 
-        // Start generation - use the idea as the prompt for metadata display
         startGeneration({
-            prompt: idea, // This will be stored and shown as "Idee"
+            prompt: idea,
             system_prompt: systemPrompt,
             genre: selectedGenre?.label || genre,
             style: selectedAuthors.length > 0 ? selectedAuthors.join(',') : 'kehlmann',

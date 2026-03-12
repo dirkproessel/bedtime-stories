@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "backend:staging": "cd backend && .\\venv\\Scripts\\uvicorn app.main:app --reload --port 8000 --env-file .env.staging",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"

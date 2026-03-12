@@ -287,8 +287,8 @@ async def generate_tts_chunk(
             
             client = genai.Client(api_key=settings.GEMINI_API_KEY)
             
-            # Rate adjustment hint for Gemini (but skip for titles as it distorts short sentences)
-            speed_hint = " (Sprich ruhig und langsam)" if ("-15%" in rate and not is_title) else ""
+            # The speed hint was removed as chunking ensures better cadence now.
+            speed_hint = ""
             
             MIN_CHUNK_BYTES = 500
             MAX_CHUNK_BYTES = 800

@@ -4,6 +4,25 @@
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
+// Helper to get auth headers from local storage
+function getAuthHeaders(): HeadersInit {
+    const token = localStorage.getItem('auth_token');
+    if (token) {
+        return {
+            'Authorization': `Bearer ${token}`
+        };
+    }
+    return {};
+}
+
+export interface User {
+    id: string;
+    email: string;
+    is_admin: boolean;
+    kindle_email?: string;
+    created_at: string;
+}
+
 export interface VoiceProfile {
     key: string;
     name: string;
@@ -31,6 +50,9 @@ export interface StoryMeta {
     progress_pct?: number;
     voice_name?: string;
     created_at: string;
+    user_id?: string;
+    user_email?: string;
+    is_public: boolean;
 }
 
 export interface StoryDetail extends StoryMeta {
@@ -41,23 +63,75 @@ export interface GenerationStatus {
     id: string;
     status: string;
     progress: string;
+    progress_pct: number;
     title: string | null;
 }
 
 export interface StoryRequest {
     prompt: string;
     system_prompt?: string;
-    genre: string;
-    style: string;
+    genre?: string;
+    style?: string;
     characters?: string[];
-    target_minutes: number;
-    voice_key: string;
+    target_minutes?: number;
+    voice_key?: string;
     speech_rate?: string;
 }
 
+// --- Auth Endpoints ---
+export async function loginUser(email: string, password: string): Promise<{ access_token: string }> {
+    const formData = new URLSearchParams();
+    formData.append('username', email); // OAuth2 expects username
+    formData.append('password', password);
+
+    const res = await fetch(`${API_BASE}/api/auth/token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: formData,
+    });
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.detail || 'Login fehlgeschlagen');
+    }
+    return res.json();
+}
+
+export async function registerUser(email: string, password: string): Promise<User> {
+    const res = await fetch(`${API_BASE}/api/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+    });
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.detail || 'Registrierung fehlgeschlagen');
+    }
+    return res.json();
+}
+
+export async function fetchMe(): Promise<User> {
+    const res = await fetch(`${API_BASE}/api/auth/me`, {
+        headers: getAuthHeaders(),
+    });
+    if (!res.ok) throw new Error('Nicht angemeldet oder Token abgelaufen');
+    return res.json();
+}
+
+export async function updateKindleEmail(kindle_email: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/api/auth/me/kindle`, {
+        method: 'PUT',
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kindle_email }),
+    });
+    if (!res.ok) throw new Error('Aktualisierung fehlgeschlagen');
+    return res.json();
+}
+
+// --- Content Endpoints ---
+
 // Voices
 export async function fetchVoices(): Promise<VoiceProfile[]> {
-    const res = await fetch(`${API_BASE}/api/voices`);
+    const res = await fetch(`${API_BASE}/api/voices`, { headers: getAuthHeaders() });
     if (!res.ok) throw new Error('Failed to fetch voices');
     return res.json();
 }
@@ -70,7 +144,7 @@ export function getVoicePreviewUrl(voiceKey: string): string {
 export async function generateStory(req: StoryRequest): Promise<{ id: string }> {
     const res = await fetch(`${API_BASE}/api/stories/generate`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify(req),
     });
     if (!res.ok) throw new Error('Failed to start generation');
@@ -78,64 +152,61 @@ export async function generateStory(req: StoryRequest): Promise<{ id: string }> 
 }
 
 export async function generateFreeStory(text: string, voiceKey: string, targetMinutes: number): Promise<{ id: string }> {
-    const res = await fetch(`${API_BASE}/api/stories/generate-free`, {
+    const res = await fetch(`${API_BASE}/api/stories/free`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify({ text, voice_key: voiceKey, target_minutes: targetMinutes }),
     });
     if (!res.ok) throw new Error('Failed to start generation');
     return res.json();
 }
 
-export async function generateHook(genre: string, authorId: string): Promise<string> {
-    const res = await fetch(`${API_BASE}/api/generate-hook`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ genre, author_id: authorId }),
-    });
-    if (!res.ok) throw new Error('Failed to generate hook');
-    const data = await res.json();
-    return data.hook_text;
-}
-
 // Status polling
 export async function fetchStatus(storyId: string): Promise<GenerationStatus> {
-    const res = await fetch(`${API_BASE}/api/status/${storyId}`);
+    const res = await fetch(`${API_BASE}/api/status/${storyId}`, { headers: getAuthHeaders() });
     if (!res.ok) throw new Error('Failed to fetch status');
     return res.json();
 }
 
 // Stories
-export async function fetchStories(): Promise<StoryMeta[]> {
-    const res = await fetch(`${API_BASE}/api/stories`);
+export async function fetchStories(page: number = 1, pageSize: number = 30): Promise<{ stories: StoryMeta[], total: number }> {
+    const res = await fetch(`${API_BASE}/api/stories?page=${page}&page_size=${pageSize}`, { headers: getAuthHeaders() });
     if (!res.ok) throw new Error('Failed to fetch stories');
-    const data = await res.json();
-    return data.stories;
+    return res.json();
 }
 
 export async function fetchStory(storyId: string): Promise<StoryDetail> {
-    const res = await fetch(`${API_BASE}/api/stories/${storyId}`);
+    const res = await fetch(`${API_BASE}/api/stories/${storyId}`, { headers: getAuthHeaders() });
     if (!res.ok) throw new Error('Failed to fetch story');
     return res.json();
 }
 
 export function getAudioUrl(storyId: string): string {
-    return `${API_BASE}/api/stories/${storyId}/audio`;
+    const token = localStorage.getItem('auth_token');
+    const url = new URL(`${API_BASE}/api/stories/${storyId}/audio`);
+    if (token) url.searchParams.append('token', token);
+    return url.toString();
 }
 
 export function getThumbUrl(storyId: string): string {
-    return `${API_BASE}/api/stories/${storyId}/thumb.jpg`;
+    const token = localStorage.getItem('auth_token');
+    const url = new URL(`${API_BASE}/api/stories/${storyId}/thumb.jpg`);
+    if (token) url.searchParams.append('token', token);
+    return url.toString();
 }
 
 export async function deleteStory(storyId: string): Promise<void> {
-    const res = await fetch(`${API_BASE}/api/stories/${storyId}`, { method: 'DELETE' });
+    const res = await fetch(`${API_BASE}/api/stories/${storyId}`, { 
+        method: 'DELETE',
+        headers: getAuthHeaders()
+    });
     if (!res.ok) throw new Error('Failed to delete story');
 }
 
 export async function updateStorySpotify(id: string, enabled: boolean): Promise<any> {
     const response = await fetch(`${API_BASE}/api/stories/${id}/spotify`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify({ enabled }),
     });
     if (!response.ok) throw new Error('Failed to update Spotify status');
@@ -145,7 +216,7 @@ export async function updateStorySpotify(id: string, enabled: boolean): Promise<
 export async function exportStoryToKindle(id: string, email: string): Promise<any> {
     const response = await fetch(`${API_BASE}/api/stories/${id}/export-kindle`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
     });
     if (!response.ok) {
@@ -158,10 +229,23 @@ export async function exportStoryToKindle(id: string, email: string): Promise<an
 export async function revoiceStory(storyId: string, voiceKey: string, speechRate: string = '-15%'): Promise<{ id: string }> {
     const res = await fetch(`${API_BASE}/api/stories/${storyId}/revoice`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify({ voice_key: voiceKey, speech_rate: speechRate }),
     });
     if (!res.ok) throw new Error('Failed to start re-voicing');
+    return res.json();
+}
+
+export async function updateStoryVisibility(storyId: string, isPublic: boolean): Promise<StoryMeta> {
+    const res = await fetch(`${API_BASE}/api/stories/${storyId}`, {
+        method: 'PATCH',
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_public: isPublic }),
+    });
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.detail || 'Sichtbarkeit konnte nicht geändert werden');
+    }
     return res.json();
 }
 
@@ -179,4 +263,15 @@ export async function fetchPopularity(): Promise<PopularityData> {
     const res = await fetch(`${API_BASE}/api/stats/popularity`);
     if (!res.ok) throw new Error('Failed to fetch popularity');
     return res.json();
+}
+
+export async function generateHook(genre: string, authorId: string): Promise<string> {
+    const res = await fetch(`${API_BASE}/api/generate-hook`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ genre, author_id: authorId }),
+    });
+    if (!res.ok) throw new Error('Failed to generate hook');
+    const data = await res.json();
+    return data.hook_text;
 }

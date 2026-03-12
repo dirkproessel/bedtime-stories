@@ -45,11 +45,16 @@ async def merge_audio_files(
 
     # We will use FFmpeg's filter_complex concat which is much more robust
     # against different sample rates and formats than the concat demuxer.
-    with tempfile.TemporaryDirectory() as tmpdir:
+    # ignore_cleanup_errors=True is critical on Windows to prevent WinError 32
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
         tmpdir = Path(tmpdir)
         silence_path = tmpdir / "silence.mp3"
         await _create_silence(silence_between_ms, silence_path)
 
+        # ... (rest of input gathering logic) ...
+        # [Merging logic continues here as before] ...
+        
+        # [I will keep the logic same but nested in the new TemporaryDirectory]
         # Build list of input files in exact order
         inputs = []
         
@@ -73,6 +78,7 @@ async def merge_audio_files(
 
         # 3. Outro
         if outro_path and outro_path.exists():
+            inputs.append(silence_path) # Extrapause vor dem Outro
             inputs.append(outro_path)
 
         # 4. Final pause
@@ -112,6 +118,9 @@ async def merge_audio_files(
 
         # Normalize + fade out
         await _normalize_audio(merged_raw, output_path, fade_out_ms)
+
+        # On Windows, give the OS a moment to release file handles before cleanup starts
+        await asyncio.sleep(0.5)
 
     return output_path
 
