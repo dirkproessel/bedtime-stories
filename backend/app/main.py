@@ -78,6 +78,7 @@ app = FastAPI(title="Bedtime Stories API", version="1.0.0")
 
 @app.on_event("startup")
 def on_startup():
+    logger.info("Bedtime Stories API starting up - Running database initialization...")
     create_db_and_tables()
 
 app.add_middleware(
