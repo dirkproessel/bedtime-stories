@@ -9,6 +9,8 @@ from sqlmodel import Session, select
 from app.models import StoryMeta, User
 from app.database import engine, create_db_and_tables
 from app.config import settings
+from app.auth_utils import get_password_hash
+import uuid
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +20,8 @@ class StoryStore:
         create_db_and_tables()
         # Optional: migrate from old JSON if it exists and DB is empty
         self._migrate_json_to_db()
+        # Ensure admin user exists
+        self._seed_admin()
 
     def _migrate_json_to_db(self):
         """One-time migration from stories.json to SQLite."""
@@ -44,6 +48,33 @@ class StoryStore:
                 old_json_path.rename(old_json_path.with_suffix(".json.migrated"))
             except Exception as e:
                 logger.error(f"Failed to migrate old JSON data: {e}")
+
+    def _seed_admin(self):
+        """Ensure the admin user exists in the database."""
+        email = settings.POCKETBASE_ADMIN_EMAIL
+        password = settings.POCKETBASE_ADMIN_PASSWORD
+        
+        if not email or not password:
+            logger.warning("Admin credentials not set in environment. Skipping seeding.")
+            return
+            
+        with Session(engine) as session:
+            existing = session.exec(select(User).where(User.email == email.lower())).first()
+            if existing:
+                return
+                
+            try:
+                admin_user = User(
+                    id=str(uuid.uuid4()),
+                    email=email.lower(),
+                    hashed_password=get_password_hash(password),
+                    is_admin=True
+                )
+                session.add(admin_user)
+                session.commit()
+                logger.info(f"Admin user {email} seeded successfully!")
+            except Exception as e:
+                logger.error(f"Failed to seed admin user: {e}")
 
     def get_all(self, only_spotify: bool = False, user_id: str | None = None) -> list[StoryMeta]:
         """Get all stories, sorted by creation date (newest first)."""
