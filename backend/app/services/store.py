@@ -1,7 +1,4 @@
-"""
-Persistent storage service for bedtime stories (SQLite).
-"""
-
+from datetime import datetime
 import json
 import logging
 from pathlib import Path
@@ -13,6 +10,20 @@ from app.auth_utils import get_password_hash
 import uuid
 
 logger = logging.getLogger(__name__)
+
+def parse_date(date_val):
+    if not date_val:
+        return None
+    if isinstance(date_val, datetime):
+        return date_val
+    try:
+        if isinstance(date_val, str):
+            # Handle ISO format with 'Z' suffix
+            clean_date = date_val.replace('Z', '+00:00')
+            return datetime.fromisoformat(clean_date)
+    except Exception as e:
+        logger.warning(f"Could not parse date {date_val}: {e}")
+    return None
 
 class StoryStore:
     def __init__(self):
@@ -40,6 +51,11 @@ class StoryStore:
                     # Handle old fields or differences if any
                     if "user_id" not in story_data:
                         story_data["user_id"] = None
+                    
+                    # Ensure created_at is a datetime object
+                    if "created_at" in story_data:
+                        story_data["created_at"] = parse_date(story_data["created_at"])
+                        
                     story = StoryMeta(**story_data)
                     session.add(story)
                 session.commit()

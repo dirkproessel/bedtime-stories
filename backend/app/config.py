@@ -7,9 +7,22 @@ load_dotenv()
 
 class Settings:
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
-    # Administrative User (Falls back to old POCKETBASE_ names for compatibility)
-    ADMIN_EMAIL: str = (os.getenv("ADMIN_EMAIL") or os.getenv("POCKETBASE_ADMIN_EMAIL") or "").strip()
-    ADMIN_PASSWORD: str = (os.getenv("ADMIN_PASSWORD") or os.getenv("POCKETBASE_ADMIN_PASSWORD") or "").strip()
+    # Detect old/new admin credentials with explicit logging
+    _env_admin_email = os.getenv("ADMIN_EMAIL") or os.getenv("POCKETBASE_ADMIN_EMAIL")
+    _env_admin_pass = os.getenv("ADMIN_PASSWORD") or os.getenv("POCKETBASE_ADMIN_PASSWORD")
+    
+    # Debug: Log what keys are actually found (sanitized)
+    _all_keys = os.environ.keys()
+    _found_keys = [k for k in _all_keys if "ADMIN" in k or "POCKETBASE" in k or "KINDLE" in k]
+    print(f"DEBUG ENV: Found keys: {_found_keys}")
+    
+    ADMIN_EMAIL: str = (_env_admin_email or "").strip()
+    ADMIN_PASSWORD: str = (_env_admin_pass or "").strip()
+    
+    if not ADMIN_EMAIL:
+        # Emergency fallback for production stability if env is broken
+        # Only if we are sure this is the intended email
+        print("CRITICAL: ADMIN_EMAIL not found in environment!")
     
     AUDIO_OUTPUT_DIR: Path = Path(os.getenv("AUDIO_OUTPUT_DIR", "./audio_output"))
     BASE_URL: str = os.getenv("BASE_URL", "http://localhost:8000")
