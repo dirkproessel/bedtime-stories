@@ -7,9 +7,10 @@ load_dotenv()
 
 class Settings:
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
-    POCKETBASE_URL: str = os.getenv("POCKETBASE_URL", "http://localhost:8090")
-    POCKETBASE_ADMIN_EMAIL: str = os.getenv("POCKETBASE_ADMIN_EMAIL", "").strip()
-    POCKETBASE_ADMIN_PASSWORD: str = os.getenv("POCKETBASE_ADMIN_PASSWORD", "").strip()
+    # Administrative User (Falls back to old POCKETBASE_ names for compatibility)
+    ADMIN_EMAIL: str = (os.getenv("ADMIN_EMAIL") or os.getenv("POCKETBASE_ADMIN_EMAIL") or "").strip()
+    ADMIN_PASSWORD: str = (os.getenv("ADMIN_PASSWORD") or os.getenv("POCKETBASE_ADMIN_PASSWORD") or "").strip()
+    
     AUDIO_OUTPUT_DIR: Path = Path(os.getenv("AUDIO_OUTPUT_DIR", "./audio_output"))
     BASE_URL: str = os.getenv("BASE_URL", "http://localhost:8000")
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")

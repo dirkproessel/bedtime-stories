@@ -51,8 +51,8 @@ class StoryStore:
 
     def _seed_admin(self):
         """Ensure the admin user exists in the database."""
-        email = settings.POCKETBASE_ADMIN_EMAIL
-        password = settings.POCKETBASE_ADMIN_PASSWORD
+        email = settings.ADMIN_EMAIL
+        password = settings.ADMIN_PASSWORD
         
         if not email or not password:
             logger.warning("Admin credentials not set in environment. Skipping seeding.")

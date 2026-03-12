@@ -31,7 +31,7 @@ def register_user(user_in: UserCreate, session: Session = Depends(get_session)):
 
     # Determine if this should be the admin
     is_admin = False
-    config_admin = settings.POCKETBASE_ADMIN_EMAIL.lower()
+    config_admin = settings.ADMIN_EMAIL.lower()
     target_email = user_in.email.lower()
     
     logger.info(f"Registering user: {target_email}. Configured admin: '{config_admin}'")
@@ -69,7 +69,7 @@ def login_for_access_token(
     if not user.is_active:
         raise HTTPException(status_code=400, detail="Benutzerkonto inaktiv")
     
-    config_admin = settings.POCKETBASE_ADMIN_EMAIL.lower()
+    config_admin = settings.ADMIN_EMAIL.lower()
     user_email = user.email.lower()
     
     logger.info(f"Login successful for {user_email}. is_admin in DB: {user.is_admin}. Config admin: '{config_admin}'")
