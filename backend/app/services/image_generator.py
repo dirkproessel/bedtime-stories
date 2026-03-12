@@ -40,8 +40,8 @@ async def generate_story_image(synopsis: str, output_path: Path, genre: str = "R
             f"WICHTIGE REGEL: KEIN TEXT! Generiere absolut keine Buchstaben, keine Wörter, keine Signaturen und keine Titel im Bild. Verwende ausschließlich reine Bildsprache."
         )
 
-        # Use Imagen 3.0 Fast for better cost-efficiency as requested
-        model_id = 'imagen-3.0-fast-generate-001'
+        # Use high-quality Imagen 3.0 Standard for better reliability
+        model_id = 'imagen-3.0-generate-001'
         logger.info(f"Using Google Image model: {model_id}")
         
         response = client.models.generate_images(
@@ -60,13 +60,21 @@ async def generate_story_image(synopsis: str, output_path: Path, genre: str = "R
             logger.info(f"Image saved successfully to {output_path}")
             return output_path
         else:
-            rai_info = getattr(response, 'rai_reason', 'No RAI reason provided')
-            logger.error(f"Imagen returned no images. Potential RAI filter? {rai_info}")
-            # Log full response for deep debugging
+            # Enhanced RAI logging
+            rai_info = "Unknown"
+            if hasattr(response, 'rai_reason'):
+                rai_info = response.rai_reason
+            
+            logger.error(f"Imagen returned no images. Potential RAI filter block? Reason: {rai_info}")
+            
+            # Detailed response debugging
             try:
-                logger.debug(f"Full response object: {response}")
-            except:
-                pass
+                import json
+                # Try to log as much as possible about the failure
+                resp_dict = str(response)
+                logger.debug(f"Full response metadata: {resp_dict}")
+            except Exception as e_log:
+                logger.debug(f"Could not log full response: {e_log}")
             return None
 
     except Exception as e:

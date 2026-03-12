@@ -31,7 +31,9 @@ interface AppState {
     totalMyStories: number;
     totalPublicStories: number;
     currArchivePage: number;
-    loadStories: (page?: number, filter?: string) => Promise<void>;
+    archiveFilter: 'my' | 'all' | 'public';
+    setArchiveFilter: (filter: 'my' | 'all' | 'public') => void;
+    loadStories: (page?: number) => Promise<void>;
 
     // Generation
     startGeneration: (req: StoryRequest) => Promise<void>;
@@ -82,6 +84,8 @@ export const useStore = create<AppState>((set, get) => {
     totalMyStories: 0,
     totalPublicStories: 0,
     currArchivePage: 1,
+    archiveFilter: 'my',
+    setArchiveFilter: (filter) => set({ archiveFilter: filter }),
     activeView: 'create',
     selectedStoryId: null,
     isLoading: false,
@@ -176,10 +180,11 @@ export const useStore = create<AppState>((set, get) => {
         }
     },
 
-    loadStories: async (page = 1, filter = 'all') => {
+    loadStories: async (page = 1) => {
+        const { archiveFilter } = get();
         try {
             const { fetchStories } = await import('../lib/api');
-            const { stories, total, total_my, total_public } = await fetchStories(page, 30, filter);
+            const { stories, total, total_my, total_public } = await fetchStories(page, 30, archiveFilter);
             set({ 
                 stories, 
                 totalStories: total, 

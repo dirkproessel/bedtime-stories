@@ -10,6 +10,7 @@ import { voiceName, voiceDesc } from '../lib/voices';
 export default function StoryArchive() {
     const { 
         stories, totalStories, totalMyStories, totalPublicStories, currArchivePage, voices, 
+        archiveFilter, setArchiveFilter,
         setActiveView, setSelectedStoryId, loadStories, 
         updateStorySpotify, toggleStoryVisibility, user 
     } = useStore();
@@ -21,7 +22,6 @@ export default function StoryArchive() {
     const [kindleEmail, setKindleEmail] = useState<string>(() => user?.kindle_email || localStorage.getItem('kindle_email') || 'dirk.proessel.runthaler@kindle.com');
     const [isExporting, setIsExporting] = useState<string | null>(null);
     const [showKindleModal, setShowKindleModal] = useState<string | null>(null);
-    const [adminFilter, setAdminFilter] = useState<'my' | 'all' | 'public'>('my');
     const [isPublicLoading, setIsPublicLoading] = useState<string | null>(null);
     const audioRef = useRef<HTMLAudioElement>(null);
 
@@ -30,35 +30,35 @@ export default function StoryArchive() {
 
     useEffect(() => {
         // First load with the initial filter
-        loadStories(1, adminFilter);
+        loadStories(1);
     }, []);
 
     // Effect to switch to "public" if "my" is empty on first load
     useEffect(() => {
         if (!initialCheckDone && totalStories !== undefined) {
-            if (adminFilter === 'my' && totalMyStories === 0 && totalPublicStories > 0) {
-                setAdminFilter('public');
-                loadStories(1, 'public');
+            if (archiveFilter === 'my' && totalMyStories === 0 && totalPublicStories > 0) {
+                setArchiveFilter('public');
+                loadStories(1);
             }
             setInitialCheckDone(true);
         }
-    }, [totalMyStories, totalPublicStories, totalStories, initialCheckDone, adminFilter, loadStories]);
+    }, [totalMyStories, totalPublicStories, totalStories, initialCheckDone, archiveFilter, loadStories, setArchiveFilter]);
 
     const handleFilterChange = (val: 'my' | 'all' | 'public') => {
-        setAdminFilter(val);
-        loadStories(1, val);
+        setArchiveFilter(val);
+        loadStories(1);
         document.getElementById('main-scroll-container')?.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     const handlePageChange = (page: number) => {
-        loadStories(page, adminFilter);
+        loadStories(page);
         document.getElementById('main-scroll-container')?.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     // Default to 'my' stories to meet user expectation
     useEffect(() => {
-        setAdminFilter('my');
-    }, [user?.id]);
+        setArchiveFilter('my');
+    }, [user?.id, setArchiveFilter]);
 
     const formatDuration = (seconds: number | null) => {
         if (!seconds) return '—';
@@ -158,19 +158,19 @@ export default function StoryArchive() {
                         <div className="bg-slate-100 p-1 rounded-xl flex gap-1">
                             <button
                                 onClick={() => handleFilterChange('my')}
-                                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${adminFilter === 'my' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${archiveFilter === 'my' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                             >
                                 {user.is_admin ? 'Meine' : 'Persönlich'}
-                                <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${adminFilter === 'my' ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-200 text-slate-500'}`}>
+                                <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${archiveFilter === 'my' ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-200 text-slate-500'}`}>
                                     {totalMyStories}
                                 </span>
                             </button>
                             <button
                                 onClick={() => handleFilterChange(user.is_admin ? 'all' : 'public')}
-                                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${adminFilter !== 'my' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${archiveFilter !== 'my' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                             >
                                 {user.is_admin ? 'Alle Geschichten' : 'Öffentliche'}
-                                <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${adminFilter !== 'my' ? 'bg-white border border-indigo-100 text-indigo-600' : 'bg-slate-200 text-slate-500'}`}>
+                                <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${archiveFilter !== 'my' ? 'bg-white border border-indigo-100 text-indigo-600' : 'bg-slate-200 text-slate-500'}`}>
                                     {totalPublicStories}
                                 </span>
                             </button>
@@ -295,7 +295,7 @@ export default function StoryArchive() {
                                                             <Calendar className="w-3 h-3" />
                                                             {formatDate(story.created_at)}
                                                         </span>
-                                                        {user?.is_admin && adminFilter === 'all' && (
+                                                        {user?.is_admin && archiveFilter === 'all' && (
                                                             <span className="flex items-center gap-1 border-l border-slate-200 pl-3">
                                                                 <Users className="w-3 h-3" />
                                                                 {story.user_id === user.id ? 'Von mir' : (story.user_email || story.user_id || 'Gast')}
