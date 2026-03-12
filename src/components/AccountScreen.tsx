@@ -91,7 +91,7 @@ export default function AccountScreen() {
                             </button>
                         </div>
                         <p className="text-xs text-slate-400">
-                            Füge zuerst "delivery@bedtime-stories.local" zu deinen genehmigten Email-Adressen bei Amazon hinzu.
+                            Füge zuerst "dirk.proessel@gmail.com" zu deinen genehmigten Email-Adressen bei Amazon hinzu.
                         </p>
                     </div>
                 </div>

@@ -29,6 +29,13 @@ from app.config import settings
 # Log file for remote debugging (cross-worker)
 DEBUG_LOG_PATH = settings.AUDIO_OUTPUT_DIR / "debug.log"
 
+# Diagnostic for Image Generation
+if settings.GEMINI_API_KEY:
+    masked_key = settings.GEMINI_API_KEY[:4] + "..." + settings.GEMINI_API_KEY[-4:]
+    logging.info(f"GEMINI_API_KEY detected: {masked_key}")
+else:
+    logging.warning("GEMINI_API_KEY NOT detected in environment!")
+
 class LogFileHandler(logging.Handler):
     def emit(self, record):
         try:

@@ -354,36 +354,40 @@ export default function StoryArchive() {
                                                 )}
                                                 Kindle Export
                                             </button>
-                                            <div className="flex items-center justify-center sm:justify-start">
-                                                <label className={`flex items-center gap-1.5 cursor-pointer group/toggle ${story.status !== 'done' ? 'opacity-30 cursor-not-allowed' : ''}`}>
-                                                    <div className="relative">
-                                                        <input
-                                                            type="checkbox"
-                                                            className="sr-only"
-                                                            disabled={story.status !== 'done'}
-                                                            checked={story.is_on_spotify}
-                                                            onChange={(e) => handleSpotifyToggle(story.id, e.target.checked)}
-                                                        />
-                                                        <div className={`w-8 h-4.5 rounded-full transition-colors ${story.is_on_spotify ? 'bg-green-500' : 'bg-slate-200'}`}></div>
-                                                        <div className={`absolute top-0.5 left-0.5 w-3.5 h-3.5 bg-white rounded-full transition-transform ${story.is_on_spotify ? 'translate-x-3.5' : ''}`}></div>
-                                                    </div>
-                                                    <span className={`text-[10px] sm:text-xs font-semibold transition-colors ${story.is_on_spotify ? 'text-green-600' : 'text-slate-400'}`}>
-                                                        Spotify
-                                                    </span>
-                                                </label>
-                                            </div>
+                                            {user?.is_admin && (
+                                                <div className="flex items-center justify-center sm:justify-start">
+                                                    <label className={`flex items-center gap-1.5 cursor-pointer group/toggle ${story.status !== 'done' ? 'opacity-30 cursor-not-allowed' : ''}`}>
+                                                        <div className="relative">
+                                                            <input
+                                                                type="checkbox"
+                                                                className="sr-only"
+                                                                disabled={story.status !== 'done'}
+                                                                checked={story.is_on_spotify}
+                                                                onChange={(e) => handleSpotifyToggle(story.id, e.target.checked)}
+                                                            />
+                                                            <div className={`w-8 h-4.5 rounded-full transition-colors ${story.is_on_spotify ? 'bg-green-500' : 'bg-slate-200'}`}></div>
+                                                            <div className={`absolute top-0.5 left-0.5 w-3.5 h-3.5 bg-white rounded-full transition-transform ${story.is_on_spotify ? 'translate-x-3.5' : ''}`}></div>
+                                                        </div>
+                                                        <span className={`text-[10px] sm:text-xs font-semibold transition-colors ${story.is_on_spotify ? 'text-green-600' : 'text-slate-400'}`}>
+                                                            Spotify
+                                                        </span>
+                                                    </label>
+                                                </div>
+                                            )}
                                         </div>
 
-                                        <div className="flex justify-end mt-2">
-                                            <button
-                                                onClick={() => handleDelete(story.id, story.title)}
-                                                className="flex items-center gap-1.5 px-2 py-1 text-[10px] font-medium text-slate-300 hover:text-red-400 transition-colors"
-                                                title="Löschen"
-                                            >
-                                                <Trash2 className="w-3 h-3" />
-                                                Geschichte löschen
-                                            </button>
-                                        </div>
+                                        {(user?.is_admin || story.user_id === user?.id) && (
+                                            <div className="flex justify-end mt-2">
+                                                <button
+                                                    onClick={() => handleDelete(story.id, story.title)}
+                                                    className="flex items-center gap-1.5 px-2 py-1 text-[10px] font-medium text-slate-300 hover:text-red-400 transition-colors"
+                                                    title="Löschen"
+                                                >
+                                                    <Trash2 className="w-3 h-3" />
+                                                    Geschichte löschen
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>
