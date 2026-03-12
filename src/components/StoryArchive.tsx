@@ -9,7 +9,7 @@ import { voiceName, voiceDesc } from '../lib/voices';
 
 export default function StoryArchive() {
     const { 
-        stories, totalStories, currArchivePage, voices, 
+        stories, totalStories, totalMyStories, totalPublicStories, currArchivePage, voices, 
         setActiveView, setSelectedStoryId, loadStories, 
         updateStorySpotify, toggleStoryVisibility, user 
     } = useStore();
@@ -21,14 +21,24 @@ export default function StoryArchive() {
     const [kindleEmail, setKindleEmail] = useState<string>(() => user?.kindle_email || localStorage.getItem('kindle_email') || 'dirk.proessel.runthaler@kindle.com');
     const [isExporting, setIsExporting] = useState<string | null>(null);
     const [showKindleModal, setShowKindleModal] = useState<string | null>(null);
-    const [adminFilter, setAdminFilter] = useState<'my' | 'all'>(user?.is_admin ? 'all' : 'my');
+    const [adminFilter, setAdminFilter] = useState<'my' | 'all' | 'public'>(user?.is_admin ? 'all' : 'my');
     const [isPublicLoading, setIsPublicLoading] = useState<string | null>(null);
     const audioRef = useRef<HTMLAudioElement>(null);
 
     useEffect(() => {
-        window.scrollTo(0, 0);
-        loadStories();
+        loadStories(1, adminFilter);
     }, []);
+
+    const handleFilterChange = (val: 'my' | 'all' | 'public') => {
+        setAdminFilter(val);
+        loadStories(1, val);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const handlePageChange = (page: number) => {
+        loadStories(page, adminFilter);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
 
     // Default to 'my' stories to meet user expectation
     useEffect(() => {
@@ -127,22 +137,30 @@ export default function StoryArchive() {
                     <BookOpen className="w-8 h-8 text-white" />
                 </div>
                 <h1 className="text-2xl font-bold text-slate-900">Archiv</h1>
-                <p className="text-slate-500 mt-1">{totalStories} Geschichte{totalStories !== 1 ? 'n' : ''}</p>
+                <p className="text-slate-500 mt-1">
+                    {adminFilter === 'my' ? totalMyStories : (user?.is_admin ? totalStories : totalPublicStories)} Geschichte{totalStories !== 1 ? 'n' : ''}
+                </p>
                 
                 {user && (
                     <div className="flex items-center justify-center mt-6">
                         <div className="bg-slate-100 p-1 rounded-xl flex gap-1">
                             <button
-                                onClick={() => setAdminFilter('my')}
-                                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${adminFilter === 'my' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                onClick={() => handleFilterChange('my')}
+                                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${adminFilter === 'my' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                             >
                                 {user.is_admin ? 'Meine' : 'Persönlich'}
+                                <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${adminFilter === 'my' ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-200 text-slate-500'}`}>
+                                    {totalMyStories}
+                                </span>
                             </button>
                             <button
-                                onClick={() => setAdminFilter('all')}
-                                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${adminFilter === 'all' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                onClick={() => handleFilterChange(user.is_admin ? 'all' : 'public')}
+                                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${adminFilter !== 'my' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                             >
                                 {user.is_admin ? 'Alle Geschichten' : 'Öffentliche'}
+                                <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${adminFilter !== 'my' ? 'bg-white border border-indigo-100 text-indigo-600' : 'bg-slate-200 text-slate-500'}`}>
+                                    {user.is_admin ? totalStories : totalPublicStories}
+                                </span>
                             </button>
                         </div>
                     </div>
@@ -158,17 +176,7 @@ export default function StoryArchive() {
                 </div>
             ) : (
                 <div className="space-y-3">
-                    {stories
-                        .filter(s => {
-                            if (!user) return s.is_public; // Guests only public
-                            if (user.is_admin) {
-                                return adminFilter === 'all' || s.user_id === user.id;
-                            }
-                            // Standard users
-                            if (adminFilter === 'all') return s.is_public;
-                            return s.user_id === user.id;
-                        })
-                        .map(story => (
+                    {stories.map(story => (
                         <div
                             key={story.id}
                             className="bg-white border-2 border-slate-100 rounded-2xl p-4 hover:border-slate-200 transition-all group"
@@ -400,7 +408,7 @@ export default function StoryArchive() {
             {totalStories > 30 && (
                 <div className="mt-8 flex items-center justify-center gap-4">
                     <button
-                        onClick={() => loadStories(currArchivePage - 1)}
+                        onClick={() => handlePageChange(currArchivePage - 1)}
                         disabled={currArchivePage <= 1}
                         className="p-2 rounded-xl border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-100 disabled:opacity-30 disabled:hover:text-slate-400 disabled:hover:border-slate-200 transition-all"
                     >
@@ -412,7 +420,7 @@ export default function StoryArchive() {
                     </div>
                     
                     <button
-                        onClick={() => loadStories(currArchivePage + 1)}
+                        onClick={() => handlePageChange(currArchivePage + 1)}
                         disabled={currArchivePage >= Math.ceil(totalStories / 30)}
                         className="p-2 rounded-xl border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-100 disabled:opacity-30 disabled:hover:text-slate-400 disabled:hover:border-slate-200 transition-all"
                     >

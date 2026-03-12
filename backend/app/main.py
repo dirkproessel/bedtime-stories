@@ -589,32 +589,56 @@ async def get_status(story_id: str):
 async def list_stories(
     page: int = 1,
     page_size: int = 30,
+    filter: str = "all", # "my", "public", "all"
     current_user: User | None = Depends(get_optional_user)
 ):
     """List all stories based on user role and visibility with pagination."""
     all_stories = store.get_all()
     
+    # Calculate counts regardless of filter
+    total_public = len([s for s in all_stories if s.is_public])
+    total_my = 0
+    if current_user:
+        total_my = len([s for s in all_stories if s.user_id == current_user.id])
+    
+    # Filter based on user access
     if not current_user:
-        # Guests see only public stories
-        stories = [s for s in all_stories if s.is_public]
+        accessible_stories = [s for s in all_stories if s.is_public]
     elif current_user.is_admin:
-        # Admins see everything + user emails
-        stories = all_stories
+        accessible_stories = all_stories
+    else:
+        accessible_stories = [s for s in all_stories if s.user_id == current_user.id or s.is_public]
+        
+    # Apply UI filter
+    if filter == "my" and current_user:
+        stories = [s for s in accessible_stories if s.user_id == current_user.id]
+    elif filter == "public":
+        stories = [s for s in accessible_stories if s.is_public]
+    else:
+        # "all" or guest
+        stories = accessible_stories
+    
+    # Sort by created_at desc
+    stories.sort(key=lambda x: x.created_at, reverse=True)
+
+    if current_user and current_user.is_admin:
         # Attach emails for admin view
         users = {u.id: u.email for u in store.get_all_users()}
         for s in stories:
             if s.user_id:
                 s.user_email = users.get(s.user_id)
-    else:
-        # Standard users see their own + public stories
-        stories = [s for s in all_stories if s.user_id == current_user.id or s.is_public]
     
     total = len(stories)
     start = (page - 1) * page_size
     end = start + page_size
     paginated_stories = stories[start:end]
         
-    return StoryListResponse(stories=paginated_stories, total=total)
+    return StoryListResponse(
+        stories=paginated_stories, 
+        total=total,
+        total_my=total_my,
+        total_public=total_public
+    )
 
 
 @app.get("/api/stories/{story_id}")

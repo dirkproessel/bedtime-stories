@@ -169,8 +169,13 @@ export async function fetchStatus(storyId: string): Promise<GenerationStatus> {
 }
 
 // Stories
-export async function fetchStories(page: number = 1, pageSize: number = 30): Promise<{ stories: StoryMeta[], total: number }> {
-    const res = await fetch(`${API_BASE}/api/stories?page=${page}&page_size=${pageSize}`, { headers: getAuthHeaders() });
+export async function fetchStories(page: number = 1, pageSize: number = 30, filter: string = 'all'): Promise<{ 
+    stories: StoryMeta[], 
+    total: number,
+    total_my: number,
+    total_public: number
+}> {
+    const res = await fetch(`${API_BASE}/api/stories?page=${page}&page_size=${pageSize}&filter=${filter}`, { headers: getAuthHeaders() });
     if (!res.ok) throw new Error('Failed to fetch stories');
     return res.json();
 }

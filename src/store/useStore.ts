@@ -28,8 +28,10 @@ interface AppState {
     // Stories
     stories: StoryMeta[];
     totalStories: number;
+    totalMyStories: number;
+    totalPublicStories: number;
     currArchivePage: number;
-    loadStories: (page?: number) => Promise<void>;
+    loadStories: (page?: number, filter?: string) => Promise<void>;
 
     // Generation
     startGeneration: (req: StoryRequest) => Promise<void>;
@@ -77,6 +79,8 @@ export const useStore = create<AppState>((set, get) => {
     voices: [],
     stories: [],
     totalStories: 0,
+    totalMyStories: 0,
+    totalPublicStories: 0,
     currArchivePage: 1,
     activeView: 'create',
     selectedStoryId: null,
@@ -172,11 +176,17 @@ export const useStore = create<AppState>((set, get) => {
         }
     },
 
-    loadStories: async (page = 1) => {
+    loadStories: async (page = 1, filter = 'all') => {
         try {
             const { fetchStories } = await import('../lib/api');
-            const { stories, total } = await fetchStories(page);
-            set({ stories, totalStories: total });
+            const { stories, total, total_my, total_public } = await fetchStories(page, 30, filter);
+            set({ 
+                stories, 
+                totalStories: total, 
+                totalMyStories: total_my, 
+                totalPublicStories: total_public,
+                currArchivePage: page 
+            });
         } catch {
             // Same – non-critical on first load
         }

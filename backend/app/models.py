@@ -131,4 +131,6 @@ class StoryStatus(BaseModel):
 class StoryListResponse(BaseModel):
     stories: list[StoryMeta]
     total: int
+    total_my: int = 0
+    total_public: int = 0
 
