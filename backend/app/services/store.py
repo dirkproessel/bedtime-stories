@@ -58,26 +58,44 @@ class StoryStore:
             logger.warning("Admin credentials not set in environment. Skipping seeding.")
             return
             
+        # Fixed ID for the main admin to ensure RSS Feed stability (legacy link migration)
+        ADMIN_ID = "3aef172e-d006-4444-8888-migration-admin"
+        
         with Session(engine) as session:
-            existing = session.exec(select(User).where(User.email == email.lower())).first()
-            if existing:
-                if not existing.is_admin:
-                    existing.is_admin = True
-                    session.add(existing)
+            # 1. First, check if there's any user with this ID already
+            existing_by_id = session.get(User, ADMIN_ID)
+            
+            # 2. Then check if there's a user with this email
+            existing_by_email = session.exec(select(User).where(User.email == email.lower())).first()
+            
+            if existing_by_email:
+                # Always ensure is_admin and kindle_email are set for the configured admin
+                needs_update = False
+                if not existing_by_email.is_admin:
+                    existing_by_email.is_admin = True
+                    needs_update = True
+                if not existing_by_email.kindle_email and settings.KINDLE_EMAIL:
+                    existing_by_email.kindle_email = settings.KINDLE_EMAIL
+                    needs_update = True
+                    
+                if needs_update:
+                    session.add(existing_by_email)
                     session.commit()
-                    logger.info(f"User {email} promoted to admin.")
+                    logger.info(f"User {email} settings updated (admin/kindle).")
                 return
                 
+            # If user doesn't exist at all, create with stable ID
             try:
                 admin_user = User(
-                    id=str(uuid.uuid4()),
+                    id=ADMIN_ID,
                     email=email.lower(),
                     hashed_password=get_password_hash(password),
-                    is_admin=True
+                    is_admin=True,
+                    kindle_email=settings.KINDLE_EMAIL
                 )
                 session.add(admin_user)
                 session.commit()
-                logger.info(f"Admin user {email} seeded successfully!")
+                logger.info(f"Admin user {email} seeded with stable ID and Kindle settings!")
             except Exception as e:
                 logger.error(f"Failed to seed admin user: {e}")
 
