@@ -151,6 +151,7 @@ class StoryStore:
                     # Direct SQL to update PK - safest way in SQLite/SQLModel for this one-time fix
                     from sqlalchemy import text
                     session.execute(text("UPDATE user SET id = :new_id WHERE email = :email"), {"new_id": ADMIN_ID, "email": email.lower()})
+                    session.execute(text("UPDATE storymeta SET user_id = :new_id WHERE user_id = :old_id"), {"new_id": ADMIN_ID, "old_id": existing_by_email.id})
                     session.commit()
                     # Refresh object
                     existing_by_email = session.get(User, ADMIN_ID)

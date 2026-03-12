@@ -11,6 +11,7 @@ async def generate_story_image(synopsis: str, output_path: Path, genre: str = "R
     Generate a square cover image for the story using Google's Imagen 3.
     Target format: 1024x1024 (Spotify-friendly).
     """
+    logger.info(f"ENTERING generate_story_image for {output_path.name}")
     if not settings.GEMINI_API_KEY:
         logger.warning("GEMINI_API_KEY not set in settings. Skipping image generation.")
         return None
@@ -33,8 +34,11 @@ async def generate_story_image(synopsis: str, output_path: Path, genre: str = "R
         
         genre_hint = style_hints.get(genre, "Artistic illustration")
         
+        # Use story title as fallback if synopsis is empty
+        clean_synopsis = synopsis.strip() or "A beautiful and magical scene based on the story theme"
+        
         enhanced_prompt = (
-            f"Anspruchsvolles Szene-Artwork: {synopsis}. "
+            f"Anspruchsvolles Szene-Artwork: {clean_synopsis}. "
             f"Genre: {genre}. Visueller Stil: {genre_hint}, literarisch, hochwertig, ästhetisch ansprechend, keine Klischees. "
             f"Passend zum Schreibstil von {style}. Minimalistisch und modern. "
             f"WICHTIGE REGEL: KEIN TEXT! Generiere absolut keine Buchstaben, keine Wörter, keine Signaturen und keine Titel im Bild. Verwende ausschließlich reine Bildsprache."
