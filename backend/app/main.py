@@ -594,7 +594,11 @@ async def list_stories(
 ):
     """List all stories based on user role and visibility with pagination."""
     all_stories = store.get_all()
-    
+    # Debug logging for ID matching
+    logger.info(f"API list_stories: current_user.id='{current_user.id if current_user else 'None'}'")
+    if all_stories:
+        logger.info(f"Sample story owners: {[s.user_id for s in all_stories[:3]]}")
+
     # Calculate counts regardless of filter
     stories_my = [s for s in all_stories if s.user_id == (current_user.id if current_user else None)]
     total_my = len(stories_my)

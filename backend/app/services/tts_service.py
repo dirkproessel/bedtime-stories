@@ -122,7 +122,7 @@ async def generate_tts_chunk(
         voice_config = OPENAI_VOICES[voice_key]
         engine = "openai"
     elif voice_key in GEMINI_VOICES:
-        if not rate_limiter.has_daily_quota():
+        if not rate_limiter.has_daily_quota("tts"):
             logger.warning(f"Rate Limiter: Daily Gemini quota reached. Immediately falling back to Edge TTS for voice {voice_key}.")
             voice_config = EDGE_VOICES.get(DEFAULT_VOICE, EDGE_VOICES["seraphina"])
             engine = "edge"
@@ -359,7 +359,7 @@ async def generate_tts_chunk(
                     logger.info(f"TTS Gemini: Processing chunk {i+1}/{len(text_chunks)} ({len(chunk.encode('utf-8'))} bytes) - Attempt {attempt+1}")
                     try:
                         # Wait for capacity before making request
-                        await rate_limiter.wait_for_capacity()
+                        await rate_limiter.wait_for_capacity("tts")
                         
                         # Added wait_for to prevent infinite network hangs
                         response = await asyncio.wait_for(
@@ -381,7 +381,7 @@ async def generate_tts_chunk(
                         )
                         
                         # Record successful request towards daily quota
-                        rate_limiter.increment_daily_quota()
+                        rate_limiter.increment_daily_quota("tts")
                     except asyncio.TimeoutError:
                         if attempt == max_retries - 1:
                             logger.error(f"Gemini API timed out on chunk {i+1} after {max_retries} attempts. Triggering Fallback...")

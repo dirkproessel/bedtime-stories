@@ -21,13 +21,28 @@ export default function StoryArchive() {
     const [kindleEmail, setKindleEmail] = useState<string>(() => user?.kindle_email || localStorage.getItem('kindle_email') || 'dirk.proessel.runthaler@kindle.com');
     const [isExporting, setIsExporting] = useState<string | null>(null);
     const [showKindleModal, setShowKindleModal] = useState<string | null>(null);
-    const [adminFilter, setAdminFilter] = useState<'my' | 'all' | 'public'>(user?.is_admin ? 'all' : 'my');
+    const [adminFilter, setAdminFilter] = useState<'my' | 'all' | 'public'>('my');
     const [isPublicLoading, setIsPublicLoading] = useState<string | null>(null);
     const audioRef = useRef<HTMLAudioElement>(null);
 
+    // Track if we have performed the initial check for "my" stories
+    const [initialCheckDone, setInitialCheckDone] = useState(false);
+
     useEffect(() => {
+        // First load with the initial filter
         loadStories(1, adminFilter);
     }, []);
+
+    // Effect to switch to "public" if "my" is empty on first load
+    useEffect(() => {
+        if (!initialCheckDone && totalStories !== undefined) {
+            if (adminFilter === 'my' && totalMyStories === 0 && totalPublicStories > 0) {
+                setAdminFilter('public');
+                loadStories(1, 'public');
+            }
+            setInitialCheckDone(true);
+        }
+    }, [totalMyStories, totalPublicStories, totalStories, initialCheckDone, adminFilter, loadStories]);
 
     const handleFilterChange = (val: 'my' | 'all' | 'public') => {
         setAdminFilter(val);

@@ -40,11 +40,13 @@ async def generate_story_image(synopsis: str, output_path: Path, genre: str = "R
             f"WICHTIGE REGEL: KEIN TEXT! Generiere absolut keine Buchstaben, keine Wörter, keine Signaturen und keine Titel im Bild. Verwende ausschließlich reine Bildsprache."
         )
 
+        # Try Imagen 3.0 Generate 002 if fast fails or for better quality
         # Note: generate_images is synchronous in the current google-genai SDK 
-        # but we wrap it in a thread if needed, or just call it directly if it's not a heavy load.
-        # For simplicity in this script, we call it directly.
+        model_id = 'imagen-3.0-generate-002'
+        logger.info(f"Using Google Image model: {model_id}")
+        
         response = client.models.generate_images(
-            model='imagen-3.0-fast-generate-001',
+            model=model_id,
             prompt=enhanced_prompt,
             config=types.GenerateImagesConfig(
                 number_of_images=1,
@@ -54,16 +56,25 @@ async def generate_story_image(synopsis: str, output_path: Path, genre: str = "R
         )
 
         if response.generated_images:
-            # The SDK returns a list of GeneratedImage objects
             generated_image = response.generated_images[0]
-            # Save the image bytes to path
             output_path.write_bytes(generated_image.image.image_bytes)
-            logger.info(f"Google Imagen 3 image saved to {output_path}")
+            logger.info(f"Image saved successfully to {output_path}")
             return output_path
         else:
-            logger.error(f"Google Imagen 3 returned no images. RAI: {getattr(response, 'rai_reason', 'N/A')}")
+            rai_info = getattr(response, 'rai_reason', 'No RAI reason provided')
+            logger.error(f"Imagen returned no images. Potential RAI filter? {rai_info}")
+            # Log full response for deep debugging
+            try:
+                logger.debug(f"Full response object: {response}")
+            except:
+                pass
             return None
 
     except Exception as e:
-        logger.error(f"CRITICAL: Google Imagen 3 error: {type(e).__name__}: {str(e)}", exc_info=True)
+        logger.error(f"CRITICAL: Image generation error: {type(e).__name__}: {str(e)}")
+        # Check for specific error types like permissions or quota
+        if "quota" in str(e).lower():
+            logger.error("Quota exceeded for Image generation.")
+        elif "permission" in str(e).lower():
+            logger.error("Permission denied for Image generation. Check API Key/Project.")
         return None
