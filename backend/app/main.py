@@ -596,12 +596,17 @@ async def list_stories(
     all_stories = store.get_all()
     
     # Calculate counts regardless of filter
-    total_public = len([s for s in all_stories if s.is_public])
-    total_my = 0
-    if current_user:
-        total_my = len([s for s in all_stories if s.user_id == current_user.id])
+    stories_my = [s for s in all_stories if s.user_id == (current_user.id if current_user else None)]
+    total_my = len(stories_my)
     
-    # Filter based on user access
+    if current_user and current_user.is_admin:
+        # For admins, "public/all" count means "stories from others"
+        total_public = len([s for s in all_stories if s.user_id != current_user.id])
+    else:
+        # For standard users/guests, it means truly public stories
+        total_public = len([s for s in all_stories if s.is_public])
+    
+    # Filter based on user access (Bucket definition)
     if not current_user:
         accessible_stories = [s for s in all_stories if s.is_public]
     elif current_user.is_admin:
@@ -609,13 +614,17 @@ async def list_stories(
     else:
         accessible_stories = [s for s in all_stories if s.user_id == current_user.id or s.is_public]
         
-    # Apply UI filter
+    # Apply UI filter (Selection from bucket)
     if filter == "my" and current_user:
         stories = [s for s in accessible_stories if s.user_id == current_user.id]
     elif filter == "public":
-        stories = [s for s in accessible_stories if s.is_public]
+        # Standard user "Öffentlich"
+        stories = [s for s in accessible_stories if s.is_public and s.user_id != current_user.id]
+    elif filter == "all" and current_user and current_user.is_admin:
+        # Admin User "Alle" (meaning others)
+        stories = [s for s in accessible_stories if s.user_id != current_user.id]
     else:
-        # "all" or guest
+        # Fallback / Guests
         stories = accessible_stories
     
     # Sort by created_at desc

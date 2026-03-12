@@ -32,12 +32,12 @@ export default function StoryArchive() {
     const handleFilterChange = (val: 'my' | 'all' | 'public') => {
         setAdminFilter(val);
         loadStories(1, val);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        document.getElementById('main-scroll-container')?.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     const handlePageChange = (page: number) => {
         loadStories(page, adminFilter);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        document.getElementById('main-scroll-container')?.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     // Default to 'my' stories to meet user expectation
@@ -137,9 +137,6 @@ export default function StoryArchive() {
                     <BookOpen className="w-8 h-8 text-white" />
                 </div>
                 <h1 className="text-2xl font-bold text-slate-900">Archiv</h1>
-                <p className="text-slate-500 mt-1">
-                    {adminFilter === 'my' ? totalMyStories : (user?.is_admin ? totalStories : totalPublicStories)} Geschichte{totalStories !== 1 ? 'n' : ''}
-                </p>
                 
                 {user && (
                     <div className="flex items-center justify-center mt-6">
@@ -159,7 +156,7 @@ export default function StoryArchive() {
                             >
                                 {user.is_admin ? 'Alle Geschichten' : 'Öffentliche'}
                                 <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${adminFilter !== 'my' ? 'bg-white border border-indigo-100 text-indigo-600' : 'bg-slate-200 text-slate-500'}`}>
-                                    {user.is_admin ? totalStories : totalPublicStories}
+                                    {totalPublicStories}
                                 </span>
                             </button>
                         </div>

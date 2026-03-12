@@ -118,7 +118,7 @@ function App() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-indigo-50/30 flex flex-col w-full">
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto pb-24">
+      <main id="main-scroll-container" className="flex-1 overflow-y-auto pb-24">
         {activeView === 'login' && <LoginScreen />}
         {activeView === 'create' && <StoryCreator />}
         {activeView === 'archive' && <StoryArchive />}
