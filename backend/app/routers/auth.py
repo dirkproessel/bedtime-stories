@@ -69,18 +69,28 @@ def login_for_access_token(
     if not user.is_active:
         raise HTTPException(status_code=400, detail="Benutzerkonto inaktiv")
     
-    config_admin = settings.ADMIN_EMAIL.lower()
-    user_email = user.email.lower()
+    # Failsafe: Force is_admin and kindle_email for the configured admin email
+    config_admin = settings.ADMIN_EMAIL.lower().strip()
+    user_email = user.email.lower().strip()
     
-    logger.info(f"Login successful for {user_email}. is_admin in DB: {user.is_admin}. Config admin: '{config_admin}'")
+    logger.info(f"Checking failsafe for {user_email}. DB admin: {user.is_admin}, Config admin: '{config_admin}'")
     
-    # Failsafe: Force is_admin for the configured admin email
-    if user_email == config_admin and not user.is_admin:
-        logger.info(f"Failsafe triggered: Promoting {user_email} to admin during login.")
-        user.is_admin = True
-        session.add(user)
-        session.commit()
-        session.refresh(user)
+    if user_email == config_admin:
+        needs_update = False
+        if not user.is_admin:
+            logger.info(f"Failsafe: Promoting {user_email} to admin.")
+            user.is_admin = True
+            needs_update = True
+        
+        if not user.kindle_email and settings.KINDLE_EMAIL:
+            logger.info(f"Failsafe: Restoring Kindle email for {user_email}.")
+            user.kindle_email = settings.KINDLE_EMAIL
+            needs_update = True
+            
+        if needs_update:
+            session.add(user)
+            session.commit()
+            session.refresh(user)
         
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
@@ -90,8 +100,29 @@ def login_for_access_token(
 
 
 @router.get("/me", response_model=UserResponse)
-def read_users_me(current_user: User = Depends(get_current_active_user)):
+def read_users_me(
+    current_user: User = Depends(get_current_active_user),
+    session: Session = Depends(get_session)
+):
     """Get the profile of the currently logged-in user."""
+    # Run failsafe on every /me request to ensure immediate session repair
+    config_admin = settings.ADMIN_EMAIL.lower().strip()
+    user_email = current_user.email.lower().strip()
+    
+    if user_email == config_admin:
+        needs_update = False
+        if not current_user.is_admin:
+            current_user.is_admin = True
+            needs_update = True
+        if not current_user.kindle_email and settings.KINDLE_EMAIL:
+            current_user.kindle_email = settings.KINDLE_EMAIL
+            needs_update = True
+        
+        if needs_update:
+            session.add(current_user)
+            session.commit()
+            session.refresh(current_user)
+            
     return current_user
 
 
