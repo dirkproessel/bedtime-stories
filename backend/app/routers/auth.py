@@ -59,6 +59,13 @@ def login_for_access_token(
         )
     if not user.is_active:
         raise HTTPException(status_code=400, detail="Benutzerkonto inaktiv")
+    
+    # Failsafe: Force is_admin for the configured admin email
+    if user.email.lower() == settings.POCKETBASE_ADMIN_EMAIL.lower() and not user.is_admin:
+        user.is_admin = True
+        session.add(user)
+        session.commit()
+        session.refresh(user)
         
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
