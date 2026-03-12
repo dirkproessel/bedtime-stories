@@ -30,14 +30,10 @@ export default function StoryArchive() {
         loadStories();
     }, []);
 
-    // Sync adminFilter when user loaded
+    // Default to 'my' stories to meet user expectation
     useEffect(() => {
-        if (user?.is_admin) {
-            setAdminFilter('all');
-        } else {
-            setAdminFilter('my');
-        }
-    }, [user?.is_admin]);
+        setAdminFilter('my');
+    }, [user?.id]);
 
     const formatDuration = (seconds: number | null) => {
         if (!seconds) return '—';
