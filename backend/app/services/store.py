@@ -25,6 +25,9 @@ def parse_date(date_val):
         logger.warning(f"Could not parse date {date_val}: {e}")
     return None
 
+# Fixed ID for the main admin to ensure RSS Feed stability (legacy link migration)
+ADMIN_ID = "3aef172e-d006-4444-8888-migration-admin"
+
 class StoryStore:
     def __init__(self):
         # Create DB tables if they don't exist
@@ -33,6 +36,8 @@ class StoryStore:
         self._migrate_json_to_db()
         # Ensure admin user exists
         self._seed_admin()
+        # Repair: Assign owner-less stories to admin
+        self._repair_unassigned_stories()
 
     def _migrate_json_to_db(self):
         """One-time migration from stories.json to SQLite."""
@@ -49,8 +54,9 @@ class StoryStore:
                 data = json.loads(old_json_path.read_text(encoding="utf-8"))
                 for story_id, story_data in data.items():
                     # Handle old fields or differences if any
-                    if "user_id" not in story_data:
-                        story_data["user_id"] = None
+                    if not story_data.get("user_id"):
+                        story_data["user_id"] = ADMIN_ID
+                        story_data["user_email"] = settings.ADMIN_EMAIL
                     
                     # Ensure created_at is a datetime object
                     if "created_at" in story_data:
@@ -74,9 +80,6 @@ class StoryStore:
             logger.warning("Admin credentials not set in environment. Skipping seeding.")
             return
             
-        # Fixed ID for the main admin to ensure RSS Feed stability (legacy link migration)
-        ADMIN_ID = "3aef172e-d006-4444-8888-migration-admin"
-        
         with Session(engine) as session:
             # 1. First, check if there's any user with this ID already
             existing_by_id = session.get(User, ADMIN_ID)
@@ -114,6 +117,18 @@ class StoryStore:
                 logger.info(f"Admin user {email} seeded with stable ID and Kindle settings!")
             except Exception as e:
                 logger.error(f"Failed to seed admin user: {e}")
+
+    def _repair_unassigned_stories(self):
+        """Find stories without user_id and assign them to the main admin."""
+        with Session(engine) as session:
+            orphans = session.exec(select(StoryMeta).where(StoryMeta.user_id == None)).all()
+            if orphans:
+                logger.info(f"Repairing {len(orphans)} orphaned stories - assigning to Admin.")
+                for story in orphans:
+                    story.user_id = ADMIN_ID
+                    story.user_email = settings.ADMIN_EMAIL
+                    session.add(story)
+                session.commit()
 
     def get_all(self, only_spotify: bool = False, user_id: str | None = None) -> list[StoryMeta]:
         """Get all stories, sorted by creation date (newest first)."""
