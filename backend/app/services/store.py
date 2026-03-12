@@ -42,34 +42,74 @@ class StoryStore:
     def _migrate_json_to_db(self):
         """One-time migration from stories.json to SQLite."""
         old_json_path = settings.AUDIO_OUTPUT_DIR / "stories.json"
-        if not old_json_path.exists():
+        
+        # Also check for already migrated but incomplete stories (missing story.json)
+        migrated_json_path = settings.AUDIO_OUTPUT_DIR / "stories.json.migrated"
+        
+        target_path = old_json_path if old_json_path.exists() else migrated_json_path
+        
+        if not target_path.exists():
             return
             
         with Session(engine) as session:
-            existing = session.exec(select(StoryMeta)).first()
-            if existing: # Migration already happened
-                return
-                
+            # We don't skip entirely if migrated_json exists, because we might need to repair files
             try:
-                data = json.loads(old_json_path.read_text(encoding="utf-8"))
+                data = json.loads(target_path.read_text(encoding="utf-8"))
+                migrated_count = 0
+                repaired_count = 0
+                
                 for story_id, story_data in data.items():
-                    # Handle old fields or differences if any
-                    if not story_data.get("user_id"):
+                    # 1. Ensure story metadata is in DB
+                    existing = session.get(StoryMeta, story_id)
+                    
+                    # Legacy ID mapping: Dirk's old ID -> new ADMIN_ID
+                    LEGACY_DIRK_ID = "efe71098-9416-4906-aff3-6acccf03c479"
+                    owner_id = story_data.get("user_id")
+                    if not owner_id or owner_id == LEGACY_DIRK_ID:
                         story_data["user_id"] = ADMIN_ID
                         story_data["user_email"] = settings.ADMIN_EMAIL
                     
-                    # Ensure created_at is a datetime object
-                    if "created_at" in story_data:
-                        story_data["created_at"] = parse_date(story_data["created_at"])
-                        
-                    story = StoryMeta(**story_data)
-                    session.add(story)
+                    if not existing:
+                        # Ensure created_at is a datetime object
+                        if "created_at" in story_data:
+                            story_data["created_at"] = parse_date(story_data["created_at"])
+                            
+                        # Extract chapters before creating StoryMeta (which doesn't have chapters field)
+                        chapters = story_data.pop("chapters", [])
+                        story = StoryMeta(**story_data)
+                        session.add(story)
+                        # Add back for JSON saving below
+                        story_data["chapters"] = chapters
+                        migrated_count += 1
+                    else:
+                        chapters = story_data.get("chapters", [])
+
+                    # 2. Ensure story.json exists in the subdirectory
+                    story_dir = settings.AUDIO_OUTPUT_DIR / story_id
+                    story_json_file = story_dir / "story.json"
+                    if chapters and not story_json_file.exists():
+                        try:
+                            story_dir.mkdir(parents=True, exist_ok=True)
+                            story_json_file.write_text(json.dumps({
+                                "id": story_id,
+                                "title": story_data.get("title", "Story"),
+                                "chapters": chapters
+                            }, indent=2, ensure_ascii=False), encoding="utf-8")
+                            repaired_count += 1
+                        except Exception as e:
+                            logger.error(f"Failed to create story.json for {story_id}: {e}")
+
                 session.commit()
-                logger.info(f"Migrated {len(data)} stories from JSON to SQLite!")
-                # Move original file to prevent re-reading
-                old_json_path.rename(old_json_path.with_suffix(".json.migrated"))
+                if migrated_count > 0:
+                    logger.info(f"Migrated {migrated_count} stories to SQLite!")
+                if repaired_count > 0:
+                    logger.info(f"Repaired {repaired_count} story.json files from backup!")
+                
+                # Move original file only if it was the fresh one
+                if target_path == old_json_path:
+                    old_json_path.rename(old_json_path.with_suffix(".json.migrated"))
             except Exception as e:
-                logger.error(f"Failed to migrate old JSON data: {e}")
+                logger.error(f"Failed to migrate/repair JSON data: {e}", exc_info=True)
 
     def _seed_admin(self):
         """Ensure the admin user exists in the database."""
@@ -130,14 +170,24 @@ class StoryStore:
                 logger.error(f"Failed to seed admin user: {e}")
 
     def _repair_unassigned_stories(self):
-        """Find stories without user_id and assign them to the main admin."""
+        """Find stories without user_id or with legacy IDs and assign them to the main admin."""
         with Session(engine) as session:
+            # 1. Handle actual orphans (user_id is None)
             orphans = session.exec(select(StoryMeta).where(StoryMeta.user_id == None)).all()
-            if orphans:
-                logger.info(f"Repairing {len(orphans)} orphaned stories - assigning to Admin.")
-                for story in orphans:
+            
+            # 2. Handle legacy Dirk ID mapping
+            LEGACY_DIRK_ID = "efe71098-9416-4906-aff3-6acccf03c479"
+            legacy_stories = session.exec(select(StoryMeta).where(StoryMeta.user_id == LEGACY_DIRK_ID)).all()
+            
+            to_repair = orphans + legacy_stories
+            
+            if to_repair:
+                logger.info(f"Repairing {len(to_repair)} stories (orphans or legacy IDs) - assigning to Admin.")
+                for story in to_repair:
                     story.user_id = ADMIN_ID
-                    story.user_email = settings.ADMIN_EMAIL
+                    # Sync email if it was missing or old
+                    if not story.user_email or story.user_id == LEGACY_DIRK_ID:
+                        story.user_email = settings.ADMIN_EMAIL
                     session.add(story)
                 session.commit()
 
