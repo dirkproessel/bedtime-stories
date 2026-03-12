@@ -11,6 +11,9 @@ from app.auth_utils import (
     ACCESS_TOKEN_EXPIRE_MINUTES, get_current_active_user
 )
 from app.config import settings
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -28,8 +31,14 @@ def register_user(user_in: UserCreate, session: Session = Depends(get_session)):
 
     # Determine if this should be the admin
     is_admin = False
-    if user_in.email.lower() == settings.POCKETBASE_ADMIN_EMAIL.lower():
+    config_admin = settings.POCKETBASE_ADMIN_EMAIL.lower()
+    target_email = user_in.email.lower()
+    
+    logger.info(f"Registering user: {target_email}. Configured admin: '{config_admin}'")
+    
+    if target_email == config_admin:
         is_admin = True
+        logger.info(f"User matches admin email. Setting is_admin=True")
 
     new_user = User(
         id=str(uuid.uuid4()),
@@ -60,8 +69,14 @@ def login_for_access_token(
     if not user.is_active:
         raise HTTPException(status_code=400, detail="Benutzerkonto inaktiv")
     
+    config_admin = settings.POCKETBASE_ADMIN_EMAIL.lower()
+    user_email = user.email.lower()
+    
+    logger.info(f"Login successful for {user_email}. is_admin in DB: {user.is_admin}. Config admin: '{config_admin}'")
+    
     # Failsafe: Force is_admin for the configured admin email
-    if user.email.lower() == settings.POCKETBASE_ADMIN_EMAIL.lower() and not user.is_admin:
+    if user_email == config_admin and not user.is_admin:
+        logger.info(f"Failsafe triggered: Promoting {user_email} to admin during login.")
         user.is_admin = True
         session.add(user)
         session.commit()
