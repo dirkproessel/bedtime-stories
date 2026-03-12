@@ -13,7 +13,7 @@ from app.services.rate_limiter import rate_limiter
 client = genai.Client(api_key=settings.GEMINI_API_KEY)
 
 
-MODEL = "gemini-3-flash-preview"
+MODEL = "models/gemini-3-flash-preview"
 
 STANZWERK_BIBLIOTHEK = {
     "adults": [
@@ -416,7 +416,6 @@ Antworte NUR im JSON-Format:
         
         text = outline_res.text.strip()
         
-                
         outline_data = json.loads(text)
         title = outline_data.get("title", "Eine neue Geschichte")
         synopsis = outline_data.get("synopsis", "Kurzgeschichte")

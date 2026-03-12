@@ -364,7 +364,7 @@ async def generate_tts_chunk(
                         # Added wait_for to prevent infinite network hangs
                         response = await asyncio.wait_for(
                             client.aio.models.generate_content(
-                                model='gemini-2.5-flash-preview-tts',
+                                model='models/gemini-2.5-flash-preview-tts',
                                 contents=chunk + speed_hint,
                                 config=types.GenerateContentConfig(
                                     speech_config=types.SpeechConfig(

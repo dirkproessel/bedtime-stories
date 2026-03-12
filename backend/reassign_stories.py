@@ -53,20 +53,34 @@ def reassign_single_story(story_id, to_user_id):
         print("Done!")
     conn.close()
 
+def list_stories():
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    print("\n--- Current Stories ---")
+    cursor.execute("SELECT id, title, user_id FROM storymeta ORDER BY created_at DESC")
+    stories = cursor.fetchall()
+    for s in stories:
+        print(f"ID: {s[0]} | Owner: {s[2]} | Title: {s[1]}")
+    print("----------------------\n")
+    conn.close()
+
 if __name__ == "__main__":
     if not check_db():
         sys.exit(1)
 
     if len(sys.argv) < 2:
         print("Usage:")
-        print("  List users: python reassign_stories.py list")
-        print("  Move all:   python reassign_stories.py move-all <FROM_ID> <TO_ID>")
-        print("  Move one:   python reassign_stories.py move-one <STORY_ID> <TO_ID>")
+        print("  List users:    python reassign_stories.py list")
+        print("  List stories:  python reassign_stories.py list-stories")
+        print("  Move all:      python reassign_stories.py move-all <FROM_ID> <TO_ID>")
+        print("  Move one:      python reassign_stories.py move-one <STORY_ID> <TO_ID>")
         sys.exit(0)
 
     cmd = sys.argv[1]
     if cmd == "list":
         list_users()
+    elif cmd == "list-stories":
+        list_stories()
     elif cmd == "move-all" and len(sys.argv) == 4:
         reassign_all_stories(sys.argv[2], sys.argv[3])
     elif cmd == "move-one" and len(sys.argv) == 4:
