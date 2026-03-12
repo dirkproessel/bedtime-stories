@@ -13,7 +13,7 @@ from app.services.rate_limiter import rate_limiter
 client = genai.Client(api_key=settings.GEMINI_API_KEY)
 
 
-MODEL = "gemini-3-flash"
+MODEL = "gemini-3-flash-preview"
 
 STANZWERK_BIBLIOTHEK = {
     "adults": [

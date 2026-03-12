@@ -595,9 +595,14 @@ async def list_stories(
     """List all stories based on user role and visibility with pagination."""
     all_stories = store.get_all()
     # Debug logging for ID matching
-    logger.info(f"API list_stories: current_user.id='{current_user.id if current_user else 'None'}'")
     if all_stories:
-        logger.info(f"Sample story owners: {[s.user_id for s in all_stories[:3]]}")
+        # Diagnostic: who owns the first 10 stories?
+        owners_dist = {}
+        for s in all_stories:
+            owners_dist[s.user_id] = owners_dist.get(s.user_id, 0) + 1
+        logger.info(f"API list_stories: current_user.id='{current_user.id if current_user else 'None'}'")
+        logger.info(f"Ownership distribution: {owners_dist}")
+        logger.info(f"Sample story owners: {[s.user_id for s in all_stories[:5]]}")
 
     # Calculate counts regardless of filter
     stories_my = [s for s in all_stories if s.user_id == (current_user.id if current_user else None)]

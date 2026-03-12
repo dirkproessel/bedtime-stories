@@ -38,6 +38,32 @@ class StoryStore:
         self._seed_admin()
         # Repair: Assign owner-less stories to admin
         self._repair_unassigned_stories()
+        # EMERGENCY: Revert mistaken transfer to Admin
+        self._repair_ownership_mistake()
+
+    def _repair_ownership_mistake(self):
+        """One-time fix to move stories back from Admin to the original owner."""
+        # Dirk's legacy account ID
+        LEGACY_DIRK_ID = "efe71098-9416-4906-aff3-6acccf03c479"
+        
+        with Session(engine) as session:
+            # Find all stories currently owned by Admin
+            admin_stories = session.exec(select(StoryMeta).where(StoryMeta.user_id == ADMIN_ID)).all()
+            
+            # We only want to move back "legacy" stories, not brand new ones
+            # Migration happened around March 11-12 2026.
+            # Any story from before 2026 is definitely legacy.
+            # Most stories here are from previous years or early 2026.
+            to_move = [s for s in admin_stories if s.created_at and s.created_at.year <= 2026]
+            
+            if to_move:
+                logger.warning(f"EMERGENCY REPAIR: Reverting {len(to_move)} stories from Admin back to {LEGACY_DIRK_ID}")
+                for story in to_move:
+                    story.user_id = LEGACY_DIRK_ID
+                    story.user_email = None # Reset email cache
+                    session.add(story)
+                session.commit()
+                logger.info("Emergency ownership reversion complete.")
 
     def _migrate_json_to_db(self):
         """One-time migration from stories.json to SQLite."""
