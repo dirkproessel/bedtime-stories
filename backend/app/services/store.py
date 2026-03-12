@@ -88,8 +88,19 @@ class StoryStore:
             existing_by_email = session.exec(select(User).where(User.email == email.lower())).first()
             
             if existing_by_email:
-                # Always ensure is_admin and kindle_email are set for the configured admin
+                # Always ensure ID, is_admin and kindle_email are correct for the admin
                 needs_update = False
+                
+                # Check if we need to sync the ID (Manual registration mismatch)
+                if existing_by_email.id != ADMIN_ID:
+                    logger.info(f"Admin ID mismatch. Moving {email} from {existing_by_email.id} to {ADMIN_ID}")
+                    # Direct SQL to update PK - safest way in SQLite/SQLModel for this one-time fix
+                    from sqlalchemy import text
+                    session.execute(text("UPDATE user SET id = :new_id WHERE email = :email"), {"new_id": ADMIN_ID, "email": email.lower()})
+                    session.commit()
+                    # Refresh object
+                    existing_by_email = session.get(User, ADMIN_ID)
+                
                 if not existing_by_email.is_admin:
                     existing_by_email.is_admin = True
                     needs_update = True
@@ -100,7 +111,7 @@ class StoryStore:
                 if needs_update:
                     session.add(existing_by_email)
                     session.commit()
-                    logger.info(f"User {email} settings updated (admin/kindle).")
+                    logger.info(f"User {email} settings updated.")
                 return
                 
             # If user doesn't exist at all, create with stable ID
