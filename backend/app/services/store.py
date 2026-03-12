@@ -61,6 +61,12 @@ class StoryStore:
         with Session(engine) as session:
             existing = session.exec(select(User).where(User.email == email.lower())).first()
             if existing:
+                # Update password if it changed in .env or to ensure sync
+                existing.hashed_password = get_password_hash(password)
+                existing.is_admin = True # Ensure admin flag is set
+                session.add(existing)
+                session.commit()
+                logger.info(f"Admin user {email} password synced.")
                 return
                 
             try:
