@@ -203,9 +203,13 @@ export default function StoryCreator() {
             return;
         }
 
-        const idea = freeText.trim() || 'Überrasche mich mit einer wunderbaren Geschichte.';
+        const idea = freeText.trim() || (
+            generatorRemixType === 'sequel' && generatorContext 
+                ? `Fortsetzung von ${generatorContext.title}` 
+                : 'Überrasche mich mit einer wunderbaren Geschichte.'
+        );
         const selectedGenre = GENRES.find(g => g.value === genre);
-        const systemPrompt = `Kurzgeschichte im Genre ${selectedGenre?.label || genre}\n\nIdee: ${freeText}`;
+        const systemPrompt = `Kurzgeschichte im Genre ${selectedGenre?.label || genre}\n\nIdee: ${idea}`;
 
         startGeneration({
             prompt: idea,

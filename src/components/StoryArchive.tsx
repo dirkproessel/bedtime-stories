@@ -156,14 +156,14 @@ export default function StoryArchive() {
         setIsRemixing(true);
         try {
             await startGeneration({
-                prompt: remixType === 'improvement' ? (remixInstructions || story.prompt) : story.prompt,
+                prompt: remixInstructions || (remixType === 'improvement' ? story.prompt : `Fortsetzung von ${story.title}`),
                 genre: story.genre,
                 style: story.style,
                 target_minutes: story.duration_seconds ? Math.ceil(story.duration_seconds / 60) : 15,
                 voice_key: story.voice_key,
                 parent_id: storyId,
                 remix_type: remixType,
-                further_instructions: remixType === 'sequel' ? remixInstructions : undefined
+                further_instructions: remixInstructions || undefined
             });
             toast.success(remixType === 'sequel' ? 'Fortsetzung wird generiert!' : 'Verbesserung wird generiert!');
             setShowRemixModal(null);
