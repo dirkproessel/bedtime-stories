@@ -2,6 +2,8 @@ import logging
 from pathlib import Path
 from google import genai
 from google.genai import types
+import antigravity as ag
+from antigravity import ImageConfig, ModelConfig
 from app.config import settings
 
 logger = logging.getLogger(__name__)
@@ -77,49 +79,45 @@ async def generate_story_image(synopsis: str, output_path: Path, genre: str = "R
             f"Focus on pure visual storytelling without any typography."
         )
 
-        model_id = 'imagen-4.0-fast-generate-001'
-        logger.info(f"Using Google Image model: {model_id}")
+        model_id = 'gemini-2.5-flash-preview'
+        logger.info(f"Using Antigravity Image model: {model_id} (Nano Banana Preview)")
         logger.info(f"Final Enhanced Prompt: {enhanced_prompt}")
+
+        # Configure the model with explicit safety settings
+        model_config = ModelConfig(
+            model_name=model_id,
+            safety_settings=[
+                ag.SafetySetting(category='HATE_SPEECH', threshold='BLOCK_NONE'),
+                ag.SafetySetting(category='HARASSMENT', threshold='BLOCK_NONE'),
+                ag.SafetySetting(category='SEXUALLY_EXPLICIT', threshold='BLOCK_NONE'),
+                ag.SafetySetting(category='DANGEROUS_CONTENT', threshold='BLOCK_NONE'),
+            ]
+        )
         
-        async def call_imagen(prompt_text):
-            return client.models.generate_images(
-                model=model_id,
-                prompt=prompt_text,
-                config=types.GenerateImagesConfig(
-                    number_of_images=1,
-                    include_rai_reason=True,
-                    output_mime_type='image/png'
-                )
-            )
+        # Initialize the Antigravity model
+        legacy_model = ag.ImageGenerationModel(config=model_config)
+        image_config = ImageConfig(aspect_ratio='1:1', number_of_images=1)
 
         # Attempt 1: Full optimized prompt
-        response = await call_imagen(enhanced_prompt)
+        response = legacy_model.generate_image(prompt=enhanced_prompt, config=image_config)
         
-        # Attempt 2: Fallback if attempt 1 was filtered
-        if not response.generated_images or not response.generated_images[0].image or not response.generated_images[0].image.image_bytes:
-            rai_info = getattr(response, 'rai_reason', 'None/Unknown')
-            logger.warning(f"Imagen 4.0 attempt 1 filtered/failed (RAI: {rai_info}). Retrying with simplified fallback...")
-            
+        # Attempt 2: Fallback if attempt 1 failed
+        if not response.images:
+            logger.warning(f"{model_id} attempt 1 failed/filtered. Retrying with simplified fallback...")
             fallback_prompt = (
                 f"STRICT RULE: NO TEXT, NO WORDS, NO LETTERS, NO SIGNATURES. "
                 f"{visual_description}. Aesthetic artistic illustration, high quality, no text."
             )
-            response = await call_imagen(fallback_prompt)
+            response = legacy_model.generate_image(prompt=fallback_prompt, config=image_config)
 
-        if response.generated_images:
-            generated_image = response.generated_images[0]
-            
-            if not generated_image.image or not generated_image.image.image_bytes:
-                rai_info = getattr(response, 'rai_reason', 'None/Unknown')
-                logger.error(f"Imagen 4.0 fully blocked (RAI: {rai_info}) even after retry.")
-                return None
-
+        if response.images:
+            # Save the first image
             output_path.parent.mkdir(parents=True, exist_ok=True)
-            output_path.write_bytes(generated_image.image.image_bytes)
-            logger.info(f"Image saved successfully to {output_path} (Size: {len(generated_image.image.image_bytes)} bytes)")
+            response.images[0].save(str(output_path))
+            logger.info(f"Image saved successfully to {output_path}")
             return output_path
         else:
-            logger.error("Imagen 4.0 returned NO images after all attempts.")
+            logger.error(f"{model_id} returned NO images after all attempts.")
             return None
 
     except Exception as e:
