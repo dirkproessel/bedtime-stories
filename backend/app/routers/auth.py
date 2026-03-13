@@ -78,15 +78,6 @@ def login_for_access_token(
     if user_email == config_admin:
         needs_update = False
         
-        # Check for ID mismatch (Manual registration vs Stable ID)
-        from app.services.store import ADMIN_ID
-        if user.id != ADMIN_ID:
-            logger.info(f"Login: Admin ID mismatch. Syncing ID for {user_email}.")
-            from sqlalchemy import text
-            session.execute(text("UPDATE user SET id = :new_id WHERE email = :email"), {"new_id": ADMIN_ID, "email": user_email})
-            session.commit()
-            user = session.get(User, ADMIN_ID)
-            
         if not user.is_admin:
             logger.info(f"Failsafe: Promoting {user_email} to admin.")
             user.is_admin = True
@@ -119,16 +110,6 @@ def read_users_me(
     user_email = current_user.email.lower().strip()
     
     if user_email == config_admin:
-        from app.services.store import ADMIN_ID
-        if current_user.id != ADMIN_ID:
-            logger.info(f"ME: Admin ID mismatch. Forcing session repair.")
-            from sqlalchemy import text
-            session.execute(text("UPDATE user SET id = :new_id WHERE email = :email"), {"new_id": ADMIN_ID, "email": user_email})
-            session.commit()
-            # If ID changed, the current token sub: (old_id) is now invalid.
-            # Best to force a re-login to get a fresh token with correct ID.
-            raise HTTPException(status_code=401, detail="Sitzung aktualisiert. Bitte erneut anmelden.")
-
         needs_update = False
         if not current_user.is_admin:
             current_user.is_admin = True
