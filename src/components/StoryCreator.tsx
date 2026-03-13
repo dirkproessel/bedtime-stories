@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { getVoicePreviewUrl, generateHook, fetchPopularity } from '../lib/api';
-import { Sparkles, Mic, MicOff, Play, Pause, BookOpen, Venus, Mars, Users, Dices, Loader2, ChevronDown } from 'lucide-react';
+import { Sparkles, Mic, MicOff, Play, Pause, BookOpen, Venus, Mars, Users, Dices, Loader2, ChevronDown, RefreshCw } from 'lucide-react';
 import { voiceName, voiceDesc, STANDARD_VOICE_KEYS, isStandardVoice } from '../lib/voices';
 import toast from 'react-hot-toast';
 
@@ -77,7 +77,8 @@ export default function StoryCreator() {
         generatorGenre: genre, setGeneratorGenre: setGenre,
         generatorAuthors: selectedAuthors, setGeneratorAuthors: setSelectedAuthors,
         generatorMinutes: targetMinutes, setGeneratorMinutes: setTargetMinutes,
-        generatorVoice: voiceKey, setGeneratorVoice: setVoiceKey
+        generatorVoice: voiceKey, setGeneratorVoice: setVoiceKey,
+        generatorParentId, generatorRemixType, generatorContext, setGeneratorRemix
     } = useStore();
 
     const toggleAuthor = (id: string) => {
@@ -195,7 +196,6 @@ export default function StoryCreator() {
             setIsRolling(false);
         }
     };
-
     const handleGenerate = () => {
         if (!user) {
             setActiveView('login');
@@ -213,7 +213,9 @@ export default function StoryCreator() {
             genre: selectedGenre?.label || genre,
             style: selectedAuthors.length > 0 ? selectedAuthors.join(',') : 'kehlmann',
             target_minutes: targetMinutes,
-            voice_key: voiceKey
+            voice_key: voiceKey,
+            parent_id: generatorParentId || undefined,
+            remix_type: generatorRemixType || undefined
         } as any);
     };
 
@@ -226,6 +228,29 @@ export default function StoryCreator() {
                 <h1 className="text-2xl font-bold text-slate-900">Kurzgeschichten-Labor</h1>
                 <p className="text-slate-500 mt-1">Literatur auf Knopfdruck, exakt nach deinem Maß</p>
             </div>
+
+            {generatorParentId && (
+                <div className="mb-8 p-4 bg-indigo-50 border-2 border-indigo-100 rounded-2xl animate-in slide-in-from-top-4 duration-300">
+                    <div className="flex items-center justify-between mb-3 text-indigo-700">
+                        <div className="flex items-center gap-2 font-bold text-sm">
+                            <RefreshCw className="w-4 h-4" />
+                            {generatorRemixType === 'sequel' ? 'Remix: Fortsetzung schreiben' : 'Remix: Geschichte verbessern'}
+                        </div>
+                        <button 
+                            onClick={() => setGeneratorRemix(null, null, null)}
+                            className="text-[10px] uppercase font-bold tracking-wider px-2 py-1 bg-white rounded-lg border border-indigo-200 hover:border-indigo-400 transition-colors"
+                        >
+                            Abbrechen
+                        </button>
+                    </div>
+                    {generatorContext && (
+                        <div className="bg-white/60 p-3 rounded-xl border border-indigo-100/50">
+                            <h4 className="font-bold text-xs text-slate-700 truncate">{generatorContext.title}</h4>
+                            <p className="text-[10px] text-slate-500 line-clamp-2 mt-0.5 leading-relaxed">{generatorContext.synopsis}</p>
+                        </div>
+                    )}
+                </div>
+            )}
 
             <div className="space-y-6">
                 {/* Description / Idea */}

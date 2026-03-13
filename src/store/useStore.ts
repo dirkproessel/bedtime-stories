@@ -60,11 +60,16 @@ interface AppState {
     generatorAuthors: string[];
     generatorMinutes: number;
     generatorVoice: string;
+    generatorParentId: string | null;
+    generatorRemixType: 'improvement' | 'sequel' | null;
+    generatorContext: { title: string; synopsis: string } | null;
+    
     setGeneratorPrompt: (val: string) => void;
     setGeneratorGenre: (val: string) => void;
     setGeneratorAuthors: (val: string[]) => void;
     setGeneratorMinutes: (val: number) => void;
     setGeneratorVoice: (val: string) => void;
+    setGeneratorRemix: (parentId: string | null, type: 'improvement' | 'sequel' | null, context?: { title: string; synopsis: string } | null) => void;
     fetchData: () => Promise<void>;
 
     // Global Modal States
@@ -101,12 +106,20 @@ export const useStore = create<AppState>((set, get) => {
     generatorAuthors: [],
     generatorMinutes: 15,
     generatorVoice: 'seraphina',
+    generatorParentId: null,
+    generatorRemixType: null,
+    generatorContext: null,
 
     setGeneratorPrompt: (val) => set({ generatorPrompt: val }),
     setGeneratorGenre: (val) => set({ generatorGenre: val }),
     setGeneratorAuthors: (val) => set({ generatorAuthors: val }),
     setGeneratorMinutes: (val) => set({ generatorMinutes: val }),
     setGeneratorVoice: (val) => set({ generatorVoice: val }),
+    setGeneratorRemix: (parentId, type, context = null) => set({ 
+        generatorParentId: parentId, 
+        generatorRemixType: type,
+        generatorContext: context
+    }),
 
     login: async (email, password) => {
         set({ isLoading: true, error: null });
@@ -205,6 +218,12 @@ export const useStore = create<AppState>((set, get) => {
         set({ error: null });
         try {
             await generateStory(req);
+            // Reset remix state after starting
+            set({ 
+                generatorParentId: null, 
+                generatorRemixType: null, 
+                generatorContext: null 
+            });
             // Immediately switch to archive and reload to show the "Pending" story
             set({ activeView: 'archive' });
             await get().loadStories();

@@ -1,6 +1,6 @@
 import { useStore } from '../store/useStore';
 import { deleteStory, revoiceStory, getVoicePreviewUrl, exportStoryToKindle, getThumbUrl, regenerateStoryImage } from '../lib/api';
-import { Play, Trash2, BookOpen, Calendar, Loader2, Mic, X, Venus, Mars, Users, Pause, Send, ChevronLeft, ChevronRight, Image as ImageIcon, RefreshCw, Sparkles } from 'lucide-react';
+import { Play, Trash2, BookOpen, Calendar, Loader2, Mic, X, Venus, Mars, Users, Pause, Send, ChevronLeft, ChevronRight, Image as ImageIcon, RefreshCw, Sparkles, Settings2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useEffect, useState, useRef } from 'react';
 
@@ -13,7 +13,9 @@ export default function StoryArchive() {
         toggleStoryVisibility, user, archiveFilter, setArchiveFilter,
         totalStories, totalMyStories, totalPublicStories,
         currArchivePage, voices, revoiceStoryId, setRevoiceStoryId,
-        updateStorySpotify, startGeneration
+        updateStorySpotify, startGeneration,
+        setGeneratorPrompt, setGeneratorGenre, setGeneratorAuthors,
+        setGeneratorMinutes, setGeneratorVoice, setGeneratorRemix
     } = useStore();
     const [selectedVoice, setSelectedVoice] = useState('seraphina');
     const [confirmRevoice, setConfirmRevoice] = useState(false);
@@ -154,14 +156,14 @@ export default function StoryArchive() {
         setIsRemixing(true);
         try {
             await startGeneration({
-                prompt: story.prompt,
+                prompt: remixType === 'improvement' ? (remixInstructions || story.prompt) : story.prompt,
                 genre: story.genre,
                 style: story.style,
                 target_minutes: story.duration_seconds ? Math.ceil(story.duration_seconds / 60) : 15,
                 voice_key: story.voice_key,
                 parent_id: storyId,
                 remix_type: remixType,
-                further_instructions: remixInstructions
+                further_instructions: remixType === 'sequel' ? remixInstructions : undefined
             });
             toast.success(remixType === 'sequel' ? 'Fortsetzung wird generiert!' : 'Verbesserung wird generiert!');
             setShowRemixModal(null);
@@ -171,6 +173,34 @@ export default function StoryArchive() {
         } finally {
             setIsRemixing(false);
         }
+    };
+
+    const handleAdvancedRemix = (storyId: string) => {
+        const story = stories.find(s => s.id === storyId);
+        if (!story) return;
+
+        // 1. Pre-fill basic settings
+        setGeneratorGenre(story.genre);
+        setGeneratorAuthors(story.style.split(',').map(s => s.trim()));
+        setGeneratorMinutes(story.duration_seconds ? Math.ceil(story.duration_seconds / 60) : 15);
+        setGeneratorVoice(story.voice_key);
+
+        // 2. Pre-fill Idea based on type
+        if (remixType === 'improvement') {
+            setGeneratorPrompt(story.prompt);
+            setGeneratorRemix(storyId, 'improvement', null);
+        } else {
+            setGeneratorPrompt(''); // Sequel always starts fresh
+            setGeneratorRemix(storyId, 'sequel', { 
+                title: story.title, 
+                synopsis: story.description 
+            });
+        }
+
+        // 3. Navigate
+        setShowRemixModal(null);
+        setActiveView('create');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     return (
@@ -727,6 +757,15 @@ export default function StoryArchive() {
                                     <Sparkles className="w-5 h-5" />
                                 )}
                                 {remixType === 'improvement' ? 'Version 2 erstellen' : 'Nächstes Kapitel schreiben'}
+                            </button>
+
+                            <button
+                                onClick={() => showRemixModal && handleAdvancedRemix(showRemixModal)}
+                                disabled={isRemixing}
+                                className="w-full mt-3 bg-slate-100 hover:bg-slate-200 text-slate-600 py-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2"
+                            >
+                                <Settings2 className="w-3.5 h-3.5" />
+                                Mehr Optionen (Genre, Autor, Stimme ändern)
                             </button>
                         </div>
                     </div>
