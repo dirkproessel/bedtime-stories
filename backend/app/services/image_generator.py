@@ -2,8 +2,6 @@ import logging
 from pathlib import Path
 from google import genai
 from google.genai import types
-import antigravity as ag
-from antigravity import ImageConfig, ModelConfig
 from app.config import settings
 
 logger = logging.getLogger(__name__)
@@ -79,42 +77,51 @@ async def generate_story_image(synopsis: str, output_path: Path, genre: str = "R
             f"Focus on pure visual storytelling without any typography."
         )
 
-        model_id = 'gemini-2.5-flash-preview'
-        logger.info(f"Using Antigravity Image model: {model_id} (Nano Banana Preview)")
+        model_id = 'gemini-2.5-flash-image'
+        logger.info(f"Using Google Image model: {model_id} (Nano Banana)")
         logger.info(f"Final Enhanced Prompt: {enhanced_prompt}")
-
-        # Configure the model with explicit safety settings
-        model_config = ModelConfig(
-            model_name=model_id,
-            safety_settings=[
-                ag.SafetySetting(category='HATE_SPEECH', threshold='BLOCK_NONE'),
-                ag.SafetySetting(category='HARASSMENT', threshold='BLOCK_NONE'),
-                ag.SafetySetting(category='SEXUALLY_EXPLICIT', threshold='BLOCK_NONE'),
-                ag.SafetySetting(category='DANGEROUS_CONTENT', threshold='BLOCK_NONE'),
-            ]
-        )
         
-        # Initialize the Antigravity model
-        legacy_model = ag.ImageGenerationModel(config=model_config)
-        image_config = ImageConfig(aspect_ratio='1:1', number_of_images=1)
+        async def call_nano_banana(prompt_text):
+            return await asyncio.to_thread(
+                client.models.generate_content,
+                model=model_id,
+                contents=prompt_text,
+                config=types.GenerateContentConfig(
+                    response_modalities=["IMAGE"],
+                    # Optional: safety_settings=[types.SafetySetting(category='HATE_SPEECH', threshold='BLOCK_NONE')]
+                )
+            )
 
         # Attempt 1: Full optimized prompt
-        response = legacy_model.generate_image(prompt=enhanced_prompt, config=image_config)
+        response = await call_nano_banana(enhanced_prompt)
         
-        # Attempt 2: Fallback if attempt 1 failed
-        if not response.images:
-            logger.warning(f"{model_id} attempt 1 failed/filtered. Retrying with simplified fallback...")
+        # Helper to extract image from response
+        def get_image_bytes(resp):
+            if resp.candidates:
+                for candidate in resp.candidates:
+                    if candidate.content and candidate.content.parts:
+                        for part in candidate.content.parts:
+                            if part.inline_data and part.inline_data.data:
+                                return part.inline_data.data
+            return None
+
+        image_bytes = get_image_bytes(response)
+        
+        # Attempt 2: Fallback if attempt 1 was filtered or failed
+        if not image_bytes:
+            logger.warning(f"{model_id} attempt 1 failed to return an image. Retrying with simplified fallback...")
+            
             fallback_prompt = (
                 f"STRICT RULE: NO TEXT, NO WORDS, NO LETTERS, NO SIGNATURES. "
                 f"{visual_description}. Aesthetic artistic illustration, high quality, no text."
             )
-            response = legacy_model.generate_image(prompt=fallback_prompt, config=image_config)
+            response = await call_nano_banana(fallback_prompt)
+            image_bytes = get_image_bytes(response)
 
-        if response.images:
-            # Save the first image
+        if image_bytes:
             output_path.parent.mkdir(parents=True, exist_ok=True)
-            response.images[0].save(str(output_path))
-            logger.info(f"Image saved successfully to {output_path}")
+            output_path.write_bytes(image_bytes)
+            logger.info(f"Image saved successfully to {output_path} (Size: {len(image_bytes)} bytes)")
             return output_path
         else:
             logger.error(f"{model_id} returned NO images after all attempts.")
