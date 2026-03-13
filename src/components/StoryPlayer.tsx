@@ -3,7 +3,7 @@ import { useStore } from '../store/useStore';
 import { getAudioUrl, fetchStory, getRssFeedUrl, getThumbUrl, type StoryDetail } from '../lib/api';
 import {
     Play, Pause, SkipBack, SkipForward,
-    ChevronDown, ChevronUp, Rss, Copy, ArrowLeft, Moon, BookOpen, Send, Loader2, X, Calendar, Mic, Sparkles
+    ChevronDown, ChevronUp, Rss, Copy, ArrowLeft, Moon, BookOpen, Send, Loader2, X, Calendar, Mic, Sparkles, MessageCircle
 } from 'lucide-react';
 import { AUTHOR_NAMES } from '../lib/authors';
 import { voiceName } from '../lib/voices';
@@ -274,15 +274,17 @@ export default function StoryPlayer() {
                         </p>
                     </div>
 
-                    {/* Action Buttons (Kindle / Spotify) */}
+                    {/* Action Buttons (Kindle / Spotify / WhatsApp) */}
                     <div className="flex items-center justify-center gap-3 mb-8">
-                        <button
-                            onClick={() => setShowKindleModal(true)}
-                            className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl text-xs font-bold hover:bg-emerald-100 transition-all border border-emerald-100"
-                        >
-                            <Send className="w-3.5 h-3.5" />
-                            Kindle
-                        </button>
+                        {user && (
+                            <button
+                                onClick={() => setShowKindleModal(true)}
+                                className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl text-xs font-bold hover:bg-emerald-100 transition-all border border-emerald-100"
+                            >
+                                <Send className="w-3.5 h-3.5" />
+                                Kindle
+                            </button>
+                        )}
                         {user && (
                             <button
                                 onClick={() => handleSpotifyToggle(!story.is_on_spotify)}
@@ -297,6 +299,17 @@ export default function StoryPlayer() {
                                 Spotify
                             </button>
                         )}
+                        <button
+                            onClick={() => {
+                                const shareUrl = `${window.location.origin}${window.location.pathname}#/player/${story.id}`;
+                                const text = `Schau mal, ich habe eine neue Geschichte erstellt: *${story.title}* 🌙✨\n\n${story.description}\n\nHör sie dir hier an:\n${shareUrl}`;
+                                window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+                            }}
+                            className="flex items-center gap-2 px-4 py-2 bg-green-50 text-green-600 rounded-xl text-xs font-bold hover:bg-green-100 transition-all border border-green-100"
+                        >
+                            <MessageCircle className="w-3.5 h-3.5" />
+                            WhatsApp
+                        </button>
                     </div>
 
 

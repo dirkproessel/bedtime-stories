@@ -1,6 +1,6 @@
 import { useStore } from '../store/useStore';
 import { deleteStory, revoiceStory, getVoicePreviewUrl, exportStoryToKindle, getThumbUrl, regenerateStoryImage } from '../lib/api';
-import { Play, Trash2, BookOpen, Calendar, Loader2, Mic, X, Venus, Mars, Users, Pause, Send, ChevronLeft, ChevronRight, Image as ImageIcon, RefreshCw, Sparkles, Settings2 } from 'lucide-react';
+import { Play, Trash2, BookOpen, Calendar, Loader2, Mic, X, Venus, Mars, Users, Pause, Send, ChevronLeft, ChevronRight, Image as ImageIcon, RefreshCw, Sparkles, Settings2, MessageCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useEffect, useState, useRef } from 'react';
 
@@ -478,6 +478,18 @@ export default function StoryArchive() {
                                                     </label>
                                                 </div>
                                             )}
+                                            <button
+                                                onClick={() => {
+                                                    const shareUrl = `${window.location.origin}${window.location.pathname}#/player/${story.id}`;
+                                                    const text = `Schau mal, ich habe eine neue Geschichte erstellt: *${story.title}* 🌙✨\n\n${story.description}\n\nHör sie dir hier an:\n${shareUrl}`;
+                                                    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+                                                }}
+                                                disabled={story.status !== 'done'}
+                                                className="flex items-center justify-center sm:justify-start gap-1.5 px-3 py-2 bg-green-50 sm:bg-transparent rounded-lg sm:rounded-none text-xs font-semibold text-green-600 hover:text-green-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                            >
+                                                <MessageCircle className="w-3.5 h-3.5" />
+                                                WhatsApp
+                                            </button>
                                             {story.user_id === user?.id && (
                                                 <button
                                                     onClick={() => handleDelete(story.id, story.title)}

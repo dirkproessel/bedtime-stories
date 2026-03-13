@@ -33,9 +33,6 @@ function App() {
   // Sync URL Hash -> Store State (Listeners for Back/Forward & direct link access)
   useEffect(() => {
     const handleHashChange = () => {
-      // If we are definitely not logged in, don't change route
-      if (!localStorage.getItem('auth_token')) return;
-
       const hash = window.location.hash.replace('#', '');
 
       if (hash.startsWith('/player/')) {
@@ -46,6 +43,9 @@ function App() {
           return;
         }
       }
+
+      // If we are definitely not logged in, don't change other routes
+      if (!localStorage.getItem('auth_token')) return;
 
       if (hash === '/archive') {
         setActiveView('archive');
