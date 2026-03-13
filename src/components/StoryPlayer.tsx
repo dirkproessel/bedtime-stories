@@ -3,7 +3,7 @@ import { useStore } from '../store/useStore';
 import { getAudioUrl, fetchStory, getRssFeedUrl, getThumbUrl, type StoryDetail } from '../lib/api';
 import {
     Play, Pause, SkipBack, SkipForward,
-    ChevronDown, ChevronUp, Rss, Copy, ArrowLeft, Moon, BookOpen, Send, Loader2, X, Calendar
+    ChevronDown, ChevronUp, Rss, Copy, ArrowLeft, Moon, BookOpen, Send, Loader2, X, Calendar, Mic, Sparkles
 } from 'lucide-react';
 import { AUTHOR_NAMES } from '../lib/authors';
 import { voiceName } from '../lib/voices';
@@ -20,7 +20,8 @@ export default function StoryPlayer() {
     const [dragTime, setDragTime] = useState(0);
     const [showChapters, setShowChapters] = useState(false);
     const [showRss, setShowRss] = useState(false);
-    const { user, updateStorySpotify } = useStore();
+    // Store actions to trigger re-voice modal
+    const { user, updateStorySpotify, setRevoiceStoryId } = useStore();
     const [isExporting, setIsExporting] = useState(false);
     const [showKindleModal, setShowKindleModal] = useState(false);
     const [kindleEmail, setKindleEmail] = useState<string>(() => user?.kindle_email || localStorage.getItem('kindle_email') || '');
@@ -66,13 +67,13 @@ export default function StoryPlayer() {
         setCurrentTime(0);
         setDuration(0);
         setIsPlaying(false);
-        if (selectedStoryId) {
+        if (selectedStoryId && story?.voice_key !== 'none') {
             audio.src = getAudioUrl(selectedStoryId);
             audio.load();
         } else {
             audio.src = '';
         }
-    }, [selectedStoryId]);
+    }, [selectedStoryId, story?.voice_key]);
 
     // Fetch story metadata
     useEffect(() => {
@@ -299,40 +300,60 @@ export default function StoryPlayer() {
                     </div>
 
 
-                    {/* Progress */}
-                    <div className="mb-4">
-                        <input
-                            type="range"
-                            min={0}
-                            max={duration || 0}
-                            step={1}
-                            value={sliderValue}
-                            onChange={handleSeekChange}
-                            onPointerDown={handleSeekStart}
-                            onPointerUp={handleSeekEnd}
-                            className="w-full h-1.5 rounded-full bg-slate-200 accent-indigo-500 cursor-pointer appearance-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-indigo-500 [&::-webkit-slider-thumb]:shadow-md"
-                        />
-                        <div className="flex justify-between text-xs text-slate-400 mt-1">
-                            <span>{formatTime(sliderValue)}</span>
-                            <span>{formatTime(duration)}</span>
-                        </div>
-                    </div>
+                    {/* Progress / Audio Controls */}
+                    {story.voice_key !== 'none' ? (
+                        <>
+                            {/* Progress */}
+                            <div className="mb-4">
+                                <input
+                                    type="range"
+                                    min={0}
+                                    max={duration || 0}
+                                    step={1}
+                                    value={sliderValue}
+                                    onChange={handleSeekChange}
+                                    onPointerDown={handleSeekStart}
+                                    onPointerUp={handleSeekEnd}
+                                    className="w-full h-1.5 rounded-full bg-slate-200 accent-indigo-500 cursor-pointer appearance-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-indigo-500 [&::-webkit-slider-thumb]:shadow-md"
+                                />
+                                <div className="flex justify-between text-xs text-slate-400 mt-1">
+                                    <span>{formatTime(sliderValue)}</span>
+                                    <span>{formatTime(duration)}</span>
+                                </div>
+                            </div>
 
-                    {/* Controls */}
-                    <div className="flex items-center justify-center gap-6 mb-8">
-                        <button onClick={() => skip(-30)} className="w-12 h-12 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 flex items-center justify-center transition-all">
-                            <SkipBack className="w-5 h-5" />
-                        </button>
-                        <button
-                            onClick={togglePlay}
-                            className="w-16 h-16 rounded-2xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white flex items-center justify-center shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 transition-all active:scale-95"
-                        >
-                            {isPlaying ? <Pause className="w-7 h-7" /> : <Play className="w-7 h-7 ml-1" />}
-                        </button>
-                        <button onClick={() => skip(30)} className="w-12 h-12 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 flex items-center justify-center transition-all">
-                            <SkipForward className="w-5 h-5" />
-                        </button>
-                    </div>
+                            {/* Controls */}
+                            <div className="flex items-center justify-center gap-6 mb-8">
+                                <button onClick={() => skip(-30)} className="w-12 h-12 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 flex items-center justify-center transition-all">
+                                    <SkipBack className="w-5 h-5" />
+                                </button>
+                                <button
+                                    onClick={togglePlay}
+                                    className="w-16 h-16 rounded-2xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white flex items-center justify-center shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 transition-all active:scale-95"
+                                >
+                                    {isPlaying ? <Pause className="w-7 h-7" /> : <Play className="w-7 h-7 ml-1" />}
+                                </button>
+                                <button onClick={() => skip(30)} className="w-12 h-12 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 flex items-center justify-center transition-all">
+                                    <SkipForward className="w-5 h-5" />
+                                </button>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="mb-8 p-6 bg-indigo-50/50 rounded-2xl border-2 border-indigo-100 border-dashed text-center">
+                            <Mic className="w-8 h-8 text-indigo-400 mx-auto mb-3" />
+                            <p className="text-sm font-medium text-slate-600 mb-4">Diese Geschichte hat noch keine Vertonung.</p>
+                            <button
+                                onClick={() => {
+                                    setRevoiceStoryId(story.id);
+                                    setActiveView('archive');
+                                }}
+                                className="inline-flex items-center gap-2 px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold shadow-md hover:bg-indigo-700 transition-all active:scale-95"
+                            >
+                                <Sparkles className="w-4 h-4" />
+                                Jetzt vertonen
+                            </button>
+                        </div>
+                    )}
 
                     {/* Chapters Toggle */}
                     {story.chapters && story.chapters.length > 0 && (

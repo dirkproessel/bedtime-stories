@@ -66,6 +66,10 @@ interface AppState {
     setGeneratorMinutes: (val: number) => void;
     setGeneratorVoice: (val: string) => void;
     fetchData: () => Promise<void>;
+
+    // Global Modal States
+    revoiceStoryId: string | null;
+    setRevoiceStoryId: (id: string | null) => void;
 }
 
 let pollInterval: ReturnType<typeof setInterval> | null = null;
@@ -282,5 +286,7 @@ export const useStore = create<AppState>((set, get) => {
             throw e;
         }
     },
+    revoiceStoryId: null,
+    setRevoiceStoryId: (id) => set({ revoiceStoryId: id }),
     };
 });

@@ -395,16 +395,17 @@ export default function StoryCreator() {
                                     </div>
                                 </div>
 
-                                {/* Play */}
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); handlePreviewVoice(v.key); }}
-                                    className={`w-8 h-8 rounded-full flex items-center justify-center transition-all shrink-0 ${previewVoice === v.key
-                                        ? 'bg-indigo-500 text-white'
-                                        : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
-                                        }`}
-                                >
-                                    {previewVoice === v.key ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 ml-0.5" />}
-                                </button>
+                                {v.key !== 'none' && (
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); handlePreviewVoice(v.key); }}
+                                        className={`w-8 h-8 rounded-full flex items-center justify-center transition-all shrink-0 ${previewVoice === v.key
+                                            ? 'bg-indigo-500 text-white'
+                                            : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
+                                            }`}
+                                    >
+                                        {previewVoice === v.key ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 ml-0.5" />}
+                                    </button>
+                                )}
                             </div>
                         </div>
                     ))}
