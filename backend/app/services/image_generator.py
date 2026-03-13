@@ -48,23 +48,41 @@ async def generate_story_image(synopsis: str, output_path: Path, genre: str = "R
         model_id = 'imagen-4.0-fast-generate-001'
         logger.info(f"Using Google Image model: {model_id}")
         
-        response = client.models.generate_images(
-            model=model_id,
-            prompt=enhanced_prompt,
-            config=types.GenerateImagesConfig(
-                number_of_images=1,
-                include_rai_reason=True,
-                output_mime_type='image/png'
+        async def call_imagen(prompt_text):
+            return client.models.generate_images(
+                model=model_id,
+                prompt=prompt_text,
+                config=types.GenerateImagesConfig(
+                    number_of_images=1,
+                    include_rai_reason=True,
+                    output_mime_type='image/png'
+                )
             )
-        )
+
+        # Attempt 1: Full prompt with style/authors
+        response = await call_imagen(enhanced_prompt)
+        
+        # Check if attempt 1 failed or was filtered
+        if not response.generated_images or not response.generated_images[0].image or not response.generated_images[0].image.image_bytes:
+            rai_info = getattr(response, 'rai_reason', 'None/Unknown')
+            logger.warning(f"Imagen 4.0 first attempt filtered/failed. RAI: {rai_info}. Retrying with fallback...")
+            
+            # Attempt 2: Fallback prompt (remove specific authors, keep genre style)
+            fallback_prompt = (
+                f"STRICT RULE: NO TEXT, NO WORDS, NO LETTERS, NO SIGNATURES, NO TITLES, NO WATERMARKS. "
+                f"Anspruchsvolles Szene-Artwork: {clean_synopsis}. "
+                f"Genre: {genre}. Visueller Stil: {genre_hint}, literary illustration, high quality, aesthetic, no clichés. "
+                f"Focus on pure visual storytelling without any typography."
+            )
+            response = await call_imagen(fallback_prompt)
 
         if response.generated_images:
             generated_image = response.generated_images[0]
             
-            # Check for image data to avoid TypeError if RAI filtered
+            # Check for image data again to avoid TypeError
             if not generated_image.image or not generated_image.image.image_bytes:
                 rai_info = getattr(response, 'rai_reason', 'None/Unknown')
-                logger.error(f"Imagen 4.0 returned image object but no bytes. RAI filtered? Reason: {rai_info}")
+                logger.error(f"Imagen 4.0 fallback also filtered. Reason: {rai_info}")
                 return None
 
             logger.info(f"Success: Imagen 4.0 generated image for {output_path.name}")
@@ -77,7 +95,7 @@ async def generate_story_image(synopsis: str, output_path: Path, genre: str = "R
             return output_path
         else:
             rai_info = getattr(response, 'rai_reason', 'None/Unknown')
-            logger.error(f"Imagen 4.0 returned NO images. Possible RAI block or filter. Reason: {rai_info}")
+            logger.error(f"Imagen 4.0 returned NO images after retry. Reason: {rai_info}")
             return None
 
     except Exception as e:
