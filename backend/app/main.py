@@ -160,19 +160,37 @@ async def start_generation(req: StoryRequest, current_user: User = Depends(get_c
         "title": None,
     }
 
+    # Fetch parent story context if it's a remix/sequel
+    parent_meta = None
+    parent_text = None
+    if req.parent_id:
+        parent_meta = store.get_by_id(req.parent_id)
+        if parent_meta:
+            text_path = settings.AUDIO_OUTPUT_DIR / req.parent_id / "story.json"
+            if text_path.exists():
+                try:
+                    parent_text = json.loads(text_path.read_text(encoding="utf-8"))
+                except:
+                    logger.warning(f"Failed to load parent text for {req.parent_id}")
+
     # Run generation in background
     asyncio.create_task(
         _run_pipeline(
             story_id=story_id,
-            prompt=req.system_prompt or req.prompt, # Use system_prompt for generation if available, else fallback
+            prompt=req.system_prompt or req.prompt,
             genre=req.genre,
             style=req.style,
             characters=req.characters,
             target_minutes=req.target_minutes,
             voice_key=req.voice_key,
             speech_rate=req.speech_rate,
-            original_prompt=req.prompt, # Pass original prompt for metadata
+            original_prompt=req.prompt,
             user_id=current_user.id,
+            parent_id=req.parent_id,
+            remix_type=req.remix_type,
+            further_instructions=req.further_instructions,
+            parent_meta=parent_meta,
+            parent_text=parent_text,
         )
     )
 
@@ -361,9 +379,14 @@ async def _run_pipeline(
     speech_rate: str,
     original_prompt: str | None = None,
     user_id: str | None = None,
+    parent_id: str | None = None,
+    remix_type: str | None = None,
+    further_instructions: str | None = None,
+    parent_meta: StoryMeta | None = None,
+    parent_text: dict | None = None,
 ):
     """Full pipeline: text → TTS → merge → save."""
-    logger.info(f"!!! STARTING PIPELINE for story {story_id} !!!")
+    logger.info(f"!!! STARTING PIPELINE for story {story_id} (Remix: {remix_type}) !!!")
     logger.info(f"Prompt: {prompt[:50]}...")
     logger.info(f"Voice Key received: '{voice_key}'")
     
@@ -401,6 +424,7 @@ async def _run_pipeline(
         progress="Starte Generierung...",
         created_at=datetime.now(timezone.utc),
         user_id=user_id,
+        parent_id=parent_id,
     )
     store.add_story(story_meta)
 
@@ -431,6 +455,9 @@ async def _run_pipeline(
             characters=characters,
             target_minutes=target_minutes,
             on_progress=on_progress,
+            remix_type=remix_type,
+            further_instructions=further_instructions,
+            parent_text=parent_text,
         )
         end_time_text = time.time()
         logger.info(f"BENCHMARK [{story_id}]: Text Generation took {end_time_text - start_time_text:.2f} seconds")

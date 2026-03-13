@@ -1,6 +1,6 @@
 import { useStore } from '../store/useStore';
 import { deleteStory, revoiceStory, getVoicePreviewUrl, exportStoryToKindle, getThumbUrl, regenerateStoryImage } from '../lib/api';
-import { Play, Trash2, BookOpen, Calendar, Loader2, Mic, X, Venus, Mars, Users, Pause, Send, ChevronLeft, ChevronRight, Image as ImageIcon } from 'lucide-react';
+import { Play, Trash2, BookOpen, Calendar, Loader2, Mic, X, Venus, Mars, Users, Pause, Send, ChevronLeft, ChevronRight, Image as ImageIcon, RefreshCw, Sparkles } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useEffect, useState, useRef } from 'react';
 
@@ -13,7 +13,7 @@ export default function StoryArchive() {
         toggleStoryVisibility, user, archiveFilter, setArchiveFilter,
         totalStories, totalMyStories, totalPublicStories,
         currArchivePage, voices, revoiceStoryId, setRevoiceStoryId,
-        updateStorySpotify
+        updateStorySpotify, startGeneration
     } = useStore();
     const [selectedVoice, setSelectedVoice] = useState('seraphina');
     const [confirmRevoice, setConfirmRevoice] = useState(false);
@@ -24,6 +24,10 @@ export default function StoryArchive() {
     const [showKindleModal, setShowKindleModal] = useState<string | null>(null);
     const [isPublicLoading, setIsPublicLoading] = useState<string | null>(null);
     const [isRegeneratingImage, setIsRegeneratingImage] = useState<string | null>(null);
+    const [showRemixModal, setShowRemixModal] = useState<string | null>(null);
+    const [remixType, setRemixType] = useState<'improvement' | 'sequel'>('improvement');
+    const [remixInstructions, setRemixInstructions] = useState('');
+    const [isRemixing, setIsRemixing] = useState(false);
     const audioRef = useRef<HTMLAudioElement>(null);
 
     // Track if we have performed the initial check for "my" stories
@@ -140,6 +144,32 @@ export default function StoryArchive() {
             toast.error(error.message || 'Fehler beim Starten');
         } finally {
             setIsRegeneratingImage(null);
+        }
+    };
+
+    const handleRemix = async (storyId: string) => {
+        const story = stories.find(s => s.id === storyId);
+        if (!story) return;
+
+        setIsRemixing(true);
+        try {
+            await startGeneration({
+                prompt: story.prompt,
+                genre: story.genre,
+                style: story.style,
+                target_minutes: story.duration_seconds ? Math.ceil(story.duration_seconds / 60) : 15,
+                voice_key: story.voice_key,
+                parent_id: storyId,
+                remix_type: remixType,
+                further_instructions: remixInstructions
+            });
+            toast.success(remixType === 'sequel' ? 'Fortsetzung wird generiert!' : 'Verbesserung wird generiert!');
+            setShowRemixModal(null);
+            setRemixInstructions('');
+        } catch (error: any) {
+            toast.error(error.message || 'Fehler beim Starten');
+        } finally {
+            setIsRemixing(false);
         }
     };
 
@@ -386,6 +416,18 @@ export default function StoryArchive() {
                                                 )}
                                                 Kindle Export
                                             </button>
+                                            <button
+                                                onClick={() => {
+                                                    setShowRemixModal(story.id);
+                                                    setRemixType('improvement');
+                                                    setRemixInstructions('');
+                                                }}
+                                                disabled={story.status !== 'done' || isRemixing}
+                                                className="flex items-center justify-center sm:justify-start gap-1.5 px-3 py-2 bg-indigo-50 sm:bg-transparent rounded-lg sm:rounded-none text-xs font-semibold text-indigo-600 hover:text-indigo-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                            >
+                                                <RefreshCw className={`w-3.5 h-3.5 ${isRemixing && showRemixModal === story.id ? 'animate-spin' : ''}`} />
+                                                Remix
+                                            </button>
                                             {user?.is_admin && (
                                                 <div className="flex items-center justify-center sm:justify-start">
                                                     <label className={`flex items-center gap-1.5 cursor-pointer group/toggle ${story.status !== 'done' ? 'opacity-30 cursor-not-allowed' : ''}`}>
@@ -406,25 +448,16 @@ export default function StoryArchive() {
                                                     </label>
                                                 </div>
                                             )}
-                                        </div>
-
-                                            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-4">
-                                                <button
-                                                    onClick={() => setRevoiceStoryId(story.id)}
-                                                    className="flex items-center justify-center sm:justify-start gap-1.5 px-3 py-2 text-xs font-semibold text-slate-400 hover:text-indigo-600 transition-colors"
-                                                >
-                                                    <Mic className="w-3.5 h-3.5" />
-                                                    Neu vertonen
-                                                </button>
+                                            {story.user_id === user?.id && (
                                                 <button
                                                     onClick={() => handleDelete(story.id, story.title)}
-                                                    className="flex items-center justify-center sm:justify-start gap-1.5 px-3 py-1 text-[10px] font-medium text-slate-300 hover:text-red-400 transition-colors"
-                                                    title="Löschen"
+                                                    className="flex items-center justify-center sm:justify-start gap-1.5 px-3 py-2 bg-red-50 sm:bg-transparent rounded-lg sm:rounded-none text-xs font-semibold text-red-600 hover:text-red-700 transition-colors"
                                                 >
-                                                    <Trash2 className="w-3 h-3" />
+                                                    <Trash2 className="w-3.5 h-3.5" />
                                                     Löschen
                                                 </button>
-                                            </div>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -629,6 +662,72 @@ export default function StoryArchive() {
                                     Stelle sicher, dass <span className="text-slate-600 font-semibold">dirk.proessel@gmail.com</span> in deinem Amazon-Konto als zugelassener Absender eingetragen ist.
                                 </p>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Remix Modal */}
+            {showRemixModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+                    <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+                        <div className="p-6">
+                            <div className="flex items-center justify-between mb-6">
+                                <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                                    <RefreshCw className="w-5 h-5 text-indigo-600" />
+                                    Geschichte Remixen
+                                </h2>
+                                <button
+                                    onClick={() => setShowRemixModal(null)}
+                                    className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+
+                            <div className="flex bg-slate-100 p-1 rounded-xl mb-6">
+                                <button
+                                    onClick={() => setRemixType('improvement')}
+                                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${remixType === 'improvement' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                >
+                                    Verbessern
+                                </button>
+                                <button
+                                    onClick={() => setRemixType('sequel')}
+                                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${remixType === 'sequel' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                >
+                                    Fortsetzung (Sequel)
+                                </button>
+                            </div>
+
+                            <p className="text-sm text-slate-500 mb-2">
+                                {remixType === 'improvement' 
+                                    ? 'Was soll an der Geschichte verbessert werden?' 
+                                    : 'Worüber soll die Fortsetzung handeln?'}
+                            </p>
+                            
+                            <textarea
+                                value={remixInstructions}
+                                onChange={(e) => setRemixInstructions(e.target.value)}
+                                placeholder={remixType === 'improvement' 
+                                    ? 'z.B. "Mehr Dialoge" oder "Ein anderes Ende"' 
+                                    : 'z.B. "Sie finden einen Schatz" oder "Ein neuer Charakter erscheint"'}
+                                className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-xl text-sm focus:outline-none focus:border-indigo-400 transition-colors placeholder:text-slate-300 resize-none mb-6"
+                                rows={4}
+                            />
+
+                            <button
+                                onClick={() => handleRemix(showRemixModal)}
+                                disabled={isRemixing}
+                                className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-4 rounded-xl font-bold text-base shadow-lg shadow-indigo-100 hover:shadow-xl hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:translate-y-0"
+                            >
+                                {isRemixing ? (
+                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                ) : (
+                                    <Sparkles className="w-5 h-5" />
+                                )}
+                                {remixType === 'improvement' ? 'Version 2 erstellen' : 'Nächstes Kapitel schreiben'}
+                            </button>
                         </div>
                     </div>
                 </div>

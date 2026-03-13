@@ -276,13 +276,22 @@ async def generate_full_story(
     characters: list[str] | None = None,
     target_minutes: int = 20,
     on_progress: callable = None, # on_progress(status_type, message, pct)
+    remix_type: str | None = None,
+    further_instructions: str | None = None,
+    parent_text: dict | None = None,
 ) -> dict:
     # Due to LLM word length limits (~1000 words max per request), 
     # we always use the multi-pass (chapter-by-chapter) generation.
-    return await _generate_multi_pass(prompt, genre, style, characters, target_minutes, on_progress)
+    return await _generate_multi_pass(
+        prompt, genre, style, characters, target_minutes, on_progress,
+        remix_type, further_instructions, parent_text
+    )
 
 
-async def _generate_single_pass(prompt, genre, style, characters, target_minutes, on_progress):
+async def _generate_single_pass(
+    prompt, genre, style, characters, target_minutes, on_progress,
+    remix_type=None, further_instructions=None, parent_text=None
+):
     """Original single-pass logic for shorter stories with improved JSON cleanup."""
     selected_style_info = generate_modular_prompt(style)
     genre_data = GENRES_BIBLIOTHEK.get(genre, GENRES_BIBLIOTHEK["Abenteuer"])
@@ -290,6 +299,15 @@ async def _generate_single_pass(prompt, genre, style, characters, target_minutes
     word_count = target_minutes * 120
     char_text = f"\nHauptcharaktere: {', '.join(characters)}" if characters else ""
     user_hook = prompt
+
+    # Context for remix
+    remix_context = ""
+    if remix_type == "improvement" and parent_text:
+        remix_context = f"\n\nDIES IST EINE VERBESSERUNG DER FOLGENDEN GESCHICHTE:\n{json.dumps(parent_text, ensure_ascii=False)}\n\nSPEZIELLE ANWEISUNGEN FÜR DIE VERBESSERUNG:\n{further_instructions or 'Mache die Geschichte einfach besser.'}"
+    elif remix_type == "sequel" and parent_text:
+        parent_synopsis = parent_text.get("synopsis", "Teil 1")
+        parent_title = parent_text.get("title", "Die erste Geschichte")
+        remix_context = f"\n\nDIES IST EINE FORTSETZUNG (SEQUEL) ZU:\nTitel: {parent_title}\nZusammenfassung von Teil 1: {parent_synopsis}\n\nANWEISUNGEN FÜR DIE FORTSETZUNG:\n{further_instructions or 'Erzähle die Geschichte weiter.'}"
 
     master_prompt = f"""Du bist ein preisgekrönter Autor. Schreibe eine abgeschlossene Kurzgeschichte.
 
@@ -304,6 +322,7 @@ async def _generate_single_pass(prompt, genre, style, characters, target_minutes
 
 Rahmenbedingungen:
 Schreibe eine Geschichte im Genre {genre_data['name']}. Der Kern der Handlung (Nutzer-Wunsch) ist: {user_hook}{char_text}. Folge dem Narrativ: {genre_data['ziel']} unter Verwendung von {genre_data['tropen']}.
+{remix_context}
 
 Antworte EXKLUSIV im JSON-Format:
 {{
@@ -363,13 +382,25 @@ Antworte EXKLUSIV im JSON-Format:
         }
 
 
-async def _generate_multi_pass(prompt, genre, style, characters, target_minutes, on_progress):
+async def _generate_multi_pass(
+    prompt, genre, style, characters, target_minutes, on_progress,
+    remix_type=None, further_instructions=None, parent_text=None
+):
     """Two-step generation for long stories to ensure length and flow."""
     selected_style_info = generate_modular_prompt(style)
     genre_data = GENRES_BIBLIOTHEK.get(genre, GENRES_BIBLIOTHEK["Abenteuer"])
     user_hook = prompt
     char_text = f"\nHauptcharaktere: {', '.join(characters)}" if characters else ""
     
+    # Context for remix
+    remix_context = ""
+    if remix_type == "improvement" and parent_text:
+        remix_context = f"\n\nDIES IST EINE VERBESSERUNG DER FOLGENDEN GESCHICHTE:\n{json.dumps(parent_text, ensure_ascii=False)}\n\nSPEZIELLE ANWEISUNGEN FÜR DIE VERBESSERUNG:\n{further_instructions or 'Mache die Geschichte einfach besser.'}"
+    elif remix_type == "sequel" and parent_text:
+        parent_synopsis = parent_text.get("synopsis", "Teil 1")
+        parent_title = parent_text.get("title", "Die erste Geschichte")
+        remix_context = f"\n\nDIES IST EINE FORTSETZUNG (SEQUEL) ZU:\nTitel: {parent_title}\nZusammenfassung von Teil 1: {parent_synopsis}\n\nANWEISUNGEN FÜR DIE FORTSETZUNG:\n{further_instructions or 'Erzähle die Geschichte weiter.'}"
+
     # Target total words. 120 WPM is better for natural rhythm and prosody.
     total_words = target_minutes * 120
     
@@ -379,11 +410,15 @@ async def _generate_multi_pass(prompt, genre, style, characters, target_minutes,
     words_per_segment = total_words // num_segments
 
     if on_progress:
-        await on_progress("generating_text", f"Plane Geschichte ({target_minutes} Min, {num_segments} Kapitel)...", 2)
+        msg = f"Plane Geschichte ({target_minutes} Min, {num_segments} Kapitel)..."
+        if remix_type == "sequel": msg = f"Plane Fortsetzung ({target_minutes} Min, {num_segments} Kapitel)..."
+        if remix_type == "improvement": msg = f"Überarbeite Geschichte ({target_minutes} Min, {num_segments} Kapitel)..."
+        await on_progress("generating_text", msg, 2)
 
     # Step 1: Generate Outline
     outline_prompt = f"""Erstelle eine detaillierte Gliederung für eine {target_minutes}-minütige Kurzgeschichte.
 Schreibe eine Geschichte im Genre {genre_data['name']}. Der Kern der Handlung (Nutzer-Wunsch) ist: {user_hook}{char_text}. Folge dem Narrativ: {genre_data['ziel']} unter Verwendung von {genre_data['tropen']}.
+{remix_context}
 
 Stil-Vorgaben:
 {selected_style_info}
@@ -428,7 +463,10 @@ Antworte NUR im JSON-Format:
         except:
             pass
         # Graceful fallback to single-pass if outline fails
-        return await _generate_single_pass(prompt, genre, style, characters, target_minutes, on_progress)
+        return await _generate_single_pass(
+            prompt, genre, style, characters, target_minutes, on_progress,
+            remix_type, further_instructions, parent_text
+        )
     
     if not segments:
         return await _generate_single_pass(prompt, genre, style, characters, target_minutes, on_progress)
@@ -461,6 +499,7 @@ Antworte NUR im JSON-Format:
 358: 3. Show, don't tell: Erkläre nicht, wie sich Charaktere fühlen – zeige es durch ihre Handlungen und Reaktionen.
 359: 4. Pacing & Detail: Beschreibe präzise und atmosphärisch, aber halte den Satzbau einfach und direkt.
 4. Format: Keine Kapitelüberschriften im generierten Text! Nur der fließende Erzähltext für dieses Kapitel.
+{f"SPEZIELLE REMIX-ANWEISUNG: {further_instructions}" if further_instructions else ""}
 {ende_regel}
 
 Rahmenbedingungen:

@@ -39,10 +39,11 @@ class StoryMeta(SQLModel, table=True):
     progress_pct: int = Field(default=0)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     
-    # Multi-User Features
+    # Multi-User & Remix Features
     user_id: Optional[str] = Field(default=None, foreign_key="user.id")
     is_public: bool = Field(default=False)
     user_email: Optional[str] = Field(default=None) # Persistent for display cache
+    parent_id: Optional[str] = Field(default=None) # Reference to original story
 
 
 # --- API Request Options Models ---
@@ -82,6 +83,11 @@ class StoryRequest(BaseModel):
     target_minutes: int = 5
     voice_key: str = "seraphina"
     speech_rate: str = "-15%"
+    
+    # Remix Features
+    parent_id: Optional[str] = None
+    remix_type: Optional[str] = None # "improvement" | "sequel"
+    further_instructions: Optional[str] = None
 
 class FreeTextRequest(BaseModel):
     """Free text prompt for story generation."""

@@ -53,6 +53,7 @@ export interface StoryMeta {
     user_id?: string;
     user_email?: string;
     is_public: boolean;
+    parent_id?: string;
 }
 
 export interface StoryDetail extends StoryMeta {
@@ -76,6 +77,9 @@ export interface StoryRequest {
     target_minutes?: number;
     voice_key?: string;
     speech_rate?: string;
+    parent_id?: string;
+    remix_type?: 'improvement' | 'sequel';
+    further_instructions?: string;
 }
 
 // --- Auth Endpoints ---
