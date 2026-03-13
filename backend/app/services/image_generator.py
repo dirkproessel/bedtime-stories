@@ -59,8 +59,15 @@ async def generate_story_image(synopsis: str, output_path: Path, genre: str = "R
         )
 
         if response.generated_images:
-            logger.info(f"Success: Imagen 4.0 generated image for {output_path.name}")
             generated_image = response.generated_images[0]
+            
+            # Check for image data to avoid TypeError if RAI filtered
+            if not generated_image.image or not generated_image.image.image_bytes:
+                rai_info = getattr(response, 'rai_reason', 'None/Unknown')
+                logger.error(f"Imagen 4.0 returned image object but no bytes. RAI filtered? Reason: {rai_info}")
+                return None
+
+            logger.info(f"Success: Imagen 4.0 generated image for {output_path.name}")
             
             # Ensure parent directory exists
             output_path.parent.mkdir(parents=True, exist_ok=True)
