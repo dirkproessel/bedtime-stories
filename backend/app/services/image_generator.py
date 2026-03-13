@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from pathlib import Path
 from google import genai
@@ -30,7 +31,7 @@ async def get_visual_prompt(client: genai.Client, synopsis: str, genre: str, sty
     
     try:
         response = client.models.generate_content(
-            model='gemini-2.0-flash',
+            model='gemini-1.5-flash',
             contents=prompt
         )
         visual_desc = response.text.strip()
