@@ -57,10 +57,8 @@ async def generate_story_image(synopsis: str, output_path: Path, genre: str = "R
             )
         )
 
-        logger.info(f"Imagen response received. Status: {getattr(response, 'status', 'N/A')}")
-
         if response.generated_images:
-            logger.info("Success: Imagen generated at least one image.")
+            logger.info(f"Success: Imagen 4.0 generated image for {output_path.name}")
             generated_image = response.generated_images[0]
             
             # Ensure parent directory exists
@@ -71,9 +69,9 @@ async def generate_story_image(synopsis: str, output_path: Path, genre: str = "R
             return output_path
         else:
             rai_info = getattr(response, 'rai_reason', 'None/Unknown')
-            logger.error(f"Imagen returned NO images. RAI reason: {rai_info}")
+            logger.error(f"Imagen 4.0 returned NO images. Possible RAI block or filter. Reason: {rai_info}")
             return None
 
     except Exception as e:
-        logger.error(f"CRITICAL: Image generation exception: {type(e).__name__}: {str(e)}", exc_info=True)
+        logger.error(f"CRITICAL: Image generation exception (Model: {model_id}): {type(e).__name__}: {str(e)}", exc_info=True)
         return None

@@ -808,6 +808,54 @@ async def delete_story(
     return {"status": "deleted"}
 
 
+@app.post("/api/stories/{story_id}/regenerate-image")
+async def regenerate_story_image_api(
+    story_id: str,
+    current_user: User = Depends(get_current_active_user)
+):
+    """Manually trigger image re-generation for an existing story (Admin only)."""
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Nur Admins dürfen Bilder neu generieren.")
+
+    meta = store.get_by_id(story_id)
+    if not meta:
+        raise HTTPException(status_code=404, detail="Story not found")
+
+    # Load text to get synopsis
+    story_dir = settings.AUDIO_OUTPUT_DIR / story_id
+    text_path = story_dir / "story.json"
+    if not text_path.exists():
+        raise HTTPException(status_code=404, detail="Story text data (story.json) missing")
+
+    try:
+        story_data = json.loads(text_path.read_text(encoding="utf-8"))
+        synopsis = story_data.get("synopsis", "")
+
+        async def background_task():
+            image_path = story_dir / "cover.png"
+            logger.info(f"MANUAL REGEN: Calling generate_story_image for {story_id}")
+            res = await generate_story_image(synopsis, image_path, genre=meta.genre, style=meta.style)
+            if res:
+                image_url = f"{settings.BASE_URL}/api/stories/{story_id}/image.png"
+                meta.image_url = image_url
+                # Update metadata in store
+                store.add_story(meta)
+                # Thumbnail
+                try:
+                    await _generate_thumbnail(image_path, story_dir / "cover_thumb.jpg")
+                except Exception as te:
+                    logger.warning(f"Manual thumbnail generation failed for {story_id}: {te}")
+                logger.info(f"Manual image regeneration successful for {story_id}")
+            else:
+                logger.error(f"Manual image regeneration FAILED for {story_id}")
+
+        asyncio.create_task(background_task())
+        return {"status": "started", "message": "Bild-Generierung gestartet."}
+    except Exception as e:
+        logger.error(f"Error starting manual regen for {story_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/api/stories/{story_id}/image.png")
 async def get_story_image(story_id: str):
     """Serve the story cover image."""
