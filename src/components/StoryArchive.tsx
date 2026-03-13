@@ -1,6 +1,6 @@
 import { useStore } from '../store/useStore';
-import { deleteStory, revoiceStory, getVoicePreviewUrl, exportStoryToKindle, getThumbUrl } from '../lib/api';
-import { Play, Trash2, BookOpen, Calendar, Loader2, Mic, X, Venus, Mars, Users, Pause, Send, ChevronLeft, ChevronRight } from 'lucide-react';
+import { deleteStory, revoiceStory, getVoicePreviewUrl, exportStoryToKindle, getThumbUrl, regenerateStoryImage } from '../lib/api';
+import { Play, Trash2, BookOpen, Calendar, Loader2, Mic, X, Venus, Mars, Users, Pause, Send, ChevronLeft, ChevronRight, Image as ImageIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useEffect, useState, useRef } from 'react';
 
@@ -23,6 +23,7 @@ export default function StoryArchive() {
     const [isExporting, setIsExporting] = useState<string | null>(null);
     const [showKindleModal, setShowKindleModal] = useState<string | null>(null);
     const [isPublicLoading, setIsPublicLoading] = useState<string | null>(null);
+    const [isRegeneratingImage, setIsRegeneratingImage] = useState<string | null>(null);
     const audioRef = useRef<HTMLAudioElement>(null);
 
     // Track if we have performed the initial check for "my" stories
@@ -127,6 +128,18 @@ export default function StoryArchive() {
             toast.error(error.message || 'Fehler beim Kindle-Export');
         } finally {
             setIsExporting(null);
+        }
+    };
+
+    const handleRegenerateImage = async (id: string) => {
+        setIsRegeneratingImage(id);
+        try {
+            await regenerateStoryImage(id);
+            toast.success('Bild-Regenerierung gestartet!');
+        } catch (error: any) {
+            toast.error(error.message || 'Fehler beim Starten');
+        } finally {
+            setIsRegeneratingImage(null);
         }
     };
 
@@ -345,6 +358,20 @@ export default function StoryArchive() {
                                                 >
                                                     <Mic className="w-3.5 h-3.5" />
                                                     Neu vertonen
+                                                </button>
+                                            )}
+                                            {user?.is_admin && (
+                                                <button
+                                                    onClick={() => handleRegenerateImage(story.id)}
+                                                    disabled={story.status !== 'done' || isRegeneratingImage === story.id}
+                                                    className="flex items-center justify-center sm:justify-start gap-1.5 px-3 py-2 bg-purple-50 sm:bg-transparent rounded-lg sm:rounded-none text-xs font-semibold text-purple-600 hover:text-purple-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                                >
+                                                    {isRegeneratingImage === story.id ? (
+                                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                                    ) : (
+                                                        <ImageIcon className="w-3.5 h-3.5" />
+                                                    )}
+                                                    Bild neu
                                                 </button>
                                             )}
                                             <button
