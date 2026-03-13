@@ -38,10 +38,11 @@ async def generate_story_image(synopsis: str, output_path: Path, genre: str = "R
         clean_synopsis = synopsis.strip() or "A beautiful and magical scene based on the story theme"
         
         enhanced_prompt = (
+            f"STRICT RULE: NO TEXT, NO WORDS, NO LETTERS, NO SIGNATURES, NO TITLES, NO WATERMARKS. "
             f"Anspruchsvolles Szene-Artwork: {clean_synopsis}. "
-            f"Genre: {genre}. Visueller Stil: {genre_hint}, literarisch, hochwertig, ästhetisch ansprechend, keine Klischees. "
+            f"Genre: {genre}. Visueller Stil: {genre_hint}, literary illustration, high quality, aesthetic, no clichés. "
             f"Passend zum Schreibstil von {style}. Minimalistisch und modern. "
-            f"WICHTIGE REGEL: KEIN TEXT! Generiere absolut keine Buchstaben, keine Wörter, keine Signaturen und keine Titel im Bild. Verwende ausschließlich reine Bildsprache."
+            f"Focus on pure visual storytelling without any typography."
         )
 
         model_id = 'imagen-4.0-fast-generate-001'
