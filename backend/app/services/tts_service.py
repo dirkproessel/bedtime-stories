@@ -96,7 +96,14 @@ def get_available_voices() -> list[dict]:
             "engine": "gemini",
         })
 
-        
+    # Virtual Voices (like 'none')
+    voices.append({
+        "key": "none",
+        "name": "Keine Stimme (nur Text)",
+        "gender": "neutral",
+        "engine": "virtual",
+    })
+
     return voices
 
 

@@ -12,6 +12,8 @@ async def generate_story_image(synopsis: str, output_path: Path, genre: str = "R
     Target format: 1024x1024 (Spotify-friendly).
     """
     logger.info(f"ENTERING generate_story_image for {output_path.name}")
+    logger.info(f"Target path: {output_path.absolute()}")
+    
     if not settings.GEMINI_API_KEY:
         logger.warning("GEMINI_API_KEY not set in settings. Skipping image generation.")
         return None
@@ -20,7 +22,7 @@ async def generate_story_image(synopsis: str, output_path: Path, genre: str = "R
         client = genai.Client(api_key=settings.GEMINI_API_KEY)
         logger.info(f"Generating image for story. Genre: {genre}, Style: {style}. Prompt length: {len(synopsis)}")
         
-        # Professional Artistic Style Mapping
+        # ... (style_hints and prompt logic remains same) ...
         style_hints = {
             "Sci-Fi": "Futuristic, cinematic concept art, neon accents, detailed textures",
             "Fantasy": "Epic oil painting, ethereal lighting, rich colors, intricate details",
@@ -33,8 +35,6 @@ async def generate_story_image(synopsis: str, output_path: Path, genre: str = "R
         }
         
         genre_hint = style_hints.get(genre, "Artistic illustration")
-        
-        # Use story title as fallback if synopsis is empty
         clean_synopsis = synopsis.strip() or "A beautiful and magical scene based on the story theme"
         
         enhanced_prompt = (
@@ -44,7 +44,6 @@ async def generate_story_image(synopsis: str, output_path: Path, genre: str = "R
             f"WICHTIGE REGEL: KEIN TEXT! Generiere absolut keine Buchstaben, keine Wörter, keine Signaturen und keine Titel im Bild. Verwende ausschließlich reine Bildsprache."
         )
 
-        # Verified Imagen 4 Fast (More cost-effective)
         model_id = 'imagen-4.0-fast-generate-001'
         logger.info(f"Using Google Image model: {model_id}")
         
@@ -58,34 +57,23 @@ async def generate_story_image(synopsis: str, output_path: Path, genre: str = "R
             )
         )
 
+        logger.info(f"Imagen response received. Status: {getattr(response, 'status', 'N/A')}")
+
         if response.generated_images:
+            logger.info("Success: Imagen generated at least one image.")
             generated_image = response.generated_images[0]
+            
+            # Ensure parent directory exists
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            
             output_path.write_bytes(generated_image.image.image_bytes)
-            logger.info(f"Image saved successfully to {output_path}")
+            logger.info(f"Image saved successfully to {output_path} (Size: {len(generated_image.image.image_bytes)} bytes)")
             return output_path
         else:
-            # Enhanced RAI logging
-            rai_info = "Unknown"
-            if hasattr(response, 'rai_reason'):
-                rai_info = response.rai_reason
-            
-            logger.error(f"Imagen returned no images. Potential RAI filter block? Reason: {rai_info}")
-            
-            # Detailed response debugging
-            try:
-                import json
-                # Try to log as much as possible about the failure
-                resp_dict = str(response)
-                logger.debug(f"Full response metadata: {resp_dict}")
-            except Exception as e_log:
-                logger.debug(f"Could not log full response: {e_log}")
+            rai_info = getattr(response, 'rai_reason', 'None/Unknown')
+            logger.error(f"Imagen returned NO images. RAI reason: {rai_info}")
             return None
 
     except Exception as e:
-        logger.error(f"CRITICAL: Image generation error: {type(e).__name__}: {str(e)}")
-        # Check for specific error types like permissions or quota
-        if "quota" in str(e).lower():
-            logger.error("Quota exceeded for Image generation.")
-        elif "permission" in str(e).lower():
-            logger.error("Permission denied for Image generation. Check API Key/Project.")
+        logger.error(f"CRITICAL: Image generation exception: {type(e).__name__}: {str(e)}", exc_info=True)
         return None

@@ -363,6 +363,10 @@ async def _run_pipeline(
     user_id: str | None = None,
 ):
     """Full pipeline: text → TTS → merge → save."""
+    logger.info(f"!!! STARTING PIPELINE for story {story_id} !!!")
+    logger.info(f"Prompt: {prompt[:50]}...")
+    logger.info(f"Voice Key received: '{voice_key}'")
+    
     story_dir = settings.AUDIO_OUTPUT_DIR / story_id
     story_dir.mkdir(parents=True, exist_ok=True)
 
