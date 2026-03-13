@@ -44,8 +44,8 @@ async def generate_story_image(synopsis: str, output_path: Path, genre: str = "R
             f"WICHTIGE REGEL: KEIN TEXT! Generiere absolut keine Buchstaben, keine Wörter, keine Signaturen und keine Titel im Bild. Verwende ausschließlich reine Bildsprache."
         )
 
-        # Use high-quality Imagen 3.0 Standard for better reliability
-        model_id = 'imagen-3.0-generate-001'
+        # Switching back to Imagen 4 as requested by user
+        model_id = 'imagen-4'
         logger.info(f"Using Google Image model: {model_id}")
         
         response = client.models.generate_images(

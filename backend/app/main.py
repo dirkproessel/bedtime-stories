@@ -460,7 +460,10 @@ async def _run_pipeline(
             nonlocal image_url
             try:
                 image_path = story_dir / "cover.png"
+                logger.info(f"DEBUG [{story_id}]: Calling generate_story_image. Path: {image_path}, Key present: {bool(settings.GEMINI_API_KEY)}")
                 res = await generate_story_image(story_data.get("synopsis", ""), image_path, genre=genre, style=style)
+                if not res:
+                    logger.warning(f"DEBUG [{story_id}]: generate_story_image returned None (RAI or Quota?)")
                 if res:
                     image_url = f"{settings.BASE_URL}/api/stories/{story_id}/image.png"
                     logger.info(f"Image generated successfully in background for {story_id}")
@@ -470,7 +473,9 @@ async def _run_pipeline(
                     except Exception as te:
                         logger.warning(f"Thumbnail generation failed for {story_id}: {te}")
             except Exception as e:
-                logger.error(f"Background image gen failed for {story_id}: {e}")
+                import traceback
+                error_trace = traceback.format_exc()
+                logger.error(f"CRITICAL: Background image gen failed for {story_id}: {e}\n{error_trace}")
 
         logger.info(f"BENCHMARK [{story_id}]: Spawning background image generation task")
         image_task = asyncio.create_task(background_image_gen())
