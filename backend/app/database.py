@@ -13,6 +13,29 @@ engine = create_engine(sqlite_url, echo=False, connect_args=connect_args)
 
 def create_db_and_tables():
     SQLModel.metadata.create_all(engine)
+    ensure_migrations()
+
+def ensure_migrations():
+    """Simple SQLite migrations for existing tables."""
+    import sqlite3
+    db_path = Path(settings.AUDIO_OUTPUT_DIR) / sqlite_file_name
+    if not db_path.exists():
+        return
+        
+    conn = sqlite3.connect(db_path)
+    cur = conn.cursor()
+    try:
+        # Check if parent_id exists in storymeta
+        cur.execute("PRAGMA table_info(storymeta)")
+        columns = [row[1] for row in cur.fetchall()]
+        if "parent_id" not in columns:
+            print("Migration: Adding parent_id to storymeta...")
+            cur.execute("ALTER TABLE storymeta ADD COLUMN parent_id TEXT")
+            conn.commit()
+    except Exception as e:
+        print(f"Migration error: {e}")
+    finally:
+        conn.close()
 
 def get_session():
     with Session(engine) as session:
