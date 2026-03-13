@@ -484,6 +484,9 @@ async def _run_pipeline(
             logger.info(f"BENCHMARK [{story_id}]: Skipping TTS and Merge (Text-only requested)")
             await on_progress_with_title("done", "Geschichte fertig (nur Text)!", 100)
             
+            # Wait for image task before finishing
+            await image_task
+            
             # Final update for text-only
             curr = store.get_by_id(story_id)
             if curr:
@@ -493,11 +496,8 @@ async def _run_pipeline(
                 curr.progress_pct = 100
                 curr.voice_key = "none"
                 curr.voice_name = "Nur Text"
+                curr.image_url = image_url  # Now it's populated
                 store.add_story(curr)
-            
-            # Wait for image task before finishing? 
-            # Usually we don't wait for image task to mark as "done" in _run_pipeline, 
-            # but we should ensure it's not a block.
             return
 
         # Step 2: TTS – chapters to audio
