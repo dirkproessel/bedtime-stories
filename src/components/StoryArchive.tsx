@@ -518,8 +518,7 @@ export default function StoryArchive() {
                                                 if (!revoiceStoryId) return;
                                                 setRevoicingId(revoiceStoryId);
                                                 try {
-                                                    const { revoiceStory: apiRevoice } = await import('../lib/api');
-                                                    await apiRevoice(revoiceStoryId, selectedVoice);
+                                                    await revoiceStory(revoiceStoryId, selectedVoice);
                                                     toast.success('Neuvertonung gestartet!');
                                                     setRevoiceStoryId(null);
                                                     setConfirmRevoice(false);
