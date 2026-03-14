@@ -306,8 +306,14 @@ export const useStore = create<AppState>((set, get) => {
     setActiveView: (view) => {
         set({ activeView: view });
         // Handle filter auto-sync if switching to library/discover
-        if (view === 'library') set({ archiveFilter: 'my' });
-        if (view === 'discover') set({ archiveFilter: 'public' });
+        if (view === 'library') {
+            set({ archiveFilter: 'my' });
+            get().loadStories(1);
+        }
+        if (view === 'discover') {
+            set({ archiveFilter: 'public' });
+            get().loadStories(1);
+        }
     },
     setSelectedStoryId: (id) => set({ selectedStoryId: id }),
     setReaderOpen: (open, storyId = null) => set({ 

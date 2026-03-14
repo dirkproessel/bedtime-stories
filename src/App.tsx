@@ -10,9 +10,9 @@ import ReaderLayer from './components/ReaderLayer';
 import AudioCompanion from './components/AudioCompanion';
 
 const NAV_ITEMS = [
-  { key: 'discover' as const, label: 'Entdecken', icon: Compass },
   { key: 'create' as const, label: 'Erschaffen', icon: PenTool },
   { key: 'library' as const, label: 'Meine Bibliothek', icon: BookOpen },
+  { key: 'discover' as const, label: 'Entdecken', icon: Compass },
   { key: 'profile' as const, label: 'Profil', icon: User },
 ];
 

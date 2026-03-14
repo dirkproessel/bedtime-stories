@@ -51,21 +51,12 @@ export default function StoryArchive() {
         }
     }, [totalMyStories, totalPublicStories, totalStories, initialCheckDone, archiveFilter, loadStories, setArchiveFilter]);
 
-    const handleFilterChange = (val: 'my' | 'all' | 'public') => {
-        setArchiveFilter(val);
-        loadStories(1);
-        document.getElementById('main-scroll-container')?.scrollTo({ top: 0, behavior: 'smooth' });
-    };
 
     const handlePageChange = (page: number) => {
         loadStories(page);
         document.getElementById('main-scroll-container')?.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    // Default to 'my' stories to meet user expectation
-    useEffect(() => {
-        setArchiveFilter('my');
-    }, [user?.id, setArchiveFilter]);
 
     const formatDuration = (seconds: number | null) => {
         if (!seconds) return '—';
@@ -205,32 +196,9 @@ export default function StoryArchive() {
                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[#2D5A4C] mb-4 shadow-lg shadow-[#2D5A4C]/15">
                     <Feather className="w-8 h-8 text-white" />
                 </div>
-                <h1 className="text-2xl font-bold text-[#1A1C1E] font-serif">Archiv</h1>
-                
-                {user && (
-                    <div className="flex items-center justify-center mt-6">
-                        <div className="bg-[#F1F5F9] p-1.5 rounded-[1.5rem] flex gap-1 shadow-inner">
-                            <button
-                                onClick={() => handleFilterChange('my')}
-                                className={`px-5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${archiveFilter === 'my' ? 'bg-white text-[#2D5A4C] shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-                            >
-                                {user.is_admin ? 'Garten' : 'Meine'}
-                                <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${archiveFilter === 'my' ? 'bg-[#F0FDF4] text-[#2D5A4C]' : 'bg-slate-200 text-slate-500'}`}>
-                                    {totalMyStories}
-                                </span>
-                            </button>
-                            <button
-                                onClick={() => handleFilterChange(user.is_admin ? 'all' : 'public')}
-                                className={`px-5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${archiveFilter !== 'my' ? 'bg-white text-[#2D5A4C] shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-                            >
-                                {user.is_admin ? 'Alle' : 'Magazin'}
-                                <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${archiveFilter !== 'my' ? 'bg-[#F0FDF4] text-[#2D5A4C]' : 'bg-slate-200 text-slate-500'}`}>
-                                    {totalPublicStories}
-                                </span>
-                            </button>
-                        </div>
-                    </div>
-                )}
+                <h1 className="text-2xl font-bold text-[#1A1C1E] font-serif">
+                    {archiveFilter === 'public' ? 'Entdecken' : 'Meine Bibliothek'}
+                </h1>
             </div>
 
             {stories.length === 0 ? (
