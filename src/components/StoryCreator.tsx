@@ -234,21 +234,21 @@ export default function StoryCreator() {
             </div>
 
             {generatorParentId && (
-                <div className="mb-8 p-4 bg-indigo-50 border-2 border-indigo-100 rounded-2xl animate-in slide-in-from-top-4 duration-300">
-                    <div className="flex items-center justify-between mb-3 text-indigo-700">
+                <div className="mb-8 p-4 bg-[#F0FDF4] border-2 border-[#D1FAE5] rounded-2xl animate-in slide-in-from-top-4 duration-300">
+                    <div className="flex items-center justify-between mb-3 text-[#1A4336]">
                         <div className="flex items-center gap-2 font-bold text-sm">
                             <RefreshCw className="w-4 h-4" />
                             {generatorRemixType === 'sequel' ? 'Remix: Fortsetzung schreiben' : 'Remix: Geschichte verbessern'}
                         </div>
                         <button 
                             onClick={() => setGeneratorRemix(null, null, null)}
-                            className="text-[10px] uppercase font-bold tracking-wider px-2 py-1 bg-white rounded-lg border border-indigo-200 hover:border-indigo-400 transition-colors"
+                            className="text-[10px] uppercase font-bold tracking-wider px-2 py-1 bg-white rounded-lg border border-[#D1FAE5] hover:border-[#10B981] transition-colors"
                         >
                             Abbrechen
                         </button>
                     </div>
                     {generatorContext && (
-                        <div className="bg-white/60 p-3 rounded-xl border border-indigo-100/50">
+                        <div className="bg-white/60 p-3 rounded-xl border border-[#D1FAE5]/50">
                             <h4 className="font-bold text-xs text-slate-700 truncate">{generatorContext.title}</h4>
                             <p className="text-[10px] text-slate-500 line-clamp-2 mt-0.5 leading-relaxed">{generatorContext.synopsis}</p>
                         </div>
@@ -284,7 +284,7 @@ export default function StoryCreator() {
                             onClick={isListening ? handleStopListening : handleStartListening}
                             className={`absolute right-3 top-3 p-2 rounded-lg transition-all ${isListening
                                 ? 'bg-red-50 text-red-600'
-                                : 'text-slate-400 hover:text-indigo-500'
+                                : 'text-slate-400 hover:text-[#2D5A4C]'
                                 }`}
                             title={isListening ? 'Aufnahme stoppen' : 'Spracheingabe'}
                         >
@@ -308,8 +308,8 @@ export default function StoryCreator() {
                                     : 'border-[#F1F5F9] bg-white text-[#6B7280] hover:border-[#E2E8F0]'
                                     }`}
                             >
-                                <div className={`text-sm font-bold ${genre === g.value ? 'text-indigo-700' : 'text-slate-700'}`}>{g.label}</div>
-                                <div className={`text-xs ${genre === g.value ? 'text-indigo-500' : 'text-slate-400'}`}>{g.desc}</div>
+                                <div className={`text-sm font-bold ${genre === g.value ? 'text-[#1A4336]' : 'text-slate-700'}`}>{g.label}</div>
+                                <div className={`text-xs ${genre === g.value ? 'text-[#2D5A4C]' : 'text-slate-400'}`}>{g.desc}</div>
                             </button>
                         ))}
                     </div>
@@ -341,17 +341,17 @@ export default function StoryCreator() {
                                     key={s.id}
                                     onClick={() => toggleAuthor(s.id)}
                                     className={`relative p-3 rounded-xl text-left transition-all border-2 ${isSelected
-                                        ? 'border-indigo-500 bg-indigo-50 shadow-sm'
+                                        ? 'border-[#2D5A4C] bg-[#F0FDF4] shadow-sm'
                                         : 'border-slate-100 bg-white hover:border-slate-200'
                                         }`}
                                 >
                                     {isSelected && (
-                                        <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-indigo-500 text-white flex items-center justify-center text-[10px] font-bold">
+                                        <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-[#2D5A4C] text-white flex items-center justify-center text-[10px] font-bold">
                                             {index + 1}
                                         </div>
                                     )}
-                                    <div className={`text-sm font-bold pr-6 ${isSelected ? 'text-indigo-700' : 'text-slate-700'}`}>{s.name}</div>
-                                    <div className={`text-xs ${isSelected ? 'text-indigo-500' : 'text-slate-400'}`}>{s.desc}</div>
+                                    <div className={`text-sm font-bold pr-6 ${isSelected ? 'text-[#1A4336]' : 'text-slate-700'}`}>{s.name}</div>
+                                    <div className={`text-xs ${isSelected ? 'text-[#2D5A4C]' : 'text-slate-400'}`}>{s.desc}</div>
                                 </button>
                             );
                         })}
@@ -376,12 +376,12 @@ export default function StoryCreator() {
                                 key={l.value}
                                 onClick={() => setTargetMinutes(l.value)}
                                 className={`p-3 rounded-xl text-center transition-all border-2 ${targetMinutes === l.value
-                                    ? 'border-indigo-500 bg-indigo-50'
+                                    ? 'border-[#2D5A4C] bg-[#F0FDF4]'
                                     : 'border-slate-100 bg-white hover:border-slate-200'
                                     }`}
                             >
-                                <div className={`text-sm font-bold ${targetMinutes === l.value ? 'text-indigo-700' : 'text-slate-700'}`}>{l.label}</div>
-                                <div className={`text-xs ${targetMinutes === l.value ? 'text-indigo-500' : 'text-slate-400'}`}>{l.sub}</div>
+                                <div className={`text-sm font-bold ${targetMinutes === l.value ? 'text-[#1A4336]' : 'text-slate-700'}`}>{l.label}</div>
+                                <div className={`text-xs ${targetMinutes === l.value ? 'text-[#2D5A4C]' : 'text-slate-400'}`}>{l.sub}</div>
                             </button>
                         ))}
                     </div>
@@ -402,24 +402,24 @@ export default function StoryCreator() {
                         <div
                             key={v.key}
                             className={`p-3 rounded-xl transition-all border-2 cursor-pointer ${voiceKey === v.key
-                                ? 'border-indigo-500 bg-indigo-50 shadow-sm'
+                                ? 'border-[#2D5A4C] bg-[#F0FDF4] shadow-sm'
                                 : 'border-slate-100 bg-white hover:border-slate-200'
                                 }`}
                             onClick={() => setVoiceKey(v.key)}
                         >
                             <div className="flex items-center gap-3">
                                 {/* Icon */}
-                                <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${voiceKey === v.key ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-50 text-slate-400'}`}>
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${voiceKey === v.key ? 'bg-[#D1FAE5] text-[#2D5A4C]' : 'bg-slate-50 text-slate-400'}`}>
                                     {v.gender === 'female' ? <Venus className="w-5 h-5" /> :
                                         v.gender === 'male' ? <Mars className="w-5 h-5" /> : <Users className="w-5 h-5" />}
                                 </div>
 
                                 {/* Name & Charakter */}
                                 <div className="flex-1 min-w-0 text-left">
-                                    <div className={`text-sm font-bold truncate ${voiceKey === v.key ? 'text-indigo-700' : 'text-slate-700'}`}>
+                                    <div className={`text-sm font-bold truncate ${voiceKey === v.key ? 'text-[#1A4336]' : 'text-slate-700'}`}>
                                         {voiceName(v.key)}
                                     </div>
-                                    <div className={`text-xs ${voiceKey === v.key ? 'text-indigo-500' : 'text-slate-400'}`}>
+                                    <div className={`text-xs ${voiceKey === v.key ? 'text-[#2D5A4C]' : 'text-slate-400'}`}>
                                         {voiceDesc(v.key)}
                                     </div>
                                 </div>
@@ -428,7 +428,7 @@ export default function StoryCreator() {
                                     <button
                                         onClick={(e) => { e.stopPropagation(); handlePreviewVoice(v.key); }}
                                         className={`w-8 h-8 rounded-full flex items-center justify-center transition-all shrink-0 ${previewVoice === v.key
-                                            ? 'bg-indigo-500 text-white'
+                                            ? 'bg-[#2D5A4C] text-white'
                                             : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
                                             }`}
                                     >
@@ -449,24 +449,24 @@ export default function StoryCreator() {
                             <div
                                 key={v.key}
                                 className={`p-3 rounded-xl transition-all border-2 cursor-pointer ${voiceKey === v.key
-                                    ? 'border-indigo-500 bg-indigo-50 shadow-sm'
+                                    ? 'border-[#2D5A4C] bg-[#F0FDF4] shadow-sm'
                                     : 'border-slate-100 bg-white hover:border-slate-200'
                                     }`}
                                 onClick={() => setVoiceKey(v.key)}
                             >
                                 <div className="flex items-center gap-3">
                                     {/* Icon Left */}
-                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${voiceKey === v.key ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-50 text-slate-400'}`}>
+                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${voiceKey === v.key ? 'bg-[#D1FAE5] text-[#2D5A4C]' : 'bg-slate-50 text-slate-400'}`}>
                                         {v.gender === 'female' ? <Venus className="w-5 h-5" /> :
                                             v.gender === 'male' ? <Mars className="w-5 h-5" /> : <Users className="w-5 h-5" />}
                                     </div>
 
                                     {/* Name & Charakter */}
                                     <div className="flex-1 min-w-0 text-left">
-                                        <div className={`text-sm font-bold truncate ${voiceKey === v.key ? 'text-indigo-700' : 'text-slate-700'}`}>
+                                        <div className={`text-sm font-bold truncate ${voiceKey === v.key ? 'text-[#1A4336]' : 'text-slate-700'}`}>
                                             {voiceName(v.key)}
                                         </div>
-                                        <div className={`text-xs ${voiceKey === v.key ? 'text-indigo-500' : 'text-slate-400'}`}>
+                                        <div className={`text-xs ${voiceKey === v.key ? 'text-[#2D5A4C]' : 'text-slate-400'}`}>
                                             {voiceDesc(v.key)}
                                         </div>
                                     </div>
@@ -475,7 +475,7 @@ export default function StoryCreator() {
                                     <button
                                         onClick={(e) => { e.stopPropagation(); handlePreviewVoice(v.key); }}
                                         className={`w-8 h-8 rounded-full flex items-center justify-center transition-all shrink-0 ${previewVoice === v.key
-                                            ? 'bg-indigo-500 text-white'
+                                            ? 'bg-[#2D5A4C] text-white'
                                             : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
                                             }`}
                                     >

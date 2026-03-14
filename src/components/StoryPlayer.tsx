@@ -210,7 +210,7 @@ export default function StoryPlayer() {
                 </div>
             ) : !story ? (
                 <div className="p-6 flex flex-col items-center justify-center min-h-[60vh]">
-                    <div className="w-16 h-16 rounded-full border-4 border-indigo-200 border-t-indigo-500 animate-spin mb-4" />
+                    <div className="w-16 h-16 rounded-full border-4 border-[#F0FDF4] border-t-[#2D5A4C] animate-spin mb-4" />
                     <p className="text-slate-400 text-sm">Lade Geschichte…</p>
                 </div>
             ) : (
@@ -231,7 +231,7 @@ export default function StoryPlayer() {
                                 <img src={getThumbUrl(story.id)} alt={story.title} className="w-full h-full object-cover" />
                             </div>
                         ) : (
-                            <div className="w-32 h-32 mx-auto rounded-3xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center mb-6 shadow-xl shadow-purple-500/25">
+                            <div className="w-32 h-32 mx-auto rounded-3xl bg-[#D1FAE5] flex items-center justify-center mb-6 shadow-xl shadow-[#2D5A4C]/10">
                                 <Moon className="w-16 h-16 text-white/90" />
                             </div>
                         )}
@@ -327,7 +327,7 @@ export default function StoryPlayer() {
                                     onChange={handleSeekChange}
                                     onPointerDown={handleSeekStart}
                                     onPointerUp={handleSeekEnd}
-                                    className="w-full h-1.5 rounded-full bg-slate-200 accent-indigo-500 cursor-pointer appearance-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-indigo-500 [&::-webkit-slider-thumb]:shadow-md"
+                                    className="w-full h-1.5 rounded-full bg-slate-200 accent-[#2D5A4C] cursor-pointer appearance-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#2D5A4C] [&::-webkit-slider-thumb]:shadow-md"
                                 />
                                 <div className="flex justify-between text-xs text-slate-400 mt-1">
                                     <span>{formatTime(sliderValue)}</span>
@@ -342,7 +342,7 @@ export default function StoryPlayer() {
                                 </button>
                                 <button
                                     onClick={togglePlay}
-                                    className="w-16 h-16 rounded-2xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white flex items-center justify-center shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 transition-all active:scale-95"
+                                    className="w-16 h-16 rounded-2xl bg-[#2D5A4C] text-white flex items-center justify-center shadow-lg shadow-[#2D5A4C]/25 hover:shadow-[#2D5A4C]/40 transition-all active:scale-95"
                                 >
                                     {isPlaying ? <Pause className="w-7 h-7" /> : <Play className="w-7 h-7 ml-1" />}
                                 </button>
@@ -352,15 +352,15 @@ export default function StoryPlayer() {
                             </div>
                         </>
                     ) : (
-                        <div className="mb-8 p-6 bg-indigo-50/50 rounded-2xl border-2 border-indigo-100 border-dashed text-center">
-                            <Mic className="w-8 h-8 text-indigo-400 mx-auto mb-3" />
+                        <div className="mb-8 p-6 bg-[#F0FDF4] rounded-2xl border-2 border-[#D1FAE5] border-dashed text-center">
+                            <Mic className="w-8 h-8 text-[#2D5A4C]/60 mx-auto mb-3" />
                             <p className="text-sm font-medium text-slate-600 mb-4">Diese Geschichte hat noch keine Vertonung.</p>
                             <button
                                 onClick={() => {
                                     setRevoiceStoryId(story.id);
                                     setActiveView('archive');
                                 }}
-                                className="inline-flex items-center gap-2 px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold shadow-md hover:bg-indigo-700 transition-all active:scale-95"
+                                className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#2D5A4C] text-white rounded-xl text-sm font-bold shadow-md hover:bg-[#1A4336] transition-all active:scale-95"
                             >
                                 <Sparkles className="w-4 h-4" />
                                 Jetzt vertonen
@@ -410,7 +410,7 @@ export default function StoryPlayer() {
                                         </code>
                                         <button
                                             onClick={copyRssUrl}
-                                            className="shrink-0 w-10 h-10 rounded-xl bg-slate-50 text-slate-400 flex items-center justify-center hover:bg-indigo-50 hover:text-indigo-500 transition-colors"
+                                            className="shrink-0 w-10 h-10 rounded-xl bg-slate-50 text-slate-400 flex items-center justify-center hover:bg-[#F0FDF4] hover:text-[#2D5A4C] transition-colors"
                                         >
                                             <Copy className="w-4 h-4" />
                                         </button>

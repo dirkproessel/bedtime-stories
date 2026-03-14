@@ -4,7 +4,7 @@ import { Play, Trash2, BookOpen, Calendar, Loader2, Mic, X, Venus, Mars, Users, 
 import toast from 'react-hot-toast';
 import { useEffect, useState, useRef } from 'react';
 
-import { AUTHOR_NAMES } from '../lib/authors';
+
 import { voiceName, voiceDesc } from '../lib/voices';
 
 export default function StoryArchive() {
@@ -282,17 +282,17 @@ export default function StoryArchive() {
                                             {story.status === 'generating' ? (
                                                 <div className="mt-3 space-y-2 w-full">
                                                     <div className="flex justify-between items-end">
-                                                        <div className="flex items-center gap-2 text-indigo-600 text-xs font-semibold animate-pulse">
+                                                        <div className="flex items-center gap-2 text-[#2D5A4C] text-xs font-semibold animate-pulse">
                                                             <Loader2 className="w-3.5 h-3.5 animate-spin" />
                                                             {story.progress || 'Wird erstellt...'}
                                                         </div>
-                                                        <span className="text-[10px] font-bold text-indigo-400 bg-indigo-50 px-1.5 py-0.5 rounded-md">
+                                                        <span className="text-[10px] font-bold text-[#1A4336] bg-[#F0FDF4] px-1.5 py-0.5 rounded-md">
                                                             {story.progress_pct || 0}%
                                                         </span>
                                                     </div>
-                                                    <div className="w-full h-1.5 bg-indigo-50 rounded-full overflow-hidden border border-indigo-100/50">
+                                                    <div className="w-full h-1.5 bg-[#F0FDF4] rounded-full overflow-hidden border border-[#D1FAE5]">
                                                         <div
-                                                            className="h-full bg-gradient-to-r from-indigo-400 to-purple-500 transition-all duration-500 ease-out"
+                                                            className="h-full bg-[#2D5A4C] transition-all duration-500 ease-out"
                                                             style={{ width: `${story.progress_pct || 0}%` }}
                                                         />
                                                     </div>
@@ -499,19 +499,19 @@ export default function StoryArchive() {
                     <button
                         onClick={() => handlePageChange(currArchivePage - 1)}
                         disabled={currArchivePage <= 1}
-                        className="p-2 rounded-xl border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-100 disabled:opacity-30 disabled:hover:text-slate-400 disabled:hover:border-slate-200 transition-all"
+                        className="p-2 rounded-xl border border-slate-200 text-slate-400 hover:text-[#2D5A4C] hover:border-[#D1FAE5] disabled:opacity-30 disabled:hover:text-slate-400 disabled:hover:border-slate-200 transition-all"
                     >
                         <ChevronLeft className="w-5 h-5" />
                     </button>
                     
                     <div className="text-sm font-semibold text-slate-500">
-                        Seite <span className="text-indigo-600">{currArchivePage}</span> von {Math.ceil(totalStories / 30)}
+                        Seite <span className="text-[#2D5A4C]">{currArchivePage}</span> von {Math.ceil(totalStories / 30)}
                     </div>
                     
                     <button
                         onClick={() => handlePageChange(currArchivePage + 1)}
                         disabled={currArchivePage >= Math.ceil(totalStories / 30)}
-                        className="p-2 rounded-xl border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-100 disabled:opacity-30 disabled:hover:text-slate-400 disabled:hover:border-slate-200 transition-all"
+                        className="p-2 rounded-xl border border-slate-200 text-slate-400 hover:text-[#2D5A4C] hover:border-[#D1FAE5] disabled:opacity-30 disabled:hover:text-slate-400 disabled:hover:border-slate-200 transition-all"
                     >
                         <ChevronRight className="w-5 h-5" />
                     </button>
@@ -525,7 +525,7 @@ export default function StoryArchive() {
                         <div className="p-6">
                             <div className="flex items-center justify-between mb-6">
                                 <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-                                    <Mic className="w-5 h-5 text-indigo-600" />
+                                    <Mic className="w-5 h-5 text-[#2D5A4C]" />
                                     Neu vertonen
                                 </h2>
                                 <button
@@ -544,21 +544,21 @@ export default function StoryArchive() {
                                             <div
                                                 key={v.key}
                                                 className={`p-3 rounded-xl transition-all border-2 cursor-pointer flex items-center justify-between ${selectedVoice === v.key
-                                                    ? 'border-indigo-500 bg-indigo-50 shadow-sm'
+                                                    ? 'border-[#2D5A4C] bg-[#F0FDF4] shadow-sm'
                                                     : 'border-slate-100 bg-white hover:border-slate-200'
                                                     }`}
                                                 onClick={() => setSelectedVoice(v.key)}
                                             >
                                                 <div className="flex items-center gap-3">
-                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${selectedVoice === v.key ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-50 text-slate-400'}`}>
+                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${selectedVoice === v.key ? 'bg-[#D1FAE5] text-[#2D5A4C]' : 'bg-slate-50 text-slate-400'}`}>
                                                         {v.gender === 'female' ? <Venus className="w-4 h-4" /> :
                                                             v.gender === 'male' ? <Mars className="w-4 h-4" /> : <Users className="w-4 h-4" />}
                                                     </div>
                                                     <div>
-                                                        <div className={`text-xs font-bold ${selectedVoice === v.key ? 'text-indigo-700' : 'text-slate-700'}`}>
+                                                        <div className={`text-xs font-bold ${selectedVoice === v.key ? 'text-[#1A4336]' : 'text-slate-700'}`}>
                                                             {voiceName(v.key)}
                                                         </div>
-                                                        <div className={`text-[10px] ${selectedVoice === v.key ? 'text-indigo-500' : 'text-slate-400'}`}>
+                                                        <div className={`text-[10px] ${selectedVoice === v.key ? 'text-[#2D5A4C]' : 'text-slate-400'}`}>
                                                             {voiceDesc(v.key)}
                                                         </div>
                                                     </div>
@@ -566,7 +566,7 @@ export default function StoryArchive() {
                                                 <button
                                                     onClick={(e) => { e.stopPropagation(); handlePreviewVoice(v.key); }}
                                                     className={`w-7 h-7 rounded-full flex items-center justify-center transition-all shrink-0 ${previewVoice === v.key
-                                                        ? 'bg-indigo-500 text-white'
+                                                        ? 'bg-[#2D5A4C] text-white'
                                                         : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
                                                         }`}
                                                 >
@@ -592,8 +592,8 @@ export default function StoryArchive() {
                                 </>
                             ) : (
                                 <div className="text-center py-4">
-                                    <div className="w-16 h-16 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto mb-4">
-                                        <Play className="w-8 h-8" />
+                                    <div className="w-16 h-16 rounded-2xl bg-[#F0FDF4] text-[#2D5A4C] flex items-center justify-center mx-auto mb-4">
+                                        <Play className="w-8 h-8 fill-current" />
                                     </div>
                                     <h3 className="text-lg font-bold text-slate-900 mb-2">Bereit?</h3>
                                     <p className="text-sm text-slate-500 mb-8">
@@ -616,7 +616,7 @@ export default function StoryArchive() {
                                                 }
                                             }}
                                             disabled={revoicingId !== null}
-                                            className="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center justify-center gap-2"
+                                            className="btn-primary w-full py-4"
                                         >
                                             {revoicingId ? <Loader2 className="w-5 h-5 animate-spin" /> : <Mic className="w-5 h-5" />}
                                             Jetzt starten
@@ -701,7 +701,7 @@ export default function StoryArchive() {
                         <div className="p-6">
                             <div className="flex items-center justify-between mb-6">
                                 <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-                                    <RefreshCw className="w-5 h-5 text-indigo-600" />
+                                    <RefreshCw className="w-5 h-5 text-[#2D5A4C]" />
                                     Geschichte Remixen
                                 </h2>
                                 <button
@@ -712,16 +712,16 @@ export default function StoryArchive() {
                                 </button>
                             </div>
 
-                            <div className="flex bg-slate-100 p-1 rounded-xl mb-6">
+                            <div className="flex bg-[#F1F5F9] p-1 rounded-xl mb-6">
                                 <button
                                     onClick={() => setRemixType('improvement')}
-                                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${remixType === 'improvement' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${remixType === 'improvement' ? 'bg-white text-[#2D5A4C] shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                                 >
                                     Verbessern
                                 </button>
                                 <button
                                     onClick={() => setRemixType('sequel')}
-                                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${remixType === 'sequel' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${remixType === 'sequel' ? 'bg-white text-[#2D5A4C] shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                                 >
                                     Fortsetzung (Sequel)
                                 </button>
@@ -739,7 +739,7 @@ export default function StoryArchive() {
                                 placeholder={remixType === 'improvement' 
                                     ? 'z.B. "Mehr Dialoge" oder "Ein anderes Ende"' 
                                     : 'z.B. "Sie finden einen Schatz" oder "Ein neuer Charakter erscheint"'}
-                                className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-xl text-sm focus:outline-none focus:border-indigo-400 transition-colors placeholder:text-slate-300 resize-none mb-6"
+                                className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-xl text-sm focus:outline-none focus:border-[#2D5A4C] transition-colors placeholder:text-slate-300 resize-none mb-6"
                                 rows={4}
                             />
 

@@ -36,8 +36,8 @@ export default function AccountScreen() {
         <div className="flex flex-col items-center max-w-lg mx-auto p-6 md:p-12 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* Header */}
             <div className="flex flex-col items-center mb-8">
-        <div className="w-24 h-24 bg-indigo-100 rounded-full flex items-center justify-center mb-4">
-          <User className="w-12 h-12 text-indigo-500" />
+        <div className="w-24 h-24 bg-[#F0FDF4] rounded-full flex items-center justify-center mb-4">
+          <User className="w-12 h-12 text-[#2D5A4C]" />
         </div>
         <h2 className="text-3xl font-bold text-slate-900 mb-1">Mein Konto</h2>
         <p className="text-slate-500 font-medium">
@@ -80,7 +80,7 @@ export default function AccountScreen() {
                                 value={kindleEmail}
                                 onChange={(e) => setKindleEmail(e.target.value)}
                                 placeholder="name@kindle.com"
-                                className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 outline-none transition-all placeholder:text-slate-400"
+                                className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#D1FAE5] focus:border-[#2D5A4C] outline-none transition-all placeholder:text-slate-400"
                             />
                             <button
                                 onClick={handleSaveKindle}
@@ -100,8 +100,8 @@ export default function AccountScreen() {
             {/* RSS Feed Section */}
             <div className="w-full bg-white rounded-3xl p-6 shadow-sm border border-slate-100 space-y-6">
                 <div className="flex items-center gap-4 border-b border-slate-100 pb-4">
-                    <div className="w-12 h-12 rounded-xl bg-indigo-100 flex items-center justify-center flex-shrink-0">
-                        <Radio className="w-6 h-6 text-indigo-500" />
+                    <div className="w-12 h-12 rounded-xl bg-[#F0FDF4] flex items-center justify-center flex-shrink-0">
+                        <Radio className="w-6 h-6 text-[#2D5A4C]" />
                     </div>
                     <div>
                         <h3 className="font-bold text-slate-800">Persönlicher Podcast-Feed</h3>

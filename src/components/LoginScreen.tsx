@@ -31,7 +31,7 @@ export default function LoginScreen() {
 
     return (
         <div className="flex flex-col items-center justify-center min-h-[80vh] px-6">
-            <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/25 mb-8">
+            <div className="w-20 h-20 rounded-3xl bg-[#2D5A4C] flex items-center justify-center shadow-lg shadow-[#2D5A4C]/15 mb-8">
                 <Moon className="w-10 h-10 text-white" />
             </div>
 
@@ -80,7 +80,7 @@ export default function LoginScreen() {
                 <button
                     type="submit"
                     disabled={isLoading}
-                    className="w-full flex items-center justify-center gap-2 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl shadow-lg shadow-indigo-600/20 transition-all active:scale-[0.98] disabled:opacity-70"
+                    className="w-full flex items-center justify-center gap-2 py-3.5 bg-[#2D5A4C] hover:bg-[#1A4336] text-white font-bold rounded-2xl shadow-lg shadow-[#2D5A4C]/15 transition-all active:scale-[0.98] disabled:opacity-70"
                 >
                     {isLoading ? (
                         <Loader2 className="w-5 h-5 animate-spin" />
@@ -93,7 +93,7 @@ export default function LoginScreen() {
             <div className="mt-6 flex flex-col items-center gap-4">
                 <button 
                     onClick={() => setIsLoginMode(!isLoginMode)}
-                    className="text-sm font-medium text-slate-500 hover:text-indigo-600 transition-colors"
+                    className="text-sm font-medium text-slate-500 hover:text-[#2D5A4C] transition-colors"
                 >
                     {isLoginMode 
                         ? 'Noch kein Konto? Hier registrieren.' 
@@ -107,7 +107,7 @@ export default function LoginScreen() {
                         const { setActiveView } = useStore.getState();
                         setActiveView('create');
                     }}
-                    className="text-sm font-bold text-indigo-500 hover:text-indigo-600 transition-colors"
+                    className="text-sm font-bold text-[#2D5A4C] hover:text-[#1A4336] transition-colors"
                 >
                     Als Gast fortfahren
                 </button>
