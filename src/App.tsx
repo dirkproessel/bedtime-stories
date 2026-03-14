@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useStore } from './store/useStore';
-import { Loader2, PenTool, BookOpen, Headphones, User, Feather } from 'lucide-react';
+import { PenTool, BookOpen, Headphones, User, Feather } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
 import StoryCreator from './components/StoryCreator';
 import StoryArchive from './components/StoryArchive';
