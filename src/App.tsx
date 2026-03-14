@@ -112,11 +112,11 @@ function App() {
 
   if (error && activeView !== 'login') {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-indigo-50/30 flex flex-col items-center justify-center w-full p-6 text-center">
-        <div className="w-16 h-16 bg-red-100 text-red-500 rounded-2xl flex items-center justify-center mb-4 text-2xl">!</div>
-        <h2 className="text-xl font-bold text-slate-800 mb-2">Verbindungsfehler</h2>
-        <p className="text-slate-500 text-sm mb-6">{error}</p>
-        <button onClick={() => fetchData()} className="px-6 py-3 bg-indigo-500 text-white font-medium rounded-xl hover:bg-indigo-600 transition-colors">
+      <div className="min-h-screen bg-[#F8F9FA] flex flex-col items-center justify-center w-full p-6 text-center">
+        <div className="w-16 h-16 bg-red-100 text-red-500 rounded-2xl flex items-center justify-center mb-4 text-2xl font-bold">!</div>
+        <h2 className="text-xl font-serif font-bold text-[#1A1C1E] mb-2">Verbindungsfehler</h2>
+        <p className="text-[#6B7280] text-sm mb-6 font-mono text-[11px] uppercase tracking-wider">{error}</p>
+        <button onClick={() => fetchData()} className="btn-primary px-8">
           Erneut versuchen
         </button>
       </div>
@@ -124,7 +124,7 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-indigo-50/30 flex flex-col w-full">
+    <div className="min-h-screen bg-[#F8F9FA] flex flex-col w-full">
       {/* Main Content */}
       <main id="main-scroll-container" className="flex-1 overflow-y-auto pb-24">
         {activeView === 'login' && <LoginScreen />}
@@ -146,7 +146,7 @@ function App() {
                 key={key}
                 onClick={() => setActiveView(key)}
                 className={`flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all relative ${activeView === key
-                  ? 'text-indigo-600'
+                  ? 'text-[#2D5A4C]'
                   : 'text-slate-400 hover:text-slate-600'
                   }`}
               >
@@ -158,7 +158,7 @@ function App() {
                   <div className="absolute top-1 right-2 w-2 h-2 rounded-full bg-amber-400 border-2 border-white shadow-sm" />
                 )}
                 {activeView === key && !isGuest && (
-                  <div className="w-1 h-1 rounded-full bg-indigo-500" />
+                  <div className="w-1 h-1 rounded-full bg-[#2D5A4C]" />
                 )}
               </button>
             );

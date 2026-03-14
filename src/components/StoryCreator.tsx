@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { getVoicePreviewUrl, generateHook, fetchPopularity } from '../lib/api';
-import { Sparkles, Mic, MicOff, Play, Pause, BookOpen, Venus, Mars, Users, Dices, Loader2, ChevronDown, RefreshCw } from 'lucide-react';
+import { Sparkles, Mic, MicOff, Play, Pause, Venus, Mars, Users, Dices, Loader2, ChevronDown, RefreshCw, Feather } from 'lucide-react';
 import { voiceName, voiceDesc, STANDARD_VOICE_KEYS, isStandardVoice } from '../lib/voices';
 import toast from 'react-hot-toast';
 
@@ -226,11 +226,11 @@ export default function StoryCreator() {
     return (
         <div className="p-4 sm:p-6 max-w-2xl mx-auto">
             <div className="text-center mb-8">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 mb-4 shadow-lg shadow-indigo-500/25">
-                    <BookOpen className="w-8 h-8 text-white" />
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[#2D5A4C] mb-4 shadow-lg shadow-[#2D5A4C]/15">
+                    <Feather className="w-8 h-8 text-white" />
                 </div>
-                <h1 className="text-2xl font-bold text-slate-900">Kurzgeschichten-Labor</h1>
-                <p className="text-slate-500 mt-1">Literatur auf Knopfdruck, exakt nach deinem Maß</p>
+                <h1 className="text-2xl font-bold text-[#1A1C1E]">Kurzgeschichten-Labor</h1>
+                <p className="text-[#6B7280] mt-1 font-mono text-[11px] uppercase tracking-wider">Literatur auf Knopfdruck, exakt nach deinem Maß</p>
             </div>
 
             {generatorParentId && (
@@ -278,7 +278,7 @@ export default function StoryCreator() {
                             onChange={(e) => setFreeText(e.target.value)}
                             placeholder="z.B. Ein Toaster gewinnt das Bewusstsein und versucht, die Welt zu verstehen. Er begegnet einer alten Kaffeemaschine mit existentialistischen Krisen..."
                             rows={4}
-                            className="w-full px-4 py-3 bg-white border-2 border-slate-100 rounded-xl text-sm focus:outline-none focus:border-indigo-400 transition-colors placeholder:text-slate-300 resize-none pr-12"
+                            className="w-full px-4 py-3 bg-white border-2 border-slate-100 rounded-xl text-sm focus:outline-none focus:border-[#2D5A4C] transition-colors placeholder:text-slate-300 resize-none pr-12 font-serif"
                         />
                         <button
                             onClick={isListening ? handleStopListening : handleStartListening}
@@ -304,8 +304,8 @@ export default function StoryCreator() {
                                 key={g.value}
                                 onClick={() => setGenre(g.value)}
                                 className={`p-3 rounded-xl text-left transition-all border-2 ${genre === g.value
-                                    ? 'border-indigo-500 bg-indigo-50 shadow-sm'
-                                    : 'border-slate-100 bg-white text-slate-600 hover:border-slate-200'
+                                    ? 'border-[#2D5A4C] bg-[#F0FDF4] shadow-sm'
+                                    : 'border-[#F1F5F9] bg-white text-[#6B7280] hover:border-[#E2E8F0]'
                                     }`}
                             >
                                 <div className={`text-sm font-bold ${genre === g.value ? 'text-indigo-700' : 'text-slate-700'}`}>{g.label}</div>
@@ -503,7 +503,7 @@ export default function StoryCreator() {
                 <div className="pointer-events-auto">
                     <button
                         onClick={handleGenerate}
-                        className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg shadow-indigo-200 hover:shadow-xl hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2"
+                        className="btn-primary w-full py-4 text-lg"
                     >
                         <Sparkles className="w-6 h-6" />
                         Geschichte jetzt schreiben

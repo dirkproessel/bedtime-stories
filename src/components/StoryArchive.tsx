@@ -1,6 +1,6 @@
 import { useStore } from '../store/useStore';
 import { deleteStory, revoiceStory, getVoicePreviewUrl, exportStoryToKindle, getThumbUrl, regenerateStoryImage } from '../lib/api';
-import { Play, Trash2, BookOpen, Calendar, Loader2, Mic, X, Venus, Mars, Users, Pause, Send, ChevronLeft, ChevronRight, Image as ImageIcon, RefreshCw, Sparkles, Settings2, MessageCircle } from 'lucide-react';
+import { Play, Trash2, BookOpen, Calendar, Loader2, Mic, X, Venus, Mars, Users, Pause, Send, ChevronLeft, ChevronRight, Image as ImageIcon, RefreshCw, Sparkles, Settings2, MessageCircle, Feather } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useEffect, useState, useRef } from 'react';
 
@@ -25,7 +25,6 @@ export default function StoryArchive() {
     const [isExporting, setIsExporting] = useState<string | null>(null);
     const [showKindleModal, setShowKindleModal] = useState<string | null>(null);
     const [isPublicLoading, setIsPublicLoading] = useState<string | null>(null);
-    const [isRegeneratingImage, setIsRegeneratingImage] = useState<string | null>(null);
     const [showRemixModal, setShowRemixModal] = useState<string | null>(null);
     const [remixType, setRemixType] = useState<'improvement' | 'sequel'>('improvement');
     const [remixInstructions, setRemixInstructions] = useState('');
@@ -138,14 +137,11 @@ export default function StoryArchive() {
     };
 
     const handleRegenerateImage = async (id: string) => {
-        setIsRegeneratingImage(id);
         try {
             await regenerateStoryImage(id);
             toast.success('Bild-Regenerierung gestartet!');
         } catch (error: any) {
             toast.error(error.message || 'Fehler beim Starten');
-        } finally {
-            setIsRegeneratingImage(null);
         }
     };
 
@@ -206,29 +202,29 @@ export default function StoryArchive() {
     return (
         <div className="p-4 sm:p-6 max-w-2xl mx-auto">
             <div className="text-center mb-8">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 mb-4 shadow-lg shadow-amber-400/25">
-                    <BookOpen className="w-8 h-8 text-white" />
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[#2D5A4C] mb-4 shadow-lg shadow-[#2D5A4C]/15">
+                    <Feather className="w-8 h-8 text-white" />
                 </div>
-                <h1 className="text-2xl font-bold text-slate-900">Archiv</h1>
+                <h1 className="text-2xl font-bold text-[#1A1C1E]">Archiv</h1>
                 
                 {user && (
                     <div className="flex items-center justify-center mt-6">
-                        <div className="bg-slate-100 p-1 rounded-xl flex gap-1">
+                        <div className="bg-[#F1F5F9] p-1.5 rounded-[1.5rem] flex gap-1 shadow-inner">
                             <button
                                 onClick={() => handleFilterChange('my')}
-                                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${archiveFilter === 'my' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                className={`px-5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${archiveFilter === 'my' ? 'bg-white text-[#2D5A4C] shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                             >
-                                {user.is_admin ? 'Meine' : 'Persönlich'}
-                                <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${archiveFilter === 'my' ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-200 text-slate-500'}`}>
+                                {user.is_admin ? 'Garten' : 'Meine'}
+                                <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${archiveFilter === 'my' ? 'bg-[#F0FDF4] text-[#2D5A4C]' : 'bg-slate-200 text-slate-500'}`}>
                                     {totalMyStories}
                                 </span>
                             </button>
                             <button
                                 onClick={() => handleFilterChange(user.is_admin ? 'all' : 'public')}
-                                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${archiveFilter !== 'my' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                className={`px-5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${archiveFilter !== 'my' ? 'bg-white text-[#2D5A4C] shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                             >
-                                {user.is_admin ? 'Alle Geschichten' : 'Öffentliche'}
-                                <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${archiveFilter !== 'my' ? 'bg-white border border-indigo-100 text-indigo-600' : 'bg-slate-200 text-slate-500'}`}>
+                                {user.is_admin ? 'Alle' : 'Magazin'}
+                                <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${archiveFilter !== 'my' ? 'bg-[#F0FDF4] text-[#2D5A4C]' : 'bg-slate-200 text-slate-500'}`}>
                                     {totalPublicStories}
                                 </span>
                             </button>
@@ -238,39 +234,48 @@ export default function StoryArchive() {
             </div>
 
             {stories.length === 0 ? (
-                <div className="text-center py-16">
-                    <div className="w-16 h-16 mx-auto bg-slate-100 rounded-2xl flex items-center justify-center mb-4">
-                        <BookOpen className="w-8 h-8 text-slate-300" />
+                <div className="text-center py-20 animate-in fade-in duration-700">
+                    <div className="w-24 h-24 mx-auto bg-[#F0FDF4] rounded-[2rem] flex items-center justify-center mb-6 shadow-sm">
+                        <Feather className="w-10 h-10 text-[#2D5A4C]/30" />
                     </div>
-                    <p className="text-slate-400 text-sm">Noch keine Geschichten erstellt</p>
+                    <h2 className="font-serif text-2xl text-[#1A1C1E] mb-2 font-semibold">Dein Archiv ist noch leer</h2>
+                    <p className="text-[#6B7280] text-sm max-w-[280px] mx-auto leading-relaxed">
+                        Hier werden deine literarischen Werke sicher aufbewahrt. Erstelle deine erste Geschichte im Labor!
+                    </p>
+                    <button 
+                        onClick={() => setActiveView('create')}
+                        className="btn-primary mt-8 px-8"
+                    >
+                        Jetzt starten
+                    </button>
                 </div>
             ) : (
                 <div className="space-y-3">
                     {stories.map(story => (
                         <div
                             key={story.id}
-                            className="bg-white border-2 border-slate-100 rounded-2xl p-4 hover:border-slate-200 transition-all group"
+                            className="bg-white border border-[#E2E8F0] rounded-[2.5rem] p-6 hover:shadow-xl hover:shadow-[#2D5A4C]/5 transition-all duration-300 group mb-6"
                         >
                             <div className="flex items-start gap-4">
                                 {story.image_url ? (
                                     <div
-                                        className="w-20 h-20 rounded-xl overflow-hidden shrink-0 shadow-sm border border-slate-100 cursor-pointer"
+                                        className="w-24 h-24 rounded-[2rem] overflow-hidden shrink-0 shadow-sm border border-slate-100 cursor-pointer"
                                         onClick={() => handlePlay(story.id)}
                                     >
-                                        <img src={getThumbUrl(story.id)} alt={story.title} className="w-full h-full object-cover" />
+                                        <img src={getThumbUrl(story.id)} alt={story.title} className="w-full h-full object-cover grayscale-[20%]" />
                                     </div>
                                 ) : (
                                     <div
-                                        className="w-20 h-20 rounded-xl bg-slate-50 flex items-center justify-center shrink-0 border border-slate-100 cursor-pointer"
+                                        className="w-24 h-24 rounded-[2rem] bg-slate-50 flex items-center justify-center shrink-0 border border-slate-100 cursor-pointer"
                                         onClick={() => handlePlay(story.id)}
                                     >
-                                        <BookOpen className="w-8 h-8 text-slate-200" />
+                                        <Feather className="w-8 h-8 text-slate-200" />
                                     </div>
                                 )}
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-start justify-between gap-3">
                                         <div className="flex-1 min-w-0 cursor-pointer" onClick={() => story.status === 'done' && handlePlay(story.id)}>
-                                            <h3 className="font-bold text-slate-900 truncate group-hover:text-indigo-600 transition-colors">
+                                            <h3 className="font-serif text-xl font-semibold text-[#1A1C1E] group-hover:text-[#2D5A4C] transition-colors leading-tight">
                                                 {story.title}
                                             </h3>
 
@@ -305,41 +310,25 @@ export default function StoryArchive() {
                                                     </div>
 
                                                     {/* Full Synopsis */}
-                                                    <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-wrap">{story.description}</p>
+                                                    <p className="text-sm text-[#1A1C1E] font-serif leading-relaxed italic line-clamp-2 mt-2">{story.description}</p>
 
                                                     {/* Detailed Metadata Grid */}
-                                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 border-t border-slate-50">
+                                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4 pt-4 border-t border-slate-50">
                                                         <div className="flex flex-col">
-                                                            <span className="text-[9px] uppercase font-bold text-slate-400">Genre</span>
-                                                            <span className="text-[11px] text-slate-600 truncate font-semibold">{story.genre || '—'}</span>
+                                                            <span className="status-label text-slate-400">Genre</span>
+                                                            <span className="text-[11px] text-[#2D5A4C] font-semibold">{story.genre || '—'}</span>
                                                         </div>
                                                         <div className="flex flex-col">
-                                                            <span className="text-[9px] uppercase font-bold text-slate-400">Stil</span>
-                                                            <span
-                                                                className="text-[11px] text-slate-600 font-semibold leading-tight cursor-help border-b border-dotted border-slate-300 w-fit"
-                                                                title={(() => {
-                                                                    const ids = story.style.split(',').map(s => s.trim().toLowerCase());
-                                                                    const names = ids.map(id => AUTHOR_NAMES[id] || id);
-                                                                    if (names.length === 1) return `Wortwahl: ${names[0]}\nAtmosphäre: ${names[0]}\nErzählweise: ${names[0]}`;
-                                                                    if (names.length === 2) return `Wortwahl: ${names[0]}\nAtmosphäre: ${names[1]}\nErzählweise: ${names[0]} & ${names[1]}`;
-                                                                    return `Wortwahl: ${names[0]}\nAtmosphäre: ${names[1]}\nErzählweise: ${names[2]}`;
-                                                                })()}
-                                                            >
-                                                                {story.style.split(',').map(s => {
-                                                                    const id = s.trim().toLowerCase();
-                                                                    return AUTHOR_NAMES[id] || id;
-                                                                }).join(', ')}
-                                                            </span>
+                                                            <span className="status-label text-slate-400">Stil</span>
+                                                            <span className="text-[11px] text-slate-600 font-medium truncate">{story.style.split(',')[0]}</span>
                                                         </div>
                                                         <div className="flex flex-col">
-                                                            <span className="text-[9px] uppercase font-bold text-slate-400">Stimme</span>
-                                                            <span className="text-[11px] text-slate-600 truncate font-semibold">
-                                                                {voiceName(story.voice_key)}
-                                                            </span>
+                                                            <span className="status-label text-slate-400">Stimme</span>
+                                                            <span className="text-[11px] text-slate-600 font-medium truncate">{voiceName(story.voice_key)}</span>
                                                         </div>
                                                         <div className="flex flex-col">
-                                                            <span className="text-[9px] uppercase font-bold text-slate-400">Dauer</span>
-                                                            <span className="text-[11px] text-slate-600 truncate font-semibold">{formatDuration(story.duration_seconds)}</span>
+                                                            <span className="status-label text-slate-400">Dauer</span>
+                                                            <span className="text-[11px] text-slate-600 font-medium">{formatDuration(story.duration_seconds)}</span>
                                                         </div>
                                                     </div>
 
@@ -375,9 +364,9 @@ export default function StoryArchive() {
                                             <button
                                                 onClick={() => handlePlay(story.id)}
                                                 disabled={story.status !== 'done'}
-                                                className="flex items-center justify-center sm:justify-start gap-1.5 px-3 py-2 bg-indigo-50 sm:bg-transparent rounded-lg sm:rounded-none text-xs font-semibold text-indigo-600 hover:text-indigo-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                                className="flex items-center justify-center sm:justify-start gap-1.5 px-3 py-2 bg-[#F0FDF4] sm:bg-transparent rounded-lg sm:rounded-none text-xs font-semibold text-[#2D5A4C] hover:text-[#1A4336] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                                             >
-                                                <Play className="w-3.5 h-3.5" />
+                                                <Play className="w-3.5 h-3.5 fill-current" />
                                                 Anhören
                                             </button>
                                             {user?.is_admin && story.user_id === user.id && (
@@ -423,15 +412,11 @@ export default function StoryArchive() {
                                             {user?.is_admin && (
                                                 <button
                                                     onClick={() => handleRegenerateImage(story.id)}
-                                                    disabled={story.status !== 'done' || isRegeneratingImage === story.id}
-                                                    className="flex items-center justify-center sm:justify-start gap-1.5 px-3 py-2 bg-purple-50 sm:bg-transparent rounded-lg sm:rounded-none text-xs font-semibold text-purple-600 hover:text-purple-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                                    disabled={story.status !== 'done'}
+                                                    className="flex items-center justify-center sm:justify-start gap-1.5 px-3 py-2 bg-slate-50 sm:bg-transparent rounded-lg sm:rounded-none text-xs font-semibold text-slate-500 hover:text-slate-700 transition-colors disabled:opacity-30"
                                                 >
-                                                    {isRegeneratingImage === story.id ? (
-                                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                                    ) : (
-                                                        <ImageIcon className="w-3.5 h-3.5" />
-                                                    )}
-                                                    Bild neu
+                                                    <ImageIcon className="w-3.5 h-3.5" />
+                                                    Bild
                                                 </button>
                                             )}
                                             <button
@@ -453,7 +438,7 @@ export default function StoryArchive() {
                                                     setRemixInstructions('');
                                                 }}
                                                 disabled={story.status !== 'done' || isRemixing}
-                                                className="flex items-center justify-center sm:justify-start gap-1.5 px-3 py-2 bg-indigo-50 sm:bg-transparent rounded-lg sm:rounded-none text-xs font-semibold text-indigo-600 hover:text-indigo-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                                className="flex items-center justify-center sm:justify-start gap-1.5 px-3 py-2 bg-slate-50 sm:bg-transparent rounded-lg sm:rounded-none text-xs font-semibold text-slate-500 hover:text-slate-700 transition-colors disabled:opacity-30"
                                             >
                                                 <RefreshCw className={`w-3.5 h-3.5 ${isRemixing && showRemixModal === story.id ? 'animate-spin' : ''}`} />
                                                 Remix
@@ -599,7 +584,7 @@ export default function StoryArchive() {
                                         </button>
                                         <button
                                             onClick={() => setConfirmRevoice(true)}
-                                            className="flex-1 px-4 py-3 bg-indigo-600 text-white rounded-xl font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all"
+                                            className="btn-primary flex-1 px-4 py-3"
                                         >
                                             Weiter
                                         </button>
@@ -761,7 +746,7 @@ export default function StoryArchive() {
                             <button
                                 onClick={() => handleRemix(showRemixModal)}
                                 disabled={isRemixing}
-                                className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-4 rounded-xl font-bold text-base shadow-lg shadow-indigo-100 hover:shadow-xl hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:translate-y-0"
+                                className="btn-primary w-full py-4 text-base"
                             >
                                 {isRemixing ? (
                                     <Loader2 className="w-5 h-5 animate-spin" />
