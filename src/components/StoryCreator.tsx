@@ -260,9 +260,9 @@ export default function StoryCreator() {
                 {/* Description / Idea */}
                 <div>
                     <div className="flex items-center justify-between mb-2">
-                        <label className="block text-sm font-semibold text-slate-700">
+                        <h2 className="text-sm font-semibold text-slate-700 font-serif">
                             Beschreibe deine Idee
-                        </label>
+                        </h2>
                         <button
                             onClick={handleDiceClick}
                             disabled={isRolling}
@@ -296,7 +296,7 @@ export default function StoryCreator() {
                 {/* Genre */}
                 <div>
                     <div className="mb-2">
-                        <label className="block text-sm font-semibold text-slate-700">Genre <span className="font-normal text-slate-400">(bestimmt Ton & Struktur)</span></label>
+                        <h2 className="text-sm font-semibold text-slate-700 font-serif">Genre <span className="font-sans font-normal text-slate-400">(bestimmt Ton & Struktur)</span></h2>
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2">
                         {(showAllGenres ? sortedGenres : sortedGenres.slice(0, BEST_OF_COUNT)).map(g => (
@@ -308,7 +308,7 @@ export default function StoryCreator() {
                                     : 'border-[#F1F5F9] bg-white text-[#6B7280] hover:border-[#E2E8F0]'
                                     }`}
                             >
-                                <div className={`text-sm font-bold ${genre === g.value ? 'text-[#1A4336]' : 'text-slate-700'}`}>{g.label}</div>
+                                <h4 className={`text-sm font-bold ${genre === g.value ? 'text-[#1A4336]' : 'text-slate-700'}`}>{g.label}</h4>
                                 <div className={`text-xs ${genre === g.value ? 'text-[#2D5A4C]' : 'text-slate-400'}`}>{g.desc}</div>
                             </button>
                         ))}
@@ -327,9 +327,9 @@ export default function StoryCreator() {
                 {/* Style */}
                 <div>
                     <div className="mb-2">
-                        <label className="block text-sm font-semibold text-slate-700">
-                            Autoren <span className="font-normal text-slate-400">(max. 3 auswählen, Stil wird gemixt)</span>
-                        </label>
+                        <h2 className="text-sm font-semibold text-slate-700 font-serif">
+                            Autoren <span className="font-sans font-normal text-slate-400">(max. 3 auswählen, Stil wird gemixt)</span>
+                        </h2>
                     </div>
 
                     <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2">
@@ -350,7 +350,7 @@ export default function StoryCreator() {
                                             {index + 1}
                                         </div>
                                     )}
-                                    <div className={`text-sm font-bold pr-6 ${isSelected ? 'text-[#1A4336]' : 'text-slate-700'}`}>{s.name}</div>
+                                    <h4 className={`text-sm font-bold pr-6 ${isSelected ? 'text-[#1A4336]' : 'text-slate-700'}`}>{s.name}</h4>
                                     <div className={`text-xs ${isSelected ? 'text-[#2D5A4C]' : 'text-slate-400'}`}>{s.desc}</div>
                                 </button>
                             );
@@ -369,7 +369,7 @@ export default function StoryCreator() {
 
                 {/* Length */}
                 <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-2">Länge</label>
+                    <h2 className="text-sm font-semibold text-slate-700 mb-2 font-serif">Länge</h2>
                     <div className="grid grid-cols-3 gap-2">
                         {LENGTHS.map(l => (
                             <button
@@ -390,7 +390,7 @@ export default function StoryCreator() {
 
             {/* Voice Selection */}
             <div className="mt-6">
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Stimme</label>
+                <h2 className="text-sm font-semibold text-slate-700 mb-2 font-serif">Stimme</h2>
 
                 {/* --- Standard voices (always visible, pinned) --- */}
                 <p className="text-xs font-medium text-slate-400 mb-1.5 tracking-wide uppercase">Standardstimmen</p>

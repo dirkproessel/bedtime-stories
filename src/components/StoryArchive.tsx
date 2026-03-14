@@ -205,7 +205,7 @@ export default function StoryArchive() {
                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[#2D5A4C] mb-4 shadow-lg shadow-[#2D5A4C]/15">
                     <Feather className="w-8 h-8 text-white" />
                 </div>
-                <h1 className="text-2xl font-bold text-[#1A1C1E]">Archiv</h1>
+                <h1 className="text-2xl font-bold text-[#1A1C1E] font-serif">Archiv</h1>
                 
                 {user && (
                     <div className="flex items-center justify-center mt-6">

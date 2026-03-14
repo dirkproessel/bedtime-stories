@@ -235,7 +235,7 @@ export default function StoryPlayer() {
                                 <Moon className="w-16 h-16 text-white/90" />
                             </div>
                         )}
-                        <h1 className="text-xl font-bold text-slate-900">{story.title}</h1>
+                        <h1 className="text-2xl font-bold text-slate-900 font-serif">{story.title}</h1>
 
                         {/* Metadata Row */}
                         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 mt-3 text-[11px] font-medium text-slate-500">
@@ -375,12 +375,12 @@ export default function StoryPlayer() {
                                 onClick={() => setShowChapters(!showChapters)}
                                 className="w-full flex items-center justify-between p-4 bg-white border-2 border-slate-100 rounded-2xl hover:border-slate-200 transition-all"
                             >
-                                <span className="text-sm font-semibold text-slate-700">📖 Kurzgeschichten-Text</span>
+                                <span className="text-sm font-semibold text-slate-700 font-serif">📖 Kurzgeschichten-Text</span>
                                 {showChapters ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
                             </button>
                             {showChapters && (
-                                <div className="mt-2 p-4 bg-white border-2 border-slate-100 rounded-2xl">
-                                    <p className="text-xs text-slate-500 leading-relaxed whitespace-pre-line">
+                                <div className="mt-2 p-6 bg-white border-2 border-slate-100 rounded-2xl">
+                                    <p className="text-base text-slate-700 leading-relaxed whitespace-pre-line font-serif">
                                         {story.chapters.map(ch => ch.text).join('\n\n')}
                                     </p>
                                 </div>
