@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useStore } from './store/useStore';
-import { Loader2, PenTool, BookOpen, Headphones, Moon, User } from 'lucide-react';
+import { Loader2, PenTool, BookOpen, Headphones, User, Feather } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
 import StoryCreator from './components/StoryCreator';
 import StoryArchive from './components/StoryArchive';
@@ -92,11 +92,19 @@ function App() {
 
   if (isLoading && !isInitialized) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-indigo-50/30 flex flex-col items-center justify-center w-full gap-4">
-        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/25 animate-pulse">
-          <Moon className="w-8 h-8 text-white" />
+      <div className="min-h-screen bg-[#F8F9FA] flex flex-col items-center justify-center w-full gap-8">
+        <div className="relative">
+          <div className="w-24 h-24 rounded-full border border-slate-100 flex items-center justify-center bg-white shadow-sm animate-pulse">
+            <Feather className="w-10 h-10 text-[#2D5A4C]" />
+          </div>
+          <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-[#2D5A4C] rounded-full border-4 border-[#F8F9FA]" />
         </div>
-        <Loader2 className="w-6 h-6 text-indigo-400 animate-spin" />
+        <div className="flex flex-col items-center gap-3">
+          <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-slate-400 font-medium tracking-widest">Labor wird vorbereitet</span>
+          <div className="w-32 h-1 bg-slate-100 rounded-full overflow-hidden relative">
+            <div className="absolute inset-0 bg-[#2D5A4C] w-1/3 rounded-full animate-shimmer" />
+          </div>
+        </div>
       </div>
     );
   }
