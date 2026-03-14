@@ -1,31 +1,31 @@
 import { useEffect } from 'react';
 import { useStore } from './store/useStore';
-import { PenTool, BookOpen, Headphones, User, Feather } from 'lucide-react';
+import { PenTool, BookOpen, User, Feather, Compass } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
 import StoryCreator from './components/StoryCreator';
 import StoryArchive from './components/StoryArchive';
-import StoryPlayer from './components/StoryPlayer';
 import LoginScreen from './components/LoginScreen';
 import AccountScreen from './components/AccountScreen';
+import ReaderLayer from './components/ReaderLayer';
+import AudioCompanion from './components/AudioCompanion';
 
 const NAV_ITEMS = [
-  { key: 'create' as const, label: 'Erstellen', icon: PenTool },
-  { key: 'archive' as const, label: 'Archiv', icon: BookOpen },
-  { key: 'player' as const, label: 'Player', icon: Headphones },
-  { key: 'account' as const, label: 'Konto', icon: User },
+  { key: 'discover' as const, label: 'Entdecken', icon: Compass },
+  { key: 'create' as const, label: 'Erschaffen', icon: PenTool },
+  { key: 'library' as const, label: 'Meine Bibliothek', icon: BookOpen },
+  { key: 'profile' as const, label: 'Profil', icon: User },
 ];
 
 function App() {
-  const { fetchData, isLoading, error, isInitialized, activeView, setActiveView, selectedStoryId, setSelectedStoryId, user, token } = useStore();
+  const { fetchData, isLoading, error, isInitialized, activeView, setActiveView, user, token } = useStore();
 
   // Initial Data Fetch
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  // Auth Guard: Only redirect to login if we are in 'account' view and not logged in
   useEffect(() => {
-    if (isInitialized && !user && !token && activeView === 'account') {
+    if (isInitialized && !user && !token && activeView === 'profile') {
         setActiveView('login');
     }
   }, [isInitialized, user, token, activeView, setActiveView]);
@@ -35,11 +35,11 @@ function App() {
     const handleHashChange = () => {
       const hash = window.location.hash.replace('#', '');
 
-      if (hash.startsWith('/player/')) {
+      if (hash.startsWith('/story/')) {
         const storyId = hash.split('/')[2];
         if (storyId) {
-          setActiveView('player');
-          setSelectedStoryId(storyId);
+          // Open reader for this story
+          useStore.getState().setReaderOpen(true, storyId);
           return;
         }
       }
@@ -47,13 +47,18 @@ function App() {
       // If we are definitely not logged in, don't change other routes
       if (!localStorage.getItem('auth_token')) return;
 
-      if (hash === '/archive') {
-        setActiveView('archive');
+      if (hash === '/library') {
+        setActiveView('library');
         return;
       }
 
-      if (hash === '/account') {
-        setActiveView('account');
+      if (hash === '/discover') {
+        setActiveView('discover');
+        return;
+      }
+
+      if (hash === '/profile') {
+        setActiveView('profile');
         return;
       }
 
@@ -68,27 +73,31 @@ function App() {
 
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
-  }, [setActiveView, setSelectedStoryId]);
+  }, [setActiveView]);
 
-  // Sync Store State -> URL Hash (When clicking buttons in the UI)
+  // Sync Store State -> URL Hash
   useEffect(() => {
     let desiredHash = '';
-    if (activeView === 'player' && selectedStoryId) {
-      desiredHash = `#/player/${selectedStoryId}`;
-    } else if (activeView === 'archive') {
-      desiredHash = `#/archive`;
+    const { isReaderOpen, readerStoryId } = useStore.getState();
+
+    if (isReaderOpen && readerStoryId) {
+      desiredHash = `#/story/${readerStoryId}`;
+    } else if (activeView === 'library') {
+      desiredHash = `#/library`;
+    } else if (activeView === 'discover') {
+      desiredHash = `#/discover`;
     } else if (activeView === 'create') {
       desiredHash = `#/create`;
-    } else if (activeView === 'account') {
-      desiredHash = `#/account`;
+    } else if (activeView === 'profile') {
+      desiredHash = `#/profile`;
     } else if (activeView === 'login') {
-      desiredHash = ``; // Clear hash for login
+      desiredHash = ``;
     }
 
     if (desiredHash !== '' && window.location.hash !== desiredHash) {
       window.history.pushState(null, '', desiredHash);
     }
-  }, [activeView, selectedStoryId]);
+  }, [activeView, useStore.getState().isReaderOpen, useStore.getState().readerStoryId]);
 
   if (isLoading && !isInitialized) {
     return (
@@ -124,22 +133,28 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] flex flex-col w-full">
-      {/* Main Content */}
+    <div className="min-h-screen bg-[#F8F9FA] flex flex-col w-full relative overflow-hidden">
+      {/* Reader Layer (z-40) */}
+      <ReaderLayer />
+
+      <Toaster position="top-center" />
       <main id="main-scroll-container" className="flex-1 overflow-y-auto pb-24">
         {activeView === 'login' && <LoginScreen />}
         {activeView === 'create' && <StoryCreator />}
-        {activeView === 'archive' && <StoryArchive />}
-        {activeView === 'player' && <StoryPlayer />}
-        {activeView === 'account' && <AccountScreen />}
+        {activeView === 'discover' && <StoryArchive />}
+        {activeView === 'library' && <StoryArchive />}
+        {activeView === 'profile' && <AccountScreen />}
       </main>
+
+      {/* persistent audio companion (z-60) */}
+      <AudioCompanion />
 
       {/* Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t border-slate-100 safe-area-bottom z-50">
         <div className="max-w-2xl mx-auto flex items-center justify-around py-2">
           {NAV_ITEMS.map(({ key, label, icon: Icon }) => {
-            const isAccount = key === 'account';
-            const isGuest = isAccount && !user;
+            const isProfile = key === 'profile';
+            const isGuest = isProfile && !user;
             
             return (
               <button
@@ -150,8 +165,8 @@ function App() {
                   : 'text-slate-400 hover:text-slate-600'
                   }`}
               >
-                <Icon className={`w-5 h-5 ${activeView === key ? 'stroke-[2.5]' : ''}`} />
-                <span className="text-[10px] font-semibold">
+                <Icon className={`w-5 h-5 ${activeView === key ? 'stroke-[2.5]' : 'stroke-[1.5]'}`} />
+                <span className="text-[8px] font-mono uppercase tracking-[0.2em] font-medium">
                   {isGuest ? 'Anmelden' : label}
                 </span>
                 {isGuest && (

@@ -9,13 +9,14 @@ import { voiceName, voiceDesc } from '../lib/voices';
 
 export default function StoryArchive() {
     const { 
-        stories, loadStories, setActiveView, setSelectedStoryId, 
+        stories, loadStories, setActiveView, 
         toggleStoryVisibility, user, archiveFilter, setArchiveFilter,
         totalStories, totalMyStories, totalPublicStories,
         currArchivePage, voices, revoiceStoryId, setRevoiceStoryId,
         updateStorySpotify, startGeneration,
         setGeneratorPrompt, setGeneratorGenre, setGeneratorAuthors,
-        setGeneratorMinutes, setGeneratorVoice, setGeneratorRemix
+        setGeneratorMinutes, setGeneratorVoice, setGeneratorRemix,
+        setReaderOpen
     } = useStore();
     const [selectedVoice, setSelectedVoice] = useState('seraphina');
     const [confirmRevoice, setConfirmRevoice] = useState(false);
@@ -79,8 +80,7 @@ export default function StoryArchive() {
     };
 
     const handlePlay = (id: string) => {
-        setSelectedStoryId(id);
-        setActiveView('player');
+        setReaderOpen(true, id);
     };
 
     const handleDelete = async (id: string, title: string) => {

@@ -43,11 +43,20 @@ interface AppState {
     updateStorySpotify: (id: string, enabled: boolean) => Promise<void>;
 
     // UI
-    activeView: 'create' | 'archive' | 'player' | 'account' | 'login';
-    setActiveView: (view: 'create' | 'archive' | 'player' | 'account' | 'login') => void;
+    activeView: 'discover' | 'create' | 'library' | 'profile' | 'login';
+    setActiveView: (view: 'discover' | 'create' | 'library' | 'profile' | 'login') => void;
     selectedStoryId: string | null;
     setSelectedStoryId: (id: string | null) => void;
     toggleStoryVisibility: (id: string, isPublic: boolean) => Promise<void>;
+
+    // Layer Architecture
+    isReaderOpen: boolean;
+    readerStoryId: string | null;
+    setReaderOpen: (open: boolean, storyId?: string | null) => void;
+    
+    currentAudioStoryId: string | null;
+    showAudioCompanion: boolean;
+    setAudioCompanion: (show: boolean, storyId?: string | null) => void;
 
     // Loading
     isLoading: boolean;
@@ -100,6 +109,11 @@ export const useStore = create<AppState>((set, get) => {
     isLoading: false,
     error: null,
     isInitialized: false,
+
+    isReaderOpen: false,
+    readerStoryId: null,
+    currentAudioStoryId: null,
+    showAudioCompanion: false,
 
     generatorPrompt: '',
     generatorGenre: 'Realismus',
@@ -225,7 +239,7 @@ export const useStore = create<AppState>((set, get) => {
                 generatorContext: null 
             });
             // Immediately switch to archive and reload to show the "Pending" story
-            set({ activeView: 'archive' });
+            set({ activeView: 'library' });
             await get().loadStories();
             get().pollStatus();
         } catch (e: any) {
@@ -238,7 +252,7 @@ export const useStore = create<AppState>((set, get) => {
         set({ error: null });
         try {
             await generateFreeStory(text, voiceKey, targetMinutes);
-            set({ activeView: 'archive' });
+            set({ activeView: 'library' });
             await get().loadStories();
             get().pollStatus();
         } catch (e: any) {
@@ -289,8 +303,21 @@ export const useStore = create<AppState>((set, get) => {
             throw e;
         }
     },
-    setActiveView: (view) => set({ activeView: view }),
+    setActiveView: (view) => {
+        set({ activeView: view });
+        // Handle filter auto-sync if switching to library/discover
+        if (view === 'library') set({ archiveFilter: 'my' });
+        if (view === 'discover') set({ archiveFilter: 'public' });
+    },
     setSelectedStoryId: (id) => set({ selectedStoryId: id }),
+    setReaderOpen: (open, storyId = null) => set({ 
+        isReaderOpen: open, 
+        readerStoryId: storyId || get().readerStoryId 
+    }),
+    setAudioCompanion: (show, storyId = null) => set({ 
+        showAudioCompanion: show, 
+        currentAudioStoryId: storyId || get().currentAudioStoryId 
+    }),
     toggleStoryVisibility: async (id, isPublic) => {
         try {
             const { updateStoryVisibility: apiUpdateVisibility } = await import('../lib/api');
