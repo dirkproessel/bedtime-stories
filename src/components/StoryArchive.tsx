@@ -1,6 +1,6 @@
 import { useStore } from '../store/useStore';
 import { deleteStory, revoiceStory, getVoicePreviewUrl, exportStoryToKindle, getThumbUrl, regenerateStoryImage } from '../lib/api';
-import { Play, Trash2, BookOpen, Calendar, Loader2, Mic, X, Venus, Mars, Users, Pause, Send, ChevronLeft, ChevronRight, Image as ImageIcon, RefreshCw, Sparkles, Settings2, MessageCircle, Feather, Timer } from 'lucide-react';
+import { Play, Trash2, BookOpen, Calendar, Loader2, Mic, X, Venus, Mars, Users, Pause, Send, ChevronLeft, ChevronRight, Image as ImageIcon, RefreshCw, Sparkles, Settings2, MessageCircle, Feather, Timer, Zap, Edit, Eye } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useEffect, useState, useRef } from 'react';
 
@@ -31,6 +31,7 @@ export default function StoryArchive() {
     const [remixType, setRemixType] = useState<'improvement' | 'sequel'>('improvement');
     const [remixInstructions, setRemixInstructions] = useState('');
     const [isRemixing, setIsRemixing] = useState(false);
+    const [showToolbox, setShowToolbox] = useState<string | null>(null);
     const audioRef = useRef<HTMLAudioElement>(null);
 
     // Track if we have performed the initial check for "my" stories
@@ -343,133 +344,22 @@ export default function StoryArchive() {
                                             )}
                                         </div>
                                     </div>
+                                    <div className="mt-4 pt-4 border-t border-slate-800 flex items-center justify-between">
+                                        <button
+                                            onClick={() => handlePlay(story.id)}
+                                            disabled={story.status !== 'done'}
+                                            className="flex items-center gap-3 px-6 py-3 bg-primary/10 text-primary rounded-2xl text-sm font-bold hover:bg-primary/20 transition-all active:scale-95 border border-primary/20 disabled:opacity-30"
+                                        >
+                                            <Play className="w-5 h-5 fill-current" />
+                                            Listen
+                                        </button>
 
-                                    <div className="mt-4 pt-3 border-t border-slate-800">
-                                        <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:gap-4">
-                                            <button
-                                                onClick={() => handlePlay(story.id)}
-                                                disabled={story.status !== 'done'}
-                                                className="flex items-center justify-center sm:justify-start gap-1.5 px-3 py-2 bg-accent/20 sm:bg-transparent rounded-lg sm:rounded-none text-xs font-semibold text-primary hover:text-emerald-400 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                                            >
-                                                <Play className="w-3.5 h-3.5 fill-current" />
-                                                Anhören
-                                            </button>
-                                            {user?.is_admin && story.user_id === user.id && (
-                                                <button
-                                                    onClick={async () => {
-                                                        setIsPublicLoading(story.id);
-                                                        try {
-                                                            await toggleStoryVisibility(story.id, !story.is_public);
-                                                            toast.success(story.is_public ? 'Story privatisiert' : 'Story veröffentlicht!');
-                                                        } finally {
-                                                            setIsPublicLoading(null);
-                                                        }
-                                                    }}
-                                                    disabled={isPublicLoading === story.id}
-                                                    className={`hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
-                                                        story.is_public 
-                                                        ? 'bg-accent/20 text-primary' 
-                                                        : 'bg-slate-900 text-slate-500 hover:bg-slate-800'
-                                                    }`}
-                                                >
-                                                    {isPublicLoading === story.id ? (
-                                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                                    ) : (
-                                                        <Users className="w-3.5 h-3.5" />
-                                                    )}
-                                                    {story.is_public ? 'Öffentlich' : 'Privat'}
-                                                </button>
-                                            )}
-                                            
-                                            {user?.is_admin && (
-                                                <button
-                                                    onClick={() => {
-                                                        setRevoiceStoryId(story.id);
-                                                        setSelectedVoice(story.voice_key || 'seraphina');
-                                                    }}
-                                                    disabled={story.status !== 'done' && story.status !== 'error'}
-                                                    className="flex items-center justify-center sm:justify-start gap-1.5 px-3 py-2 bg-amber-950/20 sm:bg-transparent rounded-lg sm:rounded-none text-xs font-semibold text-amber-500 hover:text-amber-400 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                                                >
-                                                    <Mic className="w-3.5 h-3.5" />
-                                                    Neu vertonen
-                                                </button>
-                                            )}
-                                            {user?.is_admin && (
-                                                <button
-                                                    onClick={() => handleRegenerateImage(story.id)}
-                                                    disabled={story.status !== 'done'}
-                                                    className="flex items-center justify-center sm:justify-start gap-1.5 px-3 py-2 bg-slate-900 sm:bg-transparent rounded-lg sm:rounded-none text-xs font-semibold text-slate-400 hover:text-slate-200 transition-colors disabled:opacity-30"
-                                                >
-                                                    <ImageIcon className="w-3.5 h-3.5" />
-                                                    Bild
-                                                </button>
-                                            )}
-                                            <button
-                                                onClick={() => setShowKindleModal(story.id)}
-                                                disabled={(story.status !== 'done' && story.status !== 'error') || isExporting === story.id}
-                                                className="flex items-center justify-center sm:justify-start gap-1.5 px-3 py-2 bg-emerald-950/20 sm:bg-transparent rounded-lg sm:rounded-none text-xs font-semibold text-emerald-500 hover:text-emerald-400 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                                            >
-                                                {isExporting === story.id ? (
-                                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                                ) : (
-                                                    <Send className="w-3.5 h-3.5" />
-                                                )}
-                                                Kindle Export
-                                            </button>
-                                            <button
-                                                onClick={() => {
-                                                    setShowRemixModal(story.id);
-                                                    setRemixType('improvement');
-                                                    setRemixInstructions('');
-                                                }}
-                                                disabled={story.status !== 'done' || isRemixing}
-                                                className="flex items-center justify-center sm:justify-start gap-1.5 px-3 py-2 bg-slate-900 sm:bg-transparent rounded-lg sm:rounded-none text-xs font-semibold text-slate-400 hover:text-slate-200 transition-colors disabled:opacity-30"
-                                            >
-                                                <RefreshCw className={`w-3.5 h-3.5 ${isRemixing && showRemixModal === story.id ? 'animate-spin' : ''}`} />
-                                                Remix
-                                            </button>
-                                            {user?.is_admin && (
-                                                <div className="flex items-center justify-center sm:justify-start">
-                                                    <label className={`flex items-center gap-1.5 cursor-pointer group/toggle ${story.status !== 'done' ? 'opacity-30 cursor-not-allowed' : ''}`}>
-                                                        <div className="relative">
-                                                            <input
-                                                                type="checkbox"
-                                                                className="sr-only"
-                                                                disabled={story.status !== 'done'}
-                                                                checked={story.is_on_spotify}
-                                                                onChange={(e) => handleSpotifyToggle(story.id, e.target.checked)}
-                                                            />
-                                                            <div className={`w-8 h-4.5 rounded-full transition-colors ${story.is_on_spotify ? 'bg-primary' : 'bg-slate-700'}`}></div>
-                                                            <div className={`absolute top-0.5 left-0.5 w-3.5 h-3.5 bg-white rounded-full transition-transform ${story.is_on_spotify ? 'translate-x-3.5' : ''}`}></div>
-                                                        </div>
-                                                        <span className={`text-[10px] sm:text-xs font-semibold transition-colors ${story.is_on_spotify ? 'text-primary' : 'text-slate-500'}`}>
-                                                            Spotify
-                                                        </span>
-                                                    </label>
-                                                </div>
-                                            )}
-                                            <button
-                                                onClick={() => {
-                                                    const shareUrl = `${window.location.origin}${window.location.pathname}#/player/${story.id}`;
-                                                    const text = `Schau mal, ich habe eine neue Geschichte erstellt: *${story.title}* 🌙✨\n\n${story.description}\n\nHör sie dir hier an:\n${shareUrl}`;
-                                                    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
-                                                }}
-                                                disabled={story.status !== 'done'}
-                                                className="flex items-center justify-center sm:justify-start gap-1.5 px-3 py-2 bg-green-950/20 sm:bg-transparent rounded-lg sm:rounded-none text-xs font-semibold text-green-500 hover:text-green-400 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                                            >
-                                                <MessageCircle className="w-3.5 h-3.5" />
-                                                WhatsApp
-                                            </button>
-                                            {story.user_id === user?.id && (
-                                                <button
-                                                    onClick={() => handleDelete(story.id, story.title)}
-                                                    className="flex items-center justify-center sm:justify-start gap-1.5 px-3 py-2 bg-red-950/20 sm:bg-transparent rounded-lg sm:rounded-none text-xs font-semibold text-red-500 hover:text-red-400 transition-colors"
-                                                >
-                                                    <Trash2 className="w-3.5 h-3.5" />
-                                                    Löschen
-                                                </button>
-                                            )}
-                                        </div>
+                                        <button
+                                            onClick={() => setShowToolbox(story.id)}
+                                            className="p-3 bg-slate-900 border border-slate-700 rounded-2xl text-slate-400 hover:text-primary hover:border-primary transition-all active:scale-95"
+                                        >
+                                            <Zap className="w-6 h-6 fill-current" />
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -750,6 +640,182 @@ export default function StoryArchive() {
                                 Mehr Optionen (Genre, Autor, Stimme ändern)
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+            {/* Toolbox Overlay */}
+            {showToolbox && (
+                <div className="fixed inset-0 z-[100] flex items-end justify-center bg-background/60 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div 
+                        className="fixed inset-0" 
+                        onClick={() => setShowToolbox(null)}
+                    />
+                    <div className="relative w-full max-w-md bg-surface border-t border-slate-800 rounded-t-[2.5rem] p-8 shadow-2xl animate-in slide-in-from-bottom duration-500 ease-out">
+                        {/* Pull handle */}
+                        <div className="w-12 h-1.5 bg-slate-800 rounded-full mx-auto mb-8" />
+                        
+                        <div className="flex items-center justify-between mb-10">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-primary/20 text-primary rounded-xl flex items-center justify-center">
+                                    <Zap className="w-6 h-6 fill-current" />
+                                </div>
+                                <h2 className="text-sm font-mono uppercase tracking-[0.2em] text-slate-400 font-bold">
+                                    Werkzeugkasten
+                                </h2>
+                            </div>
+                            <button
+                                onClick={() => setShowToolbox(null)}
+                                className="p-2 bg-slate-900 text-slate-500 hover:text-slate-300 rounded-full hover:bg-slate-800 transition-colors"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        {(() => {
+                            const story = stories.find(s => s.id === showToolbox);
+                            if (!story) return null;
+
+                            const sectionClass = "mb-8";
+                            const sectionTitleClass = "text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-slate-600 mb-4 ml-1";
+                            const gridClass = "grid grid-cols-2 gap-3";
+                            const itemClass = "flex flex-col items-center justify-center gap-2 p-4 bg-slate-900/50 border border-slate-800 rounded-2xl transition-all active:scale-95 text-center disabled:opacity-30 disabled:pointer-events-none";
+                            const itemLabelClass = "text-[11px] font-bold text-slate-300";
+
+                            return (
+                                <div className="max-h-[70vh] overflow-y-auto custom-scrollbar pr-1">
+                                    {/* KI & Stanzung (Admin/Library only) */}
+                                    {user?.is_admin && archiveFilter !== 'public' && (
+                                        <div className={sectionClass}>
+                                            <h3 className={sectionTitleClass}>KI & Stanzung</h3>
+                                            <div className={gridClass}>
+                                                <button 
+                                                    onClick={() => { 
+                                                        setRevoiceStoryId(story.id); 
+                                                        setSelectedVoice(story.voice_key || 'seraphina'); 
+                                                        setShowToolbox(null); 
+                                                    }}
+                                                    className={itemClass}
+                                                >
+                                                    <Mic className="w-5 h-5 text-amber-500" />
+                                                    <span className={itemLabelClass}>Neu vertonen</span>
+                                                </button>
+                                                <button 
+                                                    onClick={() => { handleRegenerateImage(story.id); setShowToolbox(null); }}
+                                                    className={itemClass}
+                                                >
+                                                    <ImageIcon className="w-5 h-5 text-slate-400" />
+                                                    <span className={itemLabelClass}>Neues Bild</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Remix Labor */}
+                                    <div className={sectionClass}>
+                                        <h3 className={sectionTitleClass}>Remix Labor</h3>
+                                        <div className={gridClass}>
+                                            <button 
+                                                onClick={() => { 
+                                                    setShowRemixModal(story.id); 
+                                                    setRemixType('improvement'); 
+                                                    setShowToolbox(null); 
+                                                }}
+                                                className={itemClass}
+                                            >
+                                                <Edit className="w-5 h-5 text-orange-400" />
+                                                <span className={itemLabelClass}>Ändern</span>
+                                            </button>
+                                            <button 
+                                                onClick={() => { 
+                                                    setShowRemixModal(story.id); 
+                                                    setRemixType('sequel'); 
+                                                    setShowToolbox(null); 
+                                                }}
+                                                className={itemClass}
+                                            >
+                                                <ChevronRight className="w-5 h-5 text-orange-500" />
+                                                <span className={itemLabelClass}>Fortsetzen</span>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Sichtbarkeit & Versand */}
+                                    <div className={sectionClass}>
+                                        <h3 className={sectionTitleClass}>Sichtbarkeit & Versand</h3>
+                                        <div className={gridClass}>
+                                            {user?.is_admin && story.user_id === user.id && (
+                                                <button 
+                                                    onClick={async () => {
+                                                        const targetId = story.id;
+                                                        setShowToolbox(null);
+                                                        setIsPublicLoading(targetId);
+                                                        try {
+                                                            await toggleStoryVisibility(targetId, !story.is_public);
+                                                            toast.success(story.is_public ? 'Story privatisiert' : 'Story veröffentlicht!');
+                                                        } finally {
+                                                            setIsPublicLoading(null);
+                                                        }
+                                                    }}
+                                                    disabled={isPublicLoading === story.id}
+                                                    className={itemClass}
+                                                >
+                                                    {isPublicLoading === story.id ? (
+                                                        <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                                                    ) : (
+                                                        <Eye className={`w-5 h-5 ${story.is_public ? 'text-primary' : 'text-slate-500'}`} />
+                                                    )}
+                                                    <span className={itemLabelClass}>
+                                                        {story.is_public ? 'Privat machen' : 'Öffentlich stellen'}
+                                                    </span>
+                                                </button>
+                                            )}
+                                            {user?.is_admin && (
+                                                <button 
+                                                    onClick={() => {
+                                                        handleSpotifyToggle(story.id, !story.is_on_spotify);
+                                                        setShowToolbox(null);
+                                                    }}
+                                                    className={itemClass}
+                                                >
+                                                    <div className={`w-8 h-4.5 rounded-full transition-colors relative ${story.is_on_spotify ? 'bg-primary' : 'bg-slate-700'}`}>
+                                                        <div className={`absolute top-0.5 left-0.5 w-3.5 h-3.5 bg-white rounded-full transition-transform ${story.is_on_spotify ? 'translate-x-3.5' : ''}`}></div>
+                                                    </div>
+                                                    <span className={itemLabelClass}>Spotify</span>
+                                                </button>
+                                            )}
+                                            <button 
+                                                onClick={() => { setShowKindleModal(story.id); setShowToolbox(null); }}
+                                                className={itemClass}
+                                            >
+                                                <BookOpen className="w-5 h-5 text-emerald-500" />
+                                                <span className={itemLabelClass}>An Kindle</span>
+                                            </button>
+                                            <button 
+                                                onClick={() => {
+                                                    const shareUrl = `${window.location.origin}${window.location.pathname}#/player/${story.id}`;
+                                                    const text = `Schau mal, ich habe eine neue Geschichte erstellt: *${story.title}* 🌙✨\n\n${story.description}\n\nHör sie dir hier an:\n${shareUrl}`;
+                                                    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+                                                    setShowToolbox(null);
+                                                }}
+                                                className={itemClass}
+                                            >
+                                                <MessageCircle className="w-5 h-5 text-green-500" />
+                                                <span className={itemLabelClass}>WhatsApp</span>
+                                            </button>
+                                            {story.user_id === user?.id && (
+                                                <button 
+                                                    onClick={() => { handleDelete(story.id, story.title); setShowToolbox(null); }}
+                                                    className={itemClass}
+                                                >
+                                                    <Trash2 className="w-5 h-5 text-red-500" />
+                                                    <span className={itemLabelClass}>Löschen</span>
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })()}
                     </div>
                 </div>
             )}
