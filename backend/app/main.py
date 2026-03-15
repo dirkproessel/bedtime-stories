@@ -652,70 +652,80 @@ async def list_stories(
     current_user: User | None = Depends(get_optional_user)
 ):
     """List all stories based on user role and visibility with pagination."""
-    all_stories = store.get_all()
-    # Debug logging for ID matching
-    if all_stories:
-        # Diagnostic: who owns the first 10 stories?
-        owners_dist = {}
-        for s in all_stories:
-            owners_dist[s.user_id] = owners_dist.get(s.user_id, 0) + 1
-        logger.info(f"API list_stories: current_user.id='{current_user.id if current_user else 'None'}'")
-        logger.info(f"Ownership distribution: {owners_dist}")
-        logger.info(f"Sample story owners: {[s.user_id for s in all_stories[:5]]}")
+    """List all stories based on user role and visibility with pagination."""
+    try:
+        all_stories = store.get_all()
+        # Debug logging for ID matching
+        if all_stories:
+            # Diagnostic: who owns the first 10 stories?
+            owners_dist = {}
+            for s in all_stories:
+                owners_dist[s.user_id] = owners_dist.get(s.user_id, 0) + 1
+            logger.info(f"API list_stories: current_user.id='{current_user.id if current_user else 'None'}'")
+            logger.info(f"Ownership distribution: {owners_dist}")
+            logger.info(f"Total stories in store: {len(all_stories)}")
+        else:
+            logger.info("API list_stories: No stories found in database.")
 
-    # Calculate counts regardless of filter
-    stories_my = [s for s in all_stories if s.user_id == (current_user.id if current_user else None)]
-    total_my = len(stories_my)
-    
-    if current_user and current_user.is_admin:
-        # For admins, "public/all" count means "stories from others"
-        total_public = len([s for s in all_stories if s.user_id != current_user.id])
-    else:
-        # For standard users/guests, it means truly public stories
-        total_public = len([s for s in all_stories if s.is_public])
-    
-    # Filter based on user access (Bucket definition)
-    if not current_user:
-        accessible_stories = [s for s in all_stories if s.is_public]
-    elif current_user.is_admin:
-        accessible_stories = all_stories
-    else:
-        accessible_stories = [s for s in all_stories if s.user_id == current_user.id or s.is_public]
+        # Calculate counts regardless of filter
+        stories_my = [s for s in all_stories if s.user_id == (current_user.id if current_user else None)]
+        total_my = len(stories_my)
         
-    # Apply UI filter (Selection from bucket)
-    if filter == "my" and current_user:
-        stories = [s for s in accessible_stories if s.user_id == current_user.id]
-    elif filter == "public":
-        # Standard user "Öffentlich" - include own stories if public as well
-        stories = [s for s in accessible_stories if s.is_public]
-    elif filter == "all" and current_user and current_user.is_admin:
-        # Admin User "Alle" (meaning others)
-        stories = [s for s in accessible_stories if s.user_id != current_user.id]
-    else:
-        # Fallback / Guests
-        stories = accessible_stories
-    
-    # Sort by created_at desc
-    stories.sort(key=lambda x: x.created_at, reverse=True)
+        if current_user and current_user.is_admin:
+            # For admins, "public/all" count means "stories from others"
+            total_public = len([s for s in all_stories if s.user_id != current_user.id])
+        else:
+            # For standard users/guests, it means truly public stories
+            total_public = len([s for s in all_stories if s.is_public])
+        
+        # Filter based on user access (Bucket definition)
+        if not current_user:
+            accessible_stories = [s for s in all_stories if s.is_public]
+        elif current_user.is_admin:
+            accessible_stories = all_stories
+        else:
+            accessible_stories = [s for s in all_stories if s.user_id == current_user.id or s.is_public]
+            
+        # Apply UI filter (Selection from bucket)
+        if filter == "my" and current_user:
+            stories = [s for s in accessible_stories if s.user_id == current_user.id]
+        elif filter == "public":
+            # Standard user "Öffentlich" - include own stories if public as well
+            stories = [s for s in accessible_stories if s.is_public]
+        elif filter == "all" and current_user and current_user.is_admin:
+            # Admin User "Alle" (meaning others)
+            stories = [s for s in accessible_stories if s.user_id != current_user.id]
+        else:
+            # Fallback / Guests
+            stories = accessible_stories
+        
+        # Sort by created_at desc
+        stories.sort(key=lambda x: x.created_at, reverse=True)
 
-    if current_user and current_user.is_admin:
-        # Attach emails for admin view
-        users = {u.id: u.email for u in store.get_all_users()}
-        for s in stories:
-            if s.user_id:
-                s.user_email = users.get(s.user_id)
-    
-    total = len(stories)
-    start = (page - 1) * page_size
-    end = start + page_size
-    paginated_stories = stories[start:end]
+        if current_user and current_user.is_admin:
+            # Attach emails for admin view
+            users = {u.id: u.email for u in store.get_all_users()}
+            for s in stories:
+                if s.user_id:
+                    s.user_email = users.get(s.user_id)
         
-    return StoryListResponse(
-        stories=paginated_stories, 
-        total=total,
-        total_my=total_my,
-        total_public=total_public
-    )
+        total = len(stories)
+        logger.info(f"API list_stories: Filter='{filter}', Accessible={len(accessible_stories)}, Filtered={total}")
+        
+        start = (page - 1) * page_size
+        end = start + page_size
+        paginated_stories = stories[start:end]
+            
+        return StoryListResponse(
+            stories=paginated_stories, 
+            total=total,
+            total_my=total_my,
+            total_public=total_public
+        )
+    except Exception as e:
+        logger.error(f"CRITICAL: list_stories failed: {e}", exc_info=True)
+        # Return empty list to avoid 500 but log the error
+        return StoryListResponse(stories=[], total=0, total_my=0, total_public=0)
 
 
 @app.get("/api/stories/{story_id}")

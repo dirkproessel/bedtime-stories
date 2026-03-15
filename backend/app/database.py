@@ -18,6 +18,7 @@ def create_db_and_tables():
 def ensure_migrations():
     """Simple SQLite migrations for existing tables."""
     import sqlite3
+    from datetime import datetime, timezone
     db_path = Path(settings.AUDIO_OUTPUT_DIR) / sqlite_file_name
     if not db_path.exists():
         return
@@ -25,20 +26,36 @@ def ensure_migrations():
     conn = sqlite3.connect(db_path)
     cur = conn.cursor()
     try:
-        # Check if parent_id exists in storymeta
+        # Check if columns exist in storymeta
         cur.execute("PRAGMA table_info(storymeta)")
         columns = [row[1] for row in cur.fetchall()]
-        if "parent_id" not in columns:
-            print("Migration: Adding parent_id to storymeta...")
-            cur.execute("ALTER TABLE storymeta ADD COLUMN parent_id TEXT")
-            conn.commit()
-            
-        if "updated_at" not in columns:
+        
+        # Define needed columns and their SQL types/defaults
+        needed_columns = [
+            ("parent_id", "TEXT"),
+            ("user_id", "TEXT"),
+            ("is_public", "BOOLEAN DEFAULT 0"),
+            ("user_email", "TEXT"),
+            ("word_count", "INTEGER"),
+            ("voice_name", "TEXT"),
+            ("duration_seconds", "FLOAT"),
+            ("image_url", "TEXT"),
+            ("is_on_spotify", "BOOLEAN DEFAULT 0")
+        ]
+        
+        for col_name, col_type in needed_columns:
+            if col_name.lower() not in [c.lower() for c in columns]:
+                print(f"Migration: Adding {col_name} to storymeta...")
+                cur.execute(f"ALTER TABLE storymeta ADD COLUMN {col_name} {col_type}")
+                conn.commit()
+
+        if "updated_at" not in [c.lower() for c in columns]:
             print("Migration: Adding updated_at to storymeta...")
             # Use current time as default for existing rows
             now_iso = datetime.now(timezone.utc).isoformat()
             cur.execute(f"ALTER TABLE storymeta ADD COLUMN updated_at DATETIME DEFAULT '{now_iso}'")
             conn.commit()
+            
     except Exception as e:
         print(f"Migration error: {e}")
     finally:
