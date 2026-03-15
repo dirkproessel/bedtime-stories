@@ -392,7 +392,7 @@ export default function StoryCreator() {
 
                                 {/* Name & Charakter */}
                                 <div className="flex-1 min-w-0 text-left">
-                                    <div className={`text-sm font-bold truncate ${voiceKey === v.key ? 'text-text' : 'text-slate-300'}`}>
+                                    <div className={`text-sm font-bold truncate font-serif ${voiceKey === v.key ? 'text-text' : 'text-slate-300'}`}>
                                         {voiceName(v.key)}
                                     </div>
                                     <div className={`text-xs ${voiceKey === v.key ? 'text-primary' : 'text-slate-500'}`}>
@@ -439,7 +439,7 @@ export default function StoryCreator() {
 
                                     {/* Name & Charakter */}
                                     <div className="flex-1 min-w-0 text-left">
-                                        <div className={`text-sm font-bold truncate ${voiceKey === v.key ? 'text-text' : 'text-slate-300'}`}>
+                                        <div className={`text-sm font-bold truncate font-serif ${voiceKey === v.key ? 'text-text' : 'text-slate-300'}`}>
                                             {voiceName(v.key)}
                                         </div>
                                         <div className={`text-xs ${voiceKey === v.key ? 'text-primary' : 'text-slate-500'}`}>
@@ -479,10 +479,10 @@ export default function StoryCreator() {
                 <div className="pointer-events-auto">
                     <button
                         onClick={handleGenerate}
-                        className="btn-primary w-full py-4 text-lg"
+                        className="btn-primary w-full py-4 text-lg font-serif"
                     >
                         <Sparkles className="w-6 h-6" />
-                        Geschichte jetzt schreiben
+                        Neue Geschichte erschaffen
                     </button>
                 </div>
             </div>

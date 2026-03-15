@@ -34,6 +34,8 @@ export default function StoryArchive() {
     const [showToolbox, setShowToolbox] = useState<string | null>(null);
     const audioRef = useRef<HTMLAudioElement>(null);
 
+    const activeToolboxStory = showToolbox ? stories.find(s => s.id === showToolbox) : null;
+
     // Track if we have performed the initial check for "my" stories
     const [initialCheckDone, setInitialCheckDone] = useState(false);
 
@@ -245,22 +247,17 @@ export default function StoryArchive() {
                                             <h3 className="font-serif text-xl font-semibold text-text group-hover:text-primary transition-colors leading-tight cursor-pointer" onClick={() => story.status === 'done' && handlePlay(story.id)}>
                                                 {story.title}
                                             </h3>
-                                            {archiveFilter !== 'public' && story.is_public && (
-                                                <span className="shrink-0 px-1.5 py-0.5 rounded-md bg-primary/10 border border-primary/20 text-[9px] font-bold text-primary uppercase tracking-wider animate-in fade-in zoom-in">
-                                                    Veröffentlicht
-                                                </span>
-                                            )}
                                         </div>
                                         
                                         {story.status === 'done' && (
                                             <div className="flex gap-6 mb-1">
                                                 <div className="flex flex-col">
                                                     <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-slate-500 mb-0.5">Genre</span>
-                                                    <span className="text-xs text-emerald-500 font-bold">{story.genre || '—'}</span>
+                                                    <span className="text-xs text-slate-300 font-bold">{story.genre || '—'}</span>
                                                 </div>
-                                                <div className="flex flex-col">
+                                                <div className="flex flex-col flex-1 min-w-0">
                                                     <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-slate-500 mb-0.5">Stil</span>
-                                                    <span className="text-xs text-slate-300 font-medium whitespace-nowrap overflow-hidden text-ellipsis max-w-[100px]">
+                                                    <span className="text-xs text-slate-300 font-medium">
                                                         {story.style.split(',').map(id => authorName(id.trim())).join(', ')}
                                                     </span>
                                                 </div>
@@ -332,6 +329,13 @@ export default function StoryArchive() {
                                                     <Users className="w-4 h-4 text-slate-600" />
                                                     {story.user_email}
                                                 </span>
+                                            )}
+                                            {archiveFilter !== 'public' && story.is_public && (
+                                                <div className="mt-1">
+                                                    <span className="px-1.5 py-0.5 rounded-md bg-slate-800 border border-slate-700 text-[9px] font-bold text-slate-400 uppercase tracking-wider animate-in fade-in slide-in-from-left-1 duration-500">
+                                                        Veröffentlicht
+                                                    </span>
+                                                </div>
                                             )}
                                         </div>
 
@@ -664,27 +668,116 @@ export default function StoryArchive() {
                             </button>
                         </div>
 
-                        {(() => {
-                            const story = stories.find(s => s.id === showToolbox);
-                            if (!story) return null;
+                        {activeToolboxStory && (
+                            <div className="max-h-[70vh] overflow-y-auto custom-scrollbar pr-1 pb-4">
+                                {/* Remix Labor */}
+                                <div className={sectionClass}>
+                                    <h3 className={sectionTitleClass}>Remix Labor</h3>
+                                    <div className={gridClass}>
+                                        <button 
+                                            onClick={() => { 
+                                                setShowRemixModal(activeToolboxStory.id); 
+                                                setRemixType('improvement'); 
+                                                setShowToolbox(null); 
+                                            }}
+                                            className={itemClass}
+                                        >
+                                            <Edit className="w-5 h-5 text-emerald-400" />
+                                            <span className={itemLabelClass}>Anpassen</span>
+                                        </button>
+                                        <button 
+                                            onClick={() => { 
+                                                setShowRemixModal(activeToolboxStory.id); 
+                                                setRemixType('sequel'); 
+                                                setShowToolbox(null); 
+                                            }}
+                                            className={itemClass}
+                                        >
+                                            <Sparkles className="w-5 h-5 text-emerald-500" />
+                                            <span className={itemLabelClass}>Fortsetzen</span>
+                                        </button>
+                                    </div>
+                                </div>
 
-                            const sectionClass = "mb-8";
-                            const sectionTitleClass = "text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-slate-600 mb-4 ml-1";
-                            const gridClass = "grid grid-cols-2 gap-3";
-                            const itemClass = "flex flex-col items-center justify-center gap-2 p-4 bg-slate-900/50 border border-slate-800 rounded-2xl transition-all active:scale-95 text-center disabled:opacity-30 disabled:pointer-events-none";
-                            const itemLabelClass = "text-[11px] font-bold text-slate-300";
+                                {/* Sichtbarkeit & Versand */}
+                                <div className={sectionClass}>
+                                    <h3 className={sectionTitleClass}>Sichtbarkeit & Versand</h3>
+                                    <div className={gridClass}>
+                                        {/* Publish Toggle - Only for own stories in library */}
+                                        {archiveFilter !== 'public' && activeToolboxStory.user_id === user?.id && (
+                                            <div className={`${itemClass} flex-row justify-between col-span-2 px-6 py-4`}>
+                                                <div className="flex flex-col items-start gap-1">
+                                                    <span className={itemLabelClass}>Veröffentlichen</span>
+                                                    <span className="text-[9px] text-slate-500 text-left">
+                                                        {activeToolboxStory.is_public ? 'In "Erkunden" sichtbar' : 'Nur für Dich sichtbar'}
+                                                    </span>
+                                                </div>
+                                                
+                                                <button 
+                                                    onClick={async () => {
+                                                        const targetId = activeToolboxStory.id;
+                                                        setIsPublicLoading(targetId);
+                                                        try {
+                                                            await toggleStoryVisibility(targetId, !activeToolboxStory.is_public);
+                                                            toast.success(activeToolboxStory.is_public ? 'Story privatisiert' : 'Story veröffentlicht!');
+                                                        } finally {
+                                                            setIsPublicLoading(null);
+                                                        }
+                                                    }}
+                                                    disabled={isPublicLoading === activeToolboxStory.id}
+                                                    className={`relative w-11 h-6 rounded-full transition-all duration-300 flex items-center p-1 ${
+                                                        isPublicLoading === activeToolboxStory.id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                                                    } ${
+                                                        activeToolboxStory.is_public 
+                                                            ? 'bg-[#00F5D4] shadow-[0_0_12px_rgba(0,245,212,0.4)]' 
+                                                            : 'bg-slate-800'
+                                                    }`}
+                                                >
+                                                    <div className={`w-4 h-4 bg-[#0a0f1d] rounded-full shadow-sm transition-transform duration-300 transform ${
+                                                        activeToolboxStory.is_public ? 'translate-x-5' : 'translate-x-0'
+                                                    } flex items-center justify-center`}>
+                                                        {isPublicLoading === activeToolboxStory.id && (
+                                                            <Loader2 className="w-2.5 h-2.5 animate-spin text-[#00F5D4]" />
+                                                        )}
+                                                    </div>
+                                                </button>
+                                            </div>
+                                        )}
 
-                            return (
-                                <div className="max-h-[70vh] overflow-y-auto custom-scrollbar pr-1">
-                                    {/* KI & Stanzung (Admin/Library only) */}
-                                    {user?.is_admin && archiveFilter !== 'public' && (
-                                        <div className={sectionClass}>
-                                            <h3 className={sectionTitleClass}>KI & Stanzung</h3>
-                                            <div className={gridClass}>
+                                        <button 
+                                            onClick={() => {
+                                                const shareUrl = `${window.location.origin}${window.location.pathname}#/player/${activeToolboxStory.id}`;
+                                                const text = `Schau mal, ich habe eine neue Geschichte erstellt: *${activeToolboxStory.title}* 🌙✨\n\n${activeToolboxStory.description}\n\nHör sie dir hier an:\n${shareUrl}`;
+                                                window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+                                                setShowToolbox(null);
+                                            }}
+                                            className={itemClass}
+                                        >
+                                            <MessageCircle className="w-5 h-5 text-green-500" />
+                                            <span className={itemLabelClass}>WhatsApp</span>
+                                        </button>
+
+                                        <button 
+                                            onClick={() => { setShowKindleModal(activeToolboxStory.id); setShowToolbox(null); }}
+                                            className={itemClass}
+                                        >
+                                            <Send className="w-5 h-5 text-blue-400" />
+                                            <span className={itemLabelClass}>An Kindle</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Werkzeuge */}
+                                <div className={sectionClass}>
+                                    <h3 className={sectionTitleClass}>Werkzeuge</h3>
+                                    <div className={gridClass}>
+                                        {/* Admin/Own only Tools */}
+                                        {archiveFilter !== 'public' && (activeToolboxStory.user_id === user?.id || user?.is_admin) && (
+                                            <>
                                                 <button 
                                                     onClick={() => { 
-                                                        setRevoiceStoryId(story.id); 
-                                                        setSelectedVoice(story.voice_key || 'seraphina'); 
+                                                        setRevoiceStoryId(activeToolboxStory.id); 
+                                                        setSelectedVoice(activeToolboxStory.voice_key || 'seraphina'); 
                                                         setShowToolbox(null); 
                                                     }}
                                                     className={itemClass}
@@ -693,135 +786,43 @@ export default function StoryArchive() {
                                                     <span className={itemLabelClass}>Neu vertonen</span>
                                                 </button>
                                                 <button 
-                                                    onClick={() => { handleRegenerateImage(story.id); setShowToolbox(null); }}
+                                                    onClick={() => { handleRegenerateImage(activeToolboxStory.id); setShowToolbox(null); }}
                                                     className={itemClass}
                                                 >
-                                                    <ImageIcon className="w-5 h-5 text-slate-400" />
+                                                    <ImageIcon className="w-5 h-5 text-indigo-400" />
                                                     <span className={itemLabelClass}>Neues Bild</span>
                                                 </button>
-                                            </div>
-                                        </div>
-                                    )}
+                                            </>
+                                        )}
 
-                                    {/* Remix Labor */}
-                                    <div className={sectionClass}>
-                                        <h3 className={sectionTitleClass}>Remix Labor</h3>
-                                        <div className={gridClass}>
-                                            <button 
-                                                onClick={() => { 
-                                                    setShowRemixModal(story.id); 
-                                                    setRemixType('improvement'); 
-                                                    setShowToolbox(null); 
-                                                }}
-                                                className={itemClass}
-                                            >
-                                                <Edit className="w-5 h-5 text-orange-400" />
-                                                <span className={itemLabelClass}>Ändern</span>
-                                            </button>
-                                            <button 
-                                                onClick={() => { 
-                                                    setShowRemixModal(story.id); 
-                                                    setRemixType('sequel'); 
-                                                    setShowToolbox(null); 
-                                                }}
-                                                className={itemClass}
-                                            >
-                                                <ChevronRight className="w-5 h-5 text-orange-500" />
-                                                <span className={itemLabelClass}>Fortsetzen</span>
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    {/* Sichtbarkeit & Versand */}
-                                    <div className={sectionClass}>
-                                        <h3 className={sectionTitleClass}>Sichtbarkeit & Versand</h3>
-                                        <div className={gridClass}>
-                                            {(user?.is_admin || story.user_id === user?.id) && (
-                                                <div className={`${itemClass} flex-row justify-between col-span-2 px-6 py-4`}>
-                                                    <div className="flex flex-col items-start gap-1">
-                                                        <span className={itemLabelClass}>Veröffentlichen</span>
-                                                        <span className="text-[9px] text-slate-500 text-left">
-                                                            {story.is_public ? 'In "Erkunden" sichtbar' : 'Nur für Dich sichtbar'}
-                                                        </span>
-                                                    </div>
-                                                    
-                                                    <button 
-                                                        onClick={async () => {
-                                                            const targetId = story.id;
-                                                            setIsPublicLoading(targetId);
-                                                            try {
-                                                                await toggleStoryVisibility(targetId, !story.is_public);
-                                                                toast.success(story.is_public ? 'Story privatisiert' : 'Story veröffentlicht!');
-                                                            } finally {
-                                                                setIsPublicLoading(null);
-                                                            }
-                                                        }}
-                                                        disabled={isPublicLoading === story.id}
-                                                        className={`relative w-11 h-6 rounded-full transition-all duration-300 flex items-center p-1 ${
-                                                            isPublicLoading === story.id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-                                                        } ${
-                                                            story.is_public 
-                                                                ? 'bg-[#00F5D4] shadow-[0_0_12px_rgba(0,245,212,0.4)]' 
-                                                                : 'bg-slate-800'
-                                                        }`}
-                                                    >
-                                                        <div className={`w-4 h-4 bg-[#0a0f1d] rounded-full shadow-sm transition-transform duration-300 transform ${
-                                                            story.is_public ? 'translate-x-5' : 'translate-x-0'
-                                                        } flex items-center justify-center`}>
-                                                            {isPublicLoading === story.id && (
-                                                                <Loader2 className="w-2.5 h-2.5 animate-spin text-[#00F5D4]" />
-                                                            )}
-                                                        </div>
-                                                    </button>
-                                                </div>
-                                            )}
-                                            {user?.is_admin && (
-                                                <button 
-                                                    onClick={() => {
-                                                        handleSpotifyToggle(story.id, !story.is_on_spotify);
-                                                        setShowToolbox(null);
-                                                    }}
-                                                    className={itemClass}
-                                                >
-                                                    <div className={`w-8 h-4.5 rounded-full transition-colors relative ${story.is_on_spotify ? 'bg-primary' : 'bg-slate-700'}`}>
-                                                        <div className={`absolute top-0.5 left-0.5 w-3.5 h-3.5 bg-white rounded-full transition-transform ${story.is_on_spotify ? 'translate-x-3.5' : ''}`}></div>
-                                                    </div>
-                                                    <span className={itemLabelClass}>Spotify</span>
-                                                </button>
-                                            )}
-                                            <button 
-                                                onClick={() => { setShowKindleModal(story.id); setShowToolbox(null); }}
-                                                className={itemClass}
-                                            >
-                                                <BookOpen className="w-5 h-5 text-emerald-500" />
-                                                <span className={itemLabelClass}>An Kindle</span>
-                                            </button>
+                                        {user?.is_admin && (
                                             <button 
                                                 onClick={() => {
-                                                    const shareUrl = `${window.location.origin}${window.location.pathname}#/player/${story.id}`;
-                                                    const text = `Schau mal, ich habe eine neue Geschichte erstellt: *${story.title}* 🌙✨\n\n${story.description}\n\nHör sie dir hier an:\n${shareUrl}`;
-                                                    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+                                                    handleSpotifyToggle(activeToolboxStory.id, !activeToolboxStory.is_on_spotify);
                                                     setShowToolbox(null);
                                                 }}
                                                 className={itemClass}
                                             >
-                                                <MessageCircle className="w-5 h-5 text-green-500" />
-                                                <span className={itemLabelClass}>WhatsApp</span>
+                                                <div className={`w-8 h-4 rounded-full transition-colors relative ${activeToolboxStory.is_on_spotify ? 'bg-primary' : 'bg-slate-700'}`}>
+                                                    <div className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform ${activeToolboxStory.is_on_spotify ? 'translate-x-4' : ''}`}></div>
+                                                </div>
+                                                <span className={itemLabelClass}>Spotify</span>
                                             </button>
-                                            {story.user_id === user?.id && (
-                                                <button 
-                                                    onClick={() => { handleDelete(story.id, story.title); setShowToolbox(null); }}
-                                                    className={itemClass}
-                                                >
-                                                    <Trash2 className="w-5 h-5 text-red-500" />
-                                                    <span className={itemLabelClass}>Löschen</span>
-                                                </button>
-                                            )}
-                                        </div>
+                                        )}
+
+                                        {activeToolboxStory.user_id === user?.id && (
+                                            <button 
+                                                onClick={() => { handleDelete(activeToolboxStory.id, activeToolboxStory.title); setShowToolbox(null); }}
+                                                className={itemClass}
+                                            >
+                                                <Trash2 className="w-5 h-5 text-red-500/70" />
+                                                <span className={itemLabelClass}>Löschen</span>
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
-                            );
-                        })()}
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
