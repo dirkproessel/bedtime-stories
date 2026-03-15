@@ -423,15 +423,15 @@ Schreibe eine Geschichte im Genre {genre_data['name']}. Der Kern der Handlung (N
 Stil-Vorgaben:
 {selected_style_info}
 
-Teile die Geschichte in exakt {num_segments} logische Abschnitte (Akte) auf.
-Jeder Abschnitt entspricht chronologisch einem Kapitel der Geschichte.
-311: ACHTUNG ZUR LÄNGE: Die gesamte Geschichte darf STRENGSTENS MAXIMAL {total_words} Wörter lang werden. Jeder Abschnitt muss Material für maximal {words_per_segment} Wörter Text bieten. Keine Abschweifungen oder Füllsätze!
+Teile die Geschichte in exakt {num_segments} logische Abschnitte auf.
+WICHTIG: Die Geschichte soll wie aus einem Guss erscheinen. Die Abschnitte dienen nur der internen Planung.
+ACHTUNG ZUR LÄNGE: Die gesamte Geschichte darf STRENGSTENS MAXIMAL {total_words} Wörter lang werden. Jeder Abschnitt muss Material für maximal {words_per_segment} Wörter Text bieten. Keine Abschweifungen oder Füllsätze!
 Antworte NUR im JSON-Format:
 {{
     "title": "Titel",
     "synopsis": "Detaillierte Zusammenfassung",
     "segments": [
-        {{ "title": "Abschnitt 1", "goal": "Was in diesem Teil passiert..." }},
+        {{ "goal": "Was in diesem Teil passiert..." }},
         ...
     ]
 }}"""
@@ -477,7 +477,7 @@ Antworte NUR im JSON-Format:
     for i, seg in enumerate(segments):
         if on_progress:
             pct = 5 + int((i / num_segments) * 25) # Up to 30%
-            await on_progress("generating_text", f"Schreibe Kapitel {i+1}/{num_segments}: {seg['title']}...", pct)
+            await on_progress("generating_text", f"Schreibe Teil {i+1}/{num_segments}...", pct)
             
         # Context is just the end of the previous chapter to maintain continuity
         context = f"Ende des vorherigen Kapitels: {full_chapters[-1]['text'][-1000:]}" if full_chapters else "Dies ist der Beginn der Geschichte."
@@ -498,7 +498,7 @@ Antworte NUR im JSON-Format:
 357: Vermeide jegliche Floskeln, pädagogische Zeigefinger oder moralische Zusammenfassungen am Ende. Kein Kitsch, keine Moral!
 358: 3. Show, don't tell: Erkläre nicht, wie sich Charaktere fühlen – zeige es durch ihre Handlungen und Reaktionen.
 359: 4. Pacing & Detail: Beschreibe präzise und atmosphärisch, aber halte den Satzbau einfach und direkt.
-4. Format: Keine Kapitelüberschriften im generierten Text! Nur der fließende Erzähltext für dieses Kapitel.
+4. Format: Keinerlei Überschriften, Kapitelnummern oder Titel im generierten Text! Nur der reine, fließende Erzähltext für diesen Abschnitt. Die Geschichte muss nahtlos an den vorherigen Teil anknüpfen.
 {f"SPEZIELLE REMIX-ANWEISUNG: {further_instructions}" if further_instructions else ""}
 {ende_regel}
 
@@ -522,7 +522,7 @@ Fokus / Ziel DIESES Kapitels: {seg['goal']}
         segment_text = response.text.strip()
         
         full_chapters.append({
-            "title": seg['title'],
+            "title": "",
             "text": segment_text
         })
 

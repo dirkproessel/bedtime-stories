@@ -9,23 +9,28 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
+      injectRegister: 'auto',
+      includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'pwa-192x192.svg', 'pwa-512x512.svg'],
       manifest: {
-        name: 'Gute-Nacht-Geschichten',
-        short_name: 'Geschichten',
-        description: 'Generiere einzigartige Gute-Nacht-Geschichten',
-        theme_color: '#6366f1',
-        background_color: '#f8fafc',
+        name: 'Kurzgeschichten-Labor',
+        short_name: 'Labor',
+        description: 'Anspruchsvolle Kurzgeschichten für Kinder und Erwachsene',
+        theme_color: '#2D5A4C',
+        background_color: '#020617',
+        display: 'standalone',
+        start_url: '/',
         icons: [
           {
             src: 'pwa-192x192.svg',
             sizes: '192x192',
-            type: 'image/svg+xml'
+            type: 'image/svg+xml',
+            purpose: 'any maskable'
           },
           {
             src: 'pwa-512x512.svg',
             sizes: '512x512',
-            type: 'image/svg+xml'
+            type: 'image/svg+xml',
+            purpose: 'any maskable'
           }
         ]
       }

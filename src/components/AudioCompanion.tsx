@@ -68,11 +68,14 @@ export default function AudioCompanion() {
             <audio ref={audioRef} />
             
             {story && (
-                <div className="max-w-md mx-auto bg-white/80 backdrop-blur-xl border border-slate-100 rounded-3xl shadow-2xl p-2 pr-4 flex items-center gap-3 relative overflow-hidden group">
+                <div className="max-w-md mx-auto bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl p-2 pr-4 flex items-center gap-3 relative overflow-hidden group">
+                    {/* Background Glow */}
+                    <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    
                     {/* Slim progress bar at the top */}
-                    <div className="absolute top-0 left-0 right-0 h-[2px] bg-slate-100">
+                    <div className="absolute top-0 left-0 right-0 h-[3px] bg-slate-800 z-10">
                         <div 
-                            className="h-full bg-[#2D5A4C] transition-all duration-300"
+                            className="h-full bg-primary shadow-[0_0_8px_rgba(16,185,129,0.5)] transition-all duration-300"
                             style={{ width: `${progress}%` }}
                         />
                     </div>
@@ -80,32 +83,35 @@ export default function AudioCompanion() {
                     {/* Cover Image - Click to open Reader */}
                     <div 
                         onClick={() => setReaderOpen(true, story.id)}
-                        className="w-12 h-12 rounded-2xl overflow-hidden shrink-0 cursor-pointer shadow-sm hover:scale-105 transition-transform"
+                        className="w-12 h-12 rounded-2xl overflow-hidden shrink-0 cursor-pointer shadow-lg hover:scale-105 transition-transform border border-slate-700 relative z-20"
                     >
-                        <img src={getThumbUrl(story.id)} alt={story.title} className="w-full h-full object-cover" />
+                        <img src={getThumbUrl(story.id)} alt={story.title} className="w-full h-full object-cover grayscale-[10%] group-hover:grayscale-0 transition-all" />
                     </div>
 
                     {/* Title & info */}
-                    <div className="flex-1 min-w-0" onClick={() => setReaderOpen(true, story.id)}>
-                        <h3 className="text-[11px] font-serif font-bold text-slate-900 truncate">{story.title}</h3>
-                        <p className="text-[9px] font-mono text-slate-400 uppercase tracking-widest truncate">
-                            {voiceName(story.voice_key)} • Vorlesen
+                    <div className="flex-1 min-w-0 py-1 relative z-20" onClick={() => setReaderOpen(true, story.id)}>
+                        <h3 className="text-[12px] font-serif font-bold text-slate-100 truncate leading-tight group-hover:text-primary transition-colors">
+                            {story.title}
+                        </h3>
+                        <p className="text-[9px] font-mono text-slate-500 uppercase tracking-widest truncate mt-0.5">
+                            {voiceName(story.voice_key)} • {Math.round(progress)}%
                         </p>
                     </div>
 
                     {/* Controls */}
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-2 relative z-20">
                         <button 
-                            onClick={() => audioRef.current?.paused ? audioRef.current.play() : audioRef.current?.pause()}
-                            className="w-10 h-10 rounded-full flex items-center justify-center text-[#2D5A4C] hover:bg-[#F0FDF4] transition-colors"
+                            onClick={(e) => { e.stopPropagation(); audioRef.current?.paused ? audioRef.current.play() : audioRef.current?.pause(); }}
+                            className="w-10 h-10 rounded-full flex items-center justify-center bg-primary/10 text-primary hover:bg-primary/20 hover:scale-110 active:scale-90 transition-all shadow-sm"
                         >
                             {isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-1" />}
                         </button>
                         <button 
-                            onClick={() => setAudioCompanion(false)}
-                            className="w-8 h-8 rounded-full flex items-center justify-center text-slate-300 hover:text-slate-500 transition-colors"
+                            onClick={(e) => { e.stopPropagation(); setAudioCompanion(false); }}
+                            className="w-9 h-9 rounded-full flex items-center justify-center text-slate-500 hover:text-red-400 hover:bg-red-400/10 transition-all"
+                            aria-label="Schließen"
                         >
-                            <X className="w-4 h-4" />
+                            <X className="w-5 h-5" />
                         </button>
                     </div>
                 </div>

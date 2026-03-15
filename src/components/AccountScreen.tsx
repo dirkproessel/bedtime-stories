@@ -98,44 +98,46 @@ export default function AccountScreen() {
             </div>
 
             {/* RSS Feed Section */}
-            <div className="w-full bg-white rounded-3xl p-6 shadow-sm border border-slate-100 space-y-6">
-                <div className="flex items-center gap-4 border-b border-slate-100 pb-4">
-                    <div className="w-12 h-12 rounded-xl bg-[#F0FDF4] flex items-center justify-center flex-shrink-0">
-                        <Radio className="w-6 h-6 text-[#2D5A4C]" />
-                    </div>
-                    <div>
-                        <h3 className="font-bold text-slate-800">Persönlicher Podcast-Feed</h3>
-                        <p className="text-sm text-slate-500 leading-tight">
-                            Abonniere deine Geschichten in Spotify oder Apple Podcasts.
-                        </p>
-                    </div>
-                </div>
-
-                <div className="space-y-4">
-                    <div className="space-y-2">
-                        <label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                            RSS URL
-                        </label>
-                        <div className="flex gap-2">
-                            <input
-                                type="text"
-                                readOnly
-                                value={rssUrl}
-                                className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-500 outline-none"
-                            />
-                            <button
-                                onClick={copyToClipboard}
-                                className="px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium rounded-xl transition-colors flex items-center gap-2"
-                            >
-                                <Copy className="w-5 h-5" />
-                            </button>
+            {user?.is_admin && (
+                <div className="w-full bg-white rounded-3xl p-6 shadow-sm border border-slate-100 space-y-6">
+                    <div className="flex items-center gap-4 border-b border-slate-100 pb-4">
+                        <div className="w-12 h-12 rounded-xl bg-[#F0FDF4] flex items-center justify-center flex-shrink-0">
+                            <Radio className="w-6 h-6 text-[#2D5A4C]" />
                         </div>
-                        <p className="text-[10px] text-slate-400">
-                            Dieser Link ist privat. Teile ihn nur mit Personen, die Zugriff auf deine Geschichten haben sollen.
-                        </p>
+                        <div>
+                            <h3 className="font-bold text-slate-800">Persönlicher Podcast-Feed</h3>
+                            <p className="text-sm text-slate-500 leading-tight">
+                                Abonniere deine Geschichten in Spotify oder Apple Podcasts.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                                RSS URL
+                            </label>
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    readOnly
+                                    value={rssUrl}
+                                    className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-500 outline-none"
+                                />
+                                <button
+                                    onClick={copyToClipboard}
+                                    className="px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium rounded-xl transition-colors flex items-center gap-2"
+                                >
+                                    <Copy className="w-5 h-5" />
+                                </button>
+                            </div>
+                            <p className="text-[10px] text-slate-400">
+                                Dieser Link ist privat. Teile ihn nur mit Personen, die Zugriff auf deine Geschichten haben sollen.
+                            </p>
+                        </div>
                     </div>
                 </div>
-            </div>
+            )}
 
             {/* Danger Zone */}
             <div className="w-full pt-8">

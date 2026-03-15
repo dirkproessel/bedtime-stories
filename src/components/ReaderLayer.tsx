@@ -54,17 +54,6 @@ export default function ReaderLayer() {
                 <button onClick={handleClose} className="p-2 -ml-2 text-slate-500 hover:text-slate-300 rounded-full hover:bg-slate-800 transition-colors">
                     <X className="w-6 h-6" />
                 </button>
-                <div className="flex items-center gap-3">
-                    {story?.voice_key !== 'none' && (
-                        <button 
-                            onClick={() => setAudioCompanion(true, readerStoryId)}
-                            className="flex items-center gap-2 px-4 py-1.5 bg-primary text-white rounded-full text-xs font-bold shadow-md shadow-primary/20 active:scale-95 transition-all"
-                        >
-                            <Headphones className="w-3.5 h-3.5" />
-                            Vorlesen
-                        </button>
-                    )}
-                </div>
             </div>
 
             <div className="p-4 sm:p-6 max-w-2xl mx-auto pb-32">
@@ -85,6 +74,19 @@ export default function ReaderLayer() {
                                     <Moon className="w-16 h-16 text-primary/90" />
                                 </div>
                             )}
+
+                            {/* Vorlesen Button - Centered under Image */}
+                            {story.voice_key !== 'none' && (
+                                <div className="flex justify-center mb-6">
+                                    <button 
+                                        onClick={() => setAudioCompanion(true, readerStoryId)}
+                                        className="flex items-center gap-3 px-8 py-3 bg-primary text-white rounded-2xl text-sm font-bold shadow-xl shadow-primary/20 hover:bg-emerald-600 active:scale-95 transition-all"
+                                    >
+                                        <Headphones className="w-5 h-5" />
+                                        Vorlesen
+                                    </button>
+                                </div>
+                            )}
                             <h1 className="text-3xl font-bold text-text font-serif leading-tight">{story.title}</h1>
                             
                             <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 mt-4 text-[11px] font-medium text-slate-500 uppercase tracking-wider font-mono">
@@ -103,7 +105,6 @@ export default function ReaderLayer() {
                                 {story.chapters && story.chapters.length > 0 ? (
                                     story.chapters.map((ch, idx) => (
                                         <div key={idx} className="space-y-4">
-                                            {ch.title && <h2 className="text-xl font-serif font-bold text-slate-200">{ch.title}</h2>}
                                             <p className="text-lg text-slate-300 leading-relaxed font-serif whitespace-pre-line">
                                                 {ch.text}
                                             </p>
