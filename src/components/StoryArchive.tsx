@@ -203,15 +203,14 @@ export default function StoryArchive() {
                 <div className="w-24 h-24 mx-auto bg-surface rounded-[2rem] flex items-center justify-center mb-6 shadow-sm border border-slate-800">
                     <UserIcon className="w-10 h-10 text-slate-700" />
                 </div>
-                <h2 className="font-serif text-2xl text-text mb-2 font-semibold">Persönliche Bibliothek</h2>
                 <p className="text-slate-500 text-sm max-w-[280px] mx-auto leading-relaxed">
                     Melde dich an, um deine eigenen Geschichten zu speichern und zu verwalten.
                 </p>
                 <button 
                     onClick={() => setActiveView('login')}
-                    className="btn-primary mt-8 px-8"
+                    className="btn-primary mt-8 px-8 mx-auto"
                 >
-                    Anmelden
+                    Login
                 </button>
             </div>
         );

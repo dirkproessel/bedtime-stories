@@ -30,8 +30,8 @@ export default function LoginScreen() {
     };
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-[80vh] px-6">
-            <p className="text-slate-400 mb-8 text-center max-w-sm">
+        <div className="flex flex-col items-center pt-2 px-6">
+            <p className="text-sm text-text-muted font-serif italic mb-10 text-center max-w-sm leading-relaxed">
                 {isLoginMode 
                     ? 'Logge dich ein, um deine Bibliothek zu durchforsten und neue literarische Experimente zu starten.' 
                     : 'Registriere dich, um neue literarische Experimente zu starten.'}
@@ -80,7 +80,7 @@ export default function LoginScreen() {
                     {isLoading ? (
                         <Loader2 className="w-5 h-5 animate-spin" />
                     ) : (
-                        isLoginMode ? 'Anmelden' : 'Konto erstellen'
+                        isLoginMode ? 'Login' : 'Konto erstellen'
                     )}
                 </button>
             </form>
@@ -96,7 +96,7 @@ export default function LoginScreen() {
                 >
                     {isLoginMode 
                         ? 'Noch kein Konto? Hier registrieren.' 
-                        : 'Bereits ein Konto? Hier anmelden.'}
+                        : 'Bereits ein Konto? Hier einloggen.'}
                 </button>
 
                 <div className="w-12 h-px bg-slate-100" />
