@@ -12,14 +12,9 @@ export default function AdminStoryManagement({ filterUserId, onClearFilter }: Pr
     const { stories, loadStories, deleteAdminStory, setReaderOpen, setRevoiceStoryId, isLoading, adminUsers } = useStore();
 
     useEffect(() => {
-        // Load all stories for admin
-        loadStories(1); 
-    }, [loadStories]);
-
-    const filteredStories = useMemo(() => {
-        if (!filterUserId) return stories;
-        return stories.filter(s => s.user_id === filterUserId);
-    }, [stories, filterUserId]);
+        // Load stories for specific user or all if filter is null
+        loadStories(1, filterUserId || undefined); 
+    }, [loadStories, filterUserId]);
 
     const filteredUserName = useMemo(() => {
         if (!filterUserId) return null;
@@ -69,7 +64,7 @@ export default function AdminStoryManagement({ filterUserId, onClearFilter }: Pr
                 </div>
             )}
 
-            {filteredStories.map((story) => (
+            {stories.map((story) => (
                 <div key={story.id} className="glass-panel rounded-2xl p-4 flex items-center justify-between group">
                     <div className="flex items-center gap-4 flex-1 min-w-0">
                         <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center flex-shrink-0 overflow-hidden relative">
@@ -117,7 +112,7 @@ export default function AdminStoryManagement({ filterUserId, onClearFilter }: Pr
                 </div>
             ))}
 
-            {filteredStories.length === 0 && !isLoading && (
+            {stories.length === 0 && !isLoading && (
                 <div className="text-center py-12 text-slate-500 italic">
                     Keine Geschichten gefunden.
                 </div>

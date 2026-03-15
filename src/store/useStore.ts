@@ -37,7 +37,7 @@ interface AppState {
     currArchivePage: number;
     archiveFilter: 'my' | 'all' | 'public';
     setArchiveFilter: (filter: 'my' | 'all' | 'public') => void;
-    loadStories: (page?: number) => Promise<void>;
+    loadStories: (page?: number, userId?: string) => Promise<void>;
 
     // Generation
     startGeneration: (req: StoryRequest) => Promise<void>;
@@ -223,25 +223,22 @@ export const useStore = create<AppState>((set, get) => {
         }
     },
 
-    loadStories: async (page = 1) => {
-        const { archiveFilter, user } = get();
-        // Prevent guests from loading "my" stories
-        if (archiveFilter === 'my' && !user) {
-            set({ stories: [], totalStories: 0, totalMyStories: 0 });
-            return;
-        }
+    loadStories: async (page = 1, userId?: string) => {
+        const { archiveFilter } = get();
+        set({ isLoading: true });
         try {
             const { fetchStories } = await import('../lib/api');
-            const { stories, total, total_my, total_public } = await fetchStories(page, 30, archiveFilter);
+            const { stories, total, total_my, total_public } = await fetchStories(page, 30, archiveFilter, userId);
             set({ 
                 stories, 
-                totalStories: total, 
-                totalMyStories: total_my, 
-                totalPublicStories: total_public,
-                currArchivePage: page 
+                totalStories: total,
+                totalMyStories: total_my,
+                totalPublicStories: total_public
             });
-        } catch {
-            // Same – non-critical on first load
+        } catch (e: any) {
+            set({ error: e.message });
+        } finally {
+            set({ isLoading: false });
         }
     },
 
@@ -333,6 +330,10 @@ export const useStore = create<AppState>((set, get) => {
         }
         if (view === 'discover') {
             set({ archiveFilter: 'public' });
+            get().loadStories(1);
+        }
+        if (view === 'admin') {
+            set({ archiveFilter: 'all' });
             get().loadStories(1);
         }
     },

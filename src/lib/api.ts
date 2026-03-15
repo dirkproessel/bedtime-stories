@@ -186,13 +186,17 @@ export async function fetchStatus(storyId: string): Promise<GenerationStatus> {
 }
 
 // Stories
-export async function fetchStories(page: number = 1, pageSize: number = 30, filter: string = 'all'): Promise<{ 
+export async function fetchStories(page: number = 1, pageSize: number = 30, filter: string = 'all', userId?: string): Promise<{ 
     stories: StoryMeta[], 
     total: number,
     total_my: number,
     total_public: number
 }> {
-    const res = await fetch(`${API_BASE}/api/stories?page=${page}&page_size=${pageSize}&filter=${filter}`, { headers: getAuthHeaders() });
+    let url = `${API_BASE}/api/stories?page=${page}&page_size=${pageSize}&filter=${filter}`;
+    if (userId) {
+        url += `&user_id=${userId}`;
+    }
+    const res = await fetch(url, { headers: getAuthHeaders() });
     if (!res.ok) throw new Error('Failed to fetch stories');
     return res.json();
 }

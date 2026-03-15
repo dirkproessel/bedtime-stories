@@ -336,13 +336,13 @@ export default function StoryArchive() {
                                     {/* Full Synopsis */}
                                     <div className="relative">
                                         <p className={`text-[13px] text-text/90 font-serif leading-relaxed italic ${expandedStories.has(story.id) ? '' : 'line-clamp-3'}`}>
-                                            {story.description}
+                                            {story.description}{!expandedStories.has(story.id) && story.description && story.description.length > 150 ? '...' : ''}
                                         </p>
                                         {!expandedStories.has(story.id) && story.description && story.description.length > 150 && (
-                                            <div className="absolute bottom-0 right-0 h-5 pl-12 bg-gradient-to-l from-surface via-surface/90 to-transparent flex items-center">
+                                            <div className="absolute bottom-0 right-0 h-5 pl-16 bg-gradient-to-l from-surface via-surface/90 to-transparent flex items-center">
                                                 <button 
                                                     onClick={(e) => { e.stopPropagation(); toggleExpand(story.id); }}
-                                                    className="text-[10px] font-bold text-[#00F5D4] hover:text-emerald-300 uppercase tracking-[0.1em] transition-colors"
+                                                    className="text-[10px] font-bold text-primary hover:text-emerald-400 uppercase tracking-[0.1em] transition-colors"
                                                 >
                                                     Mehr lesen
                                                 </button>
