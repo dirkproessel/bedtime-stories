@@ -1,6 +1,6 @@
 import { useStore } from '../store/useStore';
 import { deleteStory, revoiceStory, getVoicePreviewUrl, exportStoryToKindle, getThumbUrl, regenerateStoryImage } from '../lib/api';
-import { Play, Trash2, BookOpen, Calendar, Loader2, Mic, X, Venus, Mars, Users, Pause, Send, ChevronLeft, ChevronRight, Image as ImageIcon, RefreshCw, Sparkles, Settings2, MessageCircle, Feather, Timer, Zap, Edit, Eye } from 'lucide-react';
+import { Play, Trash2, BookOpen, Loader2, Mic, X, Venus, Mars, Users, Pause, Send, ChevronLeft, ChevronRight, Image as ImageIcon, RefreshCw, Sparkles, Settings2, MessageCircle, Feather, Timer, Zap, Edit, Eye } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useEffect, useState, useRef } from 'react';
 
@@ -67,10 +67,6 @@ export default function StoryArchive() {
         return `${m}:${s.toString().padStart(2, '0')}`;
     };
 
-    const formatDate = (dateStr: string) => {
-        const d = new Date(dateStr);
-        return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-    };
 
     const handlePlay = (id: string) => {
         setReaderOpen(true, id);
@@ -224,145 +220,140 @@ export default function StoryArchive() {
                     {stories.map(story => (
                         <div
                             key={story.id}
-                            className="bg-surface border border-slate-800 rounded-[2.5rem] p-6 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 group mb-6"
+                            className="bg-surface border border-slate-800 rounded-3xl p-5 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 group mb-6 relative overflow-hidden"
                         >
                             <div className="flex items-start gap-4">
                                 {story.image_url ? (
                                     <div
-                                        className="w-24 h-24 rounded-[2rem] overflow-hidden shrink-0 shadow-sm border border-slate-700 cursor-pointer"
+                                        className="w-20 h-20 rounded-2xl overflow-hidden shrink-0 shadow-sm border border-slate-700 cursor-pointer"
                                         onClick={() => handlePlay(story.id)}
                                     >
                                         <img src={getThumbUrl(story.id)} alt={story.title} className="w-full h-full object-cover grayscale-[20%]" />
                                     </div>
                                 ) : (
                                     <div
-                                        className="w-24 h-24 rounded-[2rem] bg-slate-900 flex items-center justify-center shrink-0 border border-slate-800 cursor-pointer"
+                                        className="w-20 h-20 rounded-2xl bg-slate-900 flex items-center justify-center shrink-0 border border-slate-800 cursor-pointer"
                                         onClick={() => handlePlay(story.id)}
                                     >
-                                        <Feather className="w-8 h-8 text-slate-700" />
+                                        <Feather className="w-7 h-7 text-slate-700" />
                                     </div>
                                 )}
                                 <div className="flex-1 min-w-0">
-                                    <div className="flex items-start justify-between gap-3">
-                                        <div className="flex-1 min-w-0 cursor-pointer" onClick={() => story.status === 'done' && handlePlay(story.id)}>
-                                            <h3 className="font-serif text-xl font-semibold text-text group-hover:text-primary transition-colors leading-tight">
+                                    <div className="flex-1 min-w-0">
+                                        {/* Title & Top Metadata */}
+                                        <div className="flex flex-col gap-1.5">
+                                            <h3 className="font-serif text-xl font-semibold text-text group-hover:text-primary transition-colors leading-tight cursor-pointer" onClick={() => story.status === 'done' && handlePlay(story.id)}>
                                                 {story.title}
                                             </h3>
-
-                                            {story.status === 'generating' ? (
-                                                <div className="mt-3 space-y-2 w-full">
-                                                    <div className="flex justify-between items-end">
-                                                        <div className="flex items-center gap-2 text-primary text-xs font-semibold animate-pulse">
-                                                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                                            {story.progress || 'Wird erstellt...'}
-                                                        </div>
-                                                        <span className="text-[10px] font-bold text-primary bg-accent/20 px-1.5 py-0.5 rounded-md">
-                                                            {story.progress_pct || 0}%
+                                            
+                                            {story.status === 'done' && (
+                                                <div className="flex gap-6 mb-3">
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-slate-500 mb-0.5">Genre</span>
+                                                        <span className="text-xs text-emerald-500 font-bold">{story.genre || '—'}</span>
+                                                    </div>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-slate-500 mb-0.5">Stil</span>
+                                                        <span className="text-xs text-slate-300 font-medium whitespace-nowrap overflow-hidden text-ellipsis max-w-[100px]">
+                                                            {story.style.split(',').map(id => authorName(id.trim())).join(', ')}
                                                         </span>
                                                     </div>
-                                                    <div className="w-full h-1.5 bg-accent/20 rounded-full overflow-hidden border border-primary/20">
-                                                        <div
-                                                            className="h-full bg-primary transition-all duration-500 ease-out"
-                                                            style={{ width: `${story.progress_pct || 0}%` }}
-                                                        />
-                                                    </div>
-                                                </div>
-                                            ) : story.status === 'error' ? (
-                                                <div className="mt-2 px-3 py-1.5 bg-red-950/20 text-red-500 rounded-lg text-xs font-medium w-fit border border-red-900/30 italic">
-                                                    {story.progress || 'Fehler bei der Erstellung'}
-                                                </div>
-                                            ) : (
-                                                <div className="mt-1 space-y-2">
-                                                    {/* The Idea / Prompt (Only in Library) */}
-                                                    {archiveFilter !== 'public' && (
-                                                        <div className="bg-background border border-slate-800 rounded-lg p-2 text-[11px] text-slate-500 italic">
-                                                            <span className="font-bold uppercase tracking-wider text-[9px] block mb-0.5 text-slate-600 not-italic">Idee:</span>
-                                                            {story.prompt}
-                                                        </div>
-                                                    )}
-
-                                                    {/* Full Synopsis */}
-                                                    <p className="text-sm text-text font-serif leading-relaxed italic line-clamp-4 mt-2">{story.description}</p>
-
-                                                    {/* Detailed Metadata Grid */}
-                                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4 pt-4 border-t border-slate-800">
-                                                        <div className="flex flex-col">
-                                                            <span className="status-label text-slate-500">Genre</span>
-                                                            <span className="text-[11px] text-primary font-semibold">{story.genre || '—'}</span>
-                                                        </div>
-                                                        <div className="flex flex-col">
-                                                            <span className="status-label text-slate-500">Stil</span>
-                                                            <div className="text-[11px] text-slate-300 font-medium space-y-0.5">
-                                                                {story.style.split(',').map(id => (
-                                                                    <div key={id.trim()}>{authorName(id.trim())}</div>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                        <div className="flex flex-col">
-                                                            <span className="status-label text-slate-500">Stimme</span>
-                                                            <span className="text-[11px] text-slate-300 font-medium truncate">{voiceName(story.voice_key)}</span>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Date & Info Row */}
-                                                    <div className="flex items-center gap-3 text-[10px] text-slate-500 pt-1">
-                                                        <span className="flex items-center gap-1">
-                                                            <BookOpen className="w-3 h-3" />
-                                                            {story.word_count && story.word_count > 0 ? `${story.word_count} Worte` : `${story.chapter_count} Kapitel`}
-                                                        </span>
-                                                        {story.voice_key !== 'none' && story.duration_seconds && (
-                                                            <span className="flex items-center gap-1 border-l border-slate-800 pl-3">
-                                                                <Timer className="w-3 h-3" />
-                                                                {formatDuration(story.duration_seconds)} Min
-                                                            </span>
-                                                        )}
-                                                        {archiveFilter === 'public' && story.user_email && (
-                                                            <span className="flex items-center gap-1 border-l border-slate-800 pl-3">
-                                                                <Users className="w-3 h-3" />
-                                                                {story.user_email}
-                                                            </span>
-                                                        )}
-                                                        {archiveFilter !== 'public' && (
-                                                            <span className="flex items-center gap-1 border-l border-slate-800 pl-3">
-                                                                <Calendar className="w-3 h-3" />
-                                                                {formatDate(story.created_at)}
-                                                            </span>
-                                                        )}
-                                                        {user?.is_admin && archiveFilter === 'all' && (
-                                                            <span className="flex items-center gap-1 border-l border-slate-800 pl-3">
-                                                                <Users className="w-3 h-3" />
-                                                                {story.user_id === user.id ? 'Von mir' : (story.user_email || story.user_id || 'Gast')}
-                                                            </span>
-                                                        )}
-                                                        {story.is_public && archiveFilter !== 'public' && (
-                                                            <span className="flex items-center gap-1 border-l border-slate-800 pl-3 text-primary font-bold">
-                                                                Öffentlich
-                                                            </span>
-                                                        )}
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-slate-500 mb-0.5">Stimme</span>
+                                                        <span className="text-xs text-slate-300 font-medium truncate max-w-[80px]">{voiceName(story.voice_key)}</span>
                                                     </div>
                                                 </div>
                                             )}
                                         </div>
-                                    </div>
-                                    <div className="mt-4 pt-4 border-t border-slate-800 flex items-center justify-between">
-                                        <button
-                                            onClick={() => handlePlay(story.id)}
-                                            disabled={story.status !== 'done'}
-                                            className="flex items-center gap-3 px-6 py-3 bg-primary/10 text-primary rounded-2xl text-sm font-bold hover:bg-primary/20 transition-all active:scale-95 border border-primary/20 disabled:opacity-30"
-                                        >
-                                            <Play className="w-5 h-5 fill-current" />
-                                            Listen
-                                        </button>
 
-                                        <button
-                                            onClick={() => setShowToolbox(story.id)}
-                                            className="p-3 bg-slate-900 border border-slate-700 rounded-2xl text-slate-400 hover:text-primary hover:border-primary transition-all active:scale-95"
-                                        >
-                                            <Zap className="w-6 h-6 fill-current" />
-                                        </button>
+                                        {story.status === 'generating' ? (
+                                            <div className="mt-3 space-y-2 w-full">
+                                                <div className="flex justify-between items-end">
+                                                    <div className="flex items-center gap-2 text-primary text-xs font-semibold animate-pulse">
+                                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                                        {story.progress || 'Wird erstellt...'}
+                                                    </div>
+                                                    <span className="text-[10px] font-bold text-primary bg-accent/20 px-1.5 py-0.5 rounded-md">
+                                                        {story.progress_pct || 0}%
+                                                    </span>
+                                                </div>
+                                                <div className="w-full h-1.5 bg-accent/20 rounded-full overflow-hidden border border-primary/20">
+                                                    <div
+                                                        className="h-full bg-primary transition-all duration-500 ease-out"
+                                                        style={{ width: `${story.progress_pct || 0}%` }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        ) : story.status === 'error' ? (
+                                            <div className="mt-2 px-3 py-1.5 bg-red-950/20 text-red-500 rounded-lg text-xs font-medium w-fit border border-red-900/30 italic">
+                                                {story.progress || 'Fehler bei der Erstellung'}
+                                            </div>
+                                        ) : (
+                                            <div className="mt-4">
+                                                {/* The Idea / Prompt (Only in Library) */}
+                                                {archiveFilter !== 'public' && (
+                                                    <div className="bg-background/40 border border-slate-800/50 rounded-xl p-3 text-[11px] text-slate-500 italic mb-4">
+                                                        <span className="font-bold uppercase tracking-[0.15em] text-[8px] block mb-1 text-slate-600 not-italic">Die Idee</span>
+                                                        {story.prompt}
+                                                    </div>
+                                                )}
+
+                                                {/* Full Synopsis */}
+                                                <p className="text-sm text-text/90 font-serif leading-relaxed italic line-clamp-4">
+                                                    {story.description}
+                                                </p>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>
+
+                            {story.status === 'done' && (
+                                <div className="mt-6">
+                                    <div className="h-px bg-slate-800/50 w-full mb-6" />
+                                    
+                                    <div className="flex items-end justify-between px-2">
+                                        {/* Left: Metadata */}
+                                        <div className="flex flex-col gap-2 text-[11px] text-slate-500 font-medium">
+                                            <span className="flex items-center gap-2">
+                                                <BookOpen className="w-4 h-4 text-slate-600" />
+                                                {story.word_count && story.word_count > 0 ? `${story.word_count} Worte` : `${story.chapter_count} Kapitel`}
+                                            </span>
+                                            {story.voice_key !== 'none' && story.duration_seconds && (
+                                                <span className="flex items-center gap-2">
+                                                    <Timer className="w-4 h-4 text-slate-600" />
+                                                    {formatDuration(story.duration_seconds)} Min
+                                                </span>
+                                            )}
+                                            {archiveFilter === 'public' && story.user_email && (
+                                                <span className="flex items-center gap-2">
+                                                    <Users className="w-4 h-4 text-slate-600" />
+                                                    {story.user_email}
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        {/* Center: Listen Button */}
+                                        <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center gap-1">
+                                            <button
+                                                onClick={() => handlePlay(story.id)}
+                                                className="w-14 h-14 bg-accent/20 border border-emerald-500/30 rounded-2xl flex items-center justify-center text-primary hover:bg-accent/30 hover:border-emerald-500/50 transition-all active:scale-90 shadow-lg shadow-primary/10"
+                                            >
+                                                <Play className="w-7 h-7 fill-current" />
+                                            </button>
+                                            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Listen</span>
+                                        </div>
+
+                                        {/* Right: Toolbox */}
+                                        <button
+                                            onClick={() => setShowToolbox(story.id)}
+                                            className="w-14 h-14 bg-slate-900/80 border border-slate-700/50 rounded-2xl flex items-center justify-center text-slate-400 hover:text-primary hover:border-primary/50 transition-all active:scale-90"
+                                        >
+                                            <Zap className="w-7 h-7 fill-current" />
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     ))}
                 </div>
