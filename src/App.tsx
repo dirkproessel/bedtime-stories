@@ -140,13 +140,13 @@ function App() {
   return (
     <div className="min-h-screen bg-background flex flex-col w-full relative overflow-hidden">
       {/* Global Brand Header */}
-      <header className="pt-8 px-6 pb-4 max-w-2xl mx-auto w-full flex flex-col items-center gap-4 text-center">
-        <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center shrink-0 shadow-xl shadow-primary/20">
-          <Feather className="w-8 h-8 text-white" />
+      <header className="pt-8 px-6 pb-4 max-w-2xl mx-auto w-full flex flex-row items-center justify-center gap-4 text-left">
+        <div className="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center shrink-0 shadow-xl shadow-primary/20">
+          <Feather className="w-7 h-7 text-white" />
         </div>
-        <div className="flex flex-col items-center">
-          <h2 className="text-2xl font-bold text-text mb-1 font-serif">Kurzgeschichten-Labor</h2>
-          <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-text-muted">
+        <div className="flex flex-col">
+          <h2 className="text-xl font-bold text-text mb-0.5 font-serif">Kurzgeschichten-Labor</h2>
+          <p className="text-[9px] font-mono uppercase tracking-[0.2em] text-text-muted">
             LITERATUR AUF KNOPFDRUCK • GESCHICHTEN AUS DEM GEIST
           </p>
         </div>
@@ -213,7 +213,6 @@ function App() {
         </div>
       </nav>
 
-      <Toaster position="top-center" />
     </div>
   );
 }

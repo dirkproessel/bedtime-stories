@@ -32,6 +32,13 @@ def ensure_migrations():
             print("Migration: Adding parent_id to storymeta...")
             cur.execute("ALTER TABLE storymeta ADD COLUMN parent_id TEXT")
             conn.commit()
+            
+        if "updated_at" not in columns:
+            print("Migration: Adding updated_at to storymeta...")
+            # Use current time as default for existing rows
+            now_iso = datetime.now(timezone.utc).isoformat()
+            cur.execute(f"ALTER TABLE storymeta ADD COLUMN updated_at DATETIME DEFAULT '{now_iso}'")
+            conn.commit()
     except Exception as e:
         print(f"Migration error: {e}")
     finally:
