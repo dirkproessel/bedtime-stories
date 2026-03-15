@@ -652,9 +652,11 @@ async def list_stories(
     current_user: User | None = Depends(get_optional_user)
 ):
     """List all stories based on user role and visibility with pagination."""
-    """List all stories based on user role and visibility with pagination."""
     try:
         all_stories = store.get_all()
+        # Fetch users to map IDs to display names (username or email)
+        users = {u.id: (u.username or u.email) for u in store.get_all_users()}
+        
         # Debug logging for ID matching
         if all_stories:
             # Diagnostic: who owns the first 10 stories?
@@ -702,12 +704,12 @@ async def list_stories(
         # Sort by created_at desc
         stories.sort(key=lambda x: x.created_at, reverse=True)
 
-        if current_user and current_user.is_admin:
-            # Attach emails for admin view
-            users = {u.id: u.email for u in store.get_all_users()}
-            for s in stories:
-                if s.user_id:
-                    s.user_email = users.get(s.user_id)
+        # Attach display names (username or email) for author display
+        for s in stories:
+            if s.user_id:
+                s.user_email = users.get(s.user_id, "Anonym")
+            else:
+                s.user_email = "System"
         
         total = len(stories)
         logger.info(f"API list_stories: Filter='{filter}', Accessible={len(accessible_stories)}, Filtered={total}")

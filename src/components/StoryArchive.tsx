@@ -1,6 +1,6 @@
 import { useStore } from '../store/useStore';
 import { deleteStory, revoiceStory, getVoicePreviewUrl, exportStoryToKindle, getThumbUrl, regenerateStoryImage } from '../lib/api';
-import { Play, Trash2, BookOpen, Loader2, Mic, X, Venus, Mars, Users, Pause, Send, ChevronLeft, ChevronRight, Image as ImageIcon, RefreshCw, Sparkles, Settings2, MessageCircle, Timer, Wand2, Edit } from 'lucide-react';
+import { Play, Trash2, BookOpen, Loader2, Mic, X, Venus, Mars, Users, Pause, Send, ChevronLeft, ChevronRight, Image as ImageIcon, RefreshCw, Sparkles, Settings2, MessageCircle, Timer, Wand2, Edit, Feather, User as UserIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useEffect, useState, useRef } from 'react';
 
@@ -197,6 +197,26 @@ export default function StoryArchive() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
+    if (!user && archiveFilter === 'my') {
+        return (
+            <div className="p-4 sm:p-6 max-w-2xl mx-auto text-center py-20 animate-in fade-in duration-700">
+                <div className="w-24 h-24 mx-auto bg-surface rounded-[2rem] flex items-center justify-center mb-6 shadow-sm border border-slate-800">
+                    <UserIcon className="w-10 h-10 text-slate-700" />
+                </div>
+                <h2 className="font-serif text-2xl text-text mb-2 font-semibold">Persönliche Bibliothek</h2>
+                <p className="text-slate-500 text-sm max-w-[280px] mx-auto leading-relaxed">
+                    Melde dich an, um deine eigenen Geschichten zu speichern und zu verwalten.
+                </p>
+                <button 
+                    onClick={() => setActiveView('login')}
+                    className="btn-primary mt-8 px-8"
+                >
+                    Anmelden
+                </button>
+            </div>
+        );
+    }
+
     return (
         <div className="p-4 sm:p-6 max-w-2xl mx-auto">
             {stories.length === 0 ? (
@@ -326,8 +346,8 @@ export default function StoryArchive() {
                                             )}
                                             {archiveFilter === 'public' && (
                                                 <span className="flex items-center gap-2">
-                                                    <Users className="w-4 h-4 text-slate-600" />
-                                                    {story.user_email || 'Anonym'}
+                                                    <Feather className="w-4 h-4 text-slate-600" />
+                                                    <span className="text-slate-400">Autor:</span> {story.user_email || 'Anonym'}
                                                 </span>
                                             )}
                                             {archiveFilter !== 'public' && story.is_public && (

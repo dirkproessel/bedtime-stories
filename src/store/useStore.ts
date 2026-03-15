@@ -212,7 +212,12 @@ export const useStore = create<AppState>((set, get) => {
     },
 
     loadStories: async (page = 1) => {
-        const { archiveFilter } = get();
+        const { archiveFilter, user } = get();
+        // Prevent guests from loading "my" stories
+        if (archiveFilter === 'my' && !user) {
+            set({ stories: [], totalStories: 0, totalMyStories: 0 });
+            return;
+        }
         try {
             const { fetchStories } = await import('../lib/api');
             const { stories, total, total_my, total_public } = await fetchStories(page, 30, archiveFilter);
@@ -308,7 +313,11 @@ export const useStore = create<AppState>((set, get) => {
         // Handle filter auto-sync if switching to library/discover
         if (view === 'library') {
             set({ archiveFilter: 'my' });
-            get().loadStories(1);
+            if (get().user) {
+                get().loadStories(1);
+            } else {
+                set({ stories: [], totalStories: 0, totalMyStories: 0 });
+            }
         }
         if (view === 'discover') {
             set({ archiveFilter: 'public' });

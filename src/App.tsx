@@ -175,7 +175,7 @@ function App() {
           {activeView === 'library' && 'Meine Bibliothek'}
           {activeView === 'discover' && 'Entdecke neue Geschichten'}
           {activeView === 'profile' && 'Mein Profil'}
-          {activeView === 'login' && 'Anmelden'}
+          {activeView === 'login' && (localStorage.getItem('is_registering') === 'true' ? 'Konto erstellen' : 'Willkommen zurück')}
         </h1>
       </div>
 

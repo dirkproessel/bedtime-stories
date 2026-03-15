@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useStore } from '../store/useStore';
-import { Moon, Mail, Lock, Loader2 } from 'lucide-react';
+import { Mail, Lock, Loader2 } from 'lucide-react';
 
 export default function LoginScreen() {
     const { login, register, isLoading, error } = useStore();
@@ -31,15 +31,10 @@ export default function LoginScreen() {
 
     return (
         <div className="flex flex-col items-center justify-center min-h-[80vh] px-6">
-            <div className="w-20 h-20 rounded-3xl bg-[#2D5A4C] flex items-center justify-center shadow-lg shadow-[#2D5A4C]/15 mb-8">
-                <Moon className="w-10 h-10 text-white" />
-            </div>
-
-            <h1 className="text-2xl font-bold text-slate-800 mb-2">
-                {isLoginMode ? 'Willkommen zurück' : 'Konto erstellen'}
-            </h1>
-            <p className="text-slate-500 mb-8 text-center max-w-sm">
-                Melde dich an, um neue Gutenachtgeschichten zu generieren und deine Favoriten zu speichern.
+            <p className="text-slate-400 mb-8 text-center max-w-sm">
+                {isLoginMode 
+                    ? 'Logge dich ein, um deine Bibliothek zu durchforsten und neue literarische Experimente zu starten.' 
+                    : 'Registriere dich, um neue literarische Experimente zu starten.'}
             </p>
 
             <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4">
@@ -58,7 +53,7 @@ export default function LoginScreen() {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="E-Mail Adresse"
-                        className="w-full pl-12 pr-4 py-3.5 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 outline-none transition-all placeholder:text-slate-400 font-medium"
+                        className="w-full pl-12 pr-4 py-3.5 bg-slate-900/50 border border-slate-800 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all placeholder:text-slate-600 font-medium text-text"
                         required
                     />
                 </div>
@@ -72,7 +67,7 @@ export default function LoginScreen() {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="Passwort"
-                        className="w-full pl-12 pr-4 py-3.5 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 outline-none transition-all placeholder:text-slate-400 font-medium"
+                        className="w-full pl-12 pr-4 py-3.5 bg-slate-900/50 border border-slate-800 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all placeholder:text-slate-600 font-medium text-text"
                         required
                     />
                 </div>
@@ -85,14 +80,18 @@ export default function LoginScreen() {
                     {isLoading ? (
                         <Loader2 className="w-5 h-5 animate-spin" />
                     ) : (
-                        isLoginMode ? 'Anmelden' : 'Registrieren'
+                        isLoginMode ? 'Anmelden' : 'Konto erstellen'
                     )}
                 </button>
             </form>
 
             <div className="mt-6 flex flex-col items-center gap-4">
                 <button 
-                    onClick={() => setIsLoginMode(!isLoginMode)}
+                    onClick={() => {
+                        const newMode = !isLoginMode;
+                        setIsLoginMode(newMode);
+                        localStorage.setItem('is_registering', (!newMode).toString());
+                    }}
                     className="text-sm font-medium text-slate-500 hover:text-[#2D5A4C] transition-colors"
                 >
                     {isLoginMode 
