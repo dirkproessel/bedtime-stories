@@ -1,8 +1,14 @@
 import { useState, useRef, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { getAudioUrl, fetchStory, getThumbUrl, type StoryDetail } from '../lib/api';
-import { Play, Pause, X } from 'lucide-react';
+import { Play, Square, X } from 'lucide-react';
 import { voiceName } from '../lib/voices';
+
+const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    return `${m}:${s.toString().padStart(2, '0')}`;
+};
 
 export default function AudioCompanion() {
     const { 
@@ -94,7 +100,7 @@ export default function AudioCompanion() {
                             {story.title}
                         </h3>
                         <p className="text-[9px] font-mono text-slate-500 uppercase tracking-widest truncate mt-0.5">
-                            {voiceName(story.voice_key)} • {Math.round(progress)}%
+                            {formatTime(currentTime)} / {formatTime(duration)}
                         </p>
                     </div>
 
@@ -104,7 +110,7 @@ export default function AudioCompanion() {
                             onClick={(e) => { e.stopPropagation(); audioRef.current?.paused ? audioRef.current.play() : audioRef.current?.pause(); }}
                             className="w-10 h-10 rounded-full flex items-center justify-center bg-primary/10 text-primary hover:bg-primary/20 hover:scale-110 active:scale-90 transition-all shadow-sm"
                         >
-                            {isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-1" />}
+                            {isPlaying ? <Square className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-1" />}
                         </button>
                         <button 
                             onClick={(e) => { e.stopPropagation(); setAudioCompanion(false); }}

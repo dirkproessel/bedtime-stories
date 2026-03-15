@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { fetchStory, getThumbUrl, type StoryDetail, exportStoryToKindle } from '../lib/api';
 import { 
-    X, Moon, BookOpen, Send, Loader2, MessageCircle, Headphones 
+    Moon, BookOpen, Send, Loader2, MessageCircle, Headphones 
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -24,9 +24,6 @@ export default function ReaderLayer() {
         }
     }, [isReaderOpen, readerStoryId]);
 
-    const handleClose = () => {
-        setReaderOpen(false);
-    };
 
     const handleKindleExport = async () => {
         if (!readerStoryId) return;
@@ -50,11 +47,6 @@ export default function ReaderLayer() {
 
     return (
         <div className="fixed inset-0 z-40 bg-background overflow-y-auto animate-in slide-in-from-bottom duration-300 ease-out">
-            <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md px-4 py-3 flex items-center justify-between border-b border-slate-800">
-                <button onClick={handleClose} className="p-2 -ml-2 text-slate-500 hover:text-slate-300 rounded-full hover:bg-slate-800 transition-colors">
-                    <X className="w-6 h-6" />
-                </button>
-            </div>
 
             <div className="p-4 sm:p-6 max-w-2xl mx-auto pb-32">
                 {isLoading ? (

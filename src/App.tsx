@@ -44,6 +44,11 @@ function App() {
         }
       }
 
+      // If hash is not a story hash but reader is open, close it (e.g. via browser back)
+      if (useStore.getState().isReaderOpen) {
+        useStore.getState().setReaderOpen(false);
+      }
+
       // If we are definitely not logged in, don't change other routes
       if (!localStorage.getItem('auth_token')) return;
 
@@ -159,7 +164,12 @@ function App() {
             return (
               <button
                 key={key}
-                onClick={() => setActiveView(key)}
+                onClick={() => {
+                  setActiveView(key);
+                  if (useStore.getState().isReaderOpen) {
+                    useStore.getState().setReaderOpen(false);
+                  }
+                }}
                 className={`flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all relative ${activeView === key
                   ? 'text-primary'
                   : 'text-slate-500 hover:text-slate-300'
