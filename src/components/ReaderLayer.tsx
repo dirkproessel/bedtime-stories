@@ -120,7 +120,7 @@ export default function ReaderLayer() {
                             </button>
                             <button 
                                 onClick={() => {
-                                    const shareUrl = `${window.location.origin}${window.location.pathname}#/player/${story.id}`;
+                                    const shareUrl = `${window.location.origin}${window.location.pathname}#/Story/${story.id}`;
                                     const text = `Schau mal: *${story.title}* 🌙✨\n\n${shareUrl}`;
                                     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
                                 }}

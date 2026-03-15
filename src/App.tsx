@@ -34,11 +34,23 @@ function App() {
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.replace('#', '');
+      const path = window.location.pathname;
 
-      if (hash.startsWith('/story/')) {
+      // 1. Check Hash for story (standard case)
+      const lowerHash = hash.toLowerCase();
+      if (lowerHash.startsWith('/story/') || lowerHash.startsWith('/player/')) {
         const storyId = hash.split('/')[2];
         if (storyId) {
-          // Open reader for this story
+          useStore.getState().setReaderOpen(true, storyId);
+          return;
+        }
+      }
+
+      // 2. Check Pathname for story (robustness for stripped hashes/SEO links)
+      const lowerPath = path.toLowerCase();
+      if (lowerPath.startsWith('/story/') || lowerPath.startsWith('/player/')) {
+        const storyId = path.split('/')[2];
+        if (storyId) {
           useStore.getState().setReaderOpen(true, storyId);
           return;
         }
@@ -77,7 +89,11 @@ function App() {
     handleHashChange();
 
     window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
+    window.addEventListener('popstate', handleHashChange); // Handle pushState/pathname changes
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+      window.removeEventListener('popstate', handleHashChange);
+    };
   }, [setActiveView]);
 
   // Sync Store State -> URL Hash
@@ -86,7 +102,7 @@ function App() {
     const { isReaderOpen, readerStoryId } = useStore.getState();
 
     if (isReaderOpen && readerStoryId) {
-      desiredHash = `#/story/${readerStoryId}`;
+      desiredHash = `#/Story/${readerStoryId}`;
     } else if (activeView === 'library') {
       desiredHash = `#/library`;
     } else if (activeView === 'discover') {

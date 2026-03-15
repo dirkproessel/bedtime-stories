@@ -745,7 +745,7 @@ export default function StoryArchive() {
 
                                         <button 
                                             onClick={() => {
-                                                const shareUrl = `${window.location.origin}${window.location.pathname}#/player/${activeToolboxStory.id}`;
+                                                const shareUrl = `${window.location.origin}${window.location.pathname}#/Story/${activeToolboxStory.id}`;
                                                 const text = `Schau mal, ich habe eine neue Geschichte erstellt: *${activeToolboxStory.title}* 🌙✨\n\n${activeToolboxStory.description}\n\nHör sie dir hier an:\n${shareUrl}`;
                                                 window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
                                                 setShowToolbox(null);
