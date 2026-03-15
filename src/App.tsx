@@ -11,7 +11,7 @@ import AudioCompanion from './components/AudioCompanion';
 
 const NAV_ITEMS = [
   { key: 'create' as const, label: 'Erschaffen', icon: PenTool },
-  { key: 'library' as const, label: 'Meine Bibliothek', icon: BookOpen },
+  { key: 'library' as const, label: 'Bibliothek', icon: BookOpen },
   { key: 'discover' as const, label: 'Entdecken', icon: Compass },
   { key: 'profile' as const, label: 'Profil', icon: User },
 ];
@@ -172,9 +172,7 @@ function App() {
                 {isGuest && (
                   <div className="absolute top-1 right-2 w-2 h-2 rounded-full bg-amber-400 border-2 border-surface shadow-sm" />
                 )}
-                {activeView === key && !isGuest && (
-                  <div className="w-1 h-1 rounded-full bg-primary" />
-                )}
+
               </button>
             );
           })}

@@ -1,11 +1,12 @@
 import { useStore } from '../store/useStore';
 import { deleteStory, revoiceStory, getVoicePreviewUrl, exportStoryToKindle, getThumbUrl, regenerateStoryImage } from '../lib/api';
-import { Play, Trash2, BookOpen, Calendar, Loader2, Mic, X, Venus, Mars, Users, Pause, Send, ChevronLeft, ChevronRight, Image as ImageIcon, RefreshCw, Sparkles, Settings2, MessageCircle, Feather } from 'lucide-react';
+import { Play, Trash2, BookOpen, Calendar, Loader2, Mic, X, Venus, Mars, Users, Pause, Send, ChevronLeft, ChevronRight, Image as ImageIcon, RefreshCw, Sparkles, Settings2, MessageCircle, Feather, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useEffect, useState, useRef } from 'react';
 
 
 import { voiceName, voiceDesc } from '../lib/voices';
+import { formatAuthorStyles } from '../lib/authors';
 
 export default function StoryArchive() {
     const { 
@@ -197,7 +198,7 @@ export default function StoryArchive() {
                     <Feather className="w-8 h-8 text-white" />
                 </div>
                 <h1 className="text-2xl font-bold text-text font-serif">
-                    {archiveFilter === 'public' ? 'Entdecken' : 'Meine Bibliothek'}
+                    {archiveFilter === 'public' ? 'Entdecken' : 'Bibliothek'}
                 </h1>
             </div>
 
@@ -271,11 +272,13 @@ export default function StoryArchive() {
                                                 </div>
                                             ) : (
                                                 <div className="mt-1 space-y-2">
-                                                    {/* The Idea / Prompt */}
-                                                    <div className="bg-background border border-slate-800 rounded-lg p-2 text-[11px] text-slate-500 italic">
-                                                        <span className="font-bold uppercase tracking-wider text-[9px] block mb-0.5 text-slate-600 not-italic">Idee:</span>
-                                                        {story.prompt}
-                                                    </div>
+                                                    {/* The Idea / Prompt (Only in Library) */}
+                                                    {archiveFilter !== 'public' && (
+                                                        <div className="bg-background border border-slate-800 rounded-lg p-2 text-[11px] text-slate-500 italic">
+                                                            <span className="font-bold uppercase tracking-wider text-[9px] block mb-0.5 text-slate-600 not-italic">Idee:</span>
+                                                            {story.prompt}
+                                                        </div>
+                                                    )}
 
                                                     {/* Full Synopsis */}
                                                     <p className="text-sm text-text font-serif leading-relaxed italic line-clamp-2 mt-2">{story.description}</p>
@@ -288,15 +291,13 @@ export default function StoryArchive() {
                                                         </div>
                                                         <div className="flex flex-col">
                                                             <span className="status-label text-slate-500">Stil</span>
-                                                            <span className="text-[11px] text-slate-300 font-medium truncate">{story.style.split(',')[0]}</span>
+                                                            <span className="text-[11px] text-slate-300 font-medium truncate" title={formatAuthorStyles(story.style)}>
+                                                                {formatAuthorStyles(story.style)}
+                                                            </span>
                                                         </div>
                                                         <div className="flex flex-col">
                                                             <span className="status-label text-slate-500">Stimme</span>
                                                             <span className="text-[11px] text-slate-300 font-medium truncate">{voiceName(story.voice_key)}</span>
-                                                        </div>
-                                                        <div className="flex flex-col">
-                                                            <span className="status-label text-slate-500">Dauer</span>
-                                                            <span className="text-[11px] text-slate-300 font-medium">{formatDuration(story.duration_seconds)}</span>
                                                         </div>
                                                     </div>
 
@@ -306,7 +307,11 @@ export default function StoryArchive() {
                                                             <BookOpen className="w-3 h-3" />
                                                             {story.word_count ? `${story.word_count} Worte` : `${story.chapter_count} Kapitel`}
                                                         </span>
-                                                        <span className="flex items-center gap-1">
+                                                        <span className="flex items-center gap-1 border-l border-slate-800 pl-3">
+                                                            <Clock className="w-3 h-3" />
+                                                            {formatDuration(story.duration_seconds)}
+                                                        </span>
+                                                        <span className="flex items-center gap-1 border-l border-slate-800 pl-3">
                                                             <Calendar className="w-3 h-3" />
                                                             {formatDate(story.created_at)}
                                                         </span>
@@ -316,7 +321,7 @@ export default function StoryArchive() {
                                                                 {story.user_id === user.id ? 'Von mir' : (story.user_email || story.user_id || 'Gast')}
                                                             </span>
                                                         )}
-                                                        {story.is_public && (
+                                                        {story.is_public && archiveFilter !== 'public' && (
                                                             <span className="flex items-center gap-1 border-l border-slate-800 pl-3 text-primary font-bold">
                                                                 Öffentlich
                                                             </span>

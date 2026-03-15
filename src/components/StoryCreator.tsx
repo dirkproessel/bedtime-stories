@@ -3,6 +3,7 @@ import { useStore } from '../store/useStore';
 import { getVoicePreviewUrl, generateHook, fetchPopularity } from '../lib/api';
 import { Sparkles, Mic, MicOff, Play, Pause, Venus, Mars, Users, Dices, Loader2, ChevronDown, RefreshCw, Feather } from 'lucide-react';
 import { voiceName, voiceDesc, STANDARD_VOICE_KEYS, isStandardVoice } from '../lib/voices';
+import { AUTHORS } from '../lib/authors';
 import toast from 'react-hot-toast';
 
 const GENRES = [
@@ -24,32 +25,7 @@ const GENRES = [
     { value: 'Fabel', label: 'Fabel', desc: 'Tiere, Moral, Lebensweisheit' },
 ];
 
-const AUTHORS = [
-    { id: 'kehlmann', name: 'Daniel Kehlmann', desc: 'Präzise, Geistreich, Verspielt.' },
-    { id: 'zeh', name: 'Juli Zeh', desc: 'Analytisch, Kühl, Kritisch.' },
-    { id: 'fitzek', name: 'Sebastian Fitzek', desc: 'Atemlos, Rasant, Düster.' },
-    { id: 'kracht', name: 'Christian Kracht', desc: 'Snobistisch, Dekadent, Distanziert.' },
-    { id: 'kafka', name: 'Franz Kafka', desc: 'Surreal, Beklemmend, Trocken.' },
-    { id: 'jaud', name: 'Tommy Jaud', desc: 'Lustig, Hektisch, Peinlich.' },
-    { id: 'regener', name: 'Sven Regener', desc: 'Lakonisch, Echt, Schnodderig.' },
-    { id: 'strunk', name: 'Heinz Strunk', desc: 'Grotesk, Erbarmungslos, Schräg.' },
-    { id: 'kling', name: 'Marc-Uwe Kling', desc: 'Schlagfertig, Logisch, Trocken.' },
-    { id: 'stuckrad_barre', name: 'Benjamin v. Stuckrad-Barre', desc: 'Nervös, Pop-affin, Hyper.' },
-    { id: 'evers', name: 'Horst Evers', desc: 'Absurd, Gemütlich, Skurril.' },
-    { id: 'loriot', name: 'Loriot', desc: 'Bürgerlich, Präzise, Absurd.' },
-    { id: 'funke', name: 'Cornelia Funke', desc: 'Magisch, Bildstark, Abenteuerlich.' },
-    { id: 'pantermueller', name: 'Alice Pantermüller', desc: 'Rotzig, Frech, Chaotisch.' },
-    { id: 'auer', name: 'Margit Auer', desc: 'Geborgen, Geheimnisvoll, Empathisch.' },
-    { id: 'pratchett', name: 'Terry Pratchett', desc: 'Scharfsinnig, Satirisch, Trocken.' },
-    { id: 'adams', name: 'Douglas Adams', desc: 'Absurd, Lakonisch, Kosmisch.' },
-    { id: 'kinney', name: 'Jeff Kinney', desc: 'Pubertär, Ironisch, Authentisch.' },
-    { id: 'kaestner', name: 'Erich Kästner', desc: 'Ironisch, Klar, Herzlich.' },
-    { id: 'lindgren', name: 'Astrid Lindgren', desc: 'Herzlich, Mutig, Kindlich-weise.' },
-    { id: 'dahl', name: 'Roald Dahl', desc: 'Skurril, Drastisch, Respektlos.' },
-    { id: 'christie', name: 'Agatha Christie', desc: 'Sachlich, Analytisch, Rätselhaft.' },
-    { id: 'king', name: 'Stephen King', desc: 'Detailreich, Volksnah, Unheimlich.' },
-    { id: 'hemingway', name: 'Ernest Hemingway', desc: 'Karg, Trocken, Präzise.' },
-];
+
 
 const LENGTHS = [
     { value: 10, label: '~10 Min', sub: '2 Kapitel' },
@@ -266,7 +242,7 @@ export default function StoryCreator() {
                         <button
                             onClick={handleDiceClick}
                             disabled={isRolling}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-100 to-orange-100 text-amber-800 rounded-lg hover:from-amber-200 hover:to-orange-200 transition-all font-semibold text-xs shadow-sm shadow-orange-100/50 opacity-90 hover:opacity-100 disabled:opacity-50"
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 border border-slate-700 text-slate-400 rounded-lg hover:text-primary hover:border-primary/30 hover:bg-slate-700 transition-all font-semibold text-xs disabled:opacity-50"
                         >
                             {isRolling ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Dices className="w-3.5 h-3.5" />}
                             Inspirieren lassen
@@ -341,8 +317,8 @@ export default function StoryCreator() {
                                     key={s.id}
                                     onClick={() => toggleAuthor(s.id)}
                                     className={`relative p-3 rounded-xl text-left transition-all border-2 ${isSelected
-                                        ? 'border-[#2D5A4C] bg-[#F0FDF4] shadow-sm'
-                                        : 'border-slate-100 bg-white hover:border-slate-200'
+                                        ? 'border-primary bg-accent/20 shadow-sm'
+                                        : 'border-slate-800 bg-surface hover:border-slate-700 text-slate-300'
                                         }`}
                                 >
                                     {isSelected && (
@@ -350,8 +326,8 @@ export default function StoryCreator() {
                                             {index + 1}
                                         </div>
                                     )}
-                                    <h4 className={`text-sm font-bold pr-6 ${isSelected ? 'text-primary' : 'text-slate-300'}`}>{s.name}</h4>
-                                    <div className={`text-xs ${isSelected ? 'text-primary/70' : 'text-slate-500'}`}>{s.desc}</div>
+                                    <h4 className={`text-sm font-bold pr-6 ${isSelected ? 'text-text' : 'text-slate-300'}`}>{s.name}</h4>
+                                    <div className={`text-xs ${isSelected ? 'text-primary' : 'text-slate-500'}`}>{s.desc}</div>
                                 </button>
                             );
                         })}
@@ -401,25 +377,25 @@ export default function StoryCreator() {
                         .map(v => (
                         <div
                             key={v.key}
-                            className={`p-3 rounded-xl transition-all border-2 cursor-pointer ${voiceKey === v.key
+                            className={`p-3 rounded-xl transition-all border-2 cursor-pointer h-full ${voiceKey === v.key
                                 ? 'border-primary bg-accent/20 shadow-sm'
                                 : 'border-slate-800 bg-surface hover:border-slate-700'
                                 }`}
                             onClick={() => setVoiceKey(v.key)}
                         >
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-3 h-full">
                                 {/* Icon */}
-                                <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${voiceKey === v.key ? 'bg-[#D1FAE5] text-[#2D5A4C]' : 'bg-slate-50 text-slate-400'}`}>
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${voiceKey === v.key ? 'bg-primary/20 text-primary' : 'bg-slate-900 text-slate-600'}`}>
                                     {v.gender === 'female' ? <Venus className="w-5 h-5" /> :
                                         v.gender === 'male' ? <Mars className="w-5 h-5" /> : <Users className="w-5 h-5" />}
                                 </div>
 
                                 {/* Name & Charakter */}
                                 <div className="flex-1 min-w-0 text-left">
-                                    <div className={`text-sm font-bold truncate ${voiceKey === v.key ? 'text-[#1A4336]' : 'text-slate-700'}`}>
+                                    <div className={`text-sm font-bold truncate ${voiceKey === v.key ? 'text-text' : 'text-slate-300'}`}>
                                         {voiceName(v.key)}
                                     </div>
-                                    <div className={`text-xs ${voiceKey === v.key ? 'text-[#2D5A4C]' : 'text-slate-400'}`}>
+                                    <div className={`text-xs ${voiceKey === v.key ? 'text-primary' : 'text-slate-500'}`}>
                                         {voiceDesc(v.key)}
                                     </div>
                                 </div>
@@ -428,8 +404,8 @@ export default function StoryCreator() {
                                     <button
                                         onClick={(e) => { e.stopPropagation(); handlePreviewVoice(v.key); }}
                                         className={`w-8 h-8 rounded-full flex items-center justify-center transition-all shrink-0 ${previewVoice === v.key
-                                            ? 'bg-[#2D5A4C] text-white'
-                                            : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
+                                            ? 'bg-primary text-white'
+                                            : 'bg-slate-800 text-slate-500 hover:bg-slate-700'
                                             }`}
                                     >
                                         {previewVoice === v.key ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 ml-0.5" />}
@@ -448,13 +424,13 @@ export default function StoryCreator() {
                         return (showAllVoices ? aiVoices : aiVoices.slice(0, BEST_OF_COUNT)).map(v => (
                             <div
                                 key={v.key}
-                                className={`p-3 rounded-xl transition-all border-2 cursor-pointer ${voiceKey === v.key
+                                className={`p-3 rounded-xl transition-all border-2 cursor-pointer h-full ${voiceKey === v.key
                                     ? 'border-primary bg-accent/20 shadow-sm'
                                     : 'border-slate-800 bg-surface hover:border-slate-700'
                                     }`}
                                 onClick={() => setVoiceKey(v.key)}
                             >
-                                <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-3 h-full">
                                     {/* Icon Left */}
                                     <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${voiceKey === v.key ? 'bg-primary/20 text-primary' : 'bg-slate-900 text-slate-600'}`}>
                                         {v.gender === 'female' ? <Venus className="w-5 h-5" /> :
@@ -463,10 +439,10 @@ export default function StoryCreator() {
 
                                     {/* Name & Charakter */}
                                     <div className="flex-1 min-w-0 text-left">
-                                        <div className={`text-sm font-bold truncate ${voiceKey === v.key ? 'text-primary' : 'text-slate-300'}`}>
+                                        <div className={`text-sm font-bold truncate ${voiceKey === v.key ? 'text-text' : 'text-slate-300'}`}>
                                             {voiceName(v.key)}
                                         </div>
-                                        <div className={`text-xs ${voiceKey === v.key ? 'text-primary/70' : 'text-slate-500'}`}>
+                                        <div className={`text-xs ${voiceKey === v.key ? 'text-primary' : 'text-slate-500'}`}>
                                             {voiceDesc(v.key)}
                                         </div>
                                     </div>
