@@ -36,6 +36,13 @@ export default function StoryArchive() {
 
     const activeToolboxStory = showToolbox ? stories.find(s => s.id === showToolbox) : null;
 
+    // Toolbox CSS Classes
+    const sectionClass = "mb-8";
+    const sectionTitleClass = "text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-slate-600 mb-4 ml-1";
+    const gridClass = "grid grid-cols-2 gap-3";
+    const itemClass = "flex flex-col items-center justify-center gap-2 p-4 bg-slate-900/50 border border-slate-800 rounded-2xl transition-all active:scale-95 text-center disabled:opacity-30 disabled:pointer-events-none";
+    const itemLabelClass = "text-[11px] font-bold text-slate-300";
+
     // Track if we have performed the initial check for "my" stories
     const [initialCheckDone, setInitialCheckDone] = useState(false);
 
