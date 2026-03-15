@@ -7,7 +7,7 @@ import {
 import toast from 'react-hot-toast';
 
 export default function ReaderLayer() {
-    const { isReaderOpen, readerStoryId, setReaderOpen, setAudioCompanion, user } = useStore();
+    const { isReaderOpen, readerStoryId, setAudioCompanion, user } = useStore();
     const [story, setStory] = useState<StoryDetail | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [isExporting, setIsExporting] = useState(false);

@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { getAudioUrl, fetchStory, getThumbUrl, type StoryDetail } from '../lib/api';
 import { Play, Square, X } from 'lucide-react';
-import { voiceName } from '../lib/voices';
 
 const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
