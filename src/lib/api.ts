@@ -19,6 +19,7 @@ export interface User {
     id: string;
     email: string;
     is_admin: boolean;
+    username: string;
     kindle_email?: string;
     created_at: string;
 }
@@ -127,6 +128,16 @@ export async function updateKindleEmail(kindle_email: string): Promise<any> {
         method: 'PUT',
         headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify({ kindle_email }),
+    });
+    if (!res.ok) throw new Error('Aktualisierung fehlgeschlagen');
+    return res.json();
+}
+
+export async function updateUsername(username: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/api/auth/me/username`, {
+        method: 'PUT',
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username }),
     });
     if (!res.ok) throw new Error('Aktualisierung fehlgeschlagen');
     return res.json();

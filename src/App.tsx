@@ -145,7 +145,7 @@ function App() {
           <Feather className="w-7 h-7 text-white" />
         </div>
         <div className="flex flex-col">
-          <h2 className="text-xl font-bold text-text mb-0.5 font-serif">Kurzgeschichten-Labor</h2>
+          <h2 className="text-2xl font-bold text-text mb-0.5 font-serif">Kurzgeschichten-Labor</h2>
           <p className="text-[9px] font-mono uppercase tracking-[0.2em] text-text-muted">
             LITERATUR AUF KNOPFDRUCK • GESCHICHTEN AUS DEM GEIST
           </p>
@@ -154,7 +154,7 @@ function App() {
 
       {/* Dynamic Page Title */}
       <div className="px-6 py-4 max-w-2xl mx-auto w-full text-center">
-        <h1 className="text-2xl font-bold text-text font-serif">
+        <h1 className="text-xl font-bold text-text font-serif">
           {activeView === 'create' && 'Erschaffe eine eigene Geschichte'}
           {activeView === 'library' && 'Meine Bibliothek'}
           {activeView === 'discover' && 'Entdecke neue Geschichten'}

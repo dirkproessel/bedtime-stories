@@ -16,6 +16,7 @@ class User(SQLModel, table=True):
     hashed_password: str
     is_active: bool = Field(default=True)
     is_admin: bool = Field(default=False)
+    username: Optional[str] = Field(default=None)
     kindle_email: Optional[str] = Field(default=None)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -63,7 +64,8 @@ class UserCreate(BaseModel):
 class UserResponse(BaseModel):
     id: str
     email: str
-    is_admin: bool
+    is_admin: bool = Field(default=bool)
+    username: Optional[str] = None
     kindle_email: Optional[str] = None
     created_at: datetime
 
@@ -73,6 +75,9 @@ class PasswordUpdate(BaseModel):
 
 class KindleEmailUpdate(BaseModel):
     kindle_email: str | None
+
+class UsernameUpdate(BaseModel):
+    username: str
 
 class StoryRequest(BaseModel):
     """Request to generate a new story."""

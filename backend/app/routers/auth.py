@@ -5,7 +5,7 @@ from datetime import timedelta
 import uuid
 
 from app.database import get_session
-from app.models import User, UserCreate, UserResponse, Token, PasswordUpdate, KindleEmailUpdate
+from app.models import User, UserCreate, UserResponse, Token, PasswordUpdate, KindleEmailUpdate, UsernameUpdate
 from app.auth_utils import (
     verify_password, get_password_hash, create_access_token, 
     ACCESS_TOKEN_EXPIRE_MINUTES, get_current_active_user
@@ -43,6 +43,7 @@ def register_user(user_in: UserCreate, session: Session = Depends(get_session)):
     new_user = User(
         id=str(uuid.uuid4()),
         email=user_in.email.lower(),
+        username=user_in.email.lower(),
         hashed_password=get_password_hash(user_in.password),
         is_admin=is_admin,
     )
@@ -152,3 +153,14 @@ def update_kindle_email(
     session.add(current_user)
     session.commit()
     return {"status": "success", "message": "Kindle-Adresse geändert."}
+
+@router.put("/me/username")
+def update_username(
+    data: UsernameUpdate,
+    current_user: User = Depends(get_current_active_user),
+    session: Session = Depends(get_session)
+):
+    current_user.username = data.username
+    session.add(current_user)
+    session.commit()
+    return {"status": "success", "message": "Benutzername geändert."}
