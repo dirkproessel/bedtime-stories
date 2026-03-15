@@ -68,6 +68,7 @@ class UserResponse(BaseModel):
     username: Optional[str] = None
     kindle_email: Optional[str] = None
     created_at: datetime
+    story_count: int = 0
 
 class PasswordUpdate(BaseModel):
     current_password: str

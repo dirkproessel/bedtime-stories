@@ -3,7 +3,11 @@ import { useStore } from '../store/useStore';
 import { Trash2, Shield, User, Mail, Calendar, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-export default function AdminUserManagement() {
+interface Props {
+    onShowStories: (userId: string) => void;
+}
+
+export default function AdminUserManagement({ onShowStories }: Props) {
     const { adminUsers, loadAdminUsers, deleteAdminUser, updateAdminUser, isLoading } = useStore();
 
     useEffect(() => {
@@ -57,21 +61,31 @@ export default function AdminUserManagement() {
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                            onClick={() => handleToggleAdmin(user.id, user.is_admin)}
-                            className="p-2 text-slate-400 hover:text-emerald-500 hover:bg-emerald-500/10 rounded-lg transition-all"
-                            title={user.is_admin ? "Admin-Rechte entziehen" : "Zum Admin machen"}
+                    <div className="flex items-center gap-4">
+                        <button 
+                            onClick={() => onShowStories(user.id)}
+                            className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl hover:bg-white/5 transition-all text-slate-400 hover:text-emerald-400"
                         >
-                            <Shield className="w-5 h-5" />
+                            <span className="text-lg font-bold leading-none">{user.story_count || 0}</span>
+                            <span className="text-[9px] uppercase tracking-tighter font-medium">Stories</span>
                         </button>
-                        <button
-                            onClick={() => handleDelete(user.id, user.email)}
-                            className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
-                            title="Benutzer löschen"
-                        >
-                            <Trash2 className="w-5 h-5" />
-                        </button>
+
+                        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                                onClick={() => handleToggleAdmin(user.id, user.is_admin)}
+                                className="p-2 text-slate-400 hover:text-emerald-500 hover:bg-emerald-500/10 rounded-lg transition-all"
+                                title={user.is_admin ? "Admin-Rechte entziehen" : "Zum Admin machen"}
+                            >
+                                <Shield className="w-5 h-5" />
+                            </button>
+                            <button
+                                onClick={() => handleDelete(user.id, user.email)}
+                                className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                                title="Benutzer löschen"
+                            >
+                                <Trash2 className="w-5 h-5" />
+                            </button>
+                        </div>
                     </div>
                 </div>
             ))}

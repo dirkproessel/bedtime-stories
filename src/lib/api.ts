@@ -22,6 +22,7 @@ export interface User {
     username: string;
     kindle_email?: string;
     created_at: string;
+    story_count?: number;
 }
 
 export interface VoiceProfile {

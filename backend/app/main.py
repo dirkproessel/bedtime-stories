@@ -747,7 +747,24 @@ async def admin_list_users(current_user: User = Depends(get_current_active_user)
     """List all users (Admin only)."""
     if not current_user.is_admin:
         raise HTTPException(status_code=403, detail="Nur Admins dürfen Benutzer verwalten.")
-    return store.get_all_users()
+    
+    users = store.get_all_users()
+    all_stories = store.get_all()
+    
+    # Calculate story counts
+    counts = {}
+    for story in all_stories:
+        if story.user_id:
+            counts[story.user_id] = counts.get(story.user_id, 0) + 1
+            
+    # Attach counts to user objects
+    response_users = []
+    for u in users:
+        u_data = u.model_dump()
+        u_data["story_count"] = counts.get(u.id, 0)
+        response_users.append(UserResponse(**u_data))
+        
+    return response_users
 
 
 @app.delete("/api/admin/users/{user_id}")

@@ -324,10 +324,10 @@ export default function StoryArchive() {
                                     </div>
                                 </div>
                             ) : (
-                                <div className="mt-4">
+                                <div className="mt-3">
                                     {/* The Idea / Prompt (Only in Library) */}
                                     {archiveFilter !== 'public' && (
-                                        <div className="bg-background/40 border border-slate-800/50 rounded-xl p-3 text-[11px] text-slate-500 italic mb-4">
+                                        <div className="bg-background/40 border border-slate-800/50 rounded-xl p-3 text-[11px] text-slate-500 italic mb-3">
                                             <span className="font-bold uppercase tracking-[0.15em] text-[8px] block mb-1 text-slate-600 not-italic">Die Idee</span>
                                             {story.prompt}
                                         </div>
@@ -338,12 +338,22 @@ export default function StoryArchive() {
                                         <p className={`text-[13px] text-text/90 font-serif leading-relaxed italic ${expandedStories.has(story.id) ? '' : 'line-clamp-3'}`}>
                                             {story.description}
                                         </p>
-                                        {story.description && story.description.length > 180 && (
+                                        {!expandedStories.has(story.id) && story.description && story.description.length > 150 && (
+                                            <div className="absolute bottom-0 right-0 h-5 pl-12 bg-gradient-to-l from-surface via-surface/90 to-transparent flex items-center">
+                                                <button 
+                                                    onClick={(e) => { e.stopPropagation(); toggleExpand(story.id); }}
+                                                    className="text-[10px] font-bold text-[#00F5D4] hover:text-emerald-300 uppercase tracking-[0.1em] transition-colors"
+                                                >
+                                                    Mehr lesen
+                                                </button>
+                                            </div>
+                                        )}
+                                        {expandedStories.has(story.id) && (
                                             <button 
-                                                onClick={() => toggleExpand(story.id)}
-                                                className="text-[10px] font-bold text-primary hover:text-emerald-400 mt-1 uppercase tracking-wider transition-colors"
+                                                onClick={(e) => { e.stopPropagation(); toggleExpand(story.id); }}
+                                                className="text-[10px] font-bold text-primary hover:text-emerald-400 mt-1 uppercase tracking-wider transition-colors block"
                                             >
-                                                {expandedStories.has(story.id) ? 'Weniger anzeigen' : 'Mehr lesen'}
+                                                Weniger anzeigen
                                             </button>
                                         )}
                                     </div>
@@ -351,12 +361,12 @@ export default function StoryArchive() {
                             )}
 
                             {(story.status === 'done' || story.status === 'error') && (
-                                <div className="mt-6">
-                                    <div className="h-px bg-slate-800/50 w-full mb-6" />
+                                <div className="mt-4">
+                                    <div className="h-px bg-slate-800/50 w-full mb-3" />
                                     
                                     <div className="flex items-end justify-between px-2">
                                         {/* Left: Metadata */}
-                                        <div className="flex flex-col gap-2 text-[11px] text-slate-500 font-medium">
+                                        <div className="flex flex-col gap-1 text-[11px] text-slate-500 font-medium">
                                             <span className="flex items-center gap-2">
                                                 <BookOpen className="w-4 h-4 text-slate-600" />
                                                 {(story.word_count && story.word_count > 0) ? `${story.word_count} Worte` : (story.chapter_count > 0 ? `${story.chapter_count} Kapitel` : 'Entwurf')}

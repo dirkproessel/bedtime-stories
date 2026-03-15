@@ -7,6 +7,12 @@ import AdminStoryManagement from './AdminStoryManagement';
 export default function AdminDashboard() {
     const { setActiveView } = useStore();
     const [subView, setSubView] = useState<'users' | 'stories'>('users');
+    const [filterUserId, setFilterUserId] = useState<string | null>(null);
+
+    const handleShowUserStories = (userId: string) => {
+        setFilterUserId(userId);
+        setSubView('stories');
+    };
 
     return (
         <div className="flex flex-col max-w-4xl mx-auto p-4 md:p-8 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-32">
@@ -27,7 +33,10 @@ export default function AdminDashboard() {
             {/* Sub-Navigation Tabs */}
             <div className="flex gap-2 p-1 bg-white/5 rounded-2xl border border-white/10 self-center">
                 <button
-                    onClick={() => setSubView('users')}
+                    onClick={() => {
+                        setSubView('users');
+                        setFilterUserId(null); // Clear filter when going back to user list
+                    }}
                     className={`flex items-center gap-2 px-6 py-2.5 rounded-xl transition-all font-medium text-sm ${
                         subView === 'users' 
                         ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' 
@@ -52,7 +61,14 @@ export default function AdminDashboard() {
 
             {/* Content Area */}
             <div className="w-full">
-                {subView === 'users' ? <AdminUserManagement /> : <AdminStoryManagement />}
+                {subView === 'users' ? (
+                    <AdminUserManagement onShowStories={handleShowUserStories} />
+                ) : (
+                    <AdminStoryManagement 
+                        filterUserId={filterUserId} 
+                        onClearFilter={() => setFilterUserId(null)} 
+                    />
+                )}
             </div>
         </div>
     );

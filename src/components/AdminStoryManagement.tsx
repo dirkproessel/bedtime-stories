@@ -1,15 +1,31 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useStore } from '../store/useStore';
-import { Trash2, ExternalLink, Clock, User as UserIcon, Loader2, Music } from 'lucide-react';
+import { Trash2, ExternalLink, Clock, User as UserIcon, Loader2, Music, X, BookOpen } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-export default function AdminStoryManagement() {
-    const { stories, loadStories, deleteAdminStory, setReaderOpen, setRevoiceStoryId, isLoading } = useStore();
+interface Props {
+    filterUserId: string | null;
+    onClearFilter: () => void;
+}
+
+export default function AdminStoryManagement({ filterUserId, onClearFilter }: Props) {
+    const { stories, loadStories, deleteAdminStory, setReaderOpen, setRevoiceStoryId, isLoading, adminUsers } = useStore();
 
     useEffect(() => {
         // Load all stories for admin
         loadStories(1); 
     }, [loadStories]);
+
+    const filteredStories = useMemo(() => {
+        if (!filterUserId) return stories;
+        return stories.filter(s => s.user_id === filterUserId);
+    }, [stories, filterUserId]);
+
+    const filteredUserName = useMemo(() => {
+        if (!filterUserId) return null;
+        const user = adminUsers.find(u => u.id === filterUserId);
+        return user ? (user.username || user.email) : 'Unbekannter Nutzer';
+    }, [adminUsers, filterUserId]);
 
     const handleDelete = async (id: string, title: string) => {
         if (!confirm(`Geschichte "${title}" wirklich löschen?`)) return;
@@ -38,7 +54,22 @@ export default function AdminStoryManagement() {
 
     return (
         <div className="space-y-3">
-            {stories.map((story) => (
+            {filterUserId && (
+                <div className="flex items-center justify-between px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl mb-4">
+                    <span className="text-sm text-emerald-400">
+                        Gefiltert nach: <strong className="text-white">{filteredUserName}</strong>
+                    </span>
+                    <button 
+                        onClick={onClearFilter}
+                        className="p-1 hover:bg-white/10 rounded-lg transition-all text-slate-400 hover:text-white"
+                        title="Filter aufheben"
+                    >
+                        <X className="w-4 h-4" />
+                    </button>
+                </div>
+            )}
+
+            {filteredStories.map((story) => (
                 <div key={story.id} className="glass-panel rounded-2xl p-4 flex items-center justify-between group">
                     <div className="flex items-center gap-4 flex-1 min-w-0">
                         <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center flex-shrink-0 overflow-hidden relative">
@@ -86,7 +117,7 @@ export default function AdminStoryManagement() {
                 </div>
             ))}
 
-            {stories.length === 0 && !isLoading && (
+            {filteredStories.length === 0 && !isLoading && (
                 <div className="text-center py-12 text-slate-500 italic">
                     Keine Geschichten gefunden.
                 </div>
@@ -94,6 +125,3 @@ export default function AdminStoryManagement() {
         </div>
     );
 }
-
-// Helper to keep BookOpen icon available
-import { BookOpen } from 'lucide-react';
