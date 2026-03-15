@@ -64,6 +64,7 @@ from app.models import (
     VoiceProfile,
     KindleExportRequest,
     User,
+    UserResponse,
 )
 from app.auth_utils import get_current_active_user, get_optional_user
 from fastapi import Depends

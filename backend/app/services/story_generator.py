@@ -429,7 +429,7 @@ ACHTUNG ZUR LÄNGE: Die gesamte Geschichte darf STRENGSTENS MAXIMAL {total_words
 Antworte NUR im JSON-Format:
 {{
     "title": "Titel",
-    "synopsis": "Detaillierte Zusammenfassung",
+    "synopsis": "Prägnante Zusammenfassung (maximal 3-4 Sätze), die Lust auf die Geschichte macht.",
     "segments": [
         {{ "goal": "Was in diesem Teil passiert..." }},
         ...

@@ -64,7 +64,7 @@ class UserCreate(BaseModel):
 class UserResponse(BaseModel):
     id: str
     email: str
-    is_admin: bool = Field(default=bool)
+    is_admin: bool = Field(default=False)
     username: Optional[str] = None
     kindle_email: Optional[str] = None
     created_at: datetime

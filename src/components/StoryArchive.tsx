@@ -32,6 +32,7 @@ export default function StoryArchive() {
     const [remixInstructions, setRemixInstructions] = useState('');
     const [isRemixing, setIsRemixing] = useState(false);
     const [showToolbox, setShowToolbox] = useState<string | null>(null);
+    const [expandedStories, setExpandedStories] = useState<Set<string>>(new Set());
     const audioRef = useRef<HTMLAudioElement>(null);
 
     const activeToolboxStory = showToolbox ? stories.find(s => s.id === showToolbox) : null;
@@ -79,6 +80,15 @@ export default function StoryArchive() {
 
     const handlePlay = (id: string) => {
         setReaderOpen(true, id);
+    };
+
+    const toggleExpand = (id: string) => {
+        setExpandedStories(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
     };
 
     const handleDelete = async (id: string, title: string) => {
@@ -223,9 +233,13 @@ export default function StoryArchive() {
                     <div className="w-24 h-24 mx-auto bg-surface rounded-[2rem] flex items-center justify-center mb-6 shadow-sm border border-slate-800">
                         <BookOpen className="w-10 h-10 text-slate-700" />
                     </div>
-                    <h2 className="font-serif text-2xl text-text mb-2 font-semibold">Dein Archiv ist noch leer</h2>
+                    <h2 className="font-serif text-2xl text-text mb-2 font-semibold">
+                        {archiveFilter === 'public' ? 'Noch keine öffentlichen Geschichten' : 'Dein Archiv ist noch leer'}
+                    </h2>
                     <p className="text-slate-500 text-sm max-w-[280px] mx-auto leading-relaxed">
-                        Hier werden deine literarischen Werke sicher aufbewahrt. Erstelle deine erste Geschichte im Labor!
+                        {archiveFilter === 'public' 
+                            ? 'Erstelle die erste öffentliche Geschichte im Labor!' 
+                            : 'Hier werden deine literarischen Werke sicher aufbewahrt. Erstelle deine erste Geschichte im Labor!'}
                     </p>
                     <button 
                         onClick={() => setActiveView('create')}
@@ -320,9 +334,19 @@ export default function StoryArchive() {
                                     )}
 
                                     {/* Full Synopsis */}
-                                    <p className="text-sm text-text/90 font-serif leading-relaxed italic line-clamp-4">
-                                        {story.description}
-                                    </p>
+                                    <div className="relative">
+                                        <p className={`text-[13px] text-text/90 font-serif leading-relaxed italic ${expandedStories.has(story.id) ? '' : 'line-clamp-3'}`}>
+                                            {story.description}
+                                        </p>
+                                        {story.description && story.description.length > 180 && (
+                                            <button 
+                                                onClick={() => toggleExpand(story.id)}
+                                                className="text-[10px] font-bold text-primary hover:text-emerald-400 mt-1 uppercase tracking-wider transition-colors"
+                                            >
+                                                {expandedStories.has(story.id) ? 'Weniger anzeigen' : 'Mehr lesen'}
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
                             )}
 
