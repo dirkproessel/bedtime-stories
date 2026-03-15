@@ -683,8 +683,8 @@ async def list_stories(
     if filter == "my" and current_user:
         stories = [s for s in accessible_stories if s.user_id == current_user.id]
     elif filter == "public":
-        # Standard user "Öffentlich"
-        stories = [s for s in accessible_stories if s.is_public and s.user_id != current_user.id]
+        # Standard user "Öffentlich" - include own stories if public as well
+        stories = [s for s in accessible_stories if s.is_public]
     elif filter == "all" and current_user and current_user.is_admin:
         # Admin User "Alle" (meaning others)
         stories = [s for s in accessible_stories if s.user_id != current_user.id]
@@ -797,8 +797,9 @@ async def update_story(
 
     # Permissions
     if req.is_public is not None:
-        if not current_user.is_admin:
-            raise HTTPException(status_code=403, detail="Nur Admins dürfen die Sichtbarkeit ändern.")
+        # Only owner or admin can toggle visibility
+        if meta.user_id != current_user.id and not current_user.is_admin:
+            raise HTTPException(status_code=403, detail="Nur der Besitzer oder Admins dürfen die Sichtbarkeit ändern.")
         meta.is_public = req.is_public
 
     if req.title is not None:

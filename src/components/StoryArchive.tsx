@@ -241,9 +241,16 @@ export default function StoryArchive() {
                                 <div className="flex-1 min-w-0">
                                     {/* Title & Top Metadata */}
                                     <div className="flex flex-col gap-1.5">
-                                        <h3 className="font-serif text-xl font-semibold text-text group-hover:text-primary transition-colors leading-tight cursor-pointer" onClick={() => story.status === 'done' && handlePlay(story.id)}>
-                                            {story.title}
-                                        </h3>
+                                        <div className="flex items-center gap-2">
+                                            <h3 className="font-serif text-xl font-semibold text-text group-hover:text-primary transition-colors leading-tight cursor-pointer" onClick={() => story.status === 'done' && handlePlay(story.id)}>
+                                                {story.title}
+                                            </h3>
+                                            {archiveFilter !== 'public' && story.is_public && (
+                                                <span className="shrink-0 px-1.5 py-0.5 rounded-md bg-primary/10 border border-primary/20 text-[9px] font-bold text-primary uppercase tracking-wider animate-in fade-in zoom-in">
+                                                    Veröffentlicht
+                                                </span>
+                                            )}
+                                        </div>
                                         
                                         {story.status === 'done' && (
                                             <div className="flex gap-6 mb-1">
@@ -729,31 +736,44 @@ export default function StoryArchive() {
                                     <div className={sectionClass}>
                                         <h3 className={sectionTitleClass}>Sichtbarkeit & Versand</h3>
                                         <div className={gridClass}>
-                                            {user?.is_admin && story.user_id === user.id && (
-                                                <button 
-                                                    onClick={async () => {
-                                                        const targetId = story.id;
-                                                        setShowToolbox(null);
-                                                        setIsPublicLoading(targetId);
-                                                        try {
-                                                            await toggleStoryVisibility(targetId, !story.is_public);
-                                                            toast.success(story.is_public ? 'Story privatisiert' : 'Story veröffentlicht!');
-                                                        } finally {
-                                                            setIsPublicLoading(null);
-                                                        }
-                                                    }}
-                                                    disabled={isPublicLoading === story.id}
-                                                    className={itemClass}
-                                                >
-                                                    {isPublicLoading === story.id ? (
-                                                        <Loader2 className="w-5 h-5 animate-spin text-primary" />
-                                                    ) : (
-                                                        <Eye className={`w-5 h-5 ${story.is_public ? 'text-primary' : 'text-slate-500'}`} />
-                                                    )}
-                                                    <span className={itemLabelClass}>
-                                                        {story.is_public ? 'Privat machen' : 'Öffentlich stellen'}
-                                                    </span>
-                                                </button>
+                                            {(user?.is_admin || story.user_id === user?.id) && (
+                                                <div className={`${itemClass} flex-row justify-between col-span-2 px-6 py-4`}>
+                                                    <div className="flex flex-col items-start gap-1">
+                                                        <span className={itemLabelClass}>Veröffentlichen</span>
+                                                        <span className="text-[9px] text-slate-500 text-left">
+                                                            {story.is_public ? 'In "Erkunden" sichtbar' : 'Nur für Dich sichtbar'}
+                                                        </span>
+                                                    </div>
+                                                    
+                                                    <button 
+                                                        onClick={async () => {
+                                                            const targetId = story.id;
+                                                            setIsPublicLoading(targetId);
+                                                            try {
+                                                                await toggleStoryVisibility(targetId, !story.is_public);
+                                                                toast.success(story.is_public ? 'Story privatisiert' : 'Story veröffentlicht!');
+                                                            } finally {
+                                                                setIsPublicLoading(null);
+                                                            }
+                                                        }}
+                                                        disabled={isPublicLoading === story.id}
+                                                        className={`relative w-11 h-6 rounded-full transition-all duration-300 flex items-center p-1 ${
+                                                            isPublicLoading === story.id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                                                        } ${
+                                                            story.is_public 
+                                                                ? 'bg-[#00F5D4] shadow-[0_0_12px_rgba(0,245,212,0.4)]' 
+                                                                : 'bg-slate-800'
+                                                        }`}
+                                                    >
+                                                        <div className={`w-4 h-4 bg-[#0a0f1d] rounded-full shadow-sm transition-transform duration-300 transform ${
+                                                            story.is_public ? 'translate-x-5' : 'translate-x-0'
+                                                        } flex items-center justify-center`}>
+                                                            {isPublicLoading === story.id && (
+                                                                <Loader2 className="w-2.5 h-2.5 animate-spin text-[#00F5D4]" />
+                                                            )}
+                                                        </div>
+                                                    </button>
+                                                </div>
                                             )}
                                             {user?.is_admin && (
                                                 <button 
