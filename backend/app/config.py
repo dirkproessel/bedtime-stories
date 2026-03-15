@@ -43,6 +43,12 @@ class Settings:
     SMTP_PASSWORD: str = os.getenv("SMTP_PASSWORD", "")  # Needs App Password
     KINDLE_EMAIL: str = os.getenv("KINDLE_EMAIL", "dirk.proessel.runthaler@kindle.com")
 
+    # Central Model Configuration
+    # GEMINI 3.0 FLASH (LATEST PREVIEW)
+    GEMINI_TEXT_MODEL: str = "models/gemini-3-flash-preview"
+    # GEMINI 2.5 FLASH IMAGE (NANO BANANA)
+    GEMINI_IMAGE_MODEL: str = "gemini-2.5-flash-image"
+
     def __init__(self):
         self.AUDIO_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 

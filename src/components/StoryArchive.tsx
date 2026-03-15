@@ -1,6 +1,6 @@
 import { useStore } from '../store/useStore';
 import { deleteStory, revoiceStory, getVoicePreviewUrl, exportStoryToKindle, getThumbUrl, regenerateStoryImage } from '../lib/api';
-import { Play, Trash2, BookOpen, Loader2, Mic, X, Venus, Mars, Users, Pause, Send, ChevronLeft, ChevronRight, Image as ImageIcon, RefreshCw, Sparkles, Settings2, MessageCircle, Feather, Timer, Wand2, Edit } from 'lucide-react';
+import { Play, Trash2, BookOpen, Loader2, Mic, X, Venus, Mars, Users, Pause, Send, ChevronLeft, ChevronRight, Image as ImageIcon, RefreshCw, Sparkles, Settings2, MessageCircle, Timer, Wand2, Edit } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useEffect, useState, useRef } from 'react';
 
@@ -40,8 +40,8 @@ export default function StoryArchive() {
     const sectionClass = "mb-6";
     const sectionTitleClass = "text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-slate-600 mb-3 ml-1";
     const listClass = "flex flex-col gap-2";
-    const itemClass = "flex items-center gap-4 p-3 bg-slate-900/40 border border-slate-800/50 rounded-xl transition-all active:scale-[0.98] hover:bg-slate-900/60 disabled:opacity-30 disabled:pointer-events-none w-full";
-    const itemLabelClass = "text-[13px] font-bold text-slate-300";
+    const itemClass = "flex items-center gap-3 p-2.5 bg-slate-900/40 border border-slate-800/50 rounded-xl transition-all active:scale-[0.98] hover:bg-slate-900/60 hover:border-primary/20 disabled:opacity-30 disabled:pointer-events-none w-full";
+    const itemLabelClass = "text-[13px] font-medium text-slate-300";
 
     // Track if we have performed the initial check for "my" stories
     const [initialCheckDone, setInitialCheckDone] = useState(false);
@@ -199,15 +199,6 @@ export default function StoryArchive() {
 
     return (
         <div className="p-4 sm:p-6 max-w-2xl mx-auto">
-            <div className="text-center mb-8">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary mb-4 shadow-lg shadow-primary/20">
-                    <Feather className="w-8 h-8 text-white" />
-                </div>
-                <h1 className="text-2xl font-bold text-text font-serif">
-                    {archiveFilter === 'public' ? 'Entdecken' : 'Bibliothek'}
-                </h1>
-            </div>
-
             {stories.length === 0 ? (
                 <div className="text-center py-20 animate-in fade-in duration-700">
                     <div className="w-24 h-24 mx-auto bg-surface rounded-[2rem] flex items-center justify-center mb-6 shadow-sm border border-slate-800">
@@ -237,7 +228,7 @@ export default function StoryArchive() {
                                         className="w-20 h-20 rounded-2xl overflow-hidden shrink-0 shadow-sm border border-slate-700 cursor-pointer"
                                         onClick={() => handlePlay(story.id)}
                                     >
-                                        <img src={getThumbUrl(story.id)} alt={story.title} className="w-full h-full object-cover grayscale-[20%]" />
+                                        <img src={getThumbUrl(story.id, story.updated_at)} alt={story.title} className="w-full h-full object-cover grayscale-[20%]" />
                                     </div>
                                 ) : (
                                     <div
@@ -294,8 +285,10 @@ export default function StoryArchive() {
                                     </div>
                                 </div>
                             ) : story.status === 'error' ? (
-                                <div className="mt-4 px-3 py-1.5 bg-red-950/20 text-red-500 rounded-lg text-xs font-medium w-fit border border-red-900/30 italic">
-                                    {story.progress || 'Fehler bei der Erstellung'}
+                                <div className="mt-4">
+                                    <div className="px-3 py-2 bg-red-950/20 text-red-500 rounded-lg text-xs font-medium w-full border border-red-900/30 italic line-clamp-2 hover:line-clamp-none transition-all cursor-help" title={story.progress || 'Fehler bei der Erstellung'}>
+                                        {story.progress || 'Fehler bei der Erstellung'}
+                                    </div>
                                 </div>
                             ) : (
                                 <div className="mt-4">
@@ -314,7 +307,7 @@ export default function StoryArchive() {
                                 </div>
                             )}
 
-                            {story.status === 'done' && (
+                            {(story.status === 'done' || story.status === 'error') && (
                                 <div className="mt-6">
                                     <div className="h-px bg-slate-800/50 w-full mb-6" />
                                     
@@ -323,7 +316,7 @@ export default function StoryArchive() {
                                         <div className="flex flex-col gap-2 text-[11px] text-slate-500 font-medium">
                                             <span className="flex items-center gap-2">
                                                 <BookOpen className="w-4 h-4 text-slate-600" />
-                                                {story.word_count && story.word_count > 0 ? `${story.word_count} Worte` : `${story.chapter_count} Kapitel`}
+                                                {(story.word_count && story.word_count > 0) ? `${story.word_count} Worte` : (story.chapter_count > 0 ? `${story.chapter_count} Kapitel` : 'Entwurf')}
                                             </span>
                                             {story.voice_key !== 'none' && (
                                                 <span className="flex items-center gap-2">
@@ -331,10 +324,10 @@ export default function StoryArchive() {
                                                     {story.duration_seconds ? formatDuration(story.duration_seconds) : '--:--'} Min ({voiceName(story.voice_key)})
                                                 </span>
                                             )}
-                                            {archiveFilter === 'public' && story.user_email && (
+                                            {archiveFilter === 'public' && (
                                                 <span className="flex items-center gap-2">
                                                     <Users className="w-4 h-4 text-slate-600" />
-                                                    {story.user_email}
+                                                    {story.user_email || 'Anonym'}
                                                 </span>
                                             )}
                                             {archiveFilter !== 'public' && story.is_public && (
@@ -506,7 +499,7 @@ export default function StoryArchive() {
                                             className="w-full py-3 text-sm font-bold text-slate-500 hover:text-slate-300 transition-colors"
                                         >
                                             Zurück zur Stimmenauswahl
-                                        </button>
+                        </button>
                                     </div>
                                 </div>
                             )}
@@ -647,6 +640,7 @@ export default function StoryArchive() {
                     </div>
                 </div>
             )}
+
             {/* Toolbox Overlay */}
             {showToolbox && (
                 <div className="fixed inset-0 z-[100] flex items-end justify-center bg-background/60 backdrop-blur-sm animate-in fade-in duration-300">
@@ -655,25 +649,20 @@ export default function StoryArchive() {
                         onClick={() => setShowToolbox(null)}
                     />
                     <div className="relative w-full max-w-md bg-surface border-t border-slate-800 rounded-t-[2.5rem] p-8 shadow-2xl animate-in slide-in-from-bottom duration-500 ease-out">
-                        {/* Pull handle */}
-                        <div className="w-12 h-1.5 bg-slate-800 rounded-full mx-auto mb-8" />
-                        
-                        <div className="flex items-center justify-between mb-10">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-primary/20 text-primary rounded-xl flex items-center justify-center">
-                                    <Wand2 className="w-6 h-6" />
-                                </div>
-                                <h2 className="text-sm font-mono uppercase tracking-[0.2em] text-slate-400 font-bold">
-                                    Werkzeugkasten
-                                </h2>
+                        <div className="flex flex-col items-center mb-8">
+                            <div className="w-12 h-12 bg-primary/20 text-primary rounded-2xl flex items-center justify-center mb-3 shadow-lg shadow-primary/10">
+                                <Wand2 className="w-7 h-7" />
                             </div>
-                            <button
-                                onClick={() => setShowToolbox(null)}
-                                className="p-2 bg-slate-900 text-slate-500 hover:text-slate-300 rounded-full hover:bg-slate-800 transition-colors"
-                            >
-                                <X className="w-5 h-5" />
-                            </button>
+                            <h2 className="text-sm font-mono uppercase tracking-[0.25em] text-slate-300 font-bold">
+                                Werkzeugkasten
+                            </h2>
                         </div>
+                        <button
+                            onClick={() => setShowToolbox(null)}
+                            className="absolute top-6 right-6 p-2.5 bg-slate-900/80 text-slate-500 hover:text-white rounded-full hover:bg-slate-800 transition-all active:scale-95"
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
 
                         {activeToolboxStory && (
                             <div className="max-h-[70vh] overflow-y-auto custom-scrollbar pr-1 pb-4">
@@ -712,12 +701,15 @@ export default function StoryArchive() {
                                     <div className={listClass}>
                                         {/* Publish Toggle - Only for own stories in library */}
                                         {archiveFilter !== 'public' && activeToolboxStory.user_id === user?.id && (
-                                            <div className={`${itemClass} justify-between px-4`}>
-                                                <div className="flex-row items-center gap-4">
-                                                    <span className={itemLabelClass}>Veröffentlichen</span>
-                                                    <span className="text-[10px] text-slate-500 text-left">
-                                                        {activeToolboxStory.is_public ? 'In "Erkunden" sichtbar' : 'Nur für Dich sichtbar'}
-                                                    </span>
+                                            <div className={`${itemClass} justify-between px-3`}>
+                                                <div className="flex items-center gap-3">
+                                                    <Sparkles className="w-4 h-4 text-primary shrink-0" />
+                                                    <div className="flex flex-col">
+                                                        <span className={itemLabelClass}>Veröffentlichen</span>
+                                                        <span className="text-[10px] text-slate-500">
+                                                            {activeToolboxStory.is_public ? 'In "Erkunden" sichtbar' : 'Nur für Dich sichtbar'}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                                 
                                                 <button 
@@ -803,18 +795,27 @@ export default function StoryArchive() {
                                         )}
 
                                         {user?.is_admin && (
-                                            <button 
-                                                onClick={() => {
-                                                    handleSpotifyToggle(activeToolboxStory.id, !activeToolboxStory.is_on_spotify);
-                                                    setShowToolbox(null);
-                                                }}
-                                                className={`${itemClass} justify-between px-4`}
-                                            >
-                                                <div className={`w-8 h-4 rounded-full transition-colors relative ${activeToolboxStory.is_on_spotify ? 'bg-primary' : 'bg-slate-700'}`}>
-                                                    <div className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform ${activeToolboxStory.is_on_spotify ? 'translate-x-4' : ''}`}></div>
+                                            <div className={`${itemClass} justify-between px-3`}>
+                                                <div className="flex items-center gap-3">
+                                                    <Play className="w-4 h-4 text-[#1DB954] shrink-0" />
+                                                    <span className={itemLabelClass}>Spotify</span>
                                                 </div>
-                                                <span className={itemLabelClass}>Spotify</span>
-                                            </button>
+                                                <button 
+                                                    onClick={() => {
+                                                        handleSpotifyToggle(activeToolboxStory.id, !activeToolboxStory.is_on_spotify);
+                                                        setShowToolbox(null);
+                                                    }}
+                                                    className={`relative w-10 h-5 rounded-full transition-all duration-300 flex items-center p-0.5 cursor-pointer ${
+                                                        activeToolboxStory.is_on_spotify 
+                                                            ? 'bg-[#1DB954] shadow-[0_0_12px_rgba(29,185,84,0.3)]' 
+                                                            : 'bg-slate-800'
+                                                    }`}
+                                                >
+                                                    <div className={`w-4 h-4 bg-[#0a0f1d] rounded-full shadow-sm transition-transform duration-300 transform ${
+                                                        activeToolboxStory.is_on_spotify ? 'translate-x-5' : 'translate-x-0'
+                                                    }`} />
+                                                </button>
+                                            </div>
                                         )}
 
                                         {activeToolboxStory.user_id === user?.id && (

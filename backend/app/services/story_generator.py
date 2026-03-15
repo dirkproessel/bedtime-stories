@@ -13,7 +13,7 @@ from app.services.rate_limiter import rate_limiter
 client = genai.Client(api_key=settings.GEMINI_API_KEY)
 
 
-MODEL = "models/gemini-3-flash-preview"
+# Centralized models now coming from app.config.settings
 
 STANZWERK_BIBLIOTHEK = {
     "adults": [
@@ -254,7 +254,7 @@ Struktur-Schablone: [{selected_hook['typ']}]: {selected_hook['logik']}
         await rate_limiter.wait_for_capacity("text")
         response = await asyncio.to_thread(
             client.models.generate_content,
-            model=MODEL,
+            model=settings.GEMINI_TEXT_MODEL,
             contents=prompt,
             config={
                 "temperature": 0.9,
@@ -443,7 +443,7 @@ Antworte NUR im JSON-Format:
         await rate_limiter.wait_for_capacity("text")
         outline_res = await asyncio.to_thread(
             client.models.generate_content,
-            model=MODEL,
+            model=settings.GEMINI_TEXT_MODEL,
             contents=outline_prompt,
             config={"response_mime_type": "application/json"}
         )
@@ -514,7 +514,7 @@ Fokus / Ziel DIESES Kapitels: {seg['goal']}
         await rate_limiter.wait_for_capacity("text")
         response = await asyncio.to_thread(
             client.models.generate_content,
-            model=MODEL,
+            model=settings.GEMINI_TEXT_MODEL,
             contents=write_prompt,
             config={"temperature": 0.8}
         )

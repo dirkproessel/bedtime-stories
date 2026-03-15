@@ -34,17 +34,7 @@ export default function AccountScreen() {
 
     return (
         <div className="flex flex-col items-center max-w-lg mx-auto p-6 md:p-12 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* User Info / Status */}
-            <div className="flex flex-col items-center gap-1">
-                <p className="text-slate-500 font-medium">
-                    {user ? user.email : 'Gastzugriff'}
-                </p>
-                {user?.is_admin && (
-                    <span className="px-3 py-0.5 bg-amber-900/20 text-amber-500 text-[10px] font-bold rounded-full uppercase tracking-wider border border-amber-900/30">
-                        Admin
-                    </span>
-                )}
-            </div>
+            {/* Kindle Integration Section */}
             {/* Kindle Integration Section */}
             <div className="w-full bg-white rounded-3xl p-6 shadow-sm border border-slate-100 space-y-6">
                 <div className="flex items-center gap-4 border-b border-slate-100 pb-4">

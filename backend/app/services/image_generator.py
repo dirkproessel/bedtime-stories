@@ -31,7 +31,7 @@ async def get_visual_prompt(client: genai.Client, synopsis: str, genre: str, sty
     
     try:
         response = client.models.generate_content(
-            model='gemini-1.5-flash',
+            model=settings.GEMINI_TEXT_MODEL,
             contents=prompt
         )
         visual_desc = response.text.strip()
@@ -39,7 +39,8 @@ async def get_visual_prompt(client: genai.Client, synopsis: str, genre: str, sty
         return visual_desc
     except Exception as e:
         logger.error(f"Error generating visual prompt with Gemini: {e}")
-        return "A high-quality, atmospheric and artistic illustration representing the story's theme."
+        # Fallback to something that includes context if possible
+        return f"A high-quality, atmospheric artistic illustration in the {genre} genre, reflecting the mood of {style}."
 
 async def generate_story_image(synopsis: str, output_path: Path, genre: str = "Realismus", style: str = "Douglas Adams"):
     """
@@ -78,7 +79,7 @@ async def generate_story_image(synopsis: str, output_path: Path, genre: str = "R
             f"Focus on pure visual storytelling without any typography."
         )
 
-        model_id = 'gemini-2.5-flash-image'
+        model_id = settings.GEMINI_IMAGE_MODEL
         logger.info(f"Using Google Image model: {model_id} (Nano Banana)")
         logger.info(f"Final Enhanced Prompt: {enhanced_prompt}")
         

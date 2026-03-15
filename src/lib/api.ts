@@ -54,6 +54,7 @@ export interface StoryMeta {
     user_email?: string;
     is_public: boolean;
     parent_id?: string;
+    updated_at: string;
 }
 
 export interface StoryDetail extends StoryMeta {
@@ -197,10 +198,11 @@ export function getAudioUrl(storyId: string): string {
     return url.toString();
 }
 
-export function getThumbUrl(storyId: string): string {
+export function getThumbUrl(storyId: string, version?: string): string {
     const token = localStorage.getItem('auth_token');
     const url = new URL(`${API_BASE}/api/stories/${storyId}/thumb.jpg`);
     if (token) url.searchParams.append('token', token);
+    if (version) url.searchParams.append('v', version);
     return url.toString();
 }
 

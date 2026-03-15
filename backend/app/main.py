@@ -441,6 +441,7 @@ async def _run_pipeline(
             curr.progress = message
             if pct is not None:
                 curr.progress_pct = pct
+            curr.updated_at = datetime.now(timezone.utc)
             store.add_story(curr)
 
     try:
@@ -528,6 +529,7 @@ async def _run_pipeline(
                 curr.voice_key = "none"
                 curr.voice_name = "Nur Text"
                 curr.image_url = image_url  # Now it's populated
+                curr.updated_at = datetime.now(timezone.utc)
                 store.add_story(curr)
             return
 
@@ -604,6 +606,7 @@ async def _run_pipeline(
             story_meta.status = "done"
             story_meta.progress = "Fertig! Geschichte bereit zum Anhören."
             story_meta.progress_pct = 100
+            story_meta.updated_at = datetime.now(timezone.utc)
             store.add_story(story_meta)
             
         logger.info(f"BENCHMARK [{story_id}]: Total Pipeline Finished in {time.time() - start_time_total:.2f} seconds")
@@ -866,6 +869,7 @@ async def regenerate_story_image_api(
             if res:
                 image_url = f"{settings.BASE_URL}/api/stories/{story_id}/image.png"
                 meta.image_url = image_url
+                meta.updated_at = datetime.now(timezone.utc)
                 # Update metadata in store
                 store.add_story(meta)
                 # Thumbnail
