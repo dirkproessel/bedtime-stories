@@ -53,14 +53,14 @@ export default function StoryArchive() {
 
     // Effect to switch to "public" if "my" is empty on first load
     useEffect(() => {
-        if (!initialCheckDone && totalStories !== undefined) {
+        if (!initialCheckDone && totalStories !== undefined && user) {
             if (archiveFilter === 'my' && totalMyStories === 0 && totalPublicStories > 0) {
                 setArchiveFilter('public');
                 loadStories(1);
             }
             setInitialCheckDone(true);
         }
-    }, [totalMyStories, totalPublicStories, totalStories, initialCheckDone, archiveFilter, loadStories, setArchiveFilter]);
+    }, [totalMyStories, totalPublicStories, totalStories, initialCheckDone, archiveFilter, loadStories, setArchiveFilter, user]);
 
 
     const handlePageChange = (page: number) => {
@@ -346,7 +346,7 @@ export default function StoryArchive() {
                                             {archiveFilter === 'public' && (
                                                 <span className="flex items-center gap-2">
                                                     <Feather className="w-4 h-4 text-slate-600" />
-                                                    <span className="text-slate-400">Autor:</span> {story.user_email || 'Anonym'}
+                                                    {story.user_email || 'Anonym'}
                                                 </span>
                                             )}
                                             {archiveFilter !== 'public' && story.is_public && (

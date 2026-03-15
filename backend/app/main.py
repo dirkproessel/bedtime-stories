@@ -519,6 +519,11 @@ async def _run_pipeline(
             # Wait for image task before finishing
             await image_task
             
+            # Calculate word/chapter counts for text-only
+            total_text = "\n".join([c["text"] for c in story_data["chapters"]])
+            word_count = len(total_text.split())
+            chapter_count = len(story_data["chapters"])
+
             # Final update for text-only
             curr = store.get_by_id(story_id)
             if curr:
@@ -529,6 +534,8 @@ async def _run_pipeline(
                 curr.voice_key = "none"
                 curr.voice_name = "Nur Text"
                 curr.image_url = image_url  # Now it's populated
+                curr.word_count = word_count
+                curr.chapter_count = chapter_count
                 curr.updated_at = datetime.now(timezone.utc)
                 store.add_story(curr)
             return
@@ -695,8 +702,8 @@ async def list_stories(
             # Standard user "Öffentlich" - include own stories if public as well
             stories = [s for s in accessible_stories if s.is_public]
         elif filter == "all" and current_user and current_user.is_admin:
-            # Admin User "Alle" (meaning others)
-            stories = [s for s in accessible_stories if s.user_id != current_user.id]
+            # Admin User "Alle" (everything)
+            stories = accessible_stories
         else:
             # Fallback / Guests
             stories = accessible_stories
@@ -728,6 +735,91 @@ async def list_stories(
         logger.error(f"CRITICAL: list_stories failed: {e}", exc_info=True)
         # Return empty list to avoid 500 but log the error
         return StoryListResponse(stories=[], total=0, total_my=0, total_public=0)
+
+
+# ──────────────────────────────────
+# Admin Actions
+# ──────────────────────────────────
+
+@app.get("/api/admin/users", response_model=list[UserResponse])
+async def admin_list_users(current_user: User = Depends(get_current_active_user)):
+    """List all users (Admin only)."""
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Nur Admins dürfen Benutzer verwalten.")
+    return store.get_all_users()
+
+
+@app.delete("/api/admin/users/{user_id}")
+async def admin_delete_user(user_id: str, current_user: User = Depends(get_current_active_user)):
+    """Delete a user (Admin only)."""
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Nur Admins dürfen Benutzer löschen.")
+    
+    from app.database import get_session
+    from sqlmodel import select
+    
+    with next(get_session()) as session:
+        user = session.get(User, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="Benutzer nicht gefunden")
+        if user.email == settings.ADMIN_EMAIL:
+            raise HTTPException(status_code=400, detail="Der Haupt-Admin kann nicht gelöscht werden.")
+        
+        session.delete(user)
+        session.commit()
+    
+    return {"status": "success", "message": "Benutzer gelöscht."}
+
+
+class UserAdminUpdate(BaseModel):
+    is_admin: bool | None = None
+    is_active: bool | None = None
+
+@app.patch("/api/admin/users/{user_id}")
+async def admin_update_user(
+    user_id: str, 
+    data: UserAdminUpdate,
+    current_user: User = Depends(get_current_active_user)
+):
+    """Update user status/role (Admin only)."""
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Nur Admins dürfen Benutzer bearbeiten.")
+    
+    from app.database import get_session
+    
+    with next(get_session()) as session:
+        user = session.get(User, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="Benutzer nicht gefunden")
+            
+        if data.is_admin is not None:
+            user.is_admin = data.is_admin
+        if data.is_active is not None:
+            user.is_active = data.is_active
+            
+        session.add(user)
+        session.commit()
+    
+    return {"status": "success", "message": "Benutzer aktualisiert."}
+
+
+@app.delete("/api/admin/stories/{story_id}")
+async def admin_delete_story(story_id: str, current_user: User = Depends(get_current_active_user)):
+    """Delete a story (Admin only)."""
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Nur Admins dürfen Geschichten löschen.")
+    
+    success = store.delete_story(story_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Geschichte nicht gefunden")
+        
+    # Optional: Delete files from disk
+    story_dir = settings.AUDIO_OUTPUT_DIR / story_id
+    if story_dir.exists():
+        import shutil
+        shutil.rmtree(story_dir)
+        
+    return {"status": "success", "message": "Geschichte gelöscht."}
 
 
 @app.get("/api/stories/{story_id}")

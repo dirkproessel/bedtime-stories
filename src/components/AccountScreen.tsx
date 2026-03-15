@@ -137,6 +137,27 @@ export default function AccountScreen() {
             {user?.is_admin && (
                 <div className="w-full glass-panel rounded-3xl p-6 space-y-4">
                     <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center flex-shrink-0">
+                            <Shield className="w-5 h-5 text-purple-400" />
+                        </div>
+                        <div className="flex-1">
+                            <h3 className="font-bold text-white text-sm">Adminbereich</h3>
+                            <p className="text-xs text-slate-400">Benutzer & Geschichten verwalten</p>
+                        </div>
+                        <button
+                            onClick={() => useStore.getState().setActiveView('admin')}
+                            className="px-4 py-2 bg-purple-500 hover:bg-purple-400 text-white text-xs font-bold rounded-xl transition-all shadow-lg shadow-purple-500/20"
+                        >
+                            Öffnen
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* RSS Feed Section */}
+            {user?.is_admin && (
+                <div className="w-full glass-panel rounded-3xl p-6 space-y-4">
+                    <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
                             <Radio className="w-5 h-5 text-emerald-400" />
                         </div>

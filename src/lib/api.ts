@@ -309,3 +309,45 @@ export async function generateHook(genre: string, authorId: string): Promise<str
     const data = await res.json();
     return data.hook_text;
 }
+
+// --- Admin Endpoints ---
+
+export async function adminFetchUsers(): Promise<User[]> {
+    const res = await fetch(`${API_BASE}/api/admin/users`, { headers: getAuthHeaders() });
+    if (!res.ok) throw new Error('Fehler beim Laden der Benutzer');
+    return res.json();
+}
+
+export async function adminDeleteUser(userId: string): Promise<void> {
+    const res = await fetch(`${API_BASE}/api/admin/users/${userId}`, { 
+        method: 'DELETE',
+        headers: getAuthHeaders() 
+    });
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.detail || 'Benutzer konnte nicht gelöscht werden');
+    }
+}
+
+export async function adminUpdateUser(userId: string, data: { is_admin?: boolean, is_active?: boolean }): Promise<void> {
+    const res = await fetch(`${API_BASE}/api/admin/users/${userId}`, {
+        method: 'PATCH',
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.detail || 'Benutzer konnte nicht aktualisiert werden');
+    }
+}
+
+export async function adminDeleteStory(storyId: string): Promise<void> {
+    const res = await fetch(`${API_BASE}/api/admin/stories/${storyId}`, { 
+        method: 'DELETE',
+        headers: getAuthHeaders() 
+    });
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.detail || 'Geschichte konnte nicht gelöscht werden');
+    }
+}

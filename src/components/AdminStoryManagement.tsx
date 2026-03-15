@@ -1,0 +1,99 @@
+import { useEffect } from 'react';
+import { useStore } from '../store/useStore';
+import { Trash2, ExternalLink, Clock, User as UserIcon, Loader2, Music } from 'lucide-react';
+import toast from 'react-hot-toast';
+
+export default function AdminStoryManagement() {
+    const { stories, loadStories, deleteAdminStory, setReaderOpen, setRevoiceStoryId, isLoading } = useStore();
+
+    useEffect(() => {
+        // Load all stories for admin
+        loadStories(1); 
+    }, [loadStories]);
+
+    const handleDelete = async (id: string, title: string) => {
+        if (!confirm(`Geschichte "${title}" wirklich löschen?`)) return;
+        try {
+            await deleteAdminStory(id);
+            toast.success('Geschichte gelöscht');
+        } catch (e: any) {
+            toast.error(e.message || 'Fehler beim Löschen');
+        }
+    };
+
+    const formatDuration = (seconds: number | null) => {
+        if (!seconds) return '--:--';
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
+
+    if (isLoading && stories.length === 0) {
+        return (
+            <div className="flex justify-center py-12">
+                <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-3">
+            {stories.map((story) => (
+                <div key={story.id} className="glass-panel rounded-2xl p-4 flex items-center justify-between group">
+                    <div className="flex items-center gap-4 flex-1 min-w-0">
+                        <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center flex-shrink-0 overflow-hidden relative">
+                            {story.image_url ? (
+                                <img src={story.image_url} alt="" className="w-full h-full object-cover opacity-60 group-hover:opacity-80 transition-opacity" />
+                            ) : (
+                                <BookOpen className="w-6 h-6 text-slate-600" />
+                            )}
+                        </div>
+                        <div className="flex flex-col min-w-0">
+                            <span className="text-white font-medium truncate group-hover:text-emerald-400 transition-colors">
+                                {story.title}
+                            </span>
+                            <div className="flex items-center gap-3 text-[10px] text-slate-500 uppercase tracking-wider font-mono">
+                                <span className="flex items-center gap-1"><UserIcon className="w-3 h-3" /> {story.user_email || 'System'}</span>
+                                <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {formatDuration(story.duration_seconds)}</span>
+                                <span className="text-slate-600 italic">{new Date(story.created_at).toLocaleDateString()}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setReaderOpen(true, story.id)}
+                            className="p-2 text-slate-400 hover:text-emerald-500 hover:bg-emerald-500/10 rounded-lg transition-all"
+                            title="Anzeigen"
+                        >
+                            <ExternalLink className="w-5 h-5" />
+                        </button>
+                        <button
+                            onClick={() => setRevoiceStoryId(story.id)}
+                            className="p-2 text-slate-400 hover:text-orange-400 hover:bg-orange-500/10 rounded-lg transition-all"
+                            title="Neu vertonen"
+                        >
+                            <Music className="w-5 h-5" />
+                        </button>
+                        <button
+                            onClick={() => handleDelete(story.id, story.title)}
+                            className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                            title="Löschen"
+                        >
+                            <Trash2 className="w-5 h-5" />
+                        </button>
+                    </div>
+                </div>
+            ))}
+
+            {stories.length === 0 && !isLoading && (
+                <div className="text-center py-12 text-slate-500 italic">
+                    Keine Geschichten gefunden.
+                </div>
+            )}
+        </div>
+    );
+}
+
+// Helper to keep BookOpen icon available
+import { BookOpen } from 'lucide-react';

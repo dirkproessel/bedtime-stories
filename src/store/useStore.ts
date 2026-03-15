@@ -10,6 +10,10 @@ import {
     type StoryMeta,
     type StoryRequest,
     type User,
+    adminFetchUsers,
+    adminDeleteUser,
+    adminUpdateUser,
+    adminDeleteStory,
 } from '../lib/api';
 
 interface AppState {
@@ -43,8 +47,15 @@ interface AppState {
     updateStorySpotify: (id: string, enabled: boolean) => Promise<void>;
 
     // UI
-    activeView: 'discover' | 'create' | 'library' | 'profile' | 'login';
-    setActiveView: (view: 'discover' | 'create' | 'library' | 'profile' | 'login') => void;
+    activeView: 'discover' | 'create' | 'library' | 'profile' | 'login' | 'admin';
+    setActiveView: (view: 'discover' | 'create' | 'library' | 'profile' | 'login' | 'admin') => void;
+    
+    // Admin
+    adminUsers: User[];
+    loadAdminUsers: () => Promise<void>;
+    deleteAdminUser: (id: string) => Promise<void>;
+    updateAdminUser: (id: string, data: { is_admin?: boolean, is_active?: boolean }) => Promise<void>;
+    deleteAdminStory: (id: string) => Promise<void>;
     selectedStoryId: string | null;
     setSelectedStoryId: (id: string | null) => void;
     toggleStoryVisibility: (id: string, isPublic: boolean) => Promise<void>;
@@ -105,6 +116,7 @@ export const useStore = create<AppState>((set, get) => {
     archiveFilter: 'my',
     setArchiveFilter: (filter) => set({ archiveFilter: filter }),
     activeView: 'create',
+    adminUsers: [],
     selectedStoryId: null,
     isLoading: false,
     error: null,
@@ -349,5 +361,51 @@ export const useStore = create<AppState>((set, get) => {
     },
     revoiceStoryId: null,
     setRevoiceStoryId: (id) => set({ revoiceStoryId: id }),
+
+    loadAdminUsers: async () => {
+        set({ isLoading: true });
+        try {
+            const users = await adminFetchUsers();
+            set({ adminUsers: users });
+        } catch (e: any) {
+            set({ error: e.message });
+        } finally {
+            set({ isLoading: false });
+        }
+    },
+
+    deleteAdminUser: async (id) => {
+        try {
+            await adminDeleteUser(id);
+            set(state => ({ adminUsers: state.adminUsers.filter(u => u.id !== id) }));
+        } catch (e: any) {
+            set({ error: e.message });
+            throw e;
+        }
+    },
+
+    updateAdminUser: async (id, data) => {
+        try {
+            await adminUpdateUser(id, data);
+            set(state => ({
+                adminUsers: state.adminUsers.map(u => u.id === id ? { ...u, ...data } : u)
+            }));
+        } catch (e: any) {
+            set({ error: e.message });
+            throw e;
+        }
+    },
+
+    deleteAdminStory: async (id) => {
+        try {
+            await adminDeleteStory(id);
+            set(state => ({
+                stories: state.stories.filter(s => s.id !== id)
+            }));
+        } catch (e: any) {
+            set({ error: e.message });
+            throw e;
+        }
+    },
     };
 });

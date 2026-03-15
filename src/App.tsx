@@ -8,6 +8,7 @@ import LoginScreen from './components/LoginScreen';
 import AccountScreen from './components/AccountScreen';
 import ReaderLayer from './components/ReaderLayer';
 import AudioCompanion from './components/AudioCompanion';
+import AdminDashboard from './components/AdminDashboard';
 
 const NAV_ITEMS = [
   { key: 'create' as const, label: 'Erschaffen', icon: PenTool },
@@ -79,6 +80,11 @@ function App() {
         return;
       }
 
+      if (hash === '/admin') {
+        setActiveView('admin');
+        return;
+      }
+
       if (hash === '/create' || hash === '') {
         setActiveView('create');
         return;
@@ -111,6 +117,8 @@ function App() {
       desiredHash = `#/create`;
     } else if (activeView === 'profile') {
       desiredHash = `#/profile`;
+    } else if (activeView === 'admin') {
+      desiredHash = `#/admin`;
     } else if (activeView === 'login') {
       desiredHash = ``;
     }
@@ -175,6 +183,7 @@ function App() {
           {activeView === 'library' && 'Meine Bibliothek'}
           {activeView === 'discover' && 'Entdecke neue Geschichten'}
           {activeView === 'profile' && 'Mein Profil'}
+          {activeView === 'admin' && 'Adminbereich'}
           {activeView === 'login' && (localStorage.getItem('is_registering') === 'true' ? 'Konto erstellen' : 'Willkommen zurück')}
         </h1>
       </div>
@@ -186,9 +195,10 @@ function App() {
       <main id="main-scroll-container" className="flex-1 overflow-y-auto pb-24">
         {activeView === 'login' && <LoginScreen />}
         {activeView === 'create' && <StoryCreator />}
-        {activeView === 'discover' && <StoryArchive />}
-        {activeView === 'library' && <StoryArchive />}
+        {activeView === 'discover' && <StoryArchive key="discover" />}
+        {activeView === 'library' && <StoryArchive key="library" />}
         {activeView === 'profile' && <AccountScreen />}
+        {activeView === 'admin' && <AdminDashboard />}
       </main>
 
       {/* persistent audio companion (z-60) */}
