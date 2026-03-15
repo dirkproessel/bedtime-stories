@@ -46,6 +46,10 @@ export default function AudioCompanion() {
         audio.addEventListener('play', onPlay);
         audio.addEventListener('pause', onPause);
 
+        // Sync initial state if audio is already playing/loaded
+        setIsPlaying(!audio.paused);
+        if (audio.duration) setDuration(audio.duration);
+
         return () => {
             audio.removeEventListener('timeupdate', onTimeUpdate);
             audio.removeEventListener('loadedmetadata', onLoaded);
@@ -53,7 +57,7 @@ export default function AudioCompanion() {
             audio.removeEventListener('play', onPlay);
             audio.removeEventListener('pause', onPause);
         };
-    }, []);
+    }, [showAudioCompanion]);
 
     // Source sync
     useEffect(() => {

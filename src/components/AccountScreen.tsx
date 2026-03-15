@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useStore } from '../store/useStore';
-import { User, LogOut, Download, Mail, Check, Loader2, Radio, Copy } from 'lucide-react';
+import { LogOut, Download, Mail, Check, Loader2, Radio, Copy } from 'lucide-react';
 import { updateKindleEmail } from '../lib/api';
 import toast from 'react-hot-toast';
 
@@ -34,26 +34,17 @@ export default function AccountScreen() {
 
     return (
         <div className="flex flex-col items-center max-w-lg mx-auto p-6 md:p-12 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* Header */}
-            <div className="flex flex-col items-center mb-8">
-        <div className="w-24 h-24 bg-[#F0FDF4] rounded-full flex items-center justify-center mb-4">
-          <User className="w-12 h-12 text-[#2D5A4C]" />
-        </div>
-        <h2 className="text-3xl font-bold text-slate-900 mb-1">Mein Konto</h2>
-        <p className="text-slate-500 font-medium">
-          {user ? user.email : 'Gastzugriff'}
-        </p>
-        {user?.is_admin && (
-          <span className="mt-3 px-3 py-1 bg-amber-100 text-amber-700 text-xs font-bold rounded-full uppercase tracking-wider">
-            Admin
-          </span>
-        )}
-        {!user && (
-          <span className="mt-3 px-3 py-1 bg-slate-100 text-slate-500 text-xs font-bold rounded-full uppercase tracking-wider">
-            Eingeschränkt
-          </span>
-        )}
-      </div>
+            {/* User Info / Status */}
+            <div className="flex flex-col items-center gap-1">
+                <p className="text-slate-500 font-medium">
+                    {user ? user.email : 'Gastzugriff'}
+                </p>
+                {user?.is_admin && (
+                    <span className="px-3 py-0.5 bg-amber-900/20 text-amber-500 text-[10px] font-bold rounded-full uppercase tracking-wider border border-amber-900/30">
+                        Admin
+                    </span>
+                )}
+            </div>
             {/* Kindle Integration Section */}
             <div className="w-full bg-white rounded-3xl p-6 shadow-sm border border-slate-100 space-y-6">
                 <div className="flex items-center gap-4 border-b border-slate-100 pb-4">

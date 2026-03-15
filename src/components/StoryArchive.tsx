@@ -37,11 +37,11 @@ export default function StoryArchive() {
     const activeToolboxStory = showToolbox ? stories.find(s => s.id === showToolbox) : null;
 
     // Toolbox CSS Classes
-    const sectionClass = "mb-8";
-    const sectionTitleClass = "text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-slate-600 mb-4 ml-1";
-    const gridClass = "grid grid-cols-2 gap-3";
-    const itemClass = "flex flex-col items-center justify-center gap-2 p-4 bg-slate-900/50 border border-slate-800 rounded-2xl transition-all active:scale-95 text-center disabled:opacity-30 disabled:pointer-events-none";
-    const itemLabelClass = "text-[11px] font-bold text-slate-300";
+    const sectionClass = "mb-6";
+    const sectionTitleClass = "text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-slate-600 mb-3 ml-1";
+    const listClass = "flex flex-col gap-2";
+    const itemClass = "flex items-center gap-4 p-3 bg-slate-900/40 border border-slate-800/50 rounded-xl transition-all active:scale-[0.98] hover:bg-slate-900/60 disabled:opacity-30 disabled:pointer-events-none w-full";
+    const itemLabelClass = "text-[13px] font-bold text-slate-300";
 
     // Track if we have performed the initial check for "my" stories
     const [initialCheckDone, setInitialCheckDone] = useState(false);
@@ -211,7 +211,7 @@ export default function StoryArchive() {
             {stories.length === 0 ? (
                 <div className="text-center py-20 animate-in fade-in duration-700">
                     <div className="w-24 h-24 mx-auto bg-surface rounded-[2rem] flex items-center justify-center mb-6 shadow-sm border border-slate-800">
-                        <Feather className="w-10 h-10 text-slate-700" />
+                        <BookOpen className="w-10 h-10 text-slate-700" />
                     </div>
                     <h2 className="font-serif text-2xl text-text mb-2 font-semibold">Dein Archiv ist noch leer</h2>
                     <p className="text-slate-500 text-sm max-w-[280px] mx-auto leading-relaxed">
@@ -244,7 +244,7 @@ export default function StoryArchive() {
                                         className="w-20 h-20 rounded-2xl bg-slate-900 flex items-center justify-center shrink-0 border border-slate-800 cursor-pointer"
                                         onClick={() => handlePlay(story.id)}
                                     >
-                                        <Feather className="w-7 h-7 text-slate-700" />
+                                        <BookOpen className="w-7 h-7 text-slate-700" />
                                     </div>
                                 )}
                                 <div className="flex-1 min-w-0">
@@ -680,7 +680,7 @@ export default function StoryArchive() {
                                 {/* Remix Labor */}
                                 <div className={sectionClass}>
                                     <h3 className={sectionTitleClass}>Remix Labor</h3>
-                                    <div className={gridClass}>
+                                    <div className={listClass}>
                                         <button 
                                             onClick={() => { 
                                                 setShowRemixModal(activeToolboxStory.id); 
@@ -689,7 +689,7 @@ export default function StoryArchive() {
                                             }}
                                             className={itemClass}
                                         >
-                                            <Edit className="w-5 h-5 text-emerald-400" />
+                                            <Edit className="w-4 h-4 text-emerald-400 shrink-0" />
                                             <span className={itemLabelClass}>Anpassen</span>
                                         </button>
                                         <button 
@@ -700,7 +700,7 @@ export default function StoryArchive() {
                                             }}
                                             className={itemClass}
                                         >
-                                            <Sparkles className="w-5 h-5 text-emerald-500" />
+                                            <Sparkles className="w-4 h-4 text-emerald-500 shrink-0" />
                                             <span className={itemLabelClass}>Fortsetzen</span>
                                         </button>
                                     </div>
@@ -709,13 +709,13 @@ export default function StoryArchive() {
                                 {/* Sichtbarkeit & Versand */}
                                 <div className={sectionClass}>
                                     <h3 className={sectionTitleClass}>Sichtbarkeit & Versand</h3>
-                                    <div className={gridClass}>
+                                    <div className={listClass}>
                                         {/* Publish Toggle - Only for own stories in library */}
                                         {archiveFilter !== 'public' && activeToolboxStory.user_id === user?.id && (
-                                            <div className={`${itemClass} flex-row justify-between col-span-2 px-6 py-4`}>
-                                                <div className="flex flex-col items-start gap-1">
+                                            <div className={`${itemClass} justify-between px-4`}>
+                                                <div className="flex-row items-center gap-4">
                                                     <span className={itemLabelClass}>Veröffentlichen</span>
-                                                    <span className="text-[9px] text-slate-500 text-left">
+                                                    <span className="text-[10px] text-slate-500 text-left">
                                                         {activeToolboxStory.is_public ? 'In "Erkunden" sichtbar' : 'Nur für Dich sichtbar'}
                                                     </span>
                                                 </div>
@@ -732,7 +732,7 @@ export default function StoryArchive() {
                                                         }
                                                     }}
                                                     disabled={isPublicLoading === activeToolboxStory.id}
-                                                    className={`relative w-11 h-6 rounded-full transition-all duration-300 flex items-center p-1 ${
+                                                    className={`relative w-10 h-5 rounded-full transition-all duration-300 flex items-center p-0.5 ${
                                                         isPublicLoading === activeToolboxStory.id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
                                                     } ${
                                                         activeToolboxStory.is_public 
@@ -760,7 +760,7 @@ export default function StoryArchive() {
                                             }}
                                             className={itemClass}
                                         >
-                                            <MessageCircle className="w-5 h-5 text-green-500" />
+                                            <MessageCircle className="w-4 h-4 text-green-500 shrink-0" />
                                             <span className={itemLabelClass}>WhatsApp</span>
                                         </button>
 
@@ -768,7 +768,7 @@ export default function StoryArchive() {
                                             onClick={() => { setShowKindleModal(activeToolboxStory.id); setShowToolbox(null); }}
                                             className={itemClass}
                                         >
-                                            <Send className="w-5 h-5 text-blue-400" />
+                                            <Send className="w-4 h-4 text-blue-400 shrink-0" />
                                             <span className={itemLabelClass}>An Kindle</span>
                                         </button>
                                     </div>
@@ -777,7 +777,7 @@ export default function StoryArchive() {
                                 {/* Werkzeuge */}
                                 <div className={sectionClass}>
                                     <h3 className={sectionTitleClass}>Werkzeuge</h3>
-                                    <div className={gridClass}>
+                                    <div className={listClass}>
                                         {/* Admin/Own only Tools */}
                                         {archiveFilter !== 'public' && (activeToolboxStory.user_id === user?.id || user?.is_admin) && (
                                             <>
@@ -789,14 +789,14 @@ export default function StoryArchive() {
                                                     }}
                                                     className={itemClass}
                                                 >
-                                                    <Mic className="w-5 h-5 text-amber-500" />
+                                                    <Mic className="w-4 h-4 text-amber-500 shrink-0" />
                                                     <span className={itemLabelClass}>Neu vertonen</span>
                                                 </button>
                                                 <button 
                                                     onClick={() => { handleRegenerateImage(activeToolboxStory.id); setShowToolbox(null); }}
                                                     className={itemClass}
                                                 >
-                                                    <ImageIcon className="w-5 h-5 text-indigo-400" />
+                                                    <ImageIcon className="w-4 h-4 text-indigo-400 shrink-0" />
                                                     <span className={itemLabelClass}>Neues Bild</span>
                                                 </button>
                                             </>
@@ -808,7 +808,7 @@ export default function StoryArchive() {
                                                     handleSpotifyToggle(activeToolboxStory.id, !activeToolboxStory.is_on_spotify);
                                                     setShowToolbox(null);
                                                 }}
-                                                className={itemClass}
+                                                className={`${itemClass} justify-between px-4`}
                                             >
                                                 <div className={`w-8 h-4 rounded-full transition-colors relative ${activeToolboxStory.is_on_spotify ? 'bg-primary' : 'bg-slate-700'}`}>
                                                     <div className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform ${activeToolboxStory.is_on_spotify ? 'translate-x-4' : ''}`}></div>
@@ -822,7 +822,7 @@ export default function StoryArchive() {
                                                 onClick={() => { handleDelete(activeToolboxStory.id, activeToolboxStory.title); setShowToolbox(null); }}
                                                 className={itemClass}
                                             >
-                                                <Trash2 className="w-5 h-5 text-red-500/70" />
+                                                <Trash2 className="w-4 h-4 text-red-500/70 shrink-0" />
                                                 <span className={itemLabelClass}>Löschen</span>
                                             </button>
                                         )}

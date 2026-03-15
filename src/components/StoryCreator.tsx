@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { getVoicePreviewUrl, generateHook, fetchPopularity } from '../lib/api';
-import { Sparkles, Mic, MicOff, Play, Pause, Venus, Mars, Users, Dices, Loader2, ChevronDown, RefreshCw, Feather } from 'lucide-react';
+import { Sparkles, Mic, MicOff, Play, Pause, Venus, Mars, Users, Dices, Loader2, ChevronDown, RefreshCw } from 'lucide-react';
 import { voiceName, voiceDesc, STANDARD_VOICE_KEYS, isStandardVoice } from '../lib/voices';
 import { AUTHORS } from '../lib/authors';
 import toast from 'react-hot-toast';
@@ -201,13 +201,6 @@ export default function StoryCreator() {
 
     return (
         <div className="p-4 sm:p-6 max-w-2xl mx-auto">
-            <div className="text-center mb-8">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary mb-4 shadow-lg shadow-primary/15">
-                    <Feather className="w-8 h-8 text-white" />
-                </div>
-                <h1 className="text-2xl font-bold text-text">Kurzgeschichten-Labor</h1>
-                <p className="text-text-muted mt-1 font-mono text-[11px] uppercase tracking-wider">Literatur auf Knopfdruck, exakt nach deinem Maß</p>
-            </div>
 
             {generatorParentId && (
                 <div className="mb-8 p-4 bg-accent/20 border-2 border-primary/20 rounded-2xl animate-in slide-in-from-top-4 duration-300">
