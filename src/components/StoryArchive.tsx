@@ -1,6 +1,6 @@
 import { useStore } from '../store/useStore';
 import { deleteStory, revoiceStory, getVoicePreviewUrl, exportStoryToKindle, getThumbUrl, regenerateStoryImage } from '../lib/api';
-import { Play, Trash2, BookOpen, Calendar, Loader2, Mic, X, Venus, Mars, Users, Pause, Send, ChevronLeft, ChevronRight, Image as ImageIcon, RefreshCw, Sparkles, Settings2, MessageCircle, Feather, Clock } from 'lucide-react';
+import { Play, Trash2, BookOpen, Calendar, Loader2, Mic, X, Venus, Mars, Users, Pause, Send, ChevronLeft, ChevronRight, Image as ImageIcon, RefreshCw, Sparkles, Settings2, MessageCircle, Feather, Clock, Timer } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useEffect, useState, useRef } from 'react';
 
@@ -281,7 +281,7 @@ export default function StoryArchive() {
                                                     )}
 
                                                     {/* Full Synopsis */}
-                                                    <p className="text-sm text-text font-serif leading-relaxed italic line-clamp-2 mt-2">{story.description}</p>
+                                                    <p className="text-sm text-text font-serif leading-relaxed italic line-clamp-4 mt-2">{story.description}</p>
 
                                                     {/* Detailed Metadata Grid */}
                                                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4 pt-4 border-t border-slate-800">
@@ -291,9 +291,11 @@ export default function StoryArchive() {
                                                         </div>
                                                         <div className="flex flex-col">
                                                             <span className="status-label text-slate-500">Stil</span>
-                                                            <span className="text-[11px] text-slate-300 font-medium truncate" title={formatAuthorStyles(story.style)}>
-                                                                {formatAuthorStyles(story.style)}
-                                                            </span>
+                                                            <div className="text-[11px] text-slate-300 font-medium space-y-0.5">
+                                                                {story.style.split(',').map(id => (
+                                                                    <div key={id.trim()}>{authorName(id.trim())}</div>
+                                                                ))}
+                                                            </div>
                                                         </div>
                                                         <div className="flex flex-col">
                                                             <span className="status-label text-slate-500">Stimme</span>
@@ -308,13 +310,15 @@ export default function StoryArchive() {
                                                             {story.word_count ? `${story.word_count} Worte` : `${story.chapter_count} Kapitel`}
                                                         </span>
                                                         <span className="flex items-center gap-1 border-l border-slate-800 pl-3">
-                                                            <Clock className="w-3 h-3" />
-                                                            {formatDuration(story.duration_seconds)}
+                                                            <Timer className="w-3 h-3" />
+                                                            {formatDuration(story.duration_seconds)} Min
                                                         </span>
-                                                        <span className="flex items-center gap-1 border-l border-slate-800 pl-3">
-                                                            <Calendar className="w-3 h-3" />
-                                                            {formatDate(story.created_at)}
-                                                        </span>
+                                                        {archiveFilter !== 'public' && (
+                                                            <span className="flex items-center gap-1 border-l border-slate-800 pl-3">
+                                                                <Calendar className="w-3 h-3" />
+                                                                {formatDate(story.created_at)}
+                                                            </span>
+                                                        )}
                                                         {user?.is_admin && archiveFilter === 'all' && (
                                                             <span className="flex items-center gap-1 border-l border-slate-800 pl-3">
                                                                 <Users className="w-3 h-3" />
