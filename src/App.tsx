@@ -146,8 +146,8 @@ function App() {
         </div>
         <div className="flex flex-col">
           <h2 className="text-2xl font-bold text-text mb-0.5 font-serif">Kurzgeschichten-Labor</h2>
-          <p className="text-[9px] font-mono uppercase tracking-[0.2em] text-text-muted">
-            LITERATUR AUF KNOPFDRUCK • GESCHICHTEN AUS DEM GEIST
+          <p className="text-[11px] tracking-wide text-text-muted">
+            Literatur auf Knopfdruck, exakt nach deinem Maß
           </p>
         </div>
       </header>
