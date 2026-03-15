@@ -51,9 +51,29 @@ def ensure_migrations():
 
         if "updated_at" not in [c.lower() for c in columns]:
             print("Migration: Adding updated_at to storymeta...")
-            # Use current time as default for existing rows
             now_iso = datetime.now(timezone.utc).isoformat()
             cur.execute(f"ALTER TABLE storymeta ADD COLUMN updated_at DATETIME DEFAULT '{now_iso}'")
+            conn.commit()
+
+        # Check if columns exist in user table
+        cur.execute("PRAGMA table_info(user)")
+        user_columns = [row[1] for row in cur.fetchall()]
+        
+        user_needed = [
+            ("username", "TEXT"),
+            ("kindle_email", "TEXT")
+        ]
+        
+        for col_name, col_type in user_needed:
+            if col_name.lower() not in [c.lower() for c in user_columns]:
+                print(f"Migration: Adding {col_name} to user...")
+                cur.execute(f"ALTER TABLE user ADD COLUMN {col_name} {col_type}")
+                conn.commit()
+
+        if "created_at" not in [c.lower() for c in user_columns]:
+            print("Migration: Adding created_at to user...")
+            now_iso = datetime.now(timezone.utc).isoformat()
+            cur.execute(f"ALTER TABLE user ADD COLUMN created_at DATETIME DEFAULT '{now_iso}'")
             conn.commit()
             
     except Exception as e:
