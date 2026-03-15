@@ -1,6 +1,6 @@
 import { useStore } from '../store/useStore';
 import { deleteStory, revoiceStory, getVoicePreviewUrl, exportStoryToKindle, getThumbUrl, regenerateStoryImage } from '../lib/api';
-import { Play, Trash2, BookOpen, Loader2, Mic, X, Venus, Mars, Users, Pause, Send, ChevronLeft, ChevronRight, Image as ImageIcon, RefreshCw, Sparkles, Settings2, MessageCircle, Feather, Timer, Zap, Edit, Eye } from 'lucide-react';
+import { Play, Trash2, BookOpen, Loader2, Mic, X, Venus, Mars, Users, Pause, Send, ChevronLeft, ChevronRight, Image as ImageIcon, RefreshCw, Sparkles, Settings2, MessageCircle, Feather, Timer, Wand2, Edit, Eye } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useEffect, useState, useRef } from 'react';
 
@@ -239,74 +239,69 @@ export default function StoryArchive() {
                                     </div>
                                 )}
                                 <div className="flex-1 min-w-0">
-                                    <div className="flex-1 min-w-0">
-                                        {/* Title & Top Metadata */}
-                                        <div className="flex flex-col gap-1.5">
-                                            <h3 className="font-serif text-xl font-semibold text-text group-hover:text-primary transition-colors leading-tight cursor-pointer" onClick={() => story.status === 'done' && handlePlay(story.id)}>
-                                                {story.title}
-                                            </h3>
-                                            
-                                            {story.status === 'done' && (
-                                                <div className="flex gap-6 mb-3">
-                                                    <div className="flex flex-col">
-                                                        <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-slate-500 mb-0.5">Genre</span>
-                                                        <span className="text-xs text-emerald-500 font-bold">{story.genre || '—'}</span>
-                                                    </div>
-                                                    <div className="flex flex-col">
-                                                        <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-slate-500 mb-0.5">Stil</span>
-                                                        <span className="text-xs text-slate-300 font-medium whitespace-nowrap overflow-hidden text-ellipsis max-w-[100px]">
-                                                            {story.style.split(',').map(id => authorName(id.trim())).join(', ')}
-                                                        </span>
-                                                    </div>
-                                                    <div className="flex flex-col">
-                                                        <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-slate-500 mb-0.5">Stimme</span>
-                                                        <span className="text-xs text-slate-300 font-medium truncate max-w-[80px]">{voiceName(story.voice_key)}</span>
-                                                    </div>
+                                    {/* Title & Top Metadata */}
+                                    <div className="flex flex-col gap-1.5">
+                                        <h3 className="font-serif text-xl font-semibold text-text group-hover:text-primary transition-colors leading-tight cursor-pointer" onClick={() => story.status === 'done' && handlePlay(story.id)}>
+                                            {story.title}
+                                        </h3>
+                                        
+                                        {story.status === 'done' && (
+                                            <div className="flex gap-6 mb-1">
+                                                <div className="flex flex-col">
+                                                    <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-slate-500 mb-0.5">Genre</span>
+                                                    <span className="text-xs text-emerald-500 font-bold">{story.genre || '—'}</span>
                                                 </div>
-                                            )}
-                                        </div>
-
-                                        {story.status === 'generating' ? (
-                                            <div className="mt-3 space-y-2 w-full">
-                                                <div className="flex justify-between items-end">
-                                                    <div className="flex items-center gap-2 text-primary text-xs font-semibold animate-pulse">
-                                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                                        {story.progress || 'Wird erstellt...'}
-                                                    </div>
-                                                    <span className="text-[10px] font-bold text-primary bg-accent/20 px-1.5 py-0.5 rounded-md">
-                                                        {story.progress_pct || 0}%
+                                                <div className="flex flex-col">
+                                                    <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-slate-500 mb-0.5">Stil</span>
+                                                    <span className="text-xs text-slate-300 font-medium whitespace-nowrap overflow-hidden text-ellipsis max-w-[100px]">
+                                                        {story.style.split(',').map(id => authorName(id.trim())).join(', ')}
                                                     </span>
                                                 </div>
-                                                <div className="w-full h-1.5 bg-accent/20 rounded-full overflow-hidden border border-primary/20">
-                                                    <div
-                                                        className="h-full bg-primary transition-all duration-500 ease-out"
-                                                        style={{ width: `${story.progress_pct || 0}%` }}
-                                                    />
-                                                </div>
-                                            </div>
-                                        ) : story.status === 'error' ? (
-                                            <div className="mt-2 px-3 py-1.5 bg-red-950/20 text-red-500 rounded-lg text-xs font-medium w-fit border border-red-900/30 italic">
-                                                {story.progress || 'Fehler bei der Erstellung'}
-                                            </div>
-                                        ) : (
-                                            <div className="mt-4">
-                                                {/* The Idea / Prompt (Only in Library) */}
-                                                {archiveFilter !== 'public' && (
-                                                    <div className="bg-background/40 border border-slate-800/50 rounded-xl p-3 text-[11px] text-slate-500 italic mb-4">
-                                                        <span className="font-bold uppercase tracking-[0.15em] text-[8px] block mb-1 text-slate-600 not-italic">Die Idee</span>
-                                                        {story.prompt}
-                                                    </div>
-                                                )}
-
-                                                {/* Full Synopsis */}
-                                                <p className="text-sm text-text/90 font-serif leading-relaxed italic line-clamp-4">
-                                                    {story.description}
-                                                </p>
                                             </div>
                                         )}
                                     </div>
                                 </div>
                             </div>
+
+                            {/* Moved Synopsis / Generating out of the side-by-side flex to align with left image edge */}
+                            {story.status === 'generating' ? (
+                                <div className="mt-4 space-y-2 w-full">
+                                    <div className="flex justify-between items-end">
+                                        <div className="flex items-center gap-2 text-primary text-xs font-semibold animate-pulse">
+                                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                            {story.progress || 'Wird erstellt...'}
+                                        </div>
+                                        <span className="text-[10px] font-bold text-primary bg-accent/20 px-1.5 py-0.5 rounded-md">
+                                            {story.progress_pct || 0}%
+                                        </span>
+                                    </div>
+                                    <div className="w-full h-1.5 bg-accent/20 rounded-full overflow-hidden border border-primary/20">
+                                        <div
+                                            className="h-full bg-primary transition-all duration-500 ease-out"
+                                            style={{ width: `${story.progress_pct || 0}%` }}
+                                        />
+                                    </div>
+                                </div>
+                            ) : story.status === 'error' ? (
+                                <div className="mt-4 px-3 py-1.5 bg-red-950/20 text-red-500 rounded-lg text-xs font-medium w-fit border border-red-900/30 italic">
+                                    {story.progress || 'Fehler bei der Erstellung'}
+                                </div>
+                            ) : (
+                                <div className="mt-4">
+                                    {/* The Idea / Prompt (Only in Library) */}
+                                    {archiveFilter !== 'public' && (
+                                        <div className="bg-background/40 border border-slate-800/50 rounded-xl p-3 text-[11px] text-slate-500 italic mb-4">
+                                            <span className="font-bold uppercase tracking-[0.15em] text-[8px] block mb-1 text-slate-600 not-italic">Die Idee</span>
+                                            {story.prompt}
+                                        </div>
+                                    )}
+
+                                    {/* Full Synopsis */}
+                                    <p className="text-sm text-text/90 font-serif leading-relaxed italic line-clamp-4">
+                                        {story.description}
+                                    </p>
+                                </div>
+                            )}
 
                             {story.status === 'done' && (
                                 <div className="mt-6">
@@ -319,10 +314,10 @@ export default function StoryArchive() {
                                                 <BookOpen className="w-4 h-4 text-slate-600" />
                                                 {story.word_count && story.word_count > 0 ? `${story.word_count} Worte` : `${story.chapter_count} Kapitel`}
                                             </span>
-                                            {story.voice_key !== 'none' && story.duration_seconds && (
+                                            {story.voice_key !== 'none' && (
                                                 <span className="flex items-center gap-2">
                                                     <Timer className="w-4 h-4 text-slate-600" />
-                                                    {formatDuration(story.duration_seconds)} Min
+                                                    {story.duration_seconds ? formatDuration(story.duration_seconds) : '--:--'} Min ({voiceName(story.voice_key)})
                                                 </span>
                                             )}
                                             {archiveFilter === 'public' && story.user_email && (
@@ -333,24 +328,24 @@ export default function StoryArchive() {
                                             )}
                                         </div>
 
-                                        {/* Center: Listen Button */}
-                                        <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center gap-1">
+                                        {/* Center/Right Actions */}
+                                        <div className="flex items-center gap-3">
+                                            {/* Listen Button */}
                                             <button
                                                 onClick={() => handlePlay(story.id)}
-                                                className="w-14 h-14 bg-accent/20 border border-emerald-500/30 rounded-2xl flex items-center justify-center text-primary hover:bg-accent/30 hover:border-emerald-500/50 transition-all active:scale-90 shadow-lg shadow-primary/10"
+                                                className="w-12 h-12 bg-accent/20 border border-emerald-500/30 rounded-xl flex items-center justify-center text-primary hover:bg-accent/30 hover:border-emerald-500/50 transition-all active:scale-90 shadow-lg shadow-primary/10"
                                             >
-                                                <Play className="w-7 h-7 fill-current" />
+                                                <Play className="w-6 h-6 fill-current" />
                                             </button>
-                                            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Listen</span>
-                                        </div>
 
-                                        {/* Right: Toolbox */}
-                                        <button
-                                            onClick={() => setShowToolbox(story.id)}
-                                            className="w-14 h-14 bg-slate-900/80 border border-slate-700/50 rounded-2xl flex items-center justify-center text-slate-400 hover:text-primary hover:border-primary/50 transition-all active:scale-90"
-                                        >
-                                            <Zap className="w-7 h-7 fill-current" />
-                                        </button>
+                                            {/* Toolbox Button */}
+                                            <button
+                                                onClick={() => setShowToolbox(story.id)}
+                                                className="w-12 h-12 bg-slate-900/80 border border-slate-700/50 rounded-xl flex items-center justify-center text-slate-400 hover:text-primary hover:border-primary/50 transition-all active:scale-90"
+                                            >
+                                                <Wand2 className="w-6 h-6" />
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             )}
@@ -648,7 +643,7 @@ export default function StoryArchive() {
                         <div className="flex items-center justify-between mb-10">
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 bg-primary/20 text-primary rounded-xl flex items-center justify-center">
-                                    <Zap className="w-6 h-6 fill-current" />
+                                    <Wand2 className="w-6 h-6" />
                                 </div>
                                 <h2 className="text-sm font-mono uppercase tracking-[0.2em] text-slate-400 font-bold">
                                     Werkzeugkasten
