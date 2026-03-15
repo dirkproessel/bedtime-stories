@@ -307,12 +307,20 @@ export default function StoryArchive() {
                                                     <div className="flex items-center gap-3 text-[10px] text-slate-500 pt-1">
                                                         <span className="flex items-center gap-1">
                                                             <BookOpen className="w-3 h-3" />
-                                                            {story.word_count ? `${story.word_count} Worte` : `${story.chapter_count} Kapitel`}
+                                                            {story.word_count && story.word_count > 0 ? `${story.word_count} Worte` : `${story.chapter_count} Kapitel`}
                                                         </span>
-                                                        <span className="flex items-center gap-1 border-l border-slate-800 pl-3">
-                                                            <Timer className="w-3 h-3" />
-                                                            {formatDuration(story.duration_seconds)} Min
-                                                        </span>
+                                                        {story.voice_key !== 'none' && story.duration_seconds && (
+                                                            <span className="flex items-center gap-1 border-l border-slate-800 pl-3">
+                                                                <Timer className="w-3 h-3" />
+                                                                {formatDuration(story.duration_seconds)} Min
+                                                            </span>
+                                                        )}
+                                                        {archiveFilter === 'public' && story.user_email && (
+                                                            <span className="flex items-center gap-1 border-l border-slate-800 pl-3">
+                                                                <Users className="w-3 h-3" />
+                                                                {story.user_email}
+                                                            </span>
+                                                        )}
                                                         {archiveFilter !== 'public' && (
                                                             <span className="flex items-center gap-1 border-l border-slate-800 pl-3">
                                                                 <Calendar className="w-3 h-3" />
