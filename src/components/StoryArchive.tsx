@@ -193,21 +193,21 @@ export default function StoryArchive() {
     return (
         <div className="p-4 sm:p-6 max-w-2xl mx-auto">
             <div className="text-center mb-8">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[#2D5A4C] mb-4 shadow-lg shadow-[#2D5A4C]/15">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary mb-4 shadow-lg shadow-primary/20">
                     <Feather className="w-8 h-8 text-white" />
                 </div>
-                <h1 className="text-2xl font-bold text-[#1A1C1E] font-serif">
+                <h1 className="text-2xl font-bold text-text font-serif">
                     {archiveFilter === 'public' ? 'Entdecken' : 'Meine Bibliothek'}
                 </h1>
             </div>
 
             {stories.length === 0 ? (
                 <div className="text-center py-20 animate-in fade-in duration-700">
-                    <div className="w-24 h-24 mx-auto bg-[#F0FDF4] rounded-[2rem] flex items-center justify-center mb-6 shadow-sm">
-                        <Feather className="w-10 h-10 text-[#2D5A4C]/30" />
+                    <div className="w-24 h-24 mx-auto bg-surface rounded-[2rem] flex items-center justify-center mb-6 shadow-sm border border-slate-800">
+                        <Feather className="w-10 h-10 text-slate-700" />
                     </div>
-                    <h2 className="font-serif text-2xl text-[#1A1C1E] mb-2 font-semibold">Dein Archiv ist noch leer</h2>
-                    <p className="text-[#6B7280] text-sm max-w-[280px] mx-auto leading-relaxed">
+                    <h2 className="font-serif text-2xl text-text mb-2 font-semibold">Dein Archiv ist noch leer</h2>
+                    <p className="text-slate-500 text-sm max-w-[280px] mx-auto leading-relaxed">
                         Hier werden deine literarischen Werke sicher aufbewahrt. Erstelle deine erste Geschichte im Labor!
                     </p>
                     <button 
@@ -222,86 +222,86 @@ export default function StoryArchive() {
                     {stories.map(story => (
                         <div
                             key={story.id}
-                            className="bg-white border border-[#E2E8F0] rounded-[2.5rem] p-6 hover:shadow-xl hover:shadow-[#2D5A4C]/5 transition-all duration-300 group mb-6"
+                            className="bg-surface border border-slate-800 rounded-[2.5rem] p-6 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 group mb-6"
                         >
                             <div className="flex items-start gap-4">
                                 {story.image_url ? (
                                     <div
-                                        className="w-24 h-24 rounded-[2rem] overflow-hidden shrink-0 shadow-sm border border-slate-100 cursor-pointer"
+                                        className="w-24 h-24 rounded-[2rem] overflow-hidden shrink-0 shadow-sm border border-slate-700 cursor-pointer"
                                         onClick={() => handlePlay(story.id)}
                                     >
                                         <img src={getThumbUrl(story.id)} alt={story.title} className="w-full h-full object-cover grayscale-[20%]" />
                                     </div>
                                 ) : (
                                     <div
-                                        className="w-24 h-24 rounded-[2rem] bg-slate-50 flex items-center justify-center shrink-0 border border-slate-100 cursor-pointer"
+                                        className="w-24 h-24 rounded-[2rem] bg-slate-900 flex items-center justify-center shrink-0 border border-slate-800 cursor-pointer"
                                         onClick={() => handlePlay(story.id)}
                                     >
-                                        <Feather className="w-8 h-8 text-slate-200" />
+                                        <Feather className="w-8 h-8 text-slate-700" />
                                     </div>
                                 )}
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-start justify-between gap-3">
                                         <div className="flex-1 min-w-0 cursor-pointer" onClick={() => story.status === 'done' && handlePlay(story.id)}>
-                                            <h3 className="font-serif text-xl font-semibold text-[#1A1C1E] group-hover:text-[#2D5A4C] transition-colors leading-tight">
+                                            <h3 className="font-serif text-xl font-semibold text-text group-hover:text-primary transition-colors leading-tight">
                                                 {story.title}
                                             </h3>
 
                                             {story.status === 'generating' ? (
                                                 <div className="mt-3 space-y-2 w-full">
                                                     <div className="flex justify-between items-end">
-                                                        <div className="flex items-center gap-2 text-[#2D5A4C] text-xs font-semibold animate-pulse">
+                                                        <div className="flex items-center gap-2 text-primary text-xs font-semibold animate-pulse">
                                                             <Loader2 className="w-3.5 h-3.5 animate-spin" />
                                                             {story.progress || 'Wird erstellt...'}
                                                         </div>
-                                                        <span className="text-[10px] font-bold text-[#1A4336] bg-[#F0FDF4] px-1.5 py-0.5 rounded-md">
+                                                        <span className="text-[10px] font-bold text-primary bg-accent/20 px-1.5 py-0.5 rounded-md">
                                                             {story.progress_pct || 0}%
                                                         </span>
                                                     </div>
-                                                    <div className="w-full h-1.5 bg-[#F0FDF4] rounded-full overflow-hidden border border-[#D1FAE5]">
+                                                    <div className="w-full h-1.5 bg-accent/20 rounded-full overflow-hidden border border-primary/20">
                                                         <div
-                                                            className="h-full bg-[#2D5A4C] transition-all duration-500 ease-out"
+                                                            className="h-full bg-primary transition-all duration-500 ease-out"
                                                             style={{ width: `${story.progress_pct || 0}%` }}
                                                         />
                                                     </div>
                                                 </div>
                                             ) : story.status === 'error' ? (
-                                                <div className="mt-2 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-xs font-medium w-fit border border-red-100 italic">
+                                                <div className="mt-2 px-3 py-1.5 bg-red-950/20 text-red-500 rounded-lg text-xs font-medium w-fit border border-red-900/30 italic">
                                                     {story.progress || 'Fehler bei der Erstellung'}
                                                 </div>
                                             ) : (
                                                 <div className="mt-1 space-y-2">
                                                     {/* The Idea / Prompt */}
-                                                    <div className="bg-slate-50 border border-slate-100 rounded-lg p-2 text-[11px] text-slate-500 italic">
-                                                        <span className="font-bold uppercase tracking-wider text-[9px] block mb-0.5 text-slate-400 not-italic">Idee:</span>
+                                                    <div className="bg-background border border-slate-800 rounded-lg p-2 text-[11px] text-slate-500 italic">
+                                                        <span className="font-bold uppercase tracking-wider text-[9px] block mb-0.5 text-slate-600 not-italic">Idee:</span>
                                                         {story.prompt}
                                                     </div>
 
                                                     {/* Full Synopsis */}
-                                                    <p className="text-sm text-[#1A1C1E] font-serif leading-relaxed italic line-clamp-2 mt-2">{story.description}</p>
+                                                    <p className="text-sm text-text font-serif leading-relaxed italic line-clamp-2 mt-2">{story.description}</p>
 
                                                     {/* Detailed Metadata Grid */}
-                                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4 pt-4 border-t border-slate-50">
+                                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4 pt-4 border-t border-slate-800">
                                                         <div className="flex flex-col">
-                                                            <span className="status-label text-slate-400">Genre</span>
-                                                            <span className="text-[11px] text-[#2D5A4C] font-semibold">{story.genre || '—'}</span>
+                                                            <span className="status-label text-slate-500">Genre</span>
+                                                            <span className="text-[11px] text-primary font-semibold">{story.genre || '—'}</span>
                                                         </div>
                                                         <div className="flex flex-col">
-                                                            <span className="status-label text-slate-400">Stil</span>
-                                                            <span className="text-[11px] text-slate-600 font-medium truncate">{story.style.split(',')[0]}</span>
+                                                            <span className="status-label text-slate-500">Stil</span>
+                                                            <span className="text-[11px] text-slate-300 font-medium truncate">{story.style.split(',')[0]}</span>
                                                         </div>
                                                         <div className="flex flex-col">
-                                                            <span className="status-label text-slate-400">Stimme</span>
-                                                            <span className="text-[11px] text-slate-600 font-medium truncate">{voiceName(story.voice_key)}</span>
+                                                            <span className="status-label text-slate-500">Stimme</span>
+                                                            <span className="text-[11px] text-slate-300 font-medium truncate">{voiceName(story.voice_key)}</span>
                                                         </div>
                                                         <div className="flex flex-col">
-                                                            <span className="status-label text-slate-400">Dauer</span>
-                                                            <span className="text-[11px] text-slate-600 font-medium">{formatDuration(story.duration_seconds)}</span>
+                                                            <span className="status-label text-slate-500">Dauer</span>
+                                                            <span className="text-[11px] text-slate-300 font-medium">{formatDuration(story.duration_seconds)}</span>
                                                         </div>
                                                     </div>
 
                                                     {/* Date & Info Row */}
-                                                    <div className="flex items-center gap-3 text-[10px] text-slate-400 pt-1">
+                                                    <div className="flex items-center gap-3 text-[10px] text-slate-500 pt-1">
                                                         <span className="flex items-center gap-1">
                                                             <BookOpen className="w-3 h-3" />
                                                             {story.word_count ? `${story.word_count} Worte` : `${story.chapter_count} Kapitel`}
@@ -311,13 +311,13 @@ export default function StoryArchive() {
                                                             {formatDate(story.created_at)}
                                                         </span>
                                                         {user?.is_admin && archiveFilter === 'all' && (
-                                                            <span className="flex items-center gap-1 border-l border-slate-200 pl-3">
+                                                            <span className="flex items-center gap-1 border-l border-slate-800 pl-3">
                                                                 <Users className="w-3 h-3" />
                                                                 {story.user_id === user.id ? 'Von mir' : (story.user_email || story.user_id || 'Gast')}
                                                             </span>
                                                         )}
                                                         {story.is_public && (
-                                                            <span className="flex items-center gap-1 border-l border-slate-200 pl-3 text-emerald-600 font-bold">
+                                                            <span className="flex items-center gap-1 border-l border-slate-800 pl-3 text-primary font-bold">
                                                                 Öffentlich
                                                             </span>
                                                         )}
@@ -327,12 +327,12 @@ export default function StoryArchive() {
                                         </div>
                                     </div>
 
-                                    <div className="mt-4 pt-3 border-t border-slate-100">
+                                    <div className="mt-4 pt-3 border-t border-slate-800">
                                         <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:gap-4">
                                             <button
                                                 onClick={() => handlePlay(story.id)}
                                                 disabled={story.status !== 'done'}
-                                                className="flex items-center justify-center sm:justify-start gap-1.5 px-3 py-2 bg-[#F0FDF4] sm:bg-transparent rounded-lg sm:rounded-none text-xs font-semibold text-[#2D5A4C] hover:text-[#1A4336] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                                className="flex items-center justify-center sm:justify-start gap-1.5 px-3 py-2 bg-accent/20 sm:bg-transparent rounded-lg sm:rounded-none text-xs font-semibold text-primary hover:text-emerald-400 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                                             >
                                                 <Play className="w-3.5 h-3.5 fill-current" />
                                                 Anhören
@@ -351,8 +351,8 @@ export default function StoryArchive() {
                                                     disabled={isPublicLoading === story.id}
                                                     className={`hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
                                                         story.is_public 
-                                                        ? 'bg-emerald-50 text-emerald-600' 
-                                                        : 'bg-slate-50 text-slate-500 hover:bg-slate-100'
+                                                        ? 'bg-accent/20 text-primary' 
+                                                        : 'bg-slate-900 text-slate-500 hover:bg-slate-800'
                                                     }`}
                                                 >
                                                     {isPublicLoading === story.id ? (
@@ -371,7 +371,7 @@ export default function StoryArchive() {
                                                         setSelectedVoice(story.voice_key || 'seraphina');
                                                     }}
                                                     disabled={story.status !== 'done' && story.status !== 'error'}
-                                                    className="flex items-center justify-center sm:justify-start gap-1.5 px-3 py-2 bg-amber-50 sm:bg-transparent rounded-lg sm:rounded-none text-xs font-semibold text-amber-600 hover:text-amber-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                                    className="flex items-center justify-center sm:justify-start gap-1.5 px-3 py-2 bg-amber-950/20 sm:bg-transparent rounded-lg sm:rounded-none text-xs font-semibold text-amber-500 hover:text-amber-400 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                                                 >
                                                     <Mic className="w-3.5 h-3.5" />
                                                     Neu vertonen
@@ -381,7 +381,7 @@ export default function StoryArchive() {
                                                 <button
                                                     onClick={() => handleRegenerateImage(story.id)}
                                                     disabled={story.status !== 'done'}
-                                                    className="flex items-center justify-center sm:justify-start gap-1.5 px-3 py-2 bg-slate-50 sm:bg-transparent rounded-lg sm:rounded-none text-xs font-semibold text-slate-500 hover:text-slate-700 transition-colors disabled:opacity-30"
+                                                    className="flex items-center justify-center sm:justify-start gap-1.5 px-3 py-2 bg-slate-900 sm:bg-transparent rounded-lg sm:rounded-none text-xs font-semibold text-slate-400 hover:text-slate-200 transition-colors disabled:opacity-30"
                                                 >
                                                     <ImageIcon className="w-3.5 h-3.5" />
                                                     Bild
@@ -390,7 +390,7 @@ export default function StoryArchive() {
                                             <button
                                                 onClick={() => setShowKindleModal(story.id)}
                                                 disabled={(story.status !== 'done' && story.status !== 'error') || isExporting === story.id}
-                                                className="flex items-center justify-center sm:justify-start gap-1.5 px-3 py-2 bg-emerald-50 sm:bg-transparent rounded-lg sm:rounded-none text-xs font-semibold text-emerald-600 hover:text-emerald-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                                className="flex items-center justify-center sm:justify-start gap-1.5 px-3 py-2 bg-emerald-950/20 sm:bg-transparent rounded-lg sm:rounded-none text-xs font-semibold text-emerald-500 hover:text-emerald-400 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                                             >
                                                 {isExporting === story.id ? (
                                                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -406,7 +406,7 @@ export default function StoryArchive() {
                                                     setRemixInstructions('');
                                                 }}
                                                 disabled={story.status !== 'done' || isRemixing}
-                                                className="flex items-center justify-center sm:justify-start gap-1.5 px-3 py-2 bg-slate-50 sm:bg-transparent rounded-lg sm:rounded-none text-xs font-semibold text-slate-500 hover:text-slate-700 transition-colors disabled:opacity-30"
+                                                className="flex items-center justify-center sm:justify-start gap-1.5 px-3 py-2 bg-slate-900 sm:bg-transparent rounded-lg sm:rounded-none text-xs font-semibold text-slate-400 hover:text-slate-200 transition-colors disabled:opacity-30"
                                             >
                                                 <RefreshCw className={`w-3.5 h-3.5 ${isRemixing && showRemixModal === story.id ? 'animate-spin' : ''}`} />
                                                 Remix
@@ -422,10 +422,10 @@ export default function StoryArchive() {
                                                                 checked={story.is_on_spotify}
                                                                 onChange={(e) => handleSpotifyToggle(story.id, e.target.checked)}
                                                             />
-                                                            <div className={`w-8 h-4.5 rounded-full transition-colors ${story.is_on_spotify ? 'bg-green-500' : 'bg-slate-200'}`}></div>
+                                                            <div className={`w-8 h-4.5 rounded-full transition-colors ${story.is_on_spotify ? 'bg-primary' : 'bg-slate-700'}`}></div>
                                                             <div className={`absolute top-0.5 left-0.5 w-3.5 h-3.5 bg-white rounded-full transition-transform ${story.is_on_spotify ? 'translate-x-3.5' : ''}`}></div>
                                                         </div>
-                                                        <span className={`text-[10px] sm:text-xs font-semibold transition-colors ${story.is_on_spotify ? 'text-green-600' : 'text-slate-400'}`}>
+                                                        <span className={`text-[10px] sm:text-xs font-semibold transition-colors ${story.is_on_spotify ? 'text-primary' : 'text-slate-500'}`}>
                                                             Spotify
                                                         </span>
                                                     </label>
@@ -438,7 +438,7 @@ export default function StoryArchive() {
                                                     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
                                                 }}
                                                 disabled={story.status !== 'done'}
-                                                className="flex items-center justify-center sm:justify-start gap-1.5 px-3 py-2 bg-green-50 sm:bg-transparent rounded-lg sm:rounded-none text-xs font-semibold text-green-600 hover:text-green-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                                className="flex items-center justify-center sm:justify-start gap-1.5 px-3 py-2 bg-green-950/20 sm:bg-transparent rounded-lg sm:rounded-none text-xs font-semibold text-green-500 hover:text-green-400 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                                             >
                                                 <MessageCircle className="w-3.5 h-3.5" />
                                                 WhatsApp
@@ -446,7 +446,7 @@ export default function StoryArchive() {
                                             {story.user_id === user?.id && (
                                                 <button
                                                     onClick={() => handleDelete(story.id, story.title)}
-                                                    className="flex items-center justify-center sm:justify-start gap-1.5 px-3 py-2 bg-red-50 sm:bg-transparent rounded-lg sm:rounded-none text-xs font-semibold text-red-600 hover:text-red-700 transition-colors"
+                                                    className="flex items-center justify-center sm:justify-start gap-1.5 px-3 py-2 bg-red-950/20 sm:bg-transparent rounded-lg sm:rounded-none text-xs font-semibold text-red-500 hover:text-red-400 transition-colors"
                                                 >
                                                     <Trash2 className="w-3.5 h-3.5" />
                                                     Löschen
@@ -488,17 +488,17 @@ export default function StoryArchive() {
 
             {/* Re-voice Modal */}
             {revoiceStoryId && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
-                    <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+                    <div className="bg-surface rounded-3xl w-full max-w-md shadow-2xl border border-slate-800 overflow-hidden animate-in fade-in zoom-in duration-200">
                         <div className="p-6">
                             <div className="flex items-center justify-between mb-6">
-                                <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-                                    <Mic className="w-5 h-5 text-[#2D5A4C]" />
+                                <h2 className="text-xl font-bold text-text flex items-center gap-2">
+                                    <Mic className="w-5 h-5 text-primary" />
                                     Neu vertonen
                                 </h2>
                                 <button
                                     onClick={() => { setRevoiceStoryId(null); setConfirmRevoice(false); }}
-                                    className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100"
+                                    className="p-2 text-slate-500 hover:text-slate-300 rounded-full hover:bg-slate-800"
                                 >
                                     <X className="w-5 h-5" />
                                 </button>
@@ -506,27 +506,27 @@ export default function StoryArchive() {
 
                             {!confirmRevoice ? (
                                 <>
-                                    <p className="text-sm text-slate-500 mb-4">Wähle eine neue Stimme für diese Geschichte:</p>
+                                    <p className="text-sm text-slate-400 mb-4">Wähle eine neue Stimme für diese Geschichte:</p>
                                     <div className="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto mb-6 pr-1 custom-scrollbar">
                                         {voices.filter(v => v.key !== 'none').map(v => (
                                             <div
                                                 key={v.key}
                                                 className={`p-3 rounded-xl transition-all border-2 cursor-pointer flex items-center justify-between ${selectedVoice === v.key
-                                                    ? 'border-[#2D5A4C] bg-[#F0FDF4] shadow-sm'
-                                                    : 'border-slate-100 bg-white hover:border-slate-200'
+                                                    ? 'border-primary bg-accent/20 shadow-sm'
+                                                    : 'border-slate-800 bg-surface hover:border-slate-700'
                                                     }`}
                                                 onClick={() => setSelectedVoice(v.key)}
                                             >
                                                 <div className="flex items-center gap-3">
-                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${selectedVoice === v.key ? 'bg-[#D1FAE5] text-[#2D5A4C]' : 'bg-slate-50 text-slate-400'}`}>
+                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${selectedVoice === v.key ? 'bg-primary/20 text-primary' : 'bg-slate-900 text-slate-700'}`}>
                                                         {v.gender === 'female' ? <Venus className="w-4 h-4" /> :
                                                             v.gender === 'male' ? <Mars className="w-4 h-4" /> : <Users className="w-4 h-4" />}
                                                     </div>
                                                     <div>
-                                                        <div className={`text-xs font-bold ${selectedVoice === v.key ? 'text-[#1A4336]' : 'text-slate-700'}`}>
+                                                        <div className={`text-xs font-bold ${selectedVoice === v.key ? 'text-text' : 'text-slate-400'}`}>
                                                             {voiceName(v.key)}
                                                         </div>
-                                                        <div className={`text-[10px] ${selectedVoice === v.key ? 'text-[#2D5A4C]' : 'text-slate-400'}`}>
+                                                        <div className={`text-[10px] ${selectedVoice === v.key ? 'text-primary' : 'text-slate-600'}`}>
                                                             {voiceDesc(v.key)}
                                                         </div>
                                                     </div>
@@ -534,8 +534,8 @@ export default function StoryArchive() {
                                                 <button
                                                     onClick={(e) => { e.stopPropagation(); handlePreviewVoice(v.key); }}
                                                     className={`w-7 h-7 rounded-full flex items-center justify-center transition-all shrink-0 ${previewVoice === v.key
-                                                        ? 'bg-[#2D5A4C] text-white'
-                                                        : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
+                                                        ? 'bg-primary text-white'
+                                                        : 'bg-slate-800 text-slate-500 hover:bg-slate-700'
                                                         }`}
                                                 >
                                                     {previewVoice === v.key ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3 ml-0.5" />}
@@ -546,7 +546,7 @@ export default function StoryArchive() {
                                     <div className="flex gap-3">
                                         <button
                                             onClick={() => setRevoiceStoryId(null)}
-                                            className="flex-1 px-4 py-3 border-2 border-slate-100 rounded-xl font-bold text-slate-500 hover:bg-slate-50 transition-all"
+                                            className="flex-1 px-4 py-3 border-2 border-slate-800 rounded-xl font-bold text-slate-500 hover:bg-surface transition-all"
                                         >
                                             Abbrechen
                                         </button>
@@ -560,11 +560,11 @@ export default function StoryArchive() {
                                 </>
                             ) : (
                                 <div className="text-center py-4">
-                                    <div className="w-16 h-16 rounded-2xl bg-[#F0FDF4] text-[#2D5A4C] flex items-center justify-center mx-auto mb-4">
+                                    <div className="w-16 h-16 rounded-2xl bg-accent/20 text-primary flex items-center justify-center mx-auto mb-4">
                                         <Play className="w-8 h-8 fill-current" />
                                     </div>
-                                    <h3 className="text-lg font-bold text-slate-900 mb-2">Bereit?</h3>
-                                    <p className="text-sm text-slate-500 mb-8">
+                                    <h3 className="text-lg font-bold text-text mb-2">Bereit?</h3>
+                                    <p className="text-sm text-slate-400 mb-8">
                                         Die Geschichte wird mit der Stimme <strong>{voiceName(selectedVoice)}</strong> neu vertont. Das Bestehende Audio wird ersetzt.
                                     </p>
                                     <div className="flex flex-col gap-3">
@@ -592,7 +592,7 @@ export default function StoryArchive() {
                                         <button
                                             onClick={() => setConfirmRevoice(false)}
                                             disabled={revoicingId !== null}
-                                            className="w-full py-3 text-sm font-bold text-slate-400 hover:text-slate-600 transition-colors"
+                                            className="w-full py-3 text-sm font-bold text-slate-500 hover:text-slate-300 transition-colors"
                                         >
                                             Zurück zur Stimmenauswahl
                                         </button>
@@ -606,17 +606,17 @@ export default function StoryArchive() {
 
             {/* Kindle Export Modal */}
             {showKindleModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
-                    <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+                    <div className="bg-surface rounded-3xl w-full max-w-sm shadow-2xl border border-slate-800 overflow-hidden animate-in fade-in zoom-in duration-200">
                         <div className="p-6">
                             <div className="flex items-center justify-between mb-4">
-                                <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-                                    <Send className="w-5 h-5 text-emerald-600" />
+                                <h2 className="text-xl font-bold text-text flex items-center gap-2">
+                                    <Send className="w-5 h-5 text-primary" />
                                     Kindle Export
                                 </h2>
                                 <button
                                     onClick={() => setShowKindleModal(null)}
-                                    className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100"
+                                    className="p-2 text-slate-500 hover:text-slate-300 rounded-full hover:bg-slate-800"
                                 >
                                     <X className="w-5 h-5" />
                                 </button>
@@ -628,7 +628,7 @@ export default function StoryArchive() {
 
                             <div className="space-y-4">
                                 <div>
-                                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5 ml-1">
+                                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-1.5 ml-1">
                                         Kindle E-Mail Adresse
                                     </label>
                                     <input
@@ -636,14 +636,14 @@ export default function StoryArchive() {
                                         value={kindleEmail}
                                         onChange={(e) => setKindleEmail(e.target.value)}
                                         placeholder="beispiel@kindle.com"
-                                        className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-xl focus:border-emerald-500 focus:ring-0 transition-all text-sm font-medium"
+                                        className="w-full px-4 py-3 bg-surface border-2 border-slate-800 rounded-xl focus:border-primary focus:ring-0 transition-all text-sm font-medium text-text"
                                     />
                                 </div>
 
                                 <button
                                     onClick={() => showKindleModal && handleKindleExport(showKindleModal)}
                                     disabled={isExporting === showKindleModal}
-                                    className="w-full bg-emerald-600 text-white py-3 rounded-xl font-bold text-sm shadow-lg shadow-emerald-100 hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2"
+                                    className="w-full bg-primary text-white py-3 rounded-xl font-bold text-sm shadow-lg shadow-primary/20 hover:bg-emerald-600 transition-colors flex items-center justify-center gap-2"
                                 >
                                     {isExporting === showKindleModal ? (
                                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -653,8 +653,8 @@ export default function StoryArchive() {
                                     Jetzt senden
                                 </button>
 
-                                <p className="text-[10px] text-slate-400 text-center leading-relaxed">
-                                    Stelle sicher, dass <span className="text-slate-600 font-semibold">dirk.proessel@gmail.com</span> in deinem Amazon-Konto als zugelassener Absender eingetragen ist.
+                                <p className="text-[10px] text-slate-500 text-center leading-relaxed">
+                                    Stelle sicher, dass <span className="text-slate-300 font-semibold">dirk.proessel@gmail.com</span> in deinem Amazon-Konto als zugelassener Absender eingetragen ist.
                                 </p>
                             </div>
                         </div>
@@ -664,38 +664,38 @@ export default function StoryArchive() {
 
             {/* Remix Modal */}
             {showRemixModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
-                    <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+                    <div className="bg-surface rounded-3xl w-full max-w-md shadow-2xl border border-slate-800 overflow-hidden animate-in fade-in zoom-in duration-200">
                         <div className="p-6">
                             <div className="flex items-center justify-between mb-6">
-                                <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-                                    <RefreshCw className="w-5 h-5 text-[#2D5A4C]" />
+                                <h2 className="text-xl font-bold text-text flex items-center gap-2">
+                                    <RefreshCw className="w-5 h-5 text-primary" />
                                     Geschichte Remixen
                                 </h2>
                                 <button
                                     onClick={() => setShowRemixModal(null)}
-                                    className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100"
+                                    className="p-2 text-slate-500 hover:text-slate-300 rounded-full hover:bg-slate-800"
                                 >
                                     <X className="w-5 h-5" />
                                 </button>
                             </div>
-
-                            <div className="flex bg-[#F1F5F9] p-1 rounded-xl mb-6">
+                            
+                            <div className="flex bg-background p-1 rounded-xl mb-6 border border-slate-800">
                                 <button
                                     onClick={() => setRemixType('improvement')}
-                                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${remixType === 'improvement' ? 'bg-white text-[#2D5A4C] shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${remixType === 'improvement' ? 'bg-primary text-white shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}
                                 >
                                     Verbessern
                                 </button>
                                 <button
                                     onClick={() => setRemixType('sequel')}
-                                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${remixType === 'sequel' ? 'bg-white text-[#2D5A4C] shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${remixType === 'sequel' ? 'bg-primary text-white shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}
                                 >
                                     Fortsetzung (Sequel)
                                 </button>
                             </div>
 
-                            <p className="text-sm text-slate-500 mb-2">
+                            <p className="text-sm text-slate-400 mb-2">
                                 {remixType === 'improvement' 
                                     ? 'Was soll an der Geschichte verbessert werden?' 
                                     : 'Worüber soll die Fortsetzung handeln?'}
@@ -707,7 +707,7 @@ export default function StoryArchive() {
                                 placeholder={remixType === 'improvement' 
                                     ? 'z.B. "Mehr Dialoge" oder "Ein anderes Ende"' 
                                     : 'z.B. "Sie finden einen Schatz" oder "Ein neuer Charakter erscheint"'}
-                                className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-xl text-sm focus:outline-none focus:border-[#2D5A4C] transition-colors placeholder:text-slate-300 resize-none mb-6"
+                                className="w-full px-4 py-3 bg-background border-2 border-slate-800 rounded-xl text-sm focus:outline-none focus:border-primary transition-colors placeholder:text-slate-600 resize-none mb-6 text-text"
                                 rows={4}
                             />
 
@@ -727,7 +727,7 @@ export default function StoryArchive() {
                             <button
                                 onClick={() => showRemixModal && handleAdvancedRemix(showRemixModal)}
                                 disabled={isRemixing}
-                                className="w-full mt-3 bg-slate-100 hover:bg-slate-200 text-slate-600 py-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2"
+                                className="w-full mt-3 bg-slate-800 hover:bg-slate-700 text-slate-300 py-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2"
                             >
                                 <Settings2 className="w-3.5 h-3.5" />
                                 Mehr Optionen (Genre, Autor, Stimme ändern)

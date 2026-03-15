@@ -49,16 +49,16 @@ export default function ReaderLayer() {
     if (!isReaderOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-40 bg-white overflow-y-auto animate-in slide-in-from-bottom duration-300 ease-out">
-            <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-md px-4 py-3 flex items-center justify-between border-b border-slate-50">
-                <button onClick={handleClose} className="p-2 -ml-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-50 transition-colors">
+        <div className="fixed inset-0 z-40 bg-background overflow-y-auto animate-in slide-in-from-bottom duration-300 ease-out">
+            <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md px-4 py-3 flex items-center justify-between border-b border-slate-800">
+                <button onClick={handleClose} className="p-2 -ml-2 text-slate-500 hover:text-slate-300 rounded-full hover:bg-slate-800 transition-colors">
                     <X className="w-6 h-6" />
                 </button>
                 <div className="flex items-center gap-3">
                     {story?.voice_key !== 'none' && (
                         <button 
                             onClick={() => setAudioCompanion(true, readerStoryId)}
-                            className="flex items-center gap-2 px-4 py-1.5 bg-[#2D5A4C] text-white rounded-full text-xs font-bold shadow-md shadow-[#2D5A4C]/10 active:scale-95 transition-all"
+                            className="flex items-center gap-2 px-4 py-1.5 bg-primary text-white rounded-full text-xs font-bold shadow-md shadow-primary/20 active:scale-95 transition-all"
                         >
                             <Headphones className="w-3.5 h-3.5" />
                             Vorlesen
@@ -77,19 +77,19 @@ export default function ReaderLayer() {
                     <>
                         <div className="text-center mb-10">
                             {story.image_url ? (
-                                <div className="w-56 h-56 mx-auto rounded-3xl overflow-hidden mb-6 shadow-2xl border-4 border-white">
+                                <div className="w-56 h-56 mx-auto rounded-3xl overflow-hidden mb-6 shadow-2xl border-4 border-surface">
                                     <img src={getThumbUrl(story.id)} alt={story.title} className="w-full h-full object-cover" />
                                 </div>
                             ) : (
-                                <div className="w-32 h-32 mx-auto rounded-3xl bg-[#D1FAE5] flex items-center justify-center mb-6 shadow-xl shadow-[#2D5A4C]/10">
-                                    <Moon className="w-16 h-16 text-white/90" />
+                                <div className="w-32 h-32 mx-auto rounded-3xl bg-accent/20 flex items-center justify-center mb-6 shadow-xl shadow-primary/10">
+                                    <Moon className="w-16 h-16 text-primary/90" />
                                 </div>
                             )}
-                            <h1 className="text-3xl font-bold text-slate-900 font-serif leading-tight">{story.title}</h1>
+                            <h1 className="text-3xl font-bold text-text font-serif leading-tight">{story.title}</h1>
                             
                             <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 mt-4 text-[11px] font-medium text-slate-500 uppercase tracking-wider font-mono">
                                 {story.genre && (
-                                    <span className="text-[#2D5A4C] bg-[#F0FDF4] px-2 py-0.5 rounded text-[10px]">{story.genre}</span>
+                                    <span className="text-primary bg-accent/20 px-2 py-0.5 rounded text-[10px]">{story.genre}</span>
                                 )}
                                 <span className="flex items-center gap-1">
                                     <BookOpen className="w-3.5 h-3.5" />
@@ -98,29 +98,29 @@ export default function ReaderLayer() {
                             </div>
                         </div>
 
-                        <article className="prose prose-slate max-w-none">
+                        <article className="prose prose-slate prose-invert max-w-none">
                             <div className="space-y-6">
                                 {story.chapters && story.chapters.length > 0 ? (
                                     story.chapters.map((ch, idx) => (
                                         <div key={idx} className="space-y-4">
-                                            {ch.title && <h2 className="text-xl font-serif font-bold text-slate-800">{ch.title}</h2>}
-                                            <p className="text-lg text-slate-700 leading-relaxed font-serif whitespace-pre-line">
+                                            {ch.title && <h2 className="text-xl font-serif font-bold text-slate-200">{ch.title}</h2>}
+                                            <p className="text-lg text-slate-300 leading-relaxed font-serif whitespace-pre-line">
                                                 {ch.text}
                                             </p>
                                         </div>
                                     ))
                                 ) : (
-                                    <p className="text-lg text-slate-700 leading-relaxed font-serif italic text-center py-10 opacity-60">
+                                    <p className="text-lg text-slate-400 leading-relaxed font-serif italic text-center py-10 opacity-60">
                                         Kein Textinhalt verfügbar.
                                     </p>
                                 )}
                             </div>
                         </article>
 
-                        <div className="mt-16 pt-8 border-t border-slate-100 flex flex-wrap items-center justify-center gap-4">
+                        <div className="mt-16 pt-8 border-t border-slate-800 flex flex-wrap items-center justify-center gap-4">
                             <button 
                                 onClick={() => setShowKindleModal(true)}
-                                className="flex items-center gap-2 px-5 py-2.5 bg-slate-50 text-slate-600 rounded-2xl text-xs font-bold hover:bg-slate-100 transition-all border border-slate-100"
+                                className="flex items-center gap-2 px-5 py-2.5 bg-surface text-slate-300 rounded-2xl text-xs font-bold hover:bg-slate-800 transition-all border border-slate-700"
                             >
                                 <Send className="w-4 h-4" />
                                 Kindle
@@ -131,7 +131,7 @@ export default function ReaderLayer() {
                                     const text = `Schau mal: *${story.title}* 🌙✨\n\n${shareUrl}`;
                                     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
                                 }}
-                                className="flex items-center gap-2 px-5 py-2.5 bg-green-50 text-green-600 rounded-2xl text-xs font-bold hover:bg-green-100 transition-all border border-green-100"
+                                className="flex items-center gap-2 px-5 py-2.5 bg-green-950/20 text-green-500 rounded-2xl text-xs font-bold hover:bg-green-950/30 transition-all border border-green-900/30"
                             >
                                 <MessageCircle className="w-4 h-4" />
                                 WhatsApp
@@ -143,23 +143,23 @@ export default function ReaderLayer() {
 
             {/* Kindle Modal (Simplified) */}
             {showKindleModal && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-                    <div className="bg-white rounded-[2.5rem] w-full max-w-sm p-8 shadow-2xl animate-in zoom-in duration-200">
-                        <h2 className="text-2xl font-bold text-slate-900 mb-2 font-serif">An Kindle senden</h2>
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+                    <div className="bg-surface rounded-[2.5rem] w-full max-w-sm p-8 shadow-2xl border border-slate-800 animate-in zoom-in duration-200">
+                        <h2 className="text-2xl font-bold text-text mb-2 font-serif">An Kindle senden</h2>
                         <p className="text-sm text-slate-500 mb-6 font-mono uppercase tracking-wider text-[10px]">E-Book Export</p>
                         <input 
                             type="email"
                             value={kindleEmail}
                             onChange={(e) => setKindleEmail(e.target.value)}
-                            className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl mb-6 focus:border-[#2D5A4C] transition-all outline-none"
+                            className="w-full px-5 py-4 bg-background border-2 border-slate-800 rounded-2xl mb-6 focus:border-primary transition-all outline-none text-text"
                             placeholder="deine.adresse@kindle.com"
                         />
                         <div className="flex gap-3">
-                            <button onClick={() => setShowKindleModal(false)} className="flex-1 py-4 text-slate-400 font-bold hover:text-slate-600 transition-colors">Abbrechen</button>
+                            <button onClick={() => setShowKindleModal(false)} className="flex-1 py-4 text-slate-500 font-bold hover:text-slate-300 transition-colors">Abbrechen</button>
                             <button 
                                 onClick={handleKindleExport}
                                 disabled={isExporting}
-                                className="flex-[2] bg-[#2D5A4C] text-white py-4 rounded-2xl font-bold shadow-lg shadow-[#2D5A4C]/20 flex items-center justify-center gap-2 active:scale-95 transition-all"
+                                className="flex-[2] bg-primary text-white py-4 rounded-2xl font-bold shadow-lg shadow-primary/20 flex items-center justify-center gap-2 active:scale-95 transition-all"
                             >
                                 {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                                 Senden

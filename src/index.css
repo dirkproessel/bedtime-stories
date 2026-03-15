@@ -1,18 +1,19 @@
 @import "tailwindcss";
 
-@theme {
-  --color-background: #F8F9FA;
-  --color-surface: #FFFFFF;
-  --color-primary: #2D5A4C;
-  --color-primary-focus: #1E3D33;
-  --color-text: #1A1C1E;
-  --color-text-muted: #6B7280;
-  --color-accent: #F0FDF4;
+@theme inline {
+  --color-background: #0B1215;         /* Deep Midnight Teal */
+  --color-surface: #172023;            /* Dark Slate */
+  --color-primary: #22C55E;            /* Emerald Green */
+  --color-primary-focus: #16A34A;
+  --color-text: #E2E8F0;               /* Off-white */
+  --color-text-muted: #94A3B8;         /* Cool Grey */
+  --color-accent: #064E3B;             /* Dark Forest */
   
   --font-inter: "Inter", system-ui, sans-serif;
   --font-serif: "Lora", serif;
   --font-mono: "JetBrains Mono", monospace;
 }
+
 
 @layer base {
   body {
@@ -57,10 +58,10 @@
   }
 
   .glass-panel {
-    background: rgba(255, 255, 255, 0.85);
+    background: rgba(23, 32, 35, 0.85);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.05);
   }
 
   .status-label {

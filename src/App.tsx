@@ -133,7 +133,7 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] flex flex-col w-full relative overflow-hidden">
+    <div className="min-h-screen bg-background flex flex-col w-full relative overflow-hidden">
       {/* Reader Layer (z-40) */}
       <ReaderLayer />
 
@@ -150,7 +150,7 @@ function App() {
       <AudioCompanion />
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t border-slate-100 safe-area-bottom z-50">
+      <nav className="fixed bottom-0 left-0 right-0 bg-surface/80 backdrop-blur-xl border-t border-slate-800 safe-area-bottom z-50">
         <div className="max-w-2xl mx-auto flex items-center justify-around py-2">
           {NAV_ITEMS.map(({ key, label, icon: Icon }) => {
             const isProfile = key === 'profile';
@@ -161,8 +161,8 @@ function App() {
                 key={key}
                 onClick={() => setActiveView(key)}
                 className={`flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all relative ${activeView === key
-                  ? 'text-[#2D5A4C]'
-                  : 'text-slate-400 hover:text-slate-600'
+                  ? 'text-primary'
+                  : 'text-slate-500 hover:text-slate-300'
                   }`}
               >
                 <Icon className={`w-5 h-5 ${activeView === key ? 'stroke-[2.5]' : 'stroke-[1.5]'}`} />
@@ -170,10 +170,10 @@ function App() {
                   {isGuest ? 'Anmelden' : label}
                 </span>
                 {isGuest && (
-                  <div className="absolute top-1 right-2 w-2 h-2 rounded-full bg-amber-400 border-2 border-white shadow-sm" />
+                  <div className="absolute top-1 right-2 w-2 h-2 rounded-full bg-amber-400 border-2 border-surface shadow-sm" />
                 )}
                 {activeView === key && !isGuest && (
-                  <div className="w-1 h-1 rounded-full bg-[#2D5A4C]" />
+                  <div className="w-1 h-1 rounded-full bg-primary" />
                 )}
               </button>
             );

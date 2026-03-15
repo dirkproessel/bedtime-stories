@@ -226,31 +226,31 @@ export default function StoryCreator() {
     return (
         <div className="p-4 sm:p-6 max-w-2xl mx-auto">
             <div className="text-center mb-8">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[#2D5A4C] mb-4 shadow-lg shadow-[#2D5A4C]/15">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary mb-4 shadow-lg shadow-primary/15">
                     <Feather className="w-8 h-8 text-white" />
                 </div>
-                <h1 className="text-2xl font-bold text-[#1A1C1E]">Kurzgeschichten-Labor</h1>
-                <p className="text-[#6B7280] mt-1 font-mono text-[11px] uppercase tracking-wider">Literatur auf Knopfdruck, exakt nach deinem Maß</p>
+                <h1 className="text-2xl font-bold text-text">Kurzgeschichten-Labor</h1>
+                <p className="text-text-muted mt-1 font-mono text-[11px] uppercase tracking-wider">Literatur auf Knopfdruck, exakt nach deinem Maß</p>
             </div>
 
             {generatorParentId && (
-                <div className="mb-8 p-4 bg-[#F0FDF4] border-2 border-[#D1FAE5] rounded-2xl animate-in slide-in-from-top-4 duration-300">
-                    <div className="flex items-center justify-between mb-3 text-[#1A4336]">
+                <div className="mb-8 p-4 bg-accent/20 border-2 border-primary/20 rounded-2xl animate-in slide-in-from-top-4 duration-300">
+                    <div className="flex items-center justify-between mb-3 text-primary">
                         <div className="flex items-center gap-2 font-bold text-sm">
                             <RefreshCw className="w-4 h-4" />
                             {generatorRemixType === 'sequel' ? 'Remix: Fortsetzung schreiben' : 'Remix: Geschichte verbessern'}
                         </div>
                         <button 
                             onClick={() => setGeneratorRemix(null, null, null)}
-                            className="text-[10px] uppercase font-bold tracking-wider px-2 py-1 bg-white rounded-lg border border-[#D1FAE5] hover:border-[#10B981] transition-colors"
+                            className="text-[10px] uppercase font-bold tracking-wider px-2 py-1 bg-surface rounded-lg border border-slate-700 hover:border-primary transition-colors"
                         >
                             Abbrechen
                         </button>
                     </div>
                     {generatorContext && (
-                        <div className="bg-white/60 p-3 rounded-xl border border-[#D1FAE5]/50">
-                            <h4 className="font-bold text-xs text-slate-700 truncate">{generatorContext.title}</h4>
-                            <p className="text-[10px] text-slate-500 line-clamp-2 mt-0.5 leading-relaxed">{generatorContext.synopsis}</p>
+                        <div className="bg-surface/60 p-3 rounded-xl border border-primary/10">
+                            <h4 className="font-bold text-xs text-slate-200 truncate">{generatorContext.title}</h4>
+                            <p className="text-[10px] text-slate-400 line-clamp-2 mt-0.5 leading-relaxed">{generatorContext.synopsis}</p>
                         </div>
                     )}
                 </div>
@@ -260,7 +260,7 @@ export default function StoryCreator() {
                 {/* Description / Idea */}
                 <div>
                     <div className="flex items-center justify-between mb-2">
-                        <h2 className="text-sm font-semibold text-slate-700 font-serif">
+                        <h2 className="text-sm font-semibold text-slate-300 font-serif">
                             Beschreibe deine Idee
                         </h2>
                         <button
@@ -278,13 +278,13 @@ export default function StoryCreator() {
                             onChange={(e) => setFreeText(e.target.value)}
                             placeholder="z.B. Ein Toaster gewinnt das Bewusstsein und versucht, die Welt zu verstehen. Er begegnet einer alten Kaffeemaschine mit existentialistischen Krisen..."
                             rows={4}
-                            className="w-full px-4 py-3 bg-white border-2 border-slate-100 rounded-xl text-sm focus:outline-none focus:border-[#2D5A4C] transition-colors placeholder:text-slate-300 resize-none pr-12 font-serif"
+                            className="w-full px-4 py-3 bg-surface border-2 border-slate-800 rounded-xl text-sm focus:outline-none focus:border-primary transition-colors placeholder:text-slate-600 resize-none pr-12 font-serif text-text"
                         />
                         <button
                             onClick={isListening ? handleStopListening : handleStartListening}
                             className={`absolute right-3 top-3 p-2 rounded-lg transition-all ${isListening
-                                ? 'bg-red-50 text-red-600'
-                                : 'text-slate-400 hover:text-[#2D5A4C]'
+                                ? 'bg-red-950 text-red-500'
+                                : 'text-slate-500 hover:text-primary'
                                 }`}
                             title={isListening ? 'Aufnahme stoppen' : 'Spracheingabe'}
                         >
@@ -296,7 +296,7 @@ export default function StoryCreator() {
                 {/* Genre */}
                 <div>
                     <div className="mb-2">
-                        <h2 className="text-sm font-semibold text-slate-700 font-serif">Genre <span className="font-sans font-normal text-slate-400">(bestimmt Ton & Struktur)</span></h2>
+                        <h2 className="text-sm font-semibold text-slate-300 font-serif">Genre <span className="font-sans font-normal text-slate-500">(bestimmt Ton & Struktur)</span></h2>
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2">
                         {(showAllGenres ? sortedGenres : sortedGenres.slice(0, BEST_OF_COUNT)).map(g => (
@@ -304,19 +304,19 @@ export default function StoryCreator() {
                                 key={g.value}
                                 onClick={() => setGenre(g.value)}
                                 className={`p-3 rounded-xl text-left transition-all border-2 ${genre === g.value
-                                    ? 'border-[#2D5A4C] bg-[#F0FDF4] shadow-sm'
-                                    : 'border-[#F1F5F9] bg-white text-[#6B7280] hover:border-[#E2E8F0]'
+                                    ? 'border-primary bg-accent/20 shadow-sm'
+                                    : 'border-slate-800 bg-surface text-slate-400 hover:border-slate-700'
                                     }`}
                             >
-                                <h4 className={`text-sm font-bold ${genre === g.value ? 'text-[#1A4336]' : 'text-slate-700'}`}>{g.label}</h4>
-                                <div className={`text-xs ${genre === g.value ? 'text-[#2D5A4C]' : 'text-slate-400'}`}>{g.desc}</div>
+                                <h4 className={`text-sm font-bold ${genre === g.value ? 'text-primary' : 'text-slate-300'}`}>{g.label}</h4>
+                                <div className={`text-xs ${genre === g.value ? 'text-primary/70' : 'text-slate-500'}`}>{g.desc}</div>
                             </button>
                         ))}
                     </div>
                     {!showAllGenres && sortedGenres.length > BEST_OF_COUNT && (
                         <button
                             onClick={() => setShowAllGenres(true)}
-                            className="mt-2 w-full py-2 rounded-xl border-2 border-dashed border-slate-200 text-xs text-slate-400 hover:border-slate-300 hover:text-slate-500 transition-all flex items-center justify-center gap-1"
+                            className="mt-2 w-full py-2 rounded-xl border-2 border-dashed border-slate-800 text-xs text-slate-500 hover:border-slate-700 hover:text-slate-400 transition-all flex items-center justify-center gap-1"
                         >
                             <ChevronDown className="w-3 h-3" />
                             {sortedGenres.length - BEST_OF_COUNT} weitere Genres anzeigen
@@ -327,8 +327,8 @@ export default function StoryCreator() {
                 {/* Style */}
                 <div>
                     <div className="mb-2">
-                        <h2 className="text-sm font-semibold text-slate-700 font-serif">
-                            Autoren <span className="font-sans font-normal text-slate-400">(max. 3 auswählen, Stil wird gemixt)</span>
+                        <h2 className="text-sm font-semibold text-slate-300 font-serif">
+                            Autoren <span className="font-sans font-normal text-slate-500">(max. 3 auswählen, Stil wird gemixt)</span>
                         </h2>
                     </div>
 
@@ -346,12 +346,12 @@ export default function StoryCreator() {
                                         }`}
                                 >
                                     {isSelected && (
-                                        <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-[#2D5A4C] text-white flex items-center justify-center text-[10px] font-bold">
+                                        <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-primary text-white flex items-center justify-center text-[10px] font-bold">
                                             {index + 1}
                                         </div>
                                     )}
-                                    <h4 className={`text-sm font-bold pr-6 ${isSelected ? 'text-[#1A4336]' : 'text-slate-700'}`}>{s.name}</h4>
-                                    <div className={`text-xs ${isSelected ? 'text-[#2D5A4C]' : 'text-slate-400'}`}>{s.desc}</div>
+                                    <h4 className={`text-sm font-bold pr-6 ${isSelected ? 'text-primary' : 'text-slate-300'}`}>{s.name}</h4>
+                                    <div className={`text-xs ${isSelected ? 'text-primary/70' : 'text-slate-500'}`}>{s.desc}</div>
                                 </button>
                             );
                         })}
@@ -359,7 +359,7 @@ export default function StoryCreator() {
                     {!showAllAuthors && sortedAuthors.length > BEST_OF_COUNT && (
                         <button
                             onClick={() => setShowAllAuthors(true)}
-                            className="mt-2 w-full py-2 rounded-xl border-2 border-dashed border-slate-200 text-xs text-slate-400 hover:border-slate-300 hover:text-slate-500 transition-all flex items-center justify-center gap-1"
+                            className="mt-2 w-full py-2 rounded-xl border-2 border-dashed border-slate-800 text-xs text-slate-500 hover:border-slate-700 hover:text-slate-400 transition-all flex items-center justify-center gap-1"
                         >
                             <ChevronDown className="w-3 h-3" />
                             {sortedAuthors.length - BEST_OF_COUNT} weitere Autoren anzeigen
@@ -369,19 +369,19 @@ export default function StoryCreator() {
 
                 {/* Length */}
                 <div>
-                    <h2 className="text-sm font-semibold text-slate-700 mb-2 font-serif">Länge</h2>
+                    <h2 className="text-sm font-semibold text-slate-300 mb-2 font-serif">Länge</h2>
                     <div className="grid grid-cols-3 gap-2">
                         {LENGTHS.map(l => (
                             <button
                                 key={l.value}
                                 onClick={() => setTargetMinutes(l.value)}
                                 className={`p-3 rounded-xl text-center transition-all border-2 ${targetMinutes === l.value
-                                    ? 'border-[#2D5A4C] bg-[#F0FDF4]'
-                                    : 'border-slate-100 bg-white hover:border-slate-200'
+                                    ? 'border-primary bg-accent/20'
+                                    : 'border-slate-800 bg-surface hover:border-slate-700'
                                     }`}
                             >
-                                <div className={`text-sm font-bold ${targetMinutes === l.value ? 'text-[#1A4336]' : 'text-slate-700'}`}>{l.label}</div>
-                                <div className={`text-xs ${targetMinutes === l.value ? 'text-[#2D5A4C]' : 'text-slate-400'}`}>{l.sub}</div>
+                                <div className={`text-sm font-bold ${targetMinutes === l.value ? 'text-primary' : 'text-slate-300'}`}>{l.label}</div>
+                                <div className={`text-xs ${targetMinutes === l.value ? 'text-primary/70' : 'text-slate-500'}`}>{l.sub}</div>
                             </button>
                         ))}
                     </div>
@@ -390,10 +390,10 @@ export default function StoryCreator() {
 
             {/* Voice Selection */}
             <div className="mt-6">
-                <h2 className="text-sm font-semibold text-slate-700 mb-2 font-serif">Stimme</h2>
+                <h2 className="text-sm font-semibold text-slate-300 mb-2 font-serif">Stimme</h2>
 
                 {/* --- Standard voices (always visible, pinned) --- */}
-                <p className="text-xs font-medium text-slate-400 mb-1.5 tracking-wide uppercase">Standardstimmen</p>
+                <p className="text-xs font-medium text-slate-500 mb-1.5 tracking-wide uppercase">Standardstimmen</p>
                 <div className="grid grid-cols-2 gap-2 mb-4">
                     {voices
                         .filter(v => STANDARD_VOICE_KEYS.includes(v.key))
@@ -402,8 +402,8 @@ export default function StoryCreator() {
                         <div
                             key={v.key}
                             className={`p-3 rounded-xl transition-all border-2 cursor-pointer ${voiceKey === v.key
-                                ? 'border-[#2D5A4C] bg-[#F0FDF4] shadow-sm'
-                                : 'border-slate-100 bg-white hover:border-slate-200'
+                                ? 'border-primary bg-accent/20 shadow-sm'
+                                : 'border-slate-800 bg-surface hover:border-slate-700'
                                 }`}
                             onClick={() => setVoiceKey(v.key)}
                         >
@@ -441,7 +441,7 @@ export default function StoryCreator() {
                 </div>
 
                 {/* --- Premium voices (popularity-sorted, with expansion) --- */}
-                <p className="text-xs font-medium text-slate-400 mb-1.5 tracking-wide uppercase">Premiumstimmen</p>
+                <p className="text-xs font-medium text-slate-500 mb-1.5 tracking-wide uppercase">Premiumstimmen</p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {(() => {
                         const aiVoices = sortedVoices.filter(v => !isStandardVoice(v.key));
@@ -449,24 +449,24 @@ export default function StoryCreator() {
                             <div
                                 key={v.key}
                                 className={`p-3 rounded-xl transition-all border-2 cursor-pointer ${voiceKey === v.key
-                                    ? 'border-[#2D5A4C] bg-[#F0FDF4] shadow-sm'
-                                    : 'border-slate-100 bg-white hover:border-slate-200'
+                                    ? 'border-primary bg-accent/20 shadow-sm'
+                                    : 'border-slate-800 bg-surface hover:border-slate-700'
                                     }`}
                                 onClick={() => setVoiceKey(v.key)}
                             >
                                 <div className="flex items-center gap-3">
                                     {/* Icon Left */}
-                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${voiceKey === v.key ? 'bg-[#D1FAE5] text-[#2D5A4C]' : 'bg-slate-50 text-slate-400'}`}>
+                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${voiceKey === v.key ? 'bg-primary/20 text-primary' : 'bg-slate-900 text-slate-600'}`}>
                                         {v.gender === 'female' ? <Venus className="w-5 h-5" /> :
                                             v.gender === 'male' ? <Mars className="w-5 h-5" /> : <Users className="w-5 h-5" />}
                                     </div>
 
                                     {/* Name & Charakter */}
                                     <div className="flex-1 min-w-0 text-left">
-                                        <div className={`text-sm font-bold truncate ${voiceKey === v.key ? 'text-[#1A4336]' : 'text-slate-700'}`}>
+                                        <div className={`text-sm font-bold truncate ${voiceKey === v.key ? 'text-primary' : 'text-slate-300'}`}>
                                             {voiceName(v.key)}
                                         </div>
-                                        <div className={`text-xs ${voiceKey === v.key ? 'text-[#2D5A4C]' : 'text-slate-400'}`}>
+                                        <div className={`text-xs ${voiceKey === v.key ? 'text-primary/70' : 'text-slate-500'}`}>
                                             {voiceDesc(v.key)}
                                         </div>
                                     </div>
@@ -475,8 +475,8 @@ export default function StoryCreator() {
                                     <button
                                         onClick={(e) => { e.stopPropagation(); handlePreviewVoice(v.key); }}
                                         className={`w-8 h-8 rounded-full flex items-center justify-center transition-all shrink-0 ${previewVoice === v.key
-                                            ? 'bg-[#2D5A4C] text-white'
-                                            : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
+                                            ? 'bg-primary text-white'
+                                            : 'bg-slate-800 text-slate-500 hover:bg-slate-700'
                                             }`}
                                     >
                                         {previewVoice === v.key ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 ml-0.5" />}
@@ -489,7 +489,7 @@ export default function StoryCreator() {
                 {!showAllVoices && sortedVoices.filter(v => !isStandardVoice(v.key)).length > BEST_OF_COUNT && (
                     <button
                         onClick={() => setShowAllVoices(true)}
-                        className="mt-2 w-full py-2 rounded-xl border-2 border-dashed border-slate-200 text-xs text-slate-400 hover:border-slate-300 hover:text-slate-500 transition-all flex items-center justify-center gap-1"
+                        className="mt-2 w-full py-2 rounded-xl border-2 border-dashed border-slate-800 text-xs text-slate-500 hover:border-slate-700 hover:text-slate-400 transition-all flex items-center justify-center gap-1"
                     >
                         <ChevronDown className="w-3 h-3" />
                         {sortedVoices.filter(v => !isStandardVoice(v.key)).length - BEST_OF_COUNT} weitere Stimmen anzeigen
@@ -499,7 +499,7 @@ export default function StoryCreator() {
             </div>
 
             {/* Sticky Generate Button Container */}
-            <div className="fixed bottom-[72px] left-0 right-0 p-4 bg-gradient-to-t from-slate-50/90 to-transparent backdrop-blur-sm z-40 max-w-2xl mx-auto pointer-events-none">
+            <div className="fixed bottom-[72px] left-0 right-0 p-4 bg-gradient-to-t from-background/90 to-transparent backdrop-blur-sm z-40 max-w-2xl mx-auto pointer-events-none">
                 <div className="pointer-events-auto">
                     <button
                         onClick={handleGenerate}
