@@ -326,7 +326,7 @@ async def generate_story_hook(genre: str, author_id: str) -> str:
     char_str = " und ".join(selected_persons)
     selected_setting = random.choice(HOOK_SETTINGS)
         
-    prompt = f"""Du bist ein kreativer Ideengeber für Geschichten.
+    prompt = f"""Du bist ein Ideengeber für Kurzgeschichten.
 Basierend auf der Logik, den Charakteren und dem Setting sollst du eine kurze, prägnante Inspiration liefern.
 
 Kontext:
@@ -335,9 +335,10 @@ Kontext:
 - Logik [{selected_hook['typ']}]: {selected_hook['logik']}
 
 Regeln:
-- Antworte ausschließlich mit 1-2 kurzen Sätzen.
-- Max. 30 Wörter, um sicherzustellen, dass kein Satz abgebrochen wird.
+- Antworte UNBEDINGT mit GENAU 1-2 kurzen Sätzen.
+- Max. 50 Wörter, um sicherzustellen, dass kein Satz abgebrochen wird.
 - Fokus: Die nackten Fakten des Szenarios.
+- Sprachstil: Nüchtern und direkt. Keine Adjektive, keine Metaphern, keine künstliche Spannung.
 """
     try:
         if not rate_limiter.has_daily_quota("text"):
@@ -349,13 +350,20 @@ Regeln:
             model=settings.GEMINI_TEXT_MODEL,
             contents=prompt,
             config={
-                "temperature": 0.9,
+                "temperature": 0.7,
                 "max_output_tokens": 1000,
-                "top_k": 20,
             }
         )
         rate_limiter.increment_daily_quota("text")
         hook_text = response.text.strip().strip('"').strip("'")
+        
+        # Cleanup: Ensure we don't have truncated sentences at the end
+        if not hook_text.endswith(('.', '!', '?')):
+            # Find the last punctuation mark and cut there
+            last_punc = max(hook_text.rfind('.'), hook_text.rfind('!'), hook_text.rfind('?'))
+            if last_punc != -1:
+                hook_text = hook_text[:last_punc+1]
+        
         logger.info(f"GEN HOOK: '{hook_text}' (len: {len(hook_text)})")
         return hook_text
     except Exception as e:
