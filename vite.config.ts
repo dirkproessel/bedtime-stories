@@ -10,10 +10,10 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: 'auto',
-      includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'pwa-192x192.svg', 'pwa-512x512.svg'],
+      includeAssets: ['apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png'],
       manifest: {
-        name: 'Kurzgeschichten-Labor',
-        short_name: 'Labor',
+        name: 'storyja',
+        short_name: 'storyja',
         description: 'Anspruchsvolle Kurzgeschichten für Kinder und Erwachsene',
         theme_color: '#2D5A4C',
         background_color: '#020617',
@@ -21,15 +21,15 @@ export default defineConfig({
         start_url: '/',
         icons: [
           {
-            src: 'pwa-192x192.svg',
+            src: 'pwa-192x192.png',
             sizes: '192x192',
-            type: 'image/svg+xml',
+            type: 'image/png',
             purpose: 'any maskable'
           },
           {
-            src: 'pwa-512x512.svg',
+            src: 'pwa-512x512.png',
             sizes: '512x512',
-            type: 'image/svg+xml',
+            type: 'image/png',
             purpose: 'any maskable'
           }
         ]
