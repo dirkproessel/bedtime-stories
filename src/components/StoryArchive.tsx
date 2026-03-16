@@ -3,6 +3,7 @@ import { deleteStory, revoiceStory, getVoicePreviewUrl, exportStoryToKindle, get
 import { Play, Trash2, BookOpen, Loader2, Mic, X, Venus, Mars, Users, Pause, Send, ChevronLeft, ChevronRight, Image as ImageIcon, RefreshCw, Sparkles, Settings2, MessageCircle, Timer, Wand2, Edit, Feather, User as UserIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useEffect, useState, useRef } from 'react';
+import ConfirmModal from './ConfirmModal';
 
 
 import { voiceName, voiceDesc } from '../lib/voices';
@@ -33,6 +34,7 @@ export default function StoryArchive() {
     const [isRemixing, setIsRemixing] = useState(false);
     const [showToolbox, setShowToolbox] = useState<string | null>(null);
     const [expandedStories, setExpandedStories] = useState<Set<string>>(new Set());
+    const [deleteConfirm, setDeleteConfirm] = useState<{ id: string, title: string } | null>(null);
     const audioRef = useRef<HTMLAudioElement>(null);
 
     const activeToolboxStory = showToolbox ? stories.find(s => s.id === showToolbox) : null;
@@ -40,9 +42,9 @@ export default function StoryArchive() {
     // Toolbox CSS Classes
     const sectionClass = "mb-6";
     const sectionTitleClass = "text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-slate-600 mb-3 ml-1";
-    const listClass = "flex flex-col gap-2";
-    const itemClass = "flex items-center gap-3 p-3 bg-slate-900/60 border border-slate-800/80 rounded-2xl transition-all active:scale-[0.98] hover:bg-primary/10 hover:border-primary/30 disabled:opacity-30 disabled:pointer-events-none w-full group/item";
-    const itemLabelClass = "text-[13px] font-medium text-slate-300 group-hover/item:text-primary transition-colors";
+    const listClass = "grid grid-cols-2 gap-2";
+    const itemClass = "flex items-center gap-2.5 p-2.5 bg-slate-900/60 border border-slate-800/80 rounded-xl transition-all active:scale-[0.98] hover:bg-primary/10 hover:border-primary/30 disabled:opacity-30 disabled:pointer-events-none w-full group/item";
+    const itemLabelClass = "text-[12px] font-medium text-slate-300 group-hover/item:text-primary transition-colors truncate";
 
     // Track if we have performed the initial check for "my" stories
     const [initialCheckDone, setInitialCheckDone] = useState(false);
@@ -92,13 +94,20 @@ export default function StoryArchive() {
     };
 
     const handleDelete = async (id: string, title: string) => {
-        if (!confirm(`"${title}" wirklich löschen?`)) return;
+        setDeleteConfirm({ id, title });
+    };
+
+    const confirmDelete = async () => {
+        if (!deleteConfirm) return;
+        const { id } = deleteConfirm;
         try {
             await deleteStory(id);
             await loadStories();
             toast.success('Geschichte gelöscht');
         } catch {
             toast.error('Fehler beim Löschen');
+        } finally {
+            setDeleteConfirm(null);
         }
     };
 
@@ -766,15 +775,10 @@ export default function StoryArchive() {
                                     <div className={listClass}>
                                         {/* Publish Toggle - Only for own stories in library */}
                                         {archiveFilter !== 'public' && activeToolboxStory.user_id === user?.id && (
-                                            <div className={`${itemClass} justify-between px-3`}>
-                                                <div className="flex items-center gap-3">
-                                                    <Sparkles className="w-4 h-4 text-primary shrink-0" />
-                                                    <div className="flex flex-col">
-                                                        <span className={itemLabelClass}>Veröffentlichen</span>
-                                                        <span className="text-[10px] text-slate-500">
-                                                            {activeToolboxStory.is_public ? 'In "Erkunden" sichtbar' : 'Nur für Dich sichtbar'}
-                                                        </span>
-                                                    </div>
+                                            <div className={`${itemClass} flex-col !items-start gap-1.5`}>
+                                                <div className="flex items-center gap-2">
+                                                    <Sparkles className="w-3.5 h-3.5 text-primary shrink-0" />
+                                                    <span className={itemLabelClass}>Veröffentlichen</span>
                                                 </div>
                                                 
                                                 <button 
@@ -860,9 +864,9 @@ export default function StoryArchive() {
                                         )}
 
                                         {user?.is_admin && (
-                                            <div className={`${itemClass} justify-between px-3`}>
-                                                <div className="flex items-center gap-3">
-                                                    <Play className="w-4 h-4 text-[#1DB954] shrink-0" />
+                                            <div className={`${itemClass} flex-col !items-start gap-1.5`}>
+                                                <div className="flex items-center gap-2">
+                                                    <Play className="w-3.5 h-3.5 text-[#1DB954] shrink-0" />
                                                     <span className={itemLabelClass}>Spotify</span>
                                                 </div>
                                                 <button 
@@ -886,10 +890,10 @@ export default function StoryArchive() {
                                         {activeToolboxStory.user_id === user?.id && (
                                             <button 
                                                 onClick={() => { handleDelete(activeToolboxStory.id, activeToolboxStory.title); setShowToolbox(null); }}
-                                                className={itemClass}
+                                                className={`${itemClass} border-red-500/20 hover:bg-red-500/10 hover:border-red-500/40 group/delete col-span-2`}
                                             >
-                                                <Trash2 className="w-4 h-4 text-red-500/70 shrink-0" />
-                                                <span className={itemLabelClass}>Löschen</span>
+                                                <Trash2 className="w-4 h-4 text-red-500 shrink-0 opacity-70 group-hover/delete:opacity-100" />
+                                                <span className={`${itemLabelClass} group-hover/delete:text-red-500`}>Löschen</span>
                                             </button>
                                         )}
                                     </div>
@@ -900,6 +904,14 @@ export default function StoryArchive() {
                 </div>
             )}
             <audio ref={audioRef} className="hidden" />
+
+            <ConfirmModal 
+                isOpen={!!deleteConfirm}
+                title="Geschichte löschen"
+                message={`Möchtest du "${deleteConfirm?.title}" wirklich unwiderruflich löschen?`}
+                onConfirm={confirmDelete}
+                onClose={() => setDeleteConfirm(null)}
+            />
         </div>
     );
 }

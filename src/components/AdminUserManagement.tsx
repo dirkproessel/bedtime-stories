@@ -2,6 +2,8 @@ import { useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { Trash2, Shield, User, Mail, Calendar, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useState } from 'react';
+import ConfirmModal from './ConfirmModal';
 
 interface Props {
     onShowStories: (userId: string) => void;
@@ -9,18 +11,26 @@ interface Props {
 
 export default function AdminUserManagement({ onShowStories }: Props) {
     const { adminUsers, loadAdminUsers, deleteAdminUser, updateAdminUser, isLoading } = useStore();
+    const [deleteConfirm, setDeleteConfirm] = useState<{ id: string, email: string } | null>(null);
 
     useEffect(() => {
         loadAdminUsers();
     }, [loadAdminUsers]);
 
     const handleDelete = async (id: string, email: string) => {
-        if (!confirm(`Benutzer ${email} wirklich löschen?`)) return;
+        setDeleteConfirm({ id, email });
+    };
+
+    const confirmDelete = async () => {
+        if (!deleteConfirm) return;
+        const { id } = deleteConfirm;
         try {
             await deleteAdminUser(id);
             toast.success('Benutzer gelöscht');
         } catch (e: any) {
             toast.error(e.message || 'Fehler beim Löschen');
+        } finally {
+            setDeleteConfirm(null);
         }
     };
 
@@ -95,6 +105,14 @@ export default function AdminUserManagement({ onShowStories }: Props) {
                     Keine Benutzer gefunden.
                 </div>
             )}
+
+            <ConfirmModal 
+                isOpen={!!deleteConfirm}
+                title="Benutzer löschen"
+                message={`Möchtest du den Benutzer "${deleteConfirm?.email}" wirklich unwiderruflich löschen? Alle zugehörigen Stories bleiben im System, verlieren aber ihren Besitzer.`}
+                onConfirm={confirmDelete}
+                onClose={() => setDeleteConfirm(null)}
+            />
         </div>
     );
 }

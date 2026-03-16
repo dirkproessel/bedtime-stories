@@ -2,6 +2,8 @@ import { useEffect, useMemo } from 'react';
 import { useStore } from '../store/useStore';
 import { Trash2, ExternalLink, Clock, User as UserIcon, Loader2, Music, X, BookOpen } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useState } from 'react';
+import ConfirmModal from './ConfirmModal';
 
 interface Props {
     filterUserId: string | null;
@@ -10,6 +12,7 @@ interface Props {
 
 export default function AdminStoryManagement({ filterUserId, onClearFilter }: Props) {
     const { stories, loadStories, deleteAdminStory, setReaderOpen, setRevoiceStoryId, isLoading, adminUsers } = useStore();
+    const [deleteConfirm, setDeleteConfirm] = useState<{ id: string, title: string } | null>(null);
 
     useEffect(() => {
         // Load stories for specific user or all if filter is null
@@ -23,12 +26,19 @@ export default function AdminStoryManagement({ filterUserId, onClearFilter }: Pr
     }, [adminUsers, filterUserId]);
 
     const handleDelete = async (id: string, title: string) => {
-        if (!confirm(`Geschichte "${title}" wirklich löschen?`)) return;
+        setDeleteConfirm({ id, title });
+    };
+
+    const confirmDelete = async () => {
+        if (!deleteConfirm) return;
+        const { id } = deleteConfirm;
         try {
             await deleteAdminStory(id);
             toast.success('Geschichte gelöscht');
         } catch (e: any) {
             toast.error(e.message || 'Fehler beim Löschen');
+        } finally {
+            setDeleteConfirm(null);
         }
     };
 
@@ -117,6 +127,14 @@ export default function AdminStoryManagement({ filterUserId, onClearFilter }: Pr
                     Keine Geschichten gefunden.
                 </div>
             )}
+
+            <ConfirmModal 
+                isOpen={!!deleteConfirm}
+                title="Geschichte löschen"
+                message={`Möchtest du "${deleteConfirm?.title}" wirklich als Admin unwiderruflich löschen?`}
+                onConfirm={confirmDelete}
+                onClose={() => setDeleteConfirm(null)}
+            />
         </div>
     );
 }
