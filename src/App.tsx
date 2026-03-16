@@ -164,9 +164,9 @@ function App() {
   return (
     <div className="min-h-screen bg-background flex flex-col w-full relative overflow-hidden">
       {/* Global Brand Header */}
-      <header className="pt-10 px-6 pb-6 max-w-2xl mx-auto w-full flex flex-row items-center justify-center gap-4 text-left">
-        <div className="shrink-0">
-          <img src="/logo.png" alt="Logo" className="w-18 h-18 object-contain" />
+      <header className="pt-10 px-6 pb-6 max-w-2xl mx-auto w-full flex flex-row items-center justify-center gap-5 text-left">
+        <div className="shrink-0 mt-2">
+          <img src="/logo.png" alt="Logo" className="w-22 h-22 object-contain" />
         </div>
         <div className="flex flex-col">
           <h2 className="text-2xl font-semibold text-text mb-0.5 font-serif tracking-tight">Kurzgeschichten-Labor</h2>
