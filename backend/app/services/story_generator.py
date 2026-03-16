@@ -233,17 +233,69 @@ GENRES_BIBLIOTHEK = {
     "Dark Romance": {"name": "Dark Romance", "ziel": "Überwindung von Grenzen und Tabus in einer moralisch grauen Welt", "tropen": "Dominanz und Hingabe, verbotenes Verlangen, düstere Verführung, emotionale Extreme, Spiel mit dem Feuer, komplexe Machtdynamiken"}
 }
 
+HOOK_PERSONEN = [
+    "Der Perfektionist (Zwanghaft, achtet auf Details)",
+    "Der reuige Sünder (Sucht Vergebung)",
+    "Die kühle Strategin (Plant drei Schritte voraus)",
+    "Der loyale Diener (Weiß zu viel, sagt nichts)",
+    "Der charismatische Blender (Lebt von der Fassade)",
+    "Die furchtlose Grenzgängerin (Riskiert alles)",
+    "Der melancholische Sammler (Hängt an der Vergangenheit)",
+    "Die unschuldige Beobachterin (Sieht, was sie nicht verstehen darf)",
+    "Der gefallene Held (Zynisch und müde)",
+    "Die manipulative Gastgeberin (Kontrolliert die soziale Bühne)",
+    "Der stumme Zeuge (Jemand, den man übersieht)",
+    "Die rastlose Sucherin (Findet nie, was sie braucht)",
+    "Der strenge Lehrmeister (Fordert absolute Disziplin)",
+    "Die verlorene Erbin (Trägt eine Last, die sie nicht will)",
+    "Der unberechenbare Rivale (Spiegelt die Schwächen des anderen)",
+    "Die geduldige Rächerin (Wartet auf den richtigen Moment)",
+    "Der paranoide Experte (Traut niemandem)",
+    "Die empathische Außenseiterin (Spürt die Spannungen im Raum)",
+    "Der kühne Hochstapler (Spielt ein gefährliches Spiel)",
+    "Die erschöpfte Autorität (Trägt zu viel Verantwortung)",
+    "Der idealistische Träumer (Wird von der Realität eingeholt)",
+    "Die diskrete Vermittlerin (Löst Probleme im Schatten)",
+    "Der bittere Skeptiker (Hinterfragt jedes Motiv)",
+    "Die verborgene Bedrohung (Wirkt harmlos, ist es nicht)",
+    "Der letzte Getreue (Bleibt, wenn alle anderen gehen)"
+]
+
+HOOK_SETTINGS = [
+    "Das verregnete Hafenviertel (Nass, laut, anonym)",
+    "Die Bibliothek bei Nacht (Staubig, still, ehrwürdig)",
+    "Die luxuriöse Penthouse-Suite (Kalt, gläsern, isoliert)",
+    "Der dichte Tannenwald (Eng, schattig, geheimnisvoll)",
+    "Das überfüllte Spiegelkabinett (Verwirrend, hell, verzerrt)",
+    "Die verlassene Bergstation (Windig, rostig, einsam)",
+    "Der prunkvolle Ballsaal (Grell, laut, maskiert)",
+    "Die sterile Intensivstation (Weiß, piepend, klinisch)",
+    "Das nächtliche Parkdeck (Beton, Neon, Echo)",
+    "Der verwilderte Schlossgarten (Überwuchert, duftend, melancholisch)",
+    "Die stickige Hinterzimmer-Bar (Rauchig, dunkel, verrucht)",
+    "Das Archiv der verlorenen Briefe (Papier, Geheimnisse, Stille)",
+    "Die zugige U-Bahn-Station (Kalt, metallisch, Transit)",
+    "Das Gewächshaus im Sturm (Glas, prasselnder Regen, grün)",
+    "Die Galerie für moderne Kunst (Minimalistisch, teuer, leer)",
+    "Das Lagerhaus am Fluss (Holzig, modrig, weit)",
+    "Der einsame Leuchtturm (Salzig, stürmisch, exponiert)",
+    "Die VIP-Lounge eines Casinos (Samt, Gold, nervös)",
+    "Das schattige Beichtzimmer (Eng, hölzern, intim)",
+    "Der Korridor eines Nobelhotels (Teppich, Türen, anonym)",
+    "Die Werkstatt eines Uhrmachers (Tickend, präzise, kleinteilig)",
+    "Das baufällige Amphitheater (Steinern, geschichtsträchtig, offen)",
+    "Die Küche während einer Feier (Hektisch, heiß, ehrlich)",
+    "Das Observatorium am Abgrund (Metallisch, weit, sternenklar)",
+    "Der Steg im Morgengrauen (Nebel, Holz, still)"
+]
+
 async def generate_story_hook(genre: str, author_id: str) -> str:
-    """Generate a single max 15-word story hook based on a given genre and author ID."""
+    """Generate a single max 25-word story hook based on logic, roles and setting."""
+    import random
     
-    # Try to find the genre and author objects
-    genre_data = GENRES_BIBLIOTHEK.get(genre, GENRES_BIBLIOTHEK["Abenteuer"])
-    author = None
+    # Existing author/genre data (mostly for frontend state in this context)
     all_authors = {a['id']: a for category in STANZWERK_BIBLIOTHEK.values() for a in category}
-    if author_id in all_authors:
-        author = all_authors[author_id]
-        
-    author_desc = f"{author['name']} ({author['wortwahl']} / {author['atmosphaere']})" if author else "Ein klarer, sachlicher Literat."
+    author = all_authors.get(author_id)
         
     stanzwerk_hooks = [
         {"typ": "Der soziale Bruch", "logik": "Eine banale Höflichkeit führt zu einer völlig unerwarteten Reaktion."},
@@ -264,20 +316,28 @@ async def generate_story_hook(genre: str, author_id: str) -> str:
         {"typ": "Die statistische Anomalie", "logik": "Eine rein zufällige Beobachtung löst eine paranoide, aber logisch begründbare Schlussfolgerung aus."}
     ]
     
-    import random
+    # New Selection Logic
     selected_hook = random.choice(stanzwerk_hooks)
+    num_persons = random.choices([1, 2], weights=[70, 30])[0]
+    selected_persons = random.sample(HOOK_PERSONEN, num_persons)
+    char_str = " und ".join(selected_persons)
+    selected_setting = random.choice(HOOK_SETTINGS)
         
-    prompt = f"""Du bist ein Meister der präzisen Alltagsbeobachtung. Generiere einen Story-Hook, der eine realistische Situation durch eine unerwartete Wendung oder ein psychologisches Detail spannend macht.
+    prompt = f"""Du bist ein Meister der präzisen Alltagsbeobachtung. 
+Kreuze die folgende Hook-Logik mit den Charakteren und dem Setting, 
+um einen packenden, atmosphärischen und hochspezifischen Story-Hook zu generieren.
+
+Kontext:
+- Charaktere: {char_str}
+- Setting/Sinneseindruck: {selected_setting}
+- Hook-Logik [{selected_hook['typ']}]: {selected_hook['logik']}
 
 Regeln:
-- Bleibe innerhalb der physikalischen Gesetze (kein Surrealismus).
-- Finde die Spannung im Zwischenmenschlichen oder in einem verborgenen Geheimnis.
-- Nutze starke Verben statt Adjektiven.
+- Realismus (Physikalische Gesetze beachten).
+- Fokus auf das Zwischenmenschliche (besonders bei 2 Personen) oder ein verborgenes Geheimnis.
+- Nutze starke Verben, minimale Adjektive.
 - Der Satz muss einen Konflikt andeuten, keine Lösung.
-- WICHTIG: Exakt 1 Satz, maximal 15 Wörter
-
-Werkzeug:
-Struktur-Schablone: [{selected_hook['typ']}]: {selected_hook['logik']}
+- WICHTIG: Exakt 1 Satz, maximal 25 Wörter.
 """
     try:
         if not rate_limiter.has_daily_quota("text"):
@@ -381,14 +441,14 @@ WICHTIGE REGELN FÜR DIESEN MODUS:
 
     master_prompt = f"""Du bist ein preisgekrönter Autor. Schreibe eine abgeschlossene Kurzgeschichte.
 
-202: STRIKTE REGELN:
-203: 1. NATÜRLICHER RHYTHMUS: Achte auf einen abwechslungsreichen Satzbau. Nutze sowohl kurze, prägnante Aussagen als auch elegante Nebensätze, um einen flüssigen Leserythmus zu erzeugen. Das macht die Geschichte für das Vorlesen (Audio) lebendiger und interessanter. Vermeide jedoch extrem überladene Schachtelsätze.
-204: 2. Stil-Inspiration:
-205: {selected_style_info}
-206: Vermeide jegliche Floskeln, pädagogische Zeigefinger oder moralische Zusammenfassungen am Ende. Die Geschichte endet mit dem letzten narrativen Moment. Kein Kitsch, keine Moral!
-207: 3. Show, don't tell: Erkläre nicht, wie sich Charaktere fühlen – zeige es durch ihre Handlungen und Reaktionen.
-208: 4. Pacing & Detail: Hetze nicht durch die Handlung. Entwickle Szenen durch konkrete Details, aber halte die Syntax (Satzbau) einfach.
-209: 5. UMFANG: STRENGES MAXIMUM von {word_count} Wörtern. Nutze eine präzise Wortwahl statt vieler Adjektive. Die neue sprachliche Freiheit darf NICHT zu unnötiger Länge führen. Vermeide Abschweifungen.
+STRIKTE REGELN:
+1. NATÜRLICHER RHYTHMUS: Achte auf einen abwechslungsreichen Satzbau. Nutze sowohl kurze, prägnante Aussagen als auch elegante Nebensätze, um einen flüssigen Leserythmus zu erzeugen. Das macht die Geschichte für das Vorlesen (Audio) lebendiger und interessanter. Vermeide jedoch extrem überladene Schachtelsätze.
+2. Stil-Inspiration:
+{selected_style_info}
+Vermeide jegliche Floskeln, pädagogische Zeigefinger oder moralische Zusammenfassungen am Ende. Die Geschichte endet mit dem letzten narrativen Moment. Kein Kitsch, keine Moral!
+3. Show, don't tell: Erkläre nicht, wie sich Charaktere fühlen – zeige es durch ihre Handlungen und Reaktionen.
+4. Pacing & Detail: Hetze nicht durch die Handlung. Entwickle Szenen durch konkrete Details, aber halte die Syntax (Satzbau) einfach.
+5. UMFANG: STRENGES MAXIMUM von {word_count} Wörtern. Nutze eine präzise Wortwahl statt vieler Adjektive. Die neue sprachliche Freiheit darf NICHT zu unnötiger Länge führen. Vermeide Abschweifungen.
 
 Rahmenbedingungen:
 Schreibe eine Geschichte im Genre {genre_data['name']}. Der Kern der Handlung (Nutzer-Wunsch) ist: {user_hook}{char_text}. Folge dem Narrativ: {genre_data['ziel']} unter Verwendung von {genre_data['tropen']}.
