@@ -276,10 +276,14 @@ export default function StoryArchive() {
                                     <div className="flex flex-col gap-1.5">
                                         <div className="flex items-center gap-2">
                                             {story.status === 'generating' && (!story.title || story.title.includes('Schreibe') || story.title.includes('Fortsetzung')) ? (
-                                                <div className="font-serif text-xl font-semibold text-primary/60 animate-pulse flex gap-[1px]">
-                                                    {"LABORATORY".split("").map((char, i) => (
-                                                        <span key={i} className="inline-block animate-bounce" style={{ animationDelay: `${i * 100}ms`, animationDuration: '2s' }}>
-                                                            {char}
+                                                <div className="font-serif text-lg font-semibold text-primary/40 animate-pulse flex flex-wrap gap-x-1">
+                                                    {"Lorem ipsum dolor sit amet".split(" ").map((word, i) => (
+                                                        <span key={i} className="flex gap-[1px]">
+                                                            {word.split("").map((char, j) => (
+                                                                <span key={j} className="inline-block animate-bounce" style={{ animationDelay: `${(i * 5 + j) * 80}ms`, animationDuration: '3s' }}>
+                                                                    {char}
+                                                                </span>
+                                                            ))}
                                                         </span>
                                                     ))}
                                                 </div>

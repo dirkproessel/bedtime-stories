@@ -319,6 +319,10 @@ export const useStore = create<AppState>((set, get) => {
     },
     setActiveView: (view) => {
         set({ activeView: view });
+        // Standard scroll to top on view change
+        if (typeof window !== 'undefined') {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
         // Handle filter auto-sync if switching to library/discover
         if (view === 'library') {
             set({ archiveFilter: 'my' });

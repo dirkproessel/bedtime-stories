@@ -284,7 +284,7 @@ Struktur-Schablone: [{selected_hook['typ']}]: {selected_hook['logik']}
             return "Das Tageslimit für Geschichten ist leider erreicht. Bitte versuche es morgen wieder."
             
         await rate_limiter.wait_for_capacity("text")
-        response = await asyncio.to_thread(
+        response = await _api_request_with_retry(
             client.models.generate_content,
             model=settings.GEMINI_TEXT_MODEL,
             contents=prompt,
@@ -319,6 +319,30 @@ async def generate_full_story(
         remix_type, further_instructions, parent_text
     )
 
+
+async def _api_request_with_retry(func, *args, on_progress=None, max_retries=3, initial_delay=2, **kwargs):
+    """Retries a function call with exponential backoff if it fails with a 503 error."""
+    for i in range(max_retries):
+        try:
+            # We use to_thread because the genai SDK might be blocking
+            return await asyncio.to_thread(func, *args, **kwargs)
+        except Exception as e:
+            from google.genai import errors
+            # Check if it's a 503/Unavailable error
+            err_str = str(e).upper()
+            is_unavailable = "503" in err_str or "UNAVAILABLE" in err_str or isinstance(e, errors.ServerError)
+            
+            if is_unavailable and i < max_retries - 1:
+                delay = initial_delay * (2 ** i)
+                logger.warning(f"Gemini API 503/Unavailable (Attempt {i+1}). Retrying in {delay}s... Error: {e}")
+                if on_progress:
+                    # Report retry to user via progress callback
+                    try:
+                        await on_progress("retrying", f"Verbindung wird wiederholt (Versuch {i+2}/{max_retries})...")
+                    except: pass
+                await asyncio.sleep(delay)
+                continue
+            raise e
 
 async def _generate_single_pass(
     prompt, genre, style, characters, target_minutes, on_progress,
@@ -384,12 +408,12 @@ Antworte EXKLUSIV im JSON-Format:
         raise RuntimeError("Das Tageslimit für KI-Generierungen ist heute leider erreicht.")
 
     await rate_limiter.wait_for_capacity("text")
-    import asyncio
-    response = await asyncio.to_thread(
+    response = await _api_request_with_retry(
         client.models.generate_content,
-        model=MODEL,
+        model=settings.GEMINI_TEXT_MODEL,
         contents=master_prompt,
-        config={"response_mime_type": "application/json", "temperature": 0.85, "max_output_tokens": 8192}
+        config={"response_mime_type": "application/json", "temperature": 0.85, "max_output_tokens": 8192},
+        on_progress=on_progress
     )
     rate_limiter.increment_daily_quota()
 
@@ -523,11 +547,12 @@ Antworte NUR im JSON-Format:
             raise RuntimeError("Das Tageslimit für KI-Generierungen ist heute leider erreicht.")
             
         await rate_limiter.wait_for_capacity("text")
-        outline_res = await asyncio.to_thread(
+        outline_res = await _api_request_with_retry(
             client.models.generate_content,
             model=settings.GEMINI_TEXT_MODEL,
             contents=outline_prompt,
-            config={"response_mime_type": "application/json"}
+            config={"response_mime_type": "application/json"},
+            on_progress=on_progress
         )
         rate_limiter.increment_daily_quota("text")
         
@@ -600,12 +625,12 @@ Fokus / Ziel DIESES Kapitels: {seg['goal']}
         if not rate_limiter.has_daily_quota("text"):
             raise RuntimeError("Das Tageslimit für KI-Generierungen wurde während der Geschichte erreicht.")
             
-        await rate_limiter.wait_for_capacity("text")
-        response = await asyncio.to_thread(
+        response = await _api_request_with_retry(
             client.models.generate_content,
             model=settings.GEMINI_TEXT_MODEL,
             contents=write_prompt,
-            config={"temperature": 0.8}
+            config={"temperature": 0.8},
+            on_progress=on_progress
         )
         rate_limiter.increment_daily_quota()
         segment_text = response.text.strip()

@@ -130,12 +130,12 @@ function App() {
 
   if (isLoading && !isInitialized) {
     return (
-      <div className="min-h-screen bg-[#F8F9FA] flex flex-col items-center justify-center w-full gap-8">
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center w-full gap-8">
         <div className="relative">
-          <div className="w-24 h-24 rounded-full border border-slate-100 flex items-center justify-center bg-white shadow-sm animate-pulse">
-            <img src="/logo.png" alt="Logo" className="w-16 h-16 object-contain" />
+          <div className="w-24 h-24 flex items-center justify-center animate-pulse">
+            <img src="/logo.png" alt="Logo" className="w-20 h-20 object-contain" />
           </div>
-          <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-[#22C55E] rounded-full border-4 border-[#F8F9FA]" />
+          <div className="absolute bottom-2 right-2 w-4 h-4 bg-primary rounded-full border-2 border-background shadow-[0_0_15px_rgba(34,197,94,0.3)]" />
         </div>
         <div className="flex flex-col items-center gap-3">
           <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-slate-400 font-medium tracking-widest">Labor wird vorbereitet</span>
@@ -164,9 +164,9 @@ function App() {
   return (
     <div className="min-h-screen bg-background flex flex-col w-full relative overflow-hidden">
       {/* Global Brand Header */}
-      <header className="pt-8 px-6 pb-4 max-w-2xl mx-auto w-full flex flex-row items-center justify-center gap-4 text-left">
-        <div className="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center shrink-0 shadow-xl shadow-primary/20">
-          <img src="/logo.png" alt="Logo" className="w-10 h-10 object-contain" />
+      <header className="pt-8 px-6 pb-4 max-w-2xl mx-auto w-full flex flex-row items-center justify-center gap-6 text-left">
+        <div className="shrink-0">
+          <img src="/logo.png" alt="Logo" className="w-16 h-16 object-contain" />
         </div>
         <div className="flex flex-col">
           <h2 className="text-2xl font-bold text-text mb-0.5 font-serif">Kurzgeschichten-Labor</h2>
