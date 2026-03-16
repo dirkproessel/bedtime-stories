@@ -109,12 +109,16 @@ async def merge_audio_files(
             str(merged_raw)
         ])
 
-        await asyncio.to_thread(
+        result = await asyncio.to_thread(
             subprocess.run,
             cmd,
             capture_output=True,
-            check=True,
+            text=True,
+            check=False,
         )
+
+        if result.returncode != 0:
+            raise RuntimeError(f"FFmpeg merging failed with exit status {result.returncode}:\n{result.stderr}")
 
         # Normalize + fade out
         await _normalize_audio(merged_raw, output_path, fade_out_ms)

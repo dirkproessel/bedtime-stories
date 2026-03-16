@@ -572,4 +572,8 @@ async def chapters_to_audio(
                 # Signal that this specific chapter is done
                 await on_progress("tts_chapter_done", f"Kapitel {i+1} vertont")
 
+    # Create and await all tasks
+    tasks = [run_with_semaphore(i, ch) for i, ch in enumerate(chapters)]
+    await asyncio.gather(*tasks)
+
     return audio_files, actual_voice
