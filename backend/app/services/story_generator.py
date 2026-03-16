@@ -326,21 +326,19 @@ async def generate_story_hook(genre: str, author_id: str) -> str:
     char_str = " und ".join(selected_persons)
     selected_setting = random.choice(HOOK_SETTINGS)
         
-    prompt = f"""Du bist ein Meister der präzisen Alltagsbeobachtung. 
-Kreuze die folgende Hook-Logik mit den Charakteren und dem Setting, 
-um einen packenden, atmosphärischen und hochspezifischen Story-Hook zu generieren.
+    prompt = f"""Du bist ein kreativer Ideengeber für Geschichten.
+Basierend auf der Logik, den Charakteren und dem Setting sollst du eine kurze, prägnante Inspiration liefern.
 
 Kontext:
 - Charaktere: {char_str}
-- Setting/Sinneseindruck: {selected_setting}
-- Hook-Logik [{selected_hook['typ']}]: {selected_hook['logik']}
+- Setting: {selected_setting}
+- Logik [{selected_hook['typ']}]: {selected_hook['logik']}
 
 Regeln:
-- Realismus (Physikalische Gesetze beachten).
-- Fokus auf das Zwischenmenschliche (besonders bei 2 Personen) oder ein verborgenes Geheimnis.
-- Nutze starke Verben, minimale Adjektive.
-- Der Satz muss einen Konflikt andeuten, keine Lösung.
-- WICHTIG: Exakt 1 packender Satz, ca. 20-30 Wörter. Beende den Satz unbedingt vollständig mit einem Punkt.
+- NICHT lyrisch oder ausschweifend.
+- Einfache, direkte Sprache (Stichworte oder kurze Sätze).
+- WICHTIG: Antworte entweder mit 3-5 kurzen Stichpunkten ODER einem prägnanten Satz (max. 25 Wörter).
+- Kein 'Show, don't tell' – liefere einfach nur das faktische Szenario ohne unnötige Metaphern.
 """
     try:
         if not rate_limiter.has_daily_quota("text"):
