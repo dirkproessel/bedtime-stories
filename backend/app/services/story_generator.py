@@ -10,6 +10,9 @@ import json
 import re
 from app.services.rate_limiter import rate_limiter
 
+import logging
+logger = logging.getLogger(__name__)
+
 client = genai.Client(api_key=settings.GEMINI_API_KEY)
 
 
@@ -337,7 +340,7 @@ Regeln:
 - Fokus auf das Zwischenmenschliche (besonders bei 2 Personen) oder ein verborgenes Geheimnis.
 - Nutze starke Verben, minimale Adjektive.
 - Der Satz muss einen Konflikt andeuten, keine Lösung.
-- WICHTIG: Exakt 1 Satz, maximal 25 Wörter.
+- WICHTIG: Exakt 1 packender Satz, ca. 20-30 Wörter. Beende den Satz unbedingt vollständig mit einem Punkt.
 """
     try:
         if not rate_limiter.has_daily_quota("text"):
@@ -355,7 +358,9 @@ Regeln:
             }
         )
         rate_limiter.increment_daily_quota("text")
-        return response.text.strip().strip('"').strip("'")
+        hook_text = response.text.strip().strip('"').strip("'")
+        logger.info(f"GEN HOOK: '{hook_text}' (len: {len(hook_text)})")
+        return hook_text
     except Exception as e:
         import logging
         logging.error(f"Failed to generate hook: {e}")
