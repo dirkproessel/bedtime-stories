@@ -335,10 +335,8 @@ Kontext:
 - Logik [{selected_hook['typ']}]: {selected_hook['logik']}
 
 Regeln:
-- Antworte ausschließlich mit 3-5 kurzen Stichpunkten.
-- Nutze nur Substantive und Verben. 
-- Meide Adjektive (z.B. statt 'zugiger Bahnsteig' nur 'Bahnsteig').
-- Max. 60 Wörter, um sicherzustellen, dass kein Satz abgebrochen wird.
+- Antworte ausschließlich mit 1-2 kurzen Sätzen.
+- Max. 30 Wörter, um sicherzustellen, dass kein Satz abgebrochen wird.
 - Fokus: Die nackten Fakten des Szenarios.
 """
     try:
