@@ -191,7 +191,39 @@ function App() {
       {/* Reader Layer (z-40) */}
       <ReaderLayer />
 
-      <Toaster position="top-center" />
+      <Toaster 
+        position="top-center" 
+        toastOptions={{
+          duration: 3000,
+          style: {
+            background: 'rgba(23, 32, 35, 0.95)',
+            color: '#E2E8F0',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            border: '1px solid rgba(34, 197, 94, 0.2)',
+            borderRadius: '1.25rem',
+            fontSize: '14px',
+            fontWeight: '500',
+            padding: '12px 20px',
+            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+          },
+          success: {
+            iconTheme: {
+              primary: '#22C55E',
+              secondary: '#FFFFFF',
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: '#EF4444',
+              secondary: '#FFFFFF',
+            },
+            style: {
+              border: '1px solid rgba(239, 68, 68, 0.2)',
+            }
+          },
+        }}
+      />
       <main id="main-scroll-container" className="flex-1 overflow-y-auto pb-24">
         {activeView === 'login' && <LoginScreen />}
         {activeView === 'create' && <StoryCreator />}

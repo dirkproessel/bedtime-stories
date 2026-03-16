@@ -335,7 +335,21 @@ async def _generate_single_pass(
     # Context for remix
     remix_context = ""
     if remix_type == "improvement" and parent_text:
-        remix_context = f"\n\nDIES IST EINE VERBESSERUNG DER FOLGENDEN GESCHICHTE:\n{json.dumps(parent_text, ensure_ascii=False)}\n\nSPEZIELLE ANWEISUNGEN FÜR DIE VERBESSERUNG:\n{further_instructions or 'Mache die Geschichte einfach besser.'}"
+        # For improvements, we treat the LLM as an editor
+        original_story_str = json.dumps(parent_text, ensure_ascii=False)
+        remix_context = f"""
+### REMIX-MODUS: VERBESSERUNG (EDITOR)
+DIES IST EINE GEZIELTE ÜBERARBEITUNG DER FOLGENDEN GESCHICHTE:
+{original_story_str}
+
+SPEZIELLE ANWEISUNGEN FÜR DIE VERBESSERUNG:
+{further_instructions or 'Mache die Geschichte einfach besser.'}
+
+WICHTIGE REGELN FÜR DIESEN MODUS:
+1. BEWAHRE DEN KERN: Behalte die grundlegende Handlung, die Namen der Charaktere und die Schauplätze bei, sofern sie nicht explizit geändert werden sollen.
+2. PUNKTUELLE EDITS: Ändere nur, was nötig ist, um die 'Speziellen Anweisungen' zu erfüllen oder um den Stil zu optimieren.
+3. KONTINUITÄT: Die neue Version muss sich wie eine verbesserte Fassung des Originals anfühlen, nicht wie eine völlig neue Geschichte.
+"""
     elif remix_type == "sequel" and parent_text:
         parent_synopsis = parent_text.get("synopsis", "Teil 1")
         parent_title = parent_text.get("title", "Die erste Geschichte")
@@ -427,7 +441,21 @@ async def _generate_multi_pass(
     # Context for remix
     remix_context = ""
     if remix_type == "improvement" and parent_text:
-        remix_context = f"\n\nDIES IST EINE VERBESSERUNG DER FOLGENDEN GESCHICHTE:\n{json.dumps(parent_text, ensure_ascii=False)}\n\nSPEZIELLE ANWEISUNGEN FÜR DIE VERBESSERUNG:\n{further_instructions or 'Mache die Geschichte einfach besser.'}"
+        # For improvements, we treat the LLM as an editor
+        original_story_str = json.dumps(parent_text, ensure_ascii=False)
+        remix_context = f"""
+### REMIX-MODUS: VERBESSERUNG (EDITOR)
+DIES IST EINE GEZIELTE ÜBERARBEITUNG DER FOLGENDEN GESCHICHTE:
+{original_story_str}
+
+SPEZIELLE ANWEISUNGEN FÜR DIE VERBESSERUNG:
+{further_instructions or 'Mache die Geschichte einfach besser.'}
+
+WICHTIGE REGELN FÜR DIESEN MODUS:
+1. BEWAHRE DEN KERN: Behalte die grundlegende Handlung, die Namen der Charaktere und die Schauplätze bei, sofern sie nicht explizit geändert werden sollen.
+2. PUNKTUELLE EDITS: Ändere nur, was nötig ist, um die 'Speziellen Anweisungen' zu erfüllen oder um den Stil zu optimieren.
+3. KONTINUITÄT: Die neue Version muss sich wie eine verbesserte Fassung des Originals anfühlen, nicht wie eine völlig neue Geschichte.
+"""
     elif remix_type == "sequel" and parent_text:
         parent_synopsis = parent_text.get("synopsis", "Teil 1")
         parent_title = parent_text.get("title", "Die erste Geschichte")
@@ -448,7 +476,29 @@ async def _generate_multi_pass(
         await on_progress("generating_text", msg, 2)
 
     # Step 1: Generate Outline
-    outline_prompt = f"""Erstelle eine detaillierte Gliederung für eine {target_minutes}-minütige Kurzgeschichte.
+    if remix_type == "improvement" and parent_text:
+        outline_prompt = f"""Du bist ein Editor. Überarbeite die Gliederung für eine bestehende {target_minutes}-minütige Kurzgeschichte ({num_segments} Abschnitte).
+Der Kern der ursprünglichen Handlung war: {user_hook}{char_text}.
+Ursprünglicher Text: {json.dumps(parent_text, ensure_ascii=False)}
+
+SPEZIELLE VERBESSERUNGS-ANWEISUNG: {further_instructions or 'Optimiere den Text.'}
+
+RECHNE MIT:
+1. BEWAHRE DIE STRUKTUR: Halte dich an die {num_segments} Abschnitte der ursprünglichen Geschichte.
+2. GEZIELTE ANPASSUNG: Plane nur Änderungen in den Segmenten, die für die 'Spezielle Verbesserungs-Anweisung' relevant sind.
+3. KONTINUITÄT: Die Gliederung muss sicherstellen, dass die Geschichte ihren Charakter behält.
+
+Antworte NUR im JSON-Format:
+{{
+    "title": "Titel (evtl. angepasst)",
+    "synopsis": "Aktualisierte Zusammenfassung",
+    "segments": [
+        {{ "goal": "Was in diesem Teil im Vergleich zum Original geändert oder beibehalten wird..." }},
+        ...
+    ]
+}}"""
+    else:
+        outline_prompt = f"""Erstelle eine detaillierte Gliederung für eine {target_minutes}-minütige Kurzgeschichte.
 Schreibe eine Geschichte im Genre {genre_data['name']}. Der Kern der Handlung (Nutzer-Wunsch) ist: {user_hook}{char_text}. Folge dem Narrativ: {genre_data['ziel']} unter Verwendung von {genre_data['tropen']}.
 {remix_context}
 
@@ -521,6 +571,12 @@ Antworte NUR im JSON-Format:
         else:
             ende_regel = f"5. UMFANG & ENDE: Schreibe STRENG MAXIMAL {words_per_segment} Wörter. WICHTIG: Beende das Kapitel NIEMALS mitten in einem Satz. Führe die Szene logisch zu Ende oder erzeuge einen weichen Übergang/Cliffhanger."
         
+        # For improvements, provide the original chapter text if available
+        original_segment_context = ""
+        if remix_type == "improvement" and parent_text and "chapters" in parent_text:
+            if i < len(parent_text["chapters"]):
+                original_segment_context = f"\nURSPRÜNGLICHER TEXT DIESES KAPITELS:\n{parent_text['chapters'][i]['text']}\n"
+
         write_prompt = f"""Schreibe das nächste chronologische Kapitel der Geschichte.
 
 353: STRIKTE REGELN:
@@ -532,6 +588,7 @@ Antworte NUR im JSON-Format:
 359: 4. Pacing & Detail: Beschreibe präzise und atmosphärisch, aber halte den Satzbau einfach und direkt.
 4. Format: Keinerlei Überschriften, Kapitelnummern oder Titel im generierten Text! Nur der reine, fließende Erzähltext für diesen Abschnitt. Die Geschichte muss nahtlos an den vorherigen Teil anknüpfen.
 {f"SPEZIELLE REMIX-ANWEISUNG: {further_instructions}" if further_instructions else ""}
+{original_segment_context}
 {ende_regel}
 
 Rahmenbedingungen:

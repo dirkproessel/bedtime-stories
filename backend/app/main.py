@@ -963,13 +963,13 @@ async def regenerate_story_image_api(
     story_id: str,
     current_user: User = Depends(get_current_active_user)
 ):
-    """Manually trigger image re-generation for an existing story (Admin only)."""
-    if not current_user.is_admin:
-        raise HTTPException(status_code=403, detail="Nur Admins dürfen Bilder neu generieren.")
-
     meta = store.get_by_id(story_id)
     if not meta:
         raise HTTPException(status_code=404, detail="Story not found")
+
+    # Permissions: Only owner or admin
+    if meta.user_id != current_user.id and not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Nur der Besitzer oder Admins dürfen Bilder neu generieren.")
 
     # Load text to get synopsis
     story_dir = settings.AUDIO_OUTPUT_DIR / story_id

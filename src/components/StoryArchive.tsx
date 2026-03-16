@@ -41,8 +41,8 @@ export default function StoryArchive() {
     const sectionClass = "mb-6";
     const sectionTitleClass = "text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-slate-600 mb-3 ml-1";
     const listClass = "flex flex-col gap-2";
-    const itemClass = "flex items-center gap-3 p-2.5 bg-slate-900/40 border border-slate-800/50 rounded-xl transition-all active:scale-[0.98] hover:bg-slate-900/60 hover:border-primary/20 disabled:opacity-30 disabled:pointer-events-none w-full";
-    const itemLabelClass = "text-[13px] font-medium text-slate-300";
+    const itemClass = "flex items-center gap-3 p-3 bg-slate-900/60 border border-slate-800/80 rounded-2xl transition-all active:scale-[0.98] hover:bg-primary/10 hover:border-primary/30 disabled:opacity-30 disabled:pointer-events-none w-full group/item";
+    const itemLabelClass = "text-[13px] font-medium text-slate-300 group-hover/item:text-primary transition-colors";
 
     // Track if we have performed the initial check for "my" stories
     const [initialCheckDone, setInitialCheckDone] = useState(false);
@@ -445,8 +445,8 @@ export default function StoryArchive() {
 
             {/* Re-voice Modal */}
             {revoiceStoryId && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
-                    <div className="bg-surface rounded-3xl w-full max-w-md shadow-2xl border border-slate-800 overflow-hidden animate-in fade-in zoom-in duration-200">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-md">
+                    <div className="bg-surface/90 backdrop-blur-2xl rounded-[2.5rem] w-full max-w-md shadow-2xl border border-slate-800/50 overflow-hidden animate-in fade-in zoom-in duration-300">
                         <div className="p-6">
                             <div className="flex items-center justify-between mb-6">
                                 <h2 className="text-xl font-bold text-text flex items-center gap-2">
@@ -563,8 +563,8 @@ export default function StoryArchive() {
 
             {/* Kindle Export Modal */}
             {showKindleModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
-                    <div className="bg-surface rounded-3xl w-full max-w-sm shadow-2xl border border-slate-800 overflow-hidden animate-in fade-in zoom-in duration-200">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-md">
+                    <div className="bg-surface/90 backdrop-blur-2xl rounded-[2.5rem] w-full max-w-sm shadow-2xl border border-slate-800/50 overflow-hidden animate-in fade-in zoom-in duration-300">
                         <div className="p-6">
                             <div className="flex items-center justify-between mb-4">
                                 <h2 className="text-xl font-bold text-text flex items-center gap-2">
@@ -621,8 +621,8 @@ export default function StoryArchive() {
 
             {/* Remix Modal */}
             {showRemixModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
-                    <div className="bg-surface rounded-3xl w-full max-w-md shadow-2xl border border-slate-800 overflow-hidden animate-in fade-in zoom-in duration-200">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-md">
+                    <div className="bg-surface/90 backdrop-blur-2xl rounded-[2.5rem] w-full max-w-md shadow-2xl border border-slate-800/50 overflow-hidden animate-in fade-in zoom-in duration-300">
                         <div className="p-6">
                             <div className="flex items-center justify-between mb-6">
                                 <h2 className="text-xl font-bold text-text flex items-center gap-2">
@@ -696,12 +696,12 @@ export default function StoryArchive() {
 
             {/* Toolbox Overlay */}
             {showToolbox && (
-                <div className="fixed inset-0 z-[100] flex items-end justify-center bg-background/60 backdrop-blur-sm animate-in fade-in duration-300">
+                <div className="fixed inset-0 z-[100] flex items-end justify-center bg-background/70 backdrop-blur-sm animate-in fade-in duration-500">
                     <div 
                         className="fixed inset-0" 
                         onClick={() => setShowToolbox(null)}
                     />
-                    <div className="relative w-full max-w-md bg-surface border-t border-slate-800 rounded-t-[2.5rem] p-8 shadow-2xl animate-in slide-in-from-bottom duration-500 ease-out">
+                    <div className="relative w-full max-w-md bg-surface/95 backdrop-blur-2xl border-t border-slate-800/50 rounded-t-[3rem] p-8 shadow-2xl animate-in slide-in-from-bottom duration-700 cubic-bezier(0.16, 1, 0.3, 1)">
                         <div className="flex flex-col items-center mb-8">
                             <div className="w-12 h-12 bg-primary/20 text-primary rounded-2xl flex items-center justify-center mb-3 shadow-lg shadow-primary/10">
                                 <Wand2 className="w-7 h-7" />
