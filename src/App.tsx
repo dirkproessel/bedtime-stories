@@ -166,7 +166,7 @@ function App() {
       {/* Global Brand Header */}
       <header className="pt-8 px-6 pb-4 max-w-2xl mx-auto w-full flex flex-row items-center justify-center gap-6 text-left">
         <div className="shrink-0">
-          <img src="/logo.png" alt="Logo" className="w-16 h-16 object-contain" />
+          <img src="/logo.png" alt="Logo" className="w-20 h-20 object-contain" />
         </div>
         <div className="flex flex-col">
           <h2 className="text-2xl font-bold text-text mb-0.5 font-serif">Kurzgeschichten-Labor</h2>
