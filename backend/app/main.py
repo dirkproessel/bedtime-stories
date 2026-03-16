@@ -429,146 +429,178 @@ async def _run_pipeline(
     )
     store.add_story(story_meta)
 
-    async def on_progress(status_type: str, message: str, pct: int | None = None):
+    # Point-based progress system
+    # Planung: 5
+    # Text: 10 * num_chapters
+    # Bild: 5 (if enabled)
+    # Vertonung: 10 * num_chapters (if enabled)
+    # Finalisierung: 10 (if enabled)
+    
+    # We don't know the exact num_chapters until text is generated, 
+    # so we assume 4 for a 20 min story (5 min/chapter) as a baseline for the denominator.
+    # target_minutes // 5 is used by _generate_multi_pass (min 2)
+    estimated_chapters = max(2, target_minutes // 5)
+    
+    total_points = 5 # Planung
+    total_points += 10 * estimated_chapters # Text
+    total_points += 5 # Bild
+    if voice_key != "none":
+        total_points += 10 * estimated_chapters # Vertonung
+        total_points += 10 # Finalisierung
+        
+    completed_points = 0
+    real_num_chapters = estimated_chapters # updated once text is back
+
+    async def on_progress(status_type: str, message: str, points: int | None = None, is_absolute_points: bool = False):
+        nonlocal completed_points
+        if points is not None:
+            if is_absolute_points:
+                completed_points = points
+            else:
+                completed_points += points
+        
+        pct = int((completed_points / total_points) * 100)
+        pct = min(pct, 99) # Keep at 99 until truly done
+
+        # Map internal status to user-visible steps
+        label = message
+        if status_type == "generating_text": label = "Texterstellung"
+        elif status_type == "generating_image": label = "Bild generieren"
+        elif status_type == "generating_audio" or status_type == "tts": label = "Vertonung"
+        elif status_type == "processing": label = "Finalisierung"
+        elif status_type == "planning": label = "Planung"
+        
         _generation_status[story_id]["status"] = status_type
-        _generation_status[story_id]["progress"] = message
-        if pct is not None:
-            _generation_status[story_id]["progress_pct"] = pct
+        _generation_status[story_id]["progress"] = label
+        _generation_status[story_id]["progress_pct"] = pct
         
         # Also update persistent store
         curr = store.get_by_id(story_id)
         if curr:
             curr.status = "generating" if status_type != "done" and status_type != "error" else status_type
-            curr.progress = message
-            if pct is not None:
-                curr.progress_pct = pct
+            curr.progress = label
+            curr.progress_pct = pct
             curr.updated_at = datetime.now(timezone.utc)
             store.add_story(curr)
 
     try:
         start_time_total = time.time()
         
-        # Step 1: Generate story text (Single-pass)
-        start_time_text = time.time()
+        # Phase 1: Planung (5 Points)
+        await on_progress("planning", "Planung", points=5, is_absolute_points=True)
+
+        # Phase 2: Text Generation
+        completed_text_chapters = 0
+        async def text_progress_wrapper(stype, msg, pct=None):
+            nonlocal completed_text_chapters
+            if stype == "text_chapter_done":
+                completed_text_chapters += 1
+                # Increment points: baseline 5 + (10 * chapters done)
+                await on_progress("generating_text", "Texterstellung", points=5 + (10 * completed_text_chapters), is_absolute_points=True)
+            else:
+                await on_progress("generating_text", "Texterstellung")
+
         story_data = await generate_full_story(
             prompt=prompt,
             genre=genre,
             style=style,
             characters=characters,
             target_minutes=target_minutes,
-            on_progress=on_progress,
+            on_progress=text_progress_wrapper,
             remix_type=remix_type,
             further_instructions=further_instructions,
             parent_text=parent_text,
         )
-        end_time_text = time.time()
-        logger.info(f"BENCHMARK [{story_id}]: Text Generation took {end_time_text - start_time_text:.2f} seconds")
-
+        
         real_title = story_data["title"]
         _generation_status[story_id]["real_title"] = real_title
+        real_num_chapters = len(story_data["chapters"])
         
-        # Update progress message to include the title from now on
-        async def on_progress_with_title(status_type: str, message: str, pct: int | None = None):
-            combined_message = f"{real_title}: {message}"
-            await on_progress(status_type, combined_message, pct)
-
-        # Update initial metadata with real title/synopsis if we want to keep the "Schreibe..." row 1, we don't change curr.title here!
+        # Save real title and synopsis to database immediately
         curr = store.get_by_id(story_id)
         if curr:
-            # We keep curr.title as the "Schreibe..." intent for now.
-            # But we update description to the real synopsis
+            curr.title = real_title
             curr.description = story_data.get("synopsis", curr.description)
             store.add_story(curr)
+        total_points = 5 + (10 * real_num_chapters) + 5
+        if voice_key != "none":
+            total_points += (10 * real_num_chapters) + 10
+        
+        # Mark text as done (5 + 10 * chapters)
+        await on_progress("generating_text", "Texterstellung", points=5 + (10 * real_num_chapters), is_absolute_points=True)
 
-        # Save text
-        text_path = story_dir / "story.json"
-        text_path.write_text(
-            json.dumps(story_data, ensure_ascii=False, indent=2),
-            encoding="utf-8",
-        )
-
-        # Step 1.5: Start background image generation
+        # Phase 3: Background image generation (5 points)
         image_url = None
         async def background_image_gen():
             nonlocal image_url
             try:
+                # We don't increment points here because it's background, 
+                # but we'll reserve the 5 points for when it finishes or we wait.
                 image_path = story_dir / "cover.png"
-                logger.info(f"DEBUG [{story_id}]: Calling generate_story_image. Path: {image_path}, Key present: {bool(settings.GEMINI_API_KEY)}")
                 res = await generate_story_image(story_data.get("synopsis", ""), image_path, genre=genre, style=style)
-                if not res:
-                    logger.warning(f"DEBUG [{story_id}]: generate_story_image returned None (RAI or Quota?)")
                 if res:
                     image_url = f"{settings.BASE_URL}/api/stories/{story_id}/image.png"
-                    logger.info(f"Image generated successfully in background for {story_id}")
-                    # Generate thumbnail for faster loading in archive/player
                     try:
                         await _generate_thumbnail(image_path, story_dir / "cover_thumb.jpg")
-                    except Exception as te:
-                        logger.warning(f"Thumbnail generation failed for {story_id}: {te}")
+                    except: pass
             except Exception as e:
-                import traceback
-                error_trace = traceback.format_exc()
-                logger.error(f"CRITICAL: Background image gen failed for {story_id}: {e}\n{error_trace}")
+                logger.error(f"Image gen failed: {e}")
 
-        logger.info(f"BENCHMARK [{story_id}]: Spawning background image generation task")
         image_task = asyncio.create_task(background_image_gen())
 
-        if voice_key == "none":
-            logger.info(f"BENCHMARK [{story_id}]: Skipping TTS and Merge (Text-only requested)")
-            await on_progress_with_title("done", "Geschichte fertig (nur Text)!", 100)
-            
-            # Wait for image task before finishing
-            await image_task
-            
-            # Calculate word/chapter counts for text-only
-            total_text = "\n".join([c["text"] for c in story_data["chapters"]])
-            word_count = len(total_text.split())
-            chapter_count = len(story_data["chapters"])
+        # Save text
+        text_path = story_dir / "story.json"
+        text_path.write_text(json.dumps(story_data, ensure_ascii=False, indent=2), encoding="utf-8")
 
-            # Final update for text-only
+        if voice_key == "none":
+            # Phase 3: Wait for image
+            await on_progress("generating_image", "Bild generieren", points=5)
+            await image_task
+            await on_progress("done", "Fertig!", points=total_points, is_absolute_points=True)
+            
+            total_text = "\n".join([c["text"] for c in story_data["chapters"]])
             curr = store.get_by_id(story_id)
             if curr:
                 curr.title = real_title
                 curr.status = "done"
-                curr.progress = "Fertig! (Kein Audio)"
+                curr.progress = "Fertig!"
                 curr.progress_pct = 100
-                curr.voice_key = "none"
-                curr.voice_name = "Nur Text"
-                curr.image_url = image_url  # Now it's populated
-                curr.word_count = word_count
-                curr.chapter_count = chapter_count
-                curr.updated_at = datetime.now(timezone.utc)
+                curr.image_url = image_url
+                curr.word_count = len(total_text.split())
+                curr.chapter_count = real_num_chapters
                 store.add_story(curr)
             return
 
-        # Step 2: TTS – chapters to audio
-        await on_progress_with_title("generating_audio", "Bereite Vertonung vor...", 30)
-        start_time_tts = time.time()
+        # Phase 4: Vertonung (10 Points per Chapter)
+        # First, ensure image points are recorded (we don't wait for it yet, but it's part of the count)
+        await on_progress("generating_image", "Bild generieren", points=5)
+        
+        # We need to update chapters_to_audio to use points
+        completed_audio_chapters = 0
+        async def tts_progress_wrapper(stype, msg, pct=None):
+            nonlocal completed_audio_chapters
+            if stype == "tts_chapter_done":
+                completed_audio_chapters += 1
+                # Add 10 points per chapter
+                await on_progress("generating_audio", "Vertonung", points=5 + (10 * real_num_chapters) + 5 + (10 * completed_audio_chapters), is_absolute_points=True)
+            else:
+                await on_progress("generating_audio", "Vertonung")
+
         chunks_dir = story_dir / "chunks"
         audio_files, actual_voice = await chapters_to_audio(
             chapters=story_data["chapters"],
             output_dir=chunks_dir,
             voice_key=voice_key,
             rate=speech_rate,
-            on_progress=on_progress_with_title,
+            on_progress=tts_progress_wrapper,
         )
-        end_time_tts = time.time()
-        logger.info(f"BENCHMARK [{story_id}]: TTS Generation (All Chapters) took {end_time_tts - start_time_tts:.2f} seconds")
 
-        # Step 2.5: Generate title audio
-        await on_progress_with_title("generating_audio", "Vertone Titel...", 80)
+        # Phase 5: Finalisierung (10 points)
+        await on_progress("processing", "Finalisierung", points=total_points - 10, is_absolute_points=True)
+        
         title_tts_path = chunks_dir / "title.mp3"
-        await generate_tts_chunk(
-            text=story_data["title"],
-            output_path=title_tts_path,
-            voice_key=actual_voice,
-            rate=speech_rate,
-            is_title=True
-        )
+        await generate_tts_chunk(story_data["title"], title_tts_path, voice_key=actual_voice, rate=speech_rate, is_title=True)
 
-        # Step 4: Merge and Post-process
-        await on_progress_with_title("processing", "Mische Audio-Spuren und optimiere Klang...", 85)
-        start_time_merge = time.time()
         final_audio_path = story_dir / "story.mp3"
         await merge_audio_files(
             audio_files=audio_files,
@@ -577,45 +609,27 @@ async def _run_pipeline(
             outro_path=settings.OUTRO_MUSIC_PATH,
             title_path=title_tts_path,
         )
-        end_time_merge = time.time()
-        logger.info(f"BENCHMARK [{story_id}]: Audio Manipulation & Merging took {end_time_merge - start_time_merge:.2f} seconds")
 
-        # Step 5: Get Final Duration
         duration = await get_audio_duration(final_audio_path)
-
-        # Step 3.5: Wait for background image generation if not finished
-        start_time_img_wait = time.time()
         await image_task
-        end_time_img_wait = time.time()
-        logger.info(f"BENCHMARK [{story_id}]: Waiting for background Image Generation to finish took {end_time_img_wait - start_time_img_wait:.2f} seconds")
 
-        # Calculate word count
+        # Phase 6: Done
+        await on_progress("done", "Fertig!", points=total_points, is_absolute_points=True)
+
         total_text = "\n".join([c["text"] for c in story_data["chapters"]])
-        word_count = len(total_text.split())
-
-        # Resolve actual voice name for metadata update
-        actual_voice_name = "Unbekannt"
-        for v in all_voices:
-            if v["key"] == actual_voice:
-                actual_voice_name = v["name"]
-                break
-
-        # Step 4: Finalize metadata
         story_meta = store.get_by_id(story_id)
         if story_meta:
-            story_meta.title = story_data["title"]
+            story_meta.title = real_title
             story_meta.description = story_data.get("synopsis", story_meta.description)
             story_meta.duration_seconds = duration
-            story_meta.chapter_count = len(story_data["chapters"])
-            story_meta.word_count = word_count
+            story_meta.chapter_count = real_num_chapters
+            story_meta.word_count = len(total_text.split())
             story_meta.image_url = image_url
-            story_meta.voice_key = actual_voice
-            story_meta.voice_name = actual_voice_name
             story_meta.status = "done"
-            story_meta.progress = "Fertig! Geschichte bereit zum Anhören."
+            story_meta.progress = "Fertig!"
             story_meta.progress_pct = 100
-            story_meta.updated_at = datetime.now(timezone.utc)
             store.add_story(story_meta)
+
             
         logger.info(f"BENCHMARK [{story_id}]: Total Pipeline Finished in {time.time() - start_time_total:.2f} seconds")
 

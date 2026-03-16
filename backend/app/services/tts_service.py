@@ -568,7 +568,8 @@ async def chapters_to_audio(
     async def run_with_semaphore(i: int, ch: dict):
         async with semaphore:
             await process_chapter(i, ch)
-            
-    await asyncio.gather(*(run_with_semaphore(i, ch) for i, ch in enumerate(chapters)))
+            if on_progress:
+                # Signal that this specific chapter is done
+                await on_progress("tts_chapter_done", f"Kapitel {i+1} vertont")
 
     return audio_files, actual_voice

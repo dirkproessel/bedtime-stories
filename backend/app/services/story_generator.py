@@ -559,7 +559,7 @@ Antworte NUR im JSON-Format:
     for i, seg in enumerate(segments):
         if on_progress:
             pct = 5 + int((i / num_segments) * 25) # Up to 30%
-            await on_progress("generating_text", f"Schreibe Teil {i+1}/{num_segments}...", pct)
+            await on_progress("text_chapter_done", f"Teil {i+1}/{num_segments} geschrieben", pct)
             
         # Context is just the end of the previous chapter to maintain continuity
         context = f"Ende des vorherigen Kapitels: {full_chapters[-1]['text'][-1000:]}" if full_chapters else "Dies ist der Beginn der Geschichte."

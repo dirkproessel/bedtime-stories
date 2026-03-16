@@ -275,25 +275,33 @@ export default function StoryArchive() {
                                     {/* Title & Top Metadata */}
                                     <div className="flex flex-col gap-1.5">
                                         <div className="flex items-center gap-2">
-                                            <h3 className="font-serif text-xl font-semibold text-text group-hover:text-primary transition-colors leading-tight cursor-pointer" onClick={() => story.status === 'done' && handlePlay(story.id)}>
-                                                {story.title}
-                                            </h3>
+                                            {story.status === 'generating' && (!story.title || story.title.includes('Schreibe') || story.title.includes('Fortsetzung')) ? (
+                                                <div className="font-serif text-xl font-semibold text-primary/60 animate-pulse flex gap-[1px]">
+                                                    {"LABORATORY".split("").map((char, i) => (
+                                                        <span key={i} className="inline-block animate-bounce" style={{ animationDelay: `${i * 100}ms`, animationDuration: '2s' }}>
+                                                            {char}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <h3 className="font-serif text-xl font-semibold text-text group-hover:text-primary transition-colors leading-tight cursor-pointer" onClick={() => story.status === 'done' && handlePlay(story.id)}>
+                                                    {story.title}
+                                                </h3>
+                                            )}
                                         </div>
                                         
-                                        {story.status === 'done' && (
-                                            <div className="flex gap-6 mb-1">
-                                                <div className="flex flex-col">
-                                                    <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-slate-500 mb-0.5">Genre</span>
-                                                    <span className="text-xs text-slate-300 font-bold">{story.genre || '—'}</span>
-                                                </div>
-                                                <div className="flex flex-col flex-1 min-w-0">
-                                                    <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-slate-500 mb-0.5">Stil</span>
-                                                    <span className="text-xs text-slate-300 font-medium">
-                                                        {story.style.split(',').map(id => authorName(id.trim())).join(', ')}
-                                                    </span>
-                                                </div>
+                                        <div className="flex gap-6 mb-1">
+                                            <div className="flex flex-col">
+                                                <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-slate-500 mb-0.5">Genre</span>
+                                                <span className="text-xs text-slate-300 font-bold">{story.genre || '—'}</span>
                                             </div>
-                                        )}
+                                            <div className="flex flex-col flex-1 min-w-0">
+                                                <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-slate-500 mb-0.5">Stil</span>
+                                                <span className="text-xs text-slate-300 font-medium">
+                                                    {story.style.split(',').map(id => authorName(id.trim())).join(', ')}
+                                                </span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -302,9 +310,9 @@ export default function StoryArchive() {
                             {story.status === 'generating' ? (
                                 <div className="mt-4 space-y-2 w-full">
                                     <div className="flex justify-between items-end">
-                                        <div className="flex items-center gap-2 text-primary text-xs font-semibold animate-pulse">
+                                        <div className="flex items-center gap-2 text-primary text-xs font-semibold">
                                             <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                            {story.progress || 'Wird erstellt...'}
+                                            {story.progress || 'Planung...'}
                                         </div>
                                         <span className="text-[10px] font-bold text-primary bg-accent/20 px-1.5 py-0.5 rounded-md">
                                             {story.progress_pct || 0}%
@@ -312,7 +320,7 @@ export default function StoryArchive() {
                                     </div>
                                     <div className="w-full h-1.5 bg-accent/20 rounded-full overflow-hidden border border-primary/20">
                                         <div
-                                            className="h-full bg-primary transition-all duration-500 ease-out"
+                                            className="h-full bg-primary transition-all duration-1000 ease-out"
                                             style={{ width: `${story.progress_pct || 0}%` }}
                                         />
                                     </div>
