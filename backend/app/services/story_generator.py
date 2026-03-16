@@ -335,10 +335,11 @@ Kontext:
 - Logik [{selected_hook['typ']}]: {selected_hook['logik']}
 
 Regeln:
-- NICHT lyrisch oder ausschweifend.
-- Einfache, direkte Sprache (Stichworte oder kurze Sätze).
-- WICHTIG: Antworte entweder mit 3-5 kurzen Stichpunkten ODER einem prägnanten Satz (max. 25 Wörter).
-- Kein 'Show, don't tell' – liefere einfach nur das faktische Szenario ohne unnötige Metaphern.
+- Antworte ausschließlich mit 3-5 kurzen Stichpunkten.
+- Nutze nur Substantive und Verben. 
+- Meide Adjektive (z.B. statt 'zugiger Bahnsteig' nur 'Bahnsteig').
+- Max. 60 Wörter, um sicherzustellen, dass kein Satz abgebrochen wird.
+- Fokus: Die nackten Fakten des Szenarios.
 """
     try:
         if not rate_limiter.has_daily_quota("text"):
@@ -414,8 +415,8 @@ async def _generate_single_pass(
     """Original single-pass logic for shorter stories with improved JSON cleanup."""
     selected_style_info = generate_modular_prompt(style)
     genre_data = GENRES_BIBLIOTHEK.get(genre, GENRES_BIBLIOTHEK["Abenteuer"])
-    # 120 words per minute is a safe target for natural prosody with subordinate clauses
-    word_count = target_minutes * 120
+    # 150 words per minute is a better target for a richer story without being too dense
+    word_count = target_minutes * 150
     char_text = f"\nHauptcharaktere: {', '.join(characters)}" if characters else ""
     user_hook = prompt
 
@@ -548,8 +549,8 @@ WICHTIGE REGELN FÜR DIESEN MODUS:
         parent_title = parent_text.get("title", "Die erste Geschichte")
         remix_context = f"\n\nDIES IST EINE FORTSETZUNG (SEQUEL) ZU:\nTitel: {parent_title}\nZusammenfassung von Teil 1: {parent_synopsis}\n\nANWEISUNGEN FÜR DIE FORTSETZUNG:\n{further_instructions or 'Erzähle die Geschichte weiter.'}"
 
-    # Target total words. 120 WPM is better for natural rhythm and prosody.
-    total_words = target_minutes * 120
+    # Target total words. 150 WPM allows for a more detailed story.
+    total_words = target_minutes * 150
     
     # Enforce strictly 5-minute chapters (650 words each).
     # 10 min = 2 chapters, 15 min = 3 chapters, 20 min = 4 chapters
