@@ -23,6 +23,10 @@ const GENRES = [
     { value: 'Roadtrip', label: 'Roadtrip', desc: 'Unterwegs, Begegnungen, Umwege' },
     { value: 'Gute Nacht', label: 'Gute Nacht', desc: 'Sanft, ruhig, zum Einschlafen' },
     { value: 'Fabel', label: 'Fabel', desc: 'Tiere, Moral, Lebensweisheit' },
+    { value: 'Modern Romanze', label: 'Modern Romanze', desc: 'Urban, prickelnd, witzig' },
+    { value: 'Sinnliche Romanze', label: 'Sinnliche Romanze', desc: 'Gefühlvoll, leise, knisternd' },
+    { value: 'Erotik', label: 'Erotik', desc: 'Ästhetisch, leidenschaftlich, intensiv' },
+    { value: 'Dark Romance', label: 'Dark Romance', desc: 'Verboten, intensiv, Machtspiele' },
 ];
 
 

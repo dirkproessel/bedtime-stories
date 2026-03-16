@@ -130,6 +130,34 @@ STANZWERK_BIBLIOTHEK = {
             "wortwahl": "Karg, substantivlastig, fast keine Adjektive",
             "atmosphaere": "Stoisch, unterkühlt, emotional beherrscht",
             "erzaehlweise": "Kurze Sätze, Eisberg-Modell (das Wichtigste steht zwischen den Zeilen)"
+        },
+        {
+            "id": "rooney",
+            "name": "Sally Rooney",
+            "wortwahl": "Schlicht, präzise, schmucklos",
+            "atmosphaere": "Melancholisch, modern-urban",
+            "erzaehlweise": "Fokus auf das Ungesagte, innerer Monolog"
+        },
+        {
+            "id": "nin",
+            "name": "Anaïs Nin",
+            "wortwahl": "Bildreich, metaphorisch, lyrisch",
+            "atmosphaere": "Intim, berauschend sinnlich, traumgleich",
+            "erzaehlweise": "Tiefenpsychologisch erkundend, subjektiv"
+        },
+        {
+            "id": "miller",
+            "name": "Henry Miller",
+            "wortwahl": "Vital, derb, ungeschönt",
+            "atmosphaere": "Existenzialistisch, energetisch, ungebändigt",
+            "erzaehlweise": "Ausschweifend, respektlos gegenüber Konventionen"
+        },
+        {
+            "id": "rice",
+            "name": "Anne Rice",
+            "wortwahl": "Barock, reich an Adjektiven, opulent",
+            "atmosphaere": "Gotisch, dekadent, prächtig-düster",
+            "erzaehlweise": "Ausufernd beschreibend, hochemotional"
         }
     ],
     "kids": [
@@ -198,7 +226,11 @@ GENRES_BIBLIOTHEK = {
     "Mythologie": {"name": "Mythologie", "ziel": "Kosmische Ordnung erklären", "tropen": "Göttliche Intervention, Hybris als Motor, das Orakel, Sterblicher vs. Unsterblicher, Metamorphose als Auflösung"},
     "Roadtrip": {"name": "Roadtrip", "ziel": "Sich selbst (wieder)finden", "tropen": "Der unfreiwillige Begleiter, Orte als Charaktere, das Gespräch im Auto, die unerwartete Abzweigung, Ankommen als Metapher"},
     "Gute Nacht": {"name": "Gute Nacht", "ziel": "Zur Ruhe kommen, sicher ankommen", "tropen": "Langsames Tempo, sinkende Energie-Kurve, beruhigende Wiederholungen, warme Bilder (Licht, Wärme, Stille), offenes Ende ohne Auflösungsdruck"},
-    "Fabel": {"name": "Fabel", "ziel": "Eine Lebensweisheit illustrieren", "tropen": "Tierprotagonisten mit menschlichen Eigenschaften, die Moral am Ende, klare Gut/Falsch-Zuordnung, einfache Sprache, zeitlose Schauplätze (Wald, Dorf, Marktplatz)"}
+    "Fabel": {"name": "Fabel", "ziel": "Eine Lebensweisheit illustrieren", "tropen": "Tierprotagonisten mit menschlichen Eigenschaften, die Moral am Ende, klare Gut/Falsch-Zuordnung, einfache Sprache, zeitlose Schauplätze (Wald, Dorf, Marktplatz)"},
+    "Modern Romanze": {"name": "Modern Romanze", "ziel": "Romantische Spannung in einem modernen urbanen Umfeld aufbauen", "tropen": "Schlagfertige Dialoge (Banter), Großstadt-Kulisse, Zufallsbegegnungen, moderne Dating-Dilemmata, Humor und Herzklopfen"},
+    "Sinnliche Romanze": {"name": "Sinnliche Romanze", "ziel": "Emotionale und physische Annäherung (Slow Burn)", "tropen": "Intensive Blicke, zufällige Berührungen, knisternde Stille, Herzklopfen, romantisches Setting, ungesagte Wünsche"},
+    "Erotik": {"name": "Erotik", "ziel": "Erkundung von Verlangen und körperlicher Leidenschaft", "tropen": "Sinnliche Details, physische Spannung, Spiel mit Verführung, Entdeckung des Körpers, ästhetische Beschreibungen, Hingabe"},
+    "Dark Romance": {"name": "Dark Romance", "ziel": "Überwindung von Grenzen und Tabus in einer moralisch grauen Welt", "tropen": "Dominanz und Hingabe, verbotenes Verlangen, düstere Verführung, emotionale Extreme, Spiel mit dem Feuer, komplexe Machtdynamiken"}
 }
 
 async def generate_story_hook(genre: str, author_id: str) -> str:

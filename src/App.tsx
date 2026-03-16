@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useStore } from './store/useStore';
-import { PenTool, BookOpen, User, Feather, Compass } from 'lucide-react';
+import { PenTool, BookOpen, User, Compass } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
 import StoryCreator from './components/StoryCreator';
 import StoryArchive from './components/StoryArchive';
@@ -133,9 +133,9 @@ function App() {
       <div className="min-h-screen bg-[#F8F9FA] flex flex-col items-center justify-center w-full gap-8">
         <div className="relative">
           <div className="w-24 h-24 rounded-full border border-slate-100 flex items-center justify-center bg-white shadow-sm animate-pulse">
-            <Feather className="w-10 h-10 text-[#2D5A4C]" />
+            <img src="/logo.png" alt="Logo" className="w-16 h-16 object-contain" />
           </div>
-          <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-[#2D5A4C] rounded-full border-4 border-[#F8F9FA]" />
+          <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-[#22C55E] rounded-full border-4 border-[#F8F9FA]" />
         </div>
         <div className="flex flex-col items-center gap-3">
           <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-slate-400 font-medium tracking-widest">Labor wird vorbereitet</span>
@@ -166,7 +166,7 @@ function App() {
       {/* Global Brand Header */}
       <header className="pt-8 px-6 pb-4 max-w-2xl mx-auto w-full flex flex-row items-center justify-center gap-4 text-left">
         <div className="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center shrink-0 shadow-xl shadow-primary/20">
-          <Feather className="w-7 h-7 text-white" />
+          <img src="/logo.png" alt="Logo" className="w-10 h-10 object-contain" />
         </div>
         <div className="flex flex-col">
           <h2 className="text-2xl font-bold text-text mb-0.5 font-serif">Kurzgeschichten-Labor</h2>

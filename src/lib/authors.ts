@@ -29,6 +29,10 @@ export const AUTHORS: Author[] = [
     { id: 'christie', name: 'Agatha Christie', desc: 'Sachlich, Analytisch, Rätselhaft.' },
     { id: 'king', name: 'Stephen King', desc: 'Detailreich, Volksnah, Unheimlich.' },
     { id: 'hemingway', name: 'Ernest Hemingway', desc: 'Karg, Trocken, Präzise.' },
+    { id: 'rooney', name: 'Sally Rooney', desc: 'Modern, analytisch, intim.' },
+    { id: 'nin', name: 'Anaïs Nin', desc: 'Sinnlich, poetisch, traumgleich.' },
+    { id: 'miller', name: 'Henry Miller', desc: 'Rau, direkt, ausschweifend.' },
+    { id: 'rice', name: 'Anne Rice', desc: 'Opulent, düster, hochemotional.' },
 ];
 
 /** Returns the display name for an author ID, falling back to the ID itself. */
