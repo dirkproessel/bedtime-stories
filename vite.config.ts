@@ -15,8 +15,8 @@ export default defineConfig({
         name: 'storyja',
         short_name: 'storyja',
         description: 'Anspruchsvolle Kurzgeschichten für Kinder und Erwachsene',
-        theme_color: '#2D5A4C',
-        background_color: '#020617',
+        theme_color: '#0B1215',
+        background_color: '#0B1215',
         display: 'standalone',
         start_url: '/',
         icons: [

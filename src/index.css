@@ -21,6 +21,7 @@
     color: var(--color-text);
     font-family: var(--font-inter);
     -webkit-font-smoothing: antialiased;
+    -webkit-text-size-adjust: 100%;
     overscroll-behavior-y: none;
     min-height: 100vh;
   }
@@ -70,5 +71,12 @@
     text-transform: uppercase;
     letter-spacing: 0.15em;
     font-weight: 500;
+  }
+
+  .story-text {
+    /* Clamps font size: Min 17px, Preferred 4.5vw, Max 22px */
+    /* Scales with system font size but stays within reasonable bounds on small screens */
+    font-size: clamp(1.0625rem, 4.5vw, 1.375rem);
+    line-height: 1.7;
   }
 }

@@ -97,7 +97,7 @@ export default function ReaderLayer() {
                                 {story.chapters && story.chapters.length > 0 ? (
                                     story.chapters.map((ch, idx) => (
                                         <div key={idx} className="space-y-4">
-                                            <p className="text-lg text-slate-300 leading-relaxed font-serif whitespace-pre-line">
+                                            <p className="story-text text-slate-300 font-serif whitespace-pre-line">
                                                 {ch.text}
                                             </p>
                                         </div>
