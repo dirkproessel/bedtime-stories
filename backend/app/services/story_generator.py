@@ -335,7 +335,8 @@ async def generate_story_hook(genre: str, author_id: str, user_input: str | None
     prompt = f"""Du bist ein kreativer Ideengeber für Kurzgeschichten. Generiere einen vollständigen Hook für eine Kurzgeschichte im Genre {genre}. {context_str}
 
 REGELN:
-- Nutze exakt 2-3 Sätze.
+- Nutze exakt 2-3 KURZE Sätze.
+- In Summe maximal 50-60 Wörter.
 - Beende JEDEN Satz vollständig mit Punkt, Ausrufezeichen oder Fragezeichen.
 - KEINE abgebrochenen Sätze.
 - Keine Einleitung, kein Gelaber, nur der Hook. 
@@ -359,7 +360,7 @@ DEIN HOOK:"""
             contents=prompt,
             config={
                 "temperature": 0.9,
-                "max_output_tokens": 1500,
+                "max_output_tokens": 2000,
             }
         )
         rate_limiter.increment_daily_quota("text")
