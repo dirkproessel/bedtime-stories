@@ -29,14 +29,14 @@ def generate_rss_feed(
     # Feed metadata
     fg.title("Kurzgeschichten-Labor")
     fg.link(href=base_url, rel="alternate")
-    desc = "Hier werden Geschichten nicht geschrieben, sie werden gestanzt. Das Labor für anspruchsvolle Literatur kombiniert die DNA von vielen Meister-Autoren. Präzise geformt, individuell veredelt und garantiert ohne Einheitsbrei."
+    desc = "Storyja.com – Literatur auf Knopfdruck. Wir verwandeln deine Ideen in Sekunden in individuell generierte Kurzgeschichten. Von messerscharfer Satire bis zum tiefgründigen Drama: Erlebe im Kurzgeschichten-Labor, wie KI die Kunst des Erzählens neu definiert."
     fg.description(desc)
     fg.language("de-DE")
     
     fg.podcast.itunes_category("Fiction", "Short Stories")
     fg.podcast.itunes_category("Kids & Family", "Stories for Kids")
     
-    fg.podcast.itunes_author("Stanzwerk")
+    fg.podcast.itunes_author("storyja.com (Deine Idee. Unsere Feder. Literatur in Echtzeit.)")
     fg.podcast.itunes_explicit("no")
     fg.podcast.itunes_summary(desc)
 
@@ -45,7 +45,7 @@ def generate_rss_feed(
         fg.podcast.itunes_image(image_url)
 
     if email:
-        fg.podcast.itunes_owner(name="Stanzwerk", email=email)
+        fg.podcast.itunes_owner(name="storyja.com", email=email)
 
     # Add episodes (newest first)
     for s in stories:
