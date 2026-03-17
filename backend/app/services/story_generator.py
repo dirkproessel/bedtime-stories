@@ -316,11 +316,17 @@ GENRE_HOOKS_LIBRARY = {
 }
 
 async def generate_story_hook(genre: str, author_id: str, user_input: str | None = None) -> str:
-    """Generate a story hook using a simple, creative prompt and few-shot examples."""
+    """Generate a story hook using a multi-example few-shot prompt."""
     
-    # ... (old logic comments omitted for brevity) ...
-
-    example_hook = GENRE_HOOKS_LIBRARY.get(genre, GENRE_HOOKS_LIBRARY["Abenteuer"])
+    import random
+    
+    # 1. Get genre-specific example
+    genre_example = GENRE_HOOKS_LIBRARY.get(genre, GENRE_HOOKS_LIBRARY["Abenteuer"])
+    
+    # 2. Get 2 random examples for variety (few-shot)
+    other_genres = [g for g in GENRE_HOOKS_LIBRARY.keys() if g != genre]
+    random_genres = random.sample(other_genres, 2)
+    random_examples = [GENRE_HOOKS_LIBRARY[g] for g in random_genres]
 
     context_str = ""
     if user_input and user_input.strip():
@@ -330,13 +336,17 @@ async def generate_story_hook(genre: str, author_id: str, user_input: str | None
 
 REGELN:
 - Nutze exakt 2-3 Sätze.
-- Beende JEDEN Satz vollständig.
+- Beende JEDEN Satz vollständig mit Punkt, Ausrufezeichen oder Fragezeichen.
+- KEINE abgebrochenen Sätze.
 - Keine Einleitung, kein Gelaber, nur der Hook. 
 - Stil: Hochwertig, überraschend, klischeefrei.
 
-BEISPIEL FÜR EINEN GUTEN HOOK (Genre {genre}):
-"{example_hook}"
-"""
+BEISPIELE FÜR DIE GEWÜNSCHTE QUALITÄT UND STRUKTUR:
+1. (Genre {random_genres[0]}): "{random_examples[0]}"
+2. (Genre {random_genres[1]}): "{random_examples[1]}"
+3. (Genre {genre} - ZIELVORGABE): "{genre_example}"
+
+DEIN HOOK:"""
 
     try:
         if not rate_limiter.has_daily_quota("text"):
@@ -349,20 +359,16 @@ BEISPIEL FÜR EINEN GUTEN HOOK (Genre {genre}):
             contents=prompt,
             config={
                 "temperature": 0.9,
-                "max_output_tokens": 1000,
+                "max_output_tokens": 1500,
             }
         )
         rate_limiter.increment_daily_quota("text")
         hook_text = response.text.strip().strip('"').strip("'")
         
-        # Cleanup: Ensure we don't have truncated sentences at the end
-        if not hook_text.endswith(('.', '!', '?')):
-            # Find the last punctuation mark and cut there
-            last_punc = max(hook_text.rfind('.'), hook_text.rfind('!'), hook_text.rfind('?'))
-            if last_punc != -1:
-                hook_text = hook_text[:last_punc+1]
+        # Log full text for debugging
+        logger.info(f"GEN HOOK (raw): '{hook_text}'")
         
-        logger.info(f"GEN HOOK: '{hook_text}' (len: {len(hook_text)})")
+        # We stop doing aggressive trimming to see if the model can now finish its work
         return hook_text
     except Exception as e:
         import logging
