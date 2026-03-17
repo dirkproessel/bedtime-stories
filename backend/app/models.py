@@ -107,6 +107,7 @@ class HookRequest(BaseModel):
     """Request to generate a hook idea via the dice feature."""
     genre: str
     author_id: str
+    user_input: Optional[str] = None
 
 class KindleExportRequest(BaseModel):
     """Request to export a story to Kindle via email."""

@@ -366,7 +366,7 @@ async def start_free_generation(req: FreeTextRequest, current_user: User = Depen
 @app.post("/api/generate-hook", response_model=HookResponse)
 async def api_generate_hook(req: HookRequest):
     """Generate a quick surreal story idea hook based on genre and author."""
-    hook = await generate_story_hook(req.genre, req.author_id)
+    hook = await generate_story_hook(req.genre, req.author_id, user_input=req.user_input)
     return HookResponse(hook_text=hook)
 
 async def _run_pipeline(

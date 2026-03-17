@@ -304,11 +304,11 @@ export async function fetchPopularity(): Promise<PopularityData> {
     return res.json();
 }
 
-export async function generateHook(genre: string, authorId: string): Promise<string> {
+export async function generateHook(genre: string, authorId: string, userInput?: string): Promise<string> {
     const res = await fetch(`${API_BASE}/api/generate-hook`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ genre, author_id: authorId }),
+        body: JSON.stringify({ genre, author_id: authorId, user_input: userInput }),
     });
     if (!res.ok) throw new Error('Failed to generate hook');
     const data = await res.json();

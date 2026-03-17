@@ -153,25 +153,36 @@ export default function StoryCreator() {
 
         setIsRolling(true);
         try {
-            // Pick a random genre
-            const randomGenre = GENRES[Math.floor(Math.random() * GENRES.length)].value;
-            // Pick a random author from the full list
-            const randomAuthor = AUTHORS[Math.floor(Math.random() * AUTHORS.length)].id;
+            // Pick a random genre only if empty
+            let currentGenre = genre;
+            if (!currentGenre) {
+                currentGenre = GENRES[Math.floor(Math.random() * GENRES.length)].value;
+                setGenre(currentGenre);
+                
+                // Ensure visibility if hidden in the "further" section
+                const isVisible = sortedGenres.slice(0, BEST_OF_COUNT).some(g => g.value === currentGenre);
+                if (!isVisible) setShowAllGenres(true);
+            }
 
-            // Set UI Defaults
-            setGenre(randomGenre);
-            setSelectedAuthors([randomAuthor]);
-            setTargetMinutes(10);
-            setVoiceKey('seraphina');
-            setFreeText('Würfel eine fantastische Idee...');
+            // Pick a random author only if empty
+            let activeAuthors = selectedAuthors;
+            if (activeAuthors.length === 0) {
+                const randomAuthorId = AUTHORS[Math.floor(Math.random() * AUTHORS.length)].id;
+                activeAuthors = [randomAuthorId];
+                setSelectedAuthors(activeAuthors);
+                
+                // Ensure visibility if hidden in the "further" section
+                const isVisible = sortedAuthors.slice(0, BEST_OF_COUNT).some(a => a.id === randomAuthorId);
+                if (!isVisible) setShowAllAuthors(true);
+            }
 
-            // Fetch hook from LLM
-            const hook = await generateHook(randomGenre, randomAuthor);
+            // Fetch hook from LLM, passing existing text as context
+            const hook = await generateHook(currentGenre, activeAuthors[0], freeText.trim());
             setFreeText(hook);
 
         } catch (error) {
             console.error("Dice error:", error);
-            setFreeText("Fehler beim Würfeln. Bitte nochmal probieren.");
+            toast.error("Inspiration fehlgeschlagen. Bitte erneut versuchen.");
         } finally {
             setIsRolling(false);
         }

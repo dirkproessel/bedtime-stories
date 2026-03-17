@@ -128,10 +128,10 @@ export const useStore = create<AppState>((set, get) => {
     showAudioCompanion: false,
 
     generatorPrompt: '',
-    generatorGenre: 'Realismus',
+    generatorGenre: '',
     generatorAuthors: [],
-    generatorMinutes: 15,
-    generatorVoice: 'seraphina',
+    generatorMinutes: 10,
+    generatorVoice: 'none',
     generatorParentId: null,
     generatorRemixType: null,
     generatorContext: null,
