@@ -164,7 +164,7 @@ function App() {
   return (
     <div className="min-h-screen bg-background flex flex-col w-full relative overflow-hidden">
       {/* Global Brand Header */}
-      <header className="pt-4 px-4 pb-1 max-w-2xl mx-auto w-full flex flex-row items-center justify-center gap-3 sm:gap-5 text-left">
+      <header className="pt-2 px-4 pb-1 max-w-2xl mx-auto w-full flex flex-row items-center justify-center gap-3 sm:gap-5 text-left">
         <div className="shrink-0 mt-1">
           <img src="/logo.png" alt="Logo" className="w-18 h-18 sm:w-22 sm:h-22 object-contain" />
         </div>
@@ -177,7 +177,7 @@ function App() {
       </header>
 
       {/* Dynamic Page Title */}
-      <div className="px-6 pb-4 max-w-2xl mx-auto w-full text-center">
+      <div className="px-6 pb-2 max-w-2xl mx-auto w-full text-center">
         <h1 className="text-lg font-bold text-text-muted/80 font-serif italic">
           {activeView === 'create' && 'Erschaffe eine eigene Geschichte'}
           {activeView === 'library' && 'Meine Bibliothek'}
