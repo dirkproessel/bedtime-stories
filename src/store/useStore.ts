@@ -36,8 +36,10 @@ interface AppState {
     totalPublicStories: number;
     currArchivePage: number;
     archiveFilter: 'my' | 'all' | 'public';
+    hasMore: boolean;
     setArchiveFilter: (filter: 'my' | 'all' | 'public') => void;
-    loadStories: (page?: number, userId?: string) => Promise<void>;
+    loadStories: (page?: number, userId?: string, pageSize?: number) => Promise<void>;
+    loadMoreStories: (userId?: string, pageSize?: number) => Promise<void>;
 
     // Generation
     startGeneration: (req: StoryRequest) => Promise<void>;
@@ -113,6 +115,7 @@ export const useStore = create<AppState>((set, get) => {
     totalMyStories: 0,
     totalPublicStories: 0,
     currArchivePage: 1,
+    hasMore: true,
     archiveFilter: 'my',
     setArchiveFilter: (filter) => set({ archiveFilter: filter }),
     activeView: 'create',
@@ -223,17 +226,45 @@ export const useStore = create<AppState>((set, get) => {
         }
     },
 
-    loadStories: async (page = 1, userId?: string) => {
+    loadStories: async (page = 1, userId?: string, pageSize = 20) => {
         const { archiveFilter } = get();
         set({ isLoading: true });
         try {
             const { fetchStories } = await import('../lib/api');
-            const { stories, total, total_my, total_public } = await fetchStories(page, 30, archiveFilter, userId);
+            const { stories, total, total_my, total_public } = await fetchStories(page, pageSize, archiveFilter, userId);
             set({ 
                 stories, 
                 totalStories: total,
                 totalMyStories: total_my,
-                totalPublicStories: total_public
+                totalPublicStories: total_public,
+                currArchivePage: page,
+                hasMore: stories.length === pageSize && stories.length < (archiveFilter === 'my' ? total_my : archiveFilter === 'public' ? total_public : total)
+            });
+        } catch (e: any) {
+            set({ error: e.message });
+        } finally {
+            set({ isLoading: false });
+        }
+    },
+
+    loadMoreStories: async (userId?: string, pageSize = 20) => {
+        const { archiveFilter, currArchivePage, stories: existingStories, hasMore, isLoading } = get();
+        if (!hasMore || isLoading) return;
+
+        const nextPage = currArchivePage + 1;
+        set({ isLoading: true });
+        try {
+            const { fetchStories } = await import('../lib/api');
+            const { stories: newStories, total, total_my, total_public } = await fetchStories(nextPage, pageSize, archiveFilter, userId);
+            
+            const updatedStories = [...existingStories, ...newStories];
+            set({ 
+                stories: updatedStories,
+                totalStories: total,
+                totalMyStories: total_my,
+                totalPublicStories: total_public,
+                currArchivePage: nextPage,
+                hasMore: newStories.length === pageSize && updatedStories.length < (archiveFilter === 'my' ? total_my : archiveFilter === 'public' ? total_public : total)
             });
         } catch (e: any) {
             set({ error: e.message });

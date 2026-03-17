@@ -1,6 +1,6 @@
 import { useStore } from '../store/useStore';
 import { deleteStory, revoiceStory, getVoicePreviewUrl, exportStoryToKindle, getThumbUrl, regenerateStoryImage } from '../lib/api';
-import { Play, Trash2, BookOpen, Loader2, Mic, X, Venus, Mars, Users, Pause, Send, ChevronLeft, ChevronRight, Image as ImageIcon, RefreshCw, Sparkles, Settings2, MessageCircle, Timer, Wand2, Edit, Feather, User as UserIcon } from 'lucide-react';
+import { Play, Trash2, BookOpen, Loader2, Mic, X, Venus, Mars, Users, Pause, Send, Image as ImageIcon, RefreshCw, Sparkles, Settings2, MessageCircle, Timer, Wand2, Edit, Feather, User as UserIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useEffect, useState, useRef } from 'react';
 import ConfirmModal from './ConfirmModal';
@@ -14,11 +14,12 @@ export default function StoryArchive() {
         stories, loadStories, setActiveView, 
         toggleStoryVisibility, user, archiveFilter, setArchiveFilter,
         totalStories, totalMyStories, totalPublicStories,
-        currArchivePage, voices, revoiceStoryId, setRevoiceStoryId,
+        voices, revoiceStoryId, setRevoiceStoryId,
         updateStorySpotify, startGeneration,
         setGeneratorPrompt, setGeneratorGenre, setGeneratorAuthors,
         setGeneratorMinutes, setGeneratorVoice, setGeneratorRemix,
-        setReaderOpen
+        setReaderOpen,
+        loadMoreStories, hasMore, isLoading
     } = useStore();
     const [selectedVoice, setSelectedVoice] = useState('seraphina');
     const [confirmRevoice, setConfirmRevoice] = useState(false);
@@ -66,10 +67,24 @@ export default function StoryArchive() {
     }, [totalMyStories, totalPublicStories, totalStories, initialCheckDone, archiveFilter, loadStories, setArchiveFilter, user]);
 
 
-    const handlePageChange = (page: number) => {
-        loadStories(page);
-        document.getElementById('main-scroll-container')?.scrollTo({ top: 0, behavior: 'smooth' });
-    };
+    const observerTarget = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            entries => {
+                if (entries[0].isIntersecting && hasMore && !isLoading) {
+                    loadMoreStories();
+                }
+            },
+            { threshold: 0.1, rootMargin: '100px' }
+        );
+
+        if (observerTarget.current) {
+            observer.observe(observerTarget.current);
+        }
+
+        return () => observer.disconnect();
+    }, [hasMore, isLoading, loadMoreStories]);
 
 
     const formatDuration = (seconds: number | null) => {
@@ -439,30 +454,20 @@ export default function StoryArchive() {
                 </div>
             )}
 
-            {/* Pagination Controls */}
-            {totalStories > 30 && (
-                <div className="mt-8 flex items-center justify-center gap-4">
-                    <button
-                        onClick={() => handlePageChange(currArchivePage - 1)}
-                        disabled={currArchivePage <= 1}
-                        className="p-2 rounded-xl border border-slate-200 text-slate-400 hover:text-[#2D5A4C] hover:border-[#D1FAE5] disabled:opacity-30 disabled:hover:text-slate-400 disabled:hover:border-slate-200 transition-all"
-                    >
-                        <ChevronLeft className="w-5 h-5" />
-                    </button>
-                    
-                    <div className="text-sm font-semibold text-slate-500">
-                        Seite <span className="text-[#2D5A4C]">{currArchivePage}</span> von {Math.ceil(totalStories / 30)}
+            {/* Sentinel for Infinite Scroll */}
+            <div ref={observerTarget} className="h-20 flex items-center justify-center">
+                {isLoading && stories.length > 0 && (
+                    <div className="flex flex-col items-center gap-2 animate-in fade-in duration-300">
+                        <Loader2 className="w-6 h-6 text-primary animate-spin" />
+                        <span className="text-[10px] font-mono uppercase tracking-widest text-slate-500 font-bold">Lade mehr...</span>
                     </div>
-                    
-                    <button
-                        onClick={() => handlePageChange(currArchivePage + 1)}
-                        disabled={currArchivePage >= Math.ceil(totalStories / 30)}
-                        className="p-2 rounded-xl border border-slate-200 text-slate-400 hover:text-[#2D5A4C] hover:border-[#D1FAE5] disabled:opacity-30 disabled:hover:text-slate-400 disabled:hover:border-slate-200 transition-all"
-                    >
-                        <ChevronRight className="w-5 h-5" />
-                    </button>
-                </div>
-            )}
+                )}
+                {!hasMore && stories.length > 0 && archiveFilter !== 'my' && (
+                    <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-slate-700 font-bold">
+                        Dich erwarten bald neue Geschichten
+                    </div>
+                )}
+            </div>
 
             {/* Re-voice Modal */}
             {revoiceStoryId && (

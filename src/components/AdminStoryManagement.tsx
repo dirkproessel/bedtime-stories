@@ -2,7 +2,7 @@ import { useEffect, useMemo } from 'react';
 import { useStore } from '../store/useStore';
 import { Trash2, ExternalLink, Clock, User as UserIcon, Loader2, Music, X, BookOpen } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import ConfirmModal from './ConfirmModal';
 
 interface Props {
@@ -11,13 +11,35 @@ interface Props {
 }
 
 export default function AdminStoryManagement({ filterUserId, onClearFilter }: Props) {
-    const { stories, loadStories, deleteAdminStory, setReaderOpen, setRevoiceStoryId, isLoading, adminUsers } = useStore();
+    const { 
+        stories, loadStories, deleteAdminStory, setReaderOpen, setRevoiceStoryId, 
+        isLoading, adminUsers, loadMoreStories, hasMore 
+    } = useStore();
     const [deleteConfirm, setDeleteConfirm] = useState<{ id: string, title: string } | null>(null);
 
     useEffect(() => {
         // Load stories for specific user or all if filter is null
-        loadStories(1, filterUserId || undefined); 
+        loadStories(1, filterUserId || undefined, 20); 
     }, [loadStories, filterUserId]);
+
+    const observerTarget = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            entries => {
+                if (entries[0].isIntersecting && hasMore && !isLoading) {
+                    loadMoreStories(filterUserId || undefined, 20);
+                }
+            },
+            { threshold: 0.1, rootMargin: '100px' }
+        );
+
+        if (observerTarget.current) {
+            observer.observe(observerTarget.current);
+        }
+
+        return () => observer.disconnect();
+    }, [hasMore, isLoading, loadMoreStories, filterUserId]);
 
     const filteredUserName = useMemo(() => {
         if (!filterUserId) return null;
@@ -127,6 +149,21 @@ export default function AdminStoryManagement({ filterUserId, onClearFilter }: Pr
                     Keine Geschichten gefunden.
                 </div>
             )}
+
+            {/* Sentinel for Infinite Scroll */}
+            <div ref={observerTarget} className="h-20 flex items-center justify-center">
+                {isLoading && stories.length > 0 && (
+                    <div className="flex flex-col items-center gap-2 animate-in fade-in duration-300">
+                        <Loader2 className="w-6 h-6 text-emerald-500 animate-spin" />
+                        <span className="text-[10px] font-mono uppercase tracking-widest text-slate-500 font-bold">Lade mehr...</span>
+                    </div>
+                )}
+                {!hasMore && stories.length > 0 && (
+                    <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-slate-700 font-bold">
+                        Alle Geschichten geladen
+                    </div>
+                )}
+            </div>
 
             <ConfirmModal 
                 isOpen={!!deleteConfirm}
