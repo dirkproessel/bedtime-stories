@@ -292,8 +292,31 @@ HOOK_SETTINGS = [
     "Der Steg im Morgengrauen (Nebel, Holz, still)"
 ]
 
+GENRE_HOOKS_LIBRARY = {
+    "Krimi": "Im Tresor lag kein Gold, sondern ein warmer Apfelkuchen und ein Zettel: 'Du bist zu spät, Kommissar.'",
+    "Abenteuer": "Die Karte versprach den Pfad der Stille, doch das rhythmische Klopfen hinter uns war seit Stunden unser einziger Begleiter.",
+    "Science-Fiction": "Das Terminal zeigte das Datum 21. Juni 2024 an – den Tag, an dem mein Vater verschwand. Doch draußen bestanden die Ruinen nur noch aus ewigem Neonlicht.",
+    "Märchen": "Der Spiegel log nie, doch heute Morgen weigerte er sich, überhaupt ein Bild zu zeigen. Erst als die Prinzessin weinte, flüsterte er einen Namen, der im Königreich verboten war.",
+    "Komödie": "Der Toaster hatte heute Morgen schlechte Laune und weigerte sich, Brot zu rösten, es sei denn, man sang ihm die Nationalhymne vor. In meiner Unterwäsche stehend, begann ich die erste Strophe.",
+    "Thriller": "Fünf Minuten vor der Detonation stellte ich fest, dass der Entschärfungs-Code auf der Rückseite meines eigenen Ausweises stand. Dummerweise lag der Ausweis noch im Auto, das bereits auf dem Weg zur Schrottpresse war.",
+    "Drama": "Sie sah ihn an und wusste, dass dieser Abschied der letzte war. Nicht wegen des Koffers in seiner Hand, sondern wegen der Art, wie er den Blick nicht mehr vom Boden hob.",
+    "Grusel": "Das Kinderlachen kam eindeutig vom Dachboden – unmöglich in einem Haus, das seit fünfzig Jahren leer stand.",
+    "Fantasy": "Das Schwert leuchtete nicht blau bei Gefahr, sondern begann leise zu summen, wenn jemand eine Lüge aussprach. Als der König den Thron bestieg, füllte ein ohrenbetäubender Lärm den Saal.",
+    "Satire": "Das neue Ministerium für Effizienz hatte soeben beschlossen, das Atmen in ungeraden Minuten zu besteuern. Die Bürger klatschten Beifall, da die Steuererleichterung für das Ausatmen als historischer Sieg der Freiheit gefeiert wurde.",
+    "Dystopie": "In einer Welt ohne Farben war die rote Blume in ihrem Hinterhof ein Todesurteil. Sie hielt die Gießkanne fest und wartete auf das Signal der Drohnen.",
+    "Historisch": "Berlin, 1928: Der Rauch in der Bar war so dicht wie die Geheimnisse, die wir austauschten. Karl wusste, dass die Telegramme niemals ankommen durften, wenn wir den Morgen erleben wollten.",
+    "Mythologie": "Hermes hatte seine Sandalen verloren, und der Olymp war im Chaos versunken. Ohne seine Eilmeldungen wusste Zeus nicht einmal, welchen Sterblichen er heute mit einem Blitz treffen sollte.",
+    "Roadtrip": "Der alte Ford Mustang hatte mehr Rost als Lack, aber er war unsere einzige Chance, die Grenze vor Sonnenuntergang zu erreichen. Hinter uns wirbelte der Wüstenstaub alles auf, was wir jemals Zuhause genannt hatten.",
+    "Gute Nacht": "Der Mond deckte die Wiesen mit einem silbernen Tuch zu, und die Uhren im Haus verlangsamten ihren Takt. Alles, was blieb, war das leise Atmen des Waldes vor dem Fenster.",
+    "Fabel": "Der Fuchs erklärte dem Raben, dass Käse heutzutage völlig überbewertet sei und stattdessen Krypto-Währungen die Zukunft seien. Der Rabe, der noch nie ein Smartphone gesehen hatte, ließ vor lauter Verwirrung aber trotzdem seinen Bissen fallen.",
+    "Modern Romanze": "An der Kasse im Supermarkt berührten sich unsere Hände beim Griff nach der letzten Packung Bio-Kaffee. Er lächelte so charmant, dass ich fast vergaß, dass er mich gerade bei eBay Kleinanzeigen für meinen alten Schrank versetzt hatte.",
+    "Sinnliche Romanze": "Die Luft zwischen uns knisterte wie statische Elektrizität kurz vor einem Sommergewitter. Jede seiner Bewegungen war so langsam und bedacht, dass mein Herzschlag den Rhythmus seiner Schritte übernahm.",
+    "Erotik": "Sein Blick brannte auf meiner Haut, noch bevor seine Finger den Saum meines Kleides erreichten. Das Verlangen war kein Flüstern mehr, sondern ein forderndes Echo, das jeden vernünftigen Gedanken im Keim erstickte.",
+    "Dark Romance": "Er war mein Untergang und meine Rettung zugleich, ein Schatten, der mir die Freiheit stahl und mir zeigte, wie süß Gefangenschaft sein kann. Seine Liebe war kein Geschenk, sie war ein Besitzanspruch, den ich mit jedem Atemzug mehr genoss."
+}
+
 async def generate_story_hook(genre: str, author_id: str) -> str:
-    """Generate a story hook using a simple, creative prompt."""
+    """Generate a story hook using a simple, creative prompt and few-shot examples."""
     
     # Old logic commented out for reference/testing
     """
@@ -345,7 +368,18 @@ Regeln:
 \"\"\"
     """
 
-    prompt = f"""Du bist ein kreativer Ideengeber für Kurzgeschichten. Generiere einen Hook für eine Kurzgeschichte im Genre {genre}. Maximal 50 Wörter. Keine Einleitung, kein Gelaber, nur der Hook. Stil: Hochwertig, überraschend, klischeefrei."""
+    example_hook = GENRE_HOOKS_LIBRARY.get(genre, GENRE_HOOKS_LIBRARY["Abenteuer"])
+
+    prompt = f"""Du bist ein kreativer Ideengeber für Kurzgeschichten. Generiere einen Hook für eine Kurzgeschichte im Genre {genre}. 
+
+REGELN:
+- Nutze exakt 2-3 Sätze.
+- Keine Einleitung, kein Gelaber, nur der Hook. 
+- Stil: Hochwertig, überraschend, klischeefrei.
+
+BEISPIEL FÜR EINEN GUTEN HOOK (Genre {genre}):
+"{example_hook}"
+"""
 
     try:
         if not rate_limiter.has_daily_quota("text"):
@@ -357,8 +391,8 @@ Regeln:
             model=settings.GEMINI_TEXT_MODEL,
             contents=prompt,
             config={
-                "temperature": 0.8,
-                "max_output_tokens": 150,
+                "temperature": 0.9,
+                "max_output_tokens": 300,
             }
         )
         rate_limiter.increment_daily_quota("text")
