@@ -451,7 +451,7 @@ async def _run_pipeline(
     completed_points = 0
     real_num_chapters = estimated_chapters # updated once text is back
 
-    async def on_progress(status_type: str, message: str, points: int | None = None, is_absolute_points: bool = False):
+    async def on_progress(status_type: str, message: str, points: int | None = None, is_absolute_points: bool = False, **kwargs):
         nonlocal completed_points
         if points is not None:
             if is_absolute_points:
@@ -474,12 +474,23 @@ async def _run_pipeline(
         _generation_status[story_id]["progress"] = label
         _generation_status[story_id]["progress_pct"] = pct
         
+        if "title" in kwargs:
+            _generation_status[story_id]["title"] = kwargs["title"]
+        if "synopsis" in kwargs:
+            _generation_status[story_id]["synopsis"] = kwargs["synopsis"]
+
         # Also update persistent store
         curr = store.get_by_id(story_id)
         if curr:
             curr.status = "generating" if status_type != "done" and status_type != "error" else status_type
             curr.progress = label
             curr.progress_pct = pct
+            
+            if "title" in kwargs:
+                curr.title = kwargs["title"]
+            if "synopsis" in kwargs:
+                curr.description = kwargs["synopsis"]
+                
             curr.updated_at = datetime.now(timezone.utc)
             store.add_story(curr)
 
@@ -491,14 +502,17 @@ async def _run_pipeline(
 
         # Phase 2: Text Generation
         completed_text_chapters = 0
-        async def text_progress_wrapper(stype, msg, pct=None):
+        async def text_progress_wrapper(stype, msg, pct=None, **kwargs):
             nonlocal completed_text_chapters
             if stype == "text_chapter_done":
                 completed_text_chapters += 1
                 # Increment points: baseline 5 + (10 * chapters done)
-                await on_progress("generating_text", "Texterstellung", points=5 + (10 * completed_text_chapters), is_absolute_points=True)
+                await on_progress("generating_text", "Texterstellung", points=5 + (10 * completed_text_chapters), is_absolute_points=True, **kwargs)
+            elif stype == "outline_done":
+                # Report planning done + provide real title/synopsis
+                await on_progress("generating_text", "Texterstellung", points=5, is_absolute_points=True, **kwargs)
             else:
-                await on_progress("generating_text", "Texterstellung")
+                await on_progress("generating_text", "Texterstellung", **kwargs)
 
         story_data = await generate_full_story(
             prompt=prompt,

@@ -637,6 +637,9 @@ Antworte NUR im JSON-Format:
         title = outline_data.get("title", "Eine neue Geschichte")
         synopsis = outline_data.get("synopsis", "Kurzgeschichte")
         segments = outline_data.get("segments", [])
+
+        if on_progress:
+            await on_progress("outline_done", "Planung abgeschlossen", 5, title=title, synopsis=synopsis)
     except Exception as e:
         import logging
         logging.error(f"Multi-pass outline failure: {e}")
