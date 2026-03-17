@@ -293,7 +293,10 @@ HOOK_SETTINGS = [
 ]
 
 async def generate_story_hook(genre: str, author_id: str) -> str:
-    """Generate a single max 25-word story hook based on logic, roles and setting."""
+    """Generate a story hook using a simple, creative prompt."""
+    
+    # Old logic commented out for reference/testing
+    """
     import random
     
     # Existing author/genre data (mostly for frontend state in this context)
@@ -305,7 +308,7 @@ async def generate_story_hook(genre: str, author_id: str) -> str:
         {"typ": "Das falsche Detail", "logik": "An einem vertrauten Ort liegt ein Objekt, das dort absolut nicht hingehört."},
         {"typ": "Die verschwiegene Wahrheit", "logik": "Ein Gespräch über Belangloses maskiert eine tiefe, unsichtbare Spannung."},
         {"typ": "Die fatale Verwechslung", "logik": "Ein kleiner Griff ins falsche Regal löst eine unvorhersehbare Kette von Ereignissen aus."},
-        {"typ": "Das Familiengeheimnis", "logik": "Ein Erbstück entpuppt sich als Beweis für eine jahrzehntelange Lüge."},
+        {"typ": "Das Familiengeheimnis", "logik": "Ein Erbstück entpupts sich als Beweis für eine jahrzehntelange Lüge."},
         {"typ": "Der rätselhafte Fund", "logik": "In der eigenen Tasche findet sich ein Hinweis auf ein fremdes Leben."},
         {"typ": "Die plötzliche Erkenntnis", "logik": "Mitten im Smalltalk versteht er plötzlich die wahre Bedeutung eines alten Satzes."},
         {"typ": "Der unheimliche Zufall", "logik": "Zwei fremde Ereignisse scheinen auf beängstigende Weise verknüpft."},
@@ -326,7 +329,7 @@ async def generate_story_hook(genre: str, author_id: str) -> str:
     char_str = " und ".join(selected_persons)
     selected_setting = random.choice(HOOK_SETTINGS)
         
-    prompt = f"""Du bist ein Ideengeber für Kurzgeschichten.
+    prompt = f\"\"\"Du bist ein Ideengeber für Kurzgeschichten.
 Basierend auf der Logik, den Charakteren und dem Setting sollst du eine kurze, prägnante Inspiration liefern.
 
 Kontext:
@@ -339,7 +342,11 @@ Regeln:
 - Max. 50 Wörter, um sicherzustellen, dass kein Satz abgebrochen wird.
 - Fokus: Die nackten Fakten des Szenarios.
 - Sprachstil: Nüchtern und direkt. Keine Adjektive, keine Metaphern, keine künstliche Spannung.
-"""
+\"\"\"
+    """
+
+    prompt = f"""Du bist ein kreativer Ideengeber für Kurzgeschichten. Generiere einen Hook für eine Kurzgeschichte im Genre {genre}. Maximal 50 Wörter. Keine Einleitung, kein Gelaber, nur der Hook. Stil: Hochwertig, überraschend, klischeefrei."""
+
     try:
         if not rate_limiter.has_daily_quota("text"):
             return "Das Tageslimit für Geschichten ist leider erreicht. Bitte versuche es morgen wieder."
@@ -350,8 +357,8 @@ Regeln:
             model=settings.GEMINI_TEXT_MODEL,
             contents=prompt,
             config={
-                "temperature": 0.7,
-                "max_output_tokens": 1000,
+                "temperature": 0.8,
+                "max_output_tokens": 150,
             }
         )
         rate_limiter.increment_daily_quota("text")
