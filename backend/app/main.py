@@ -1098,6 +1098,26 @@ async def get_podcast_cover():
         raise HTTPException(status_code=404, detail="Cover not found")
     return FileResponse(cover_path, media_type="image/png")
 
+@app.get("/api/users/{user_id}/avatar.jpg")
+async def get_user_avatar(user_id: str):
+    """Serve the user's main profile picture."""
+    avatar_path = settings.AUDIO_OUTPUT_DIR / "avatars" / f"{user_id}.jpg"
+    if not avatar_path.exists():
+        raise HTTPException(status_code=404, detail="Avatar not found")
+    return FileResponse(avatar_path, media_type="image/jpeg")
+
+@app.get("/api/users/{user_id}/avatar_thumb.jpg")
+async def get_user_avatar_thumb(user_id: str):
+    """Serve the user's thumbnail profile picture."""
+    thumb_path = settings.AUDIO_OUTPUT_DIR / "avatars" / f"{user_id}_thumb.jpg"
+    if not thumb_path.exists():
+        # Fallback to main avatar if thumb is missing
+        avatar_path = settings.AUDIO_OUTPUT_DIR / "avatars" / f"{user_id}.jpg"
+        if avatar_path.exists():
+            return FileResponse(avatar_path, media_type="image/jpeg")
+        raise HTTPException(status_code=404, detail="Avatar not found")
+    return FileResponse(thumb_path, media_type="image/jpeg")
+
 
 @app.get("/api/feed.xml")
 @app.get("/api/feed-labor.xml")

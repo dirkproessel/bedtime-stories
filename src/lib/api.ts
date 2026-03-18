@@ -21,6 +21,7 @@ export interface User {
     is_admin: boolean;
     username: string;
     kindle_email?: string;
+    avatar_url?: string;
     created_at: string;
     story_count?: number;
 }
@@ -141,6 +142,22 @@ export async function updateUsername(username: string): Promise<any> {
         body: JSON.stringify({ username }),
     });
     if (!res.ok) throw new Error('Aktualisierung fehlgeschlagen');
+    return res.json();
+}
+
+export async function uploadProfilePicture(file: Blob): Promise<User> {
+    const formData = new FormData();
+    formData.append('file', file, 'avatar.jpg');
+
+    const res = await fetch(`${API_BASE}/api/auth/me/avatar`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: formData,
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Fehler beim Hochladen des Profilbilds');
+    }
     return res.json();
 }
 

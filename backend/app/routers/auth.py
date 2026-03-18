@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlmodel import Session, select
 from datetime import timedelta
@@ -164,3 +164,57 @@ def update_username(
     session.add(current_user)
     session.commit()
     return {"status": "success", "message": "Benutzername geändert."}
+
+
+@router.put("/me/avatar", response_model=UserResponse)
+async def update_avatar(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_active_user),
+    session: Session = Depends(get_session)
+):
+    """Upload or update profile picture."""
+    # Validate mime type
+    if not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="File must be an image type")
+
+    avatars_dir = settings.AUDIO_OUTPUT_DIR / "avatars"
+    avatars_dir.mkdir(parents=True, exist_ok=True)
+    
+    avatar_path = avatars_dir / f"{current_user.id}.jpg"
+    thumb_path = avatars_dir / f"{current_user.id}_thumb.jpg"
+    
+    try:
+        content = await file.read()
+        avatar_path.write_bytes(content)
+        
+        # use the existing generator utility or recreate here via to_thread
+        from PIL import Image
+        import asyncio
+        import io
+        
+        def process_image():
+            # load the image
+            with Image.open(io.BytesIO(content)) as img:
+                img = img.convert("RGB")
+                
+                # Make sure the main avatar is a reasonable size
+                img.thumbnail((512, 512), Image.LANCZOS)
+                img.save(avatar_path, "JPEG", quality=85, optimize=True)
+                
+                # Make the thumbnail
+                img.thumbnail((128, 128), Image.LANCZOS)
+                img.save(thumb_path, "JPEG", quality=80, optimize=True)
+        
+        await asyncio.to_thread(process_image)
+        
+        # update DB
+        current_user.avatar_url = f"{settings.BASE_URL}/api/users/{current_user.id}/avatar.jpg"
+        session.add(current_user)
+        session.commit()
+        session.refresh(current_user)
+        
+        return current_user
+        
+    except Exception as e:
+        logger.error(f"Failed to process avatar for {current_user.id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Fehler beim Verarbeiten des Profilbilds")

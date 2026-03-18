@@ -185,12 +185,20 @@ function App() {
                  useStore.getState().setReaderOpen(false);
              }
           }}
-          className="shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-surface border-2 border-slate-800 hover:border-slate-700 transition-colors shadow-sm"
+          className="shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-surface border-2 border-slate-800 hover:border-slate-700 transition-colors shadow-sm overflow-hidden"
         >
           {user ? (
-            <span className="text-sm font-bold text-slate-300 uppercase">
-              {user.email.charAt(0)}
-            </span>
+            user.avatar_url ? (
+              <img 
+                src={user.avatar_url.replace('.jpg', '_thumb.jpg') + "?t=" + Date.now()} 
+                alt="Avatar" 
+                className="w-full h-full object-cover" 
+              />
+            ) : (
+              <span className="text-sm font-bold text-slate-300 uppercase">
+                {user.email.charAt(0)}
+              </span>
+            )
           ) : (
             <User className="w-5 h-5 text-slate-400" />
           )}
@@ -279,7 +287,7 @@ function App() {
                   : 'text-slate-100 hover:text-white'
                   }`}
               >
-                <div className={`transition-transform duration-300 ${key === 'create' ? 'rotate-[135deg]' : ''}`}>
+                <div className={`transition-transform duration-300 ${key === 'create' ? '-rotate-90' : ''}`}>
                   <Icon className={`w-5 h-5 ${isActive ? 'stroke-[3]' : 'stroke-[2.5]'}`} />
                 </div>
                 <span className="text-[8px] font-mono uppercase tracking-[0.25em] font-medium">

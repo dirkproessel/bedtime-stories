@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useStore } from '../store/useStore';
-import { LogOut, Download, Mail, Check, Loader2, Radio, Copy, User, Shield } from 'lucide-react';
-import { updateKindleEmail, updateUsername } from '../lib/api';
+import { LogOut, Download, Mail, Check, Loader2, Radio, Copy, User, Shield, Camera } from 'lucide-react';
+import { updateKindleEmail, updateUsername, uploadProfilePicture } from '../lib/api';
 import toast from 'react-hot-toast';
+import ProfilePictureUpload from './ProfilePictureUpload';
 
 export default function AccountScreen() {
     const { user, logout } = useStore();
@@ -10,6 +11,7 @@ export default function AccountScreen() {
     const [username, setUsername] = useState(user?.username || user?.email || '');
     const [isSavingKindle, setIsSavingKindle] = useState(false);
     const [isSavingUsername, setIsSavingUsername] = useState(false);
+    const [showAvatarUpload, setShowAvatarUpload] = useState(false);
 
     const handleSaveKindle = async () => {
         if (kindleEmail === user?.kindle_email) return;
@@ -45,6 +47,17 @@ export default function AccountScreen() {
         toast.success('RSS-Link kopiert!');
     };
 
+    const handleAvatarUpload = async (blob: Blob) => {
+        try {
+            const updatedUser = await uploadProfilePicture(blob);
+            useStore.setState({ user: updatedUser });
+            setShowAvatarUpload(false);
+            toast.success('Profilbild aktualisiert!');
+        } catch (e: any) {
+            toast.error(e.message || 'Fehler beim Hochladen');
+        }
+    };
+
     if (!user) return null;
 
     return (
@@ -52,12 +65,26 @@ export default function AccountScreen() {
             
             {/* Profile Header */}
             <div className="w-full text-center space-y-2">
-                <div className="relative inline-block">
-                    <div className="w-24 h-24 rounded-full bg-emerald-500/10 border-2 border-emerald-500/20 flex items-center justify-center mx-auto mb-4">
-                        <User className="w-12 h-12 text-emerald-500" />
+                <div className="relative inline-block group">
+                    <div className="w-24 h-24 rounded-full bg-emerald-500/10 border-2 border-emerald-500/20 flex items-center justify-center mx-auto mb-4 overflow-hidden relative">
+                        {user.avatar_url ? (
+                            <img 
+                                src={user.avatar_url + "?t=" + Date.now()} 
+                                alt="Profil" 
+                                className="w-full h-full object-cover" 
+                            />
+                        ) : (
+                            <User className="w-12 h-12 text-emerald-500" />
+                        )}
+                        <button 
+                            onClick={() => setShowAvatarUpload(true)}
+                            className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                        >
+                            <Camera className="w-8 h-8 text-white" />
+                        </button>
                     </div>
                     {user.is_admin && (
-                        <div className="absolute -top-1 -right-1 bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-lg border border-emerald-400">
+                        <div className="absolute -top-1 -right-1 bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-lg border border-emerald-400 z-10">
                             <Shield className="w-3 h-3" />
                             ADMIN
                         </div>
@@ -194,6 +221,13 @@ export default function AccountScreen() {
                     Abmelden
                 </button>
             </div>
+
+            {showAvatarUpload && (
+                <ProfilePictureUpload 
+                    onUpload={handleAvatarUpload}
+                    onClose={() => setShowAvatarUpload(false)}
+                />
+            )}
         </div>
     );
 }

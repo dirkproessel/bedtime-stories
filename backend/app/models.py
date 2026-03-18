@@ -18,6 +18,7 @@ class User(SQLModel, table=True):
     is_admin: bool = Field(default=False)
     username: Optional[str] = Field(default=None)
     kindle_email: Optional[str] = Field(default=None)
+    avatar_url: Optional[str] = Field(default=None)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class StoryMeta(SQLModel, table=True):
@@ -67,6 +68,7 @@ class UserResponse(BaseModel):
     is_admin: bool = Field(default=False)
     username: Optional[str] = None
     kindle_email: Optional[str] = None
+    avatar_url: Optional[str] = None
     created_at: datetime
     story_count: int = 0
 
