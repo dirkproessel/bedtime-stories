@@ -257,25 +257,54 @@ async def _run_revoice_pipeline(
 
     story_data = json.loads(text_path.read_text(encoding="utf-8"))
     real_title = story_data["title"]
+    num_chapters = len(story_data["chapters"])
 
-    async def on_progress(status_type: str, message: str, pct: int | None = None):
-        combined_message = f"{real_title}: {message}"
+    # Point-based progress (same logic as _run_pipeline)
+    # Vertonung: 10 * num_chapters
+    # Finalisierung: 10
+    total_points = (10 * num_chapters) + 10
+    completed_points = 0
+
+    completed_audio_chapters = 0
+
+    async def on_progress(status_type: str, message: str, points: int | None = None, is_absolute_points: bool = False):
+        nonlocal completed_points
+        if points is not None:
+            if is_absolute_points:
+                completed_points = points
+            else:
+                completed_points += points
+        
+        pct = int((completed_points / total_points) * 100)
+        pct = min(pct, 99)
+
+        # Map internal status to user-visible steps (same as _run_pipeline)
+        label = message
+        if status_type == "generating_audio" or status_type == "tts": label = "Vertonung"
+        elif status_type == "processing": label = "Finalisierung"
+
         _generation_status[story_id]["status"] = status_type
-        _generation_status[story_id]["progress"] = combined_message
-        if pct is not None:
-            _generation_status[story_id]["progress_pct"] = pct
+        _generation_status[story_id]["progress"] = label
+        _generation_status[story_id]["progress_pct"] = pct
         
         curr = store.get_by_id(story_id)
         if curr:
             curr.status = "generating" if status_type != "done" and status_type != "error" else status_type
-            curr.progress = combined_message
-            if pct is not None:
-                curr.progress_pct = pct
+            curr.progress = label
+            curr.progress_pct = pct
             store.add_story(curr)
 
+    async def tts_progress_wrapper(stype, msg, pct=None):
+        nonlocal completed_audio_chapters
+        if stype == "tts_chapter_done":
+            completed_audio_chapters += 1
+            await on_progress("generating_audio", "Vertonung", points=10 * completed_audio_chapters, is_absolute_points=True)
+        else:
+            await on_progress("generating_audio", "Vertonung")
+
     try:
-        # Step 1: TTS
-        await on_progress("generating_audio", "Bereite Neuvertonung vor...", 10)
+        # Step 1: TTS (10 * num_chapters points)
+        await on_progress("generating_audio", "Vertonung")
         chunks_dir = story_dir / "chunks"
         # Clear old chunks
         import shutil
@@ -290,22 +319,21 @@ async def _run_revoice_pipeline(
             voice_key=voice_key,
             rate=speech_rate,
             genre=story_meta_for_genre.genre if story_meta_for_genre else None,
-            on_progress=on_progress,
+            on_progress=tts_progress_wrapper,
         )
 
-        # Step 2: Title audio
-        await on_progress("generating_audio", "Vertone Titel...", 80)
+        # Step 2: Finalisierung (10 points)
+        await on_progress("processing", "Finalisierung", points=10 * num_chapters, is_absolute_points=True)
         title_tts_path = chunks_dir / "title.mp3"
         await generate_tts_chunk(
             text=story_data["title"],
             output_path=title_tts_path,
             voice_key=actual_voice,
             rate=speech_rate,
-            is_title=True
+            is_title=True,
+            genre=story_meta_for_genre.genre if story_meta_for_genre else None,
         )
 
-        # Step 3: Merge
-        await on_progress("processing", "Mische Audio-Spuren...", 85)
         final_audio_path = story_dir / "story.mp3"
         await merge_audio_files(
             audio_files=audio_files,
@@ -327,7 +355,7 @@ async def _run_revoice_pipeline(
             story_meta.voice_key = actual_voice
             story_meta.voice_name = actual_voice_name
             story_meta.status = "done"
-            story_meta.progress = "Neuvertonung fertig!"
+            story_meta.progress = "Fertig!"
             story_meta.progress_pct = 100
             store.add_story(story_meta)
 
@@ -617,7 +645,7 @@ async def _run_pipeline(
         await on_progress("processing", "Finalisierung", points=total_points - 10, is_absolute_points=True)
         
         title_tts_path = chunks_dir / "title.mp3"
-        await generate_tts_chunk(story_data["title"], title_tts_path, voice_key=actual_voice, rate=speech_rate, is_title=True)
+        await generate_tts_chunk(story_data["title"], title_tts_path, voice_key=actual_voice, rate=speech_rate, is_title=True, genre=genre)
 
         final_audio_path = story_dir / "story.mp3"
         await merge_audio_files(
