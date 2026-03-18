@@ -563,7 +563,7 @@ export default function StoryArchive() {
 
                             <div className="mt-3">
                                 {/* The Idea / Prompt (Only in Library) */}
-                                {archiveFilter !== 'public' && (
+                                {archiveFilter === 'my' && (
                                     <div className="bg-background/40 border border-slate-800/50 rounded-xl p-3 text-[11px] text-slate-500 italic mb-3">
                                         <span className="font-bold uppercase tracking-[0.15em] text-[8px] block mb-1 text-slate-600 not-italic">Die Idee</span>
                                         {story.prompt}
@@ -644,13 +644,13 @@ export default function StoryArchive() {
                                                     {story.duration_seconds ? formatDuration(story.duration_seconds) : '--:--'} Min ({voiceName(story.voice_key)})
                                                 </span>
                                             )}
-                                            {archiveFilter === 'public' && (
+                                            {(archiveFilter === 'public' || archiveFilter === 'favorites') && (
                                                 <span className="flex items-center gap-2">
                                                     <Feather className="w-4 h-4 text-slate-600" />
                                                     {story.user_email || 'Anonym'}
                                                 </span>
                                             )}
-                                            {archiveFilter !== 'public' && story.is_public && (
+                                            {archiveFilter === 'my' && story.is_public && (
                                                 <div className="mt-1">
                                                     <span className="px-1.5 py-0.5 rounded-md bg-slate-800 border border-slate-700 text-[9px] font-bold text-slate-400 uppercase tracking-wider animate-in fade-in slide-in-from-left-1 duration-500">
                                                         Veröffentlicht
@@ -1032,7 +1032,7 @@ export default function StoryArchive() {
                                     <h3 className={sectionTitleClass}>Sichtbarkeit & Versand</h3>
                                     <div className={listClass}>
                                         {/* Publish Toggle - Only for own stories in library */}
-                                        {archiveFilter !== 'public' && activeToolboxStory.user_id === user?.id && (
+                                        {archiveFilter === 'my' && activeToolboxStory.user_id === user?.id && (
                                             <div className={`${itemClass} flex-col !items-start gap-1.5`}>
                                                 <div className="flex items-center gap-2">
                                                     <Sparkles className="w-3.5 h-3.5 text-primary shrink-0" />
@@ -1098,7 +1098,7 @@ export default function StoryArchive() {
                                     <h3 className={sectionTitleClass}>Werkzeuge</h3>
                                     <div className={listClass}>
                                         {/* Admin/Own only Tools */}
-                                        {archiveFilter !== 'public' && (activeToolboxStory.user_id === user?.id || user?.is_admin) && (
+                                        {archiveFilter === 'my' && (activeToolboxStory.user_id === user?.id || user?.is_admin) && (
                                             <>
                                                 <button 
                                                     onClick={() => { 
