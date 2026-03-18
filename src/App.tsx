@@ -198,7 +198,7 @@ function App() {
       </header>
 
       {/* Dynamic Page Title */}
-      <div className="px-3 sm:px-6 pb-1 max-w-2xl mx-auto w-full text-left">
+      <div className="px-3 sm:px-6 pb-1 max-w-2xl mx-auto w-full text-center">
         <h1 className="text-sm sm:text-lg font-bold text-text-muted/60 font-serif italic">
           {activeView === 'create' && 'Erschaffe eine eigene Geschichte'}
           {activeView === 'library' && 'Meine Bibliothek'}
@@ -279,7 +279,7 @@ function App() {
                   : 'text-slate-100 hover:text-white'
                   }`}
               >
-                <div className={`transition-transform duration-300 ${key === 'create' ? '-rotate-[60deg]' : ''}`}>
+                <div className={`transition-transform duration-300 ${key === 'create' ? 'rotate-[135deg]' : ''}`}>
                   <Icon className={`w-5 h-5 ${isActive ? 'stroke-[3]' : 'stroke-[2.5]'}`} />
                 </div>
                 <span className="text-[8px] font-mono uppercase tracking-[0.25em] font-medium">
