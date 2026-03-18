@@ -283,12 +283,13 @@ async def _run_revoice_pipeline(
             shutil.rmtree(chunks_dir)
         chunks_dir.mkdir(parents=True, exist_ok=True)
 
+        story_meta_for_genre = store.get_by_id(story_id)
         audio_files, actual_voice = await chapters_to_audio(
             chapters=story_data["chapters"],
             output_dir=chunks_dir,
             voice_key=voice_key,
             rate=speech_rate,
-            genre=meta.genre if meta else None,
+            genre=story_meta_for_genre.genre if story_meta_for_genre else None,
             on_progress=on_progress,
         )
 
