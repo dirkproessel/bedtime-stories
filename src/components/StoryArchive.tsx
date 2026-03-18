@@ -1,6 +1,6 @@
 import { useStore } from '../store/useStore';
 import { deleteStory, revoiceStory, getVoicePreviewUrl, exportStoryToKindle, getThumbUrl, regenerateStoryImage } from '../lib/api';
-import { Play, Trash2, BookOpen, Loader2, Mic, X, Venus, Mars, Users, Pause, Send, Image as ImageIcon, RefreshCw, Sparkles, Settings2, MessageCircle, Timer, Wand2, Edit, Feather, User as UserIcon, Search, ChevronLeft, ChevronRight, ArrowLeft } from 'lucide-react';
+import { Play, Trash2, Heart, BookOpen, Loader2, Mic, X, Venus, Mars, Users, Pause, Send, Image as ImageIcon, RefreshCw, Sparkles, Settings2, MessageCircle, Timer, Wand2, Edit, Feather, User as UserIcon, Search, ChevronLeft, ChevronRight, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useEffect, useState, useRef } from 'react';
 import ConfirmModal from './ConfirmModal';
@@ -20,6 +20,7 @@ export default function StoryArchive() {
         setGeneratorPrompt, setGeneratorGenre, setGeneratorAuthors,
         setGeneratorMinutes, setGeneratorVoice, setGeneratorRemix,
         setReaderOpen,
+        toggleFavorite,
         loadMoreStories, hasMore, isLoading,
         archiveGenre, archiveSearch, setArchiveGenre, setArchiveSearch, toggleArchiveGenre
     } = useStore();
@@ -652,21 +653,36 @@ export default function StoryArchive() {
                                         </div>
 
                                         {/* Center/Right Actions */}
-                                        <div className="flex items-center gap-3">
+                                        <div className="flex items-center gap-2">
                                             {/* Listen Button */}
                                             <button
                                                 onClick={() => handlePlay(story.id)}
-                                                className="w-12 h-12 bg-accent/20 border border-emerald-500/30 rounded-xl flex items-center justify-center text-primary hover:bg-accent/30 hover:border-emerald-500/50 transition-all active:scale-90 shadow-lg shadow-primary/10"
+                                                className="w-11 h-11 bg-accent/20 border border-emerald-500/30 rounded-xl flex items-center justify-center text-primary hover:bg-accent/30 hover:border-emerald-500/50 transition-all active:scale-90 shadow-lg shadow-primary/10"
+                                                title="Anhören"
                                             >
-                                                <Play className="w-6 h-6 fill-current" />
+                                                <Play className="w-5 h-5 fill-current" />
+                                            </button>
+
+                                            {/* Favorite Button */}
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); toggleFavorite(story.id); }}
+                                                className={`w-11 h-11 rounded-xl flex items-center justify-center border transition-all active:scale-90 ${
+                                                    story.is_favorite 
+                                                    ? 'bg-red-500/10 border-red-500/50 text-red-500 shadow-lg shadow-red-500/10' 
+                                                    : 'bg-slate-900/80 border-slate-700/50 text-slate-400 hover:text-red-400 hover:border-red-400/30'
+                                                }`}
+                                                title={story.is_favorite ? "Von Favoriten entfernen" : "Zu Favoriten hinzufügen"}
+                                            >
+                                                <Heart className={`w-5 h-5 ${story.is_favorite ? 'fill-current' : ''}`} />
                                             </button>
 
                                             {/* Toolbox Button */}
                                             <button
                                                 onClick={() => setShowToolbox(story.id)}
-                                                className="w-12 h-12 bg-slate-900/80 border border-slate-700/50 rounded-xl flex items-center justify-center text-slate-400 hover:text-primary hover:border-primary/50 transition-all active:scale-90"
+                                                className="w-11 h-11 bg-slate-900/80 border border-slate-700/50 rounded-xl flex items-center justify-center text-slate-400 hover:text-primary hover:border-primary/50 transition-all active:scale-90"
+                                                title="Werkzeuge"
                                             >
-                                                <Wand2 className="w-6 h-6" />
+                                                <Wand2 className="w-5 h-5" />
                                             </button>
                                         </div>
                                     </div>

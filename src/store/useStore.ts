@@ -14,6 +14,7 @@ import {
     adminDeleteUser,
     adminUpdateUser,
     adminDeleteStory,
+    toggleStoryFavorite,
 } from '../lib/api';
 
 interface AppState {
@@ -102,6 +103,7 @@ interface AppState {
     // Global Modal States
     revoiceStoryId: string | null;
     setRevoiceStoryId: (id: string | null) => void;
+    toggleFavorite: (id: string) => Promise<void>;
 }
 
 let pollInterval: ReturnType<typeof setInterval> | null = null;
@@ -467,6 +469,17 @@ export const useStore = create<AppState>((set, get) => {
             await adminDeleteStory(id);
             set(state => ({
                 stories: state.stories.filter(s => s.id !== id)
+            }));
+        } catch (e: any) {
+            set({ error: e.message });
+            throw e;
+        }
+    },
+    toggleFavorite: async (id) => {
+        try {
+            const { is_favorite } = await toggleStoryFavorite(id);
+            set(state => ({
+                stories: state.stories.map(s => s.id === id ? { ...s, is_favorite } : s)
             }));
         } catch (e: any) {
             set({ error: e.message });

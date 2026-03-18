@@ -2,8 +2,8 @@ from datetime import datetime
 import json
 import logging
 from pathlib import Path
-from sqlmodel import Session, select
-from app.models import StoryMeta, User
+from sqlmodel import Session, select, delete
+from app.models import StoryMeta, User, UserFavorite
 from app.database import engine, create_db_and_tables
 from app.config import settings
 from app.auth_utils import get_password_hash
@@ -95,7 +95,7 @@ class StoryStore:
         """DEPRECATED: Manual control preferred."""
         pass
 
-    def get_all(self, only_spotify: bool = False, user_id: str | None = None, genre: list[str] | None = None, search: str | None = None) -> list[StoryMeta]:
+    def get_all(self, only_spotify: bool = False, user_id: str | None = None, genre: list[str] | None = None, search: str | None = None, requesting_user_id: str | None = None) -> list[StoryMeta]:
         """Get all stories with optional filtering, sorted by creation date (newest first)."""
         from sqlmodel import or_
         with Session(engine) as session:
@@ -128,7 +128,20 @@ class StoryStore:
                     )
             
             results = session.exec(statement).all()
-            return list(results)
+            stories = list(results)
+
+            # Populate is_favorite if requesting_user_id is provided
+            if requesting_user_id and stories:
+                story_ids = [s.id for s in stories]
+                fav_statement = select(UserFavorite.story_id).where(
+                    UserFavorite.user_id == requesting_user_id,
+                    UserFavorite.story_id.in_(story_ids)
+                )
+                fav_ids = set(session.exec(fav_statement).all())
+                for s in stories:
+                    s.is_favorite = s.id in fav_ids
+
+            return stories
 
 
     def get_all_users(self) -> list[User]:
@@ -136,10 +149,49 @@ class StoryStore:
         with Session(engine) as session:
             return list(session.exec(select(User)).all())
 
-    def get_by_id(self, story_id: str) -> StoryMeta | None:
+    def get_by_id(self, story_id: str, requesting_user_id: str | None = None) -> StoryMeta | None:
         """Get a specific story by ID."""
         with Session(engine) as session:
-            return session.get(StoryMeta, story_id)
+            story = session.get(StoryMeta, story_id)
+            if story and requesting_user_id:
+                fav = session.exec(
+                    select(UserFavorite).where(
+                        UserFavorite.user_id == requesting_user_id,
+                        UserFavorite.story_id == story_id
+                    )
+                ).first()
+                story.is_favorite = fav is not None
+            return story
+
+    def toggle_favorite(self, user_id: str, story_id: str) -> bool:
+        """Toggle favorite status. Returns True if now favorite, False if removed."""
+        with Session(engine) as session:
+            existing = session.exec(
+                select(UserFavorite).where(
+                    UserFavorite.user_id == user_id,
+                    UserFavorite.story_id == story_id
+                )
+            ).first()
+            
+            if existing:
+                session.delete(existing)
+                session.commit()
+                return False
+            else:
+                fav = UserFavorite(user_id=user_id, story_id=story_id)
+                session.add(fav)
+                session.commit()
+                return True
+                
+    def get_favorites(self, user_id: str) -> list[StoryMeta]:
+        """Get all favorited stories for a user."""
+        with Session(engine) as session:
+            statement = select(StoryMeta).join(UserFavorite).where(UserFavorite.user_id == user_id).order_by(UserFavorite.created_at.desc())
+            results = session.exec(statement).all()
+            stories = list(results)
+            for s in stories:
+                s.is_favorite = True
+            return stories
 
     def add_story(self, story: StoryMeta):
         """Add or update a story."""

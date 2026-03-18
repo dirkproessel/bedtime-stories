@@ -58,6 +58,7 @@ export interface StoryMeta {
     is_public: boolean;
     parent_id?: string;
     updated_at: string;
+    is_favorite: boolean;
 }
 
 export interface StoryDetail extends StoryMeta {
@@ -270,6 +271,15 @@ export async function updateStorySpotify(id: string, enabled: boolean): Promise<
         body: JSON.stringify({ enabled }),
     });
     if (!response.ok) throw new Error('Failed to update Spotify status');
+    return response.json();
+}
+
+export async function toggleStoryFavorite(id: string): Promise<{ id: string, is_favorite: boolean }> {
+    const response = await fetch(`${API_BASE}/api/stories/${id}/favorite`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+    });
+    if (!response.ok) throw new Error('Fehler beim Favorisieren');
     return response.json();
 }
 

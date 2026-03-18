@@ -2,12 +2,15 @@ import { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { fetchStory, getThumbUrl, type StoryDetail, exportStoryToKindle } from '../lib/api';
 import { 
-    Moon, BookOpen, Send, Loader2, MessageCircle, Headphones 
+    Moon, BookOpen, Send, Loader2, MessageCircle, Headphones, Heart
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function ReaderLayer() {
-    const { isReaderOpen, readerStoryId, setAudioCompanion, user } = useStore();
+    const { 
+        isReaderOpen, readerStoryId, setAudioCompanion, user,
+        toggleFavorite, showAudioCompanion
+    } = useStore();
     const [story, setStory] = useState<StoryDetail | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
@@ -161,6 +164,24 @@ export default function ReaderLayer() {
                     </div>
                 </div>
             )}
+            {/* Floating Action Button for Favorites */}
+            <div 
+                className={`fixed right-6 z-50 transition-all duration-500 ease-in-out ${
+                    showAudioCompanion ? 'bottom-[148px]' : 'bottom-6'
+                }`}
+            >
+                <button
+                    onClick={() => story && toggleFavorite(story.id)}
+                    className={`w-14 h-14 rounded-full flex items-center justify-center shadow-2xl backdrop-blur-md border transition-all active:scale-90 group ${
+                        story?.is_favorite
+                        ? 'bg-red-500/20 border-red-500/50 text-red-500'
+                        : 'bg-slate-900/40 border-slate-700/50 text-slate-400 hover:text-red-400 hover:border-red-400/30'
+                    }`}
+                    aria-label={story?.is_favorite ? "Von Favoriten entfernen" : "Zu Favoriten hinzufügen"}
+                >
+                    <Heart className={`w-7 h-7 transition-transform group-hover:scale-110 ${story?.is_favorite ? 'fill-current animate-pulse-subtle' : ''}`} />
+                </button>
+            </div>
         </div>
     );
 }

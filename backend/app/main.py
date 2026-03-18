@@ -747,6 +747,14 @@ async def list_stories(
             else:
                 s.user_email = "System"
         
+        # POPULATE IS_FAVORITE for the current user
+        if current_user:
+            story_ids = [s.id for s in stories_to_list]
+            fav_results = store.get_all(requesting_user_id=current_user.id)
+            fav_ids = {f.id for f in fav_results if f.is_favorite}
+            for s in stories_to_list:
+                s.is_favorite = s.id in fav_ids
+
         total = len(stories_to_list)
         logger.info(f"API list_stories: Filter='{filter}', UserID='{user_id}', Total={total}")
         
@@ -870,20 +878,51 @@ async def admin_delete_story(story_id: str, current_user: User = Depends(get_cur
 
 
 @app.get("/api/stories/{story_id}")
-async def get_story(story_id: str):
-    """Get story details including chapter text."""
-    meta = store.get_by_id(story_id)
-    if not meta:
+async def get_story(
+    story_id: str,
+    current_user: User | None = Depends(get_optional_user)
+):
+    """Get full details of a single story."""
+    story = store.get_by_id(story_id, requesting_user_id=current_user.id if current_user else None)
+    if not story:
         raise HTTPException(status_code=404, detail="Story not found")
+    
+    # Check accessibility
+    if not story.is_public:
+        if not current_user:
+            raise HTTPException(status_code=401, detail="Authentication required")
+        if not (current_user.is_admin or story.user_id == current_user.id):
+            raise HTTPException(status_code=403, detail="Story is private")
 
-    # Load full text if available
     text_path = settings.AUDIO_OUTPUT_DIR / story_id / "story.json"
-    chapters = []
-    if text_path.exists():
-        story_data = json.loads(text_path.read_text(encoding="utf-8"))
-        chapters = story_data.get("chapters", [])
+    if not text_path.exists():
+        # Fallback for stories without detail JSON
+        return {**story.model_dump(), "chapters": []}
+        
+    try:
+        data = json.loads(text_path.read_text(encoding="utf-8"))
+        return {**story.model_dump(), "chapters": data.get("chapters", [])}
+    except Exception as e:
+        logger.error(f"Failed to read story details for {story_id}: {e}")
+        return {**story.model_dump(), "chapters": []}
 
-    return {**meta.model_dump(), "chapters": chapters}
+
+@app.post("/api/stories/{story_id}/favorite")
+async def toggle_favorite(
+    story_id: str,
+    current_user: User = Depends(get_current_active_user)
+):
+    """Toggle a story as favorite for the current user."""
+    is_fav = store.toggle_favorite(current_user.id, story_id)
+    return {"id": story_id, "is_favorite": is_fav}
+
+
+@app.get("/api/stories/favorites", response_model=list[StoryMeta])
+async def list_favorites(
+    current_user: User = Depends(get_current_active_user)
+):
+    """List all stories favorited by the current user."""
+    return store.get_favorites(current_user.id)
 
 
 @app.get("/api/stories/{story_id}/audio")

@@ -61,7 +61,8 @@ def ensure_migrations():
         
         user_needed = [
             ("username", "TEXT"),
-            ("kindle_email", "TEXT")
+            ("kindle_email", "TEXT"),
+            ("avatar_url", "TEXT")
         ]
         
         for col_name, col_type in user_needed:

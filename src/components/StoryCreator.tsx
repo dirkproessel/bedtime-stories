@@ -483,11 +483,13 @@ export default function StoryCreator() {
             </div>
 
             {/* Sticky Generate Button Container */}
-            <div className="fixed bottom-[56px] left-0 right-0 pt-8 pb-3 flex justify-center bg-gradient-to-t from-background/90 to-transparent backdrop-blur-sm z-40 pointer-events-none">
-                <div className="pointer-events-auto w-[90%] max-w-[320px]">
+            <div className="fixed bottom-[64px] left-0 right-0 flex justify-center z-40 pointer-events-none px-4">
+                <div className="pointer-events-auto relative">
+                    {/* Minimal localized blur only around the button */}
+                    <div className="absolute -inset-1.5 bg-background/30 backdrop-blur-md rounded-full -z-10 border border-white/5" />
                     <button
                         onClick={handleGenerate}
-                        className="btn-primary w-full py-3.5 text-[17px] font-serif shadow-xl shadow-primary/20 border border-primary/20"
+                        className="btn-primary px-8 py-3.5 text-[17px] font-serif shadow-[0_8px_32px_rgba(22,163,74,0.35)]"
                     >
                         <Sparkles className="w-5 h-5 shrink-0" />
                         Neue Geschichte erschaffen

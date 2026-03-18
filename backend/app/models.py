@@ -21,6 +21,12 @@ class User(SQLModel, table=True):
     avatar_url: Optional[str] = Field(default=None)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+class UserFavorite(SQLModel, table=True):
+    """Many-to-many relationship for favorites."""
+    user_id: str = Field(foreign_key="user.id", primary_key=True)
+    story_id: str = Field(foreign_key="storymeta.id", primary_key=True)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
 class StoryMeta(SQLModel, table=True):
     """Story Metadata stored in database."""
     id: str = Field(primary_key=True)
@@ -47,6 +53,10 @@ class StoryMeta(SQLModel, table=True):
     is_public: bool = Field(default=False)
     user_email: Optional[str] = Field(default=None) # Persistent for display cache
     parent_id: Optional[str] = Field(default=None) # Reference to original story
+
+class StoryMetaResponse(StoryMeta):
+    """Story Metadata including transient API fields."""
+    is_favorite: bool = False
 
 
 # --- API Request Options Models ---
@@ -145,7 +155,7 @@ class StoryStatus(BaseModel):
     title: str | None = None
 
 class StoryListResponse(BaseModel):
-    stories: list[StoryMeta]
+    stories: list[StoryMetaResponse]
     total: int
     total_my: int = 0
     total_public: int = 0
