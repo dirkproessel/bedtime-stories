@@ -10,6 +10,136 @@ import { voiceName, voiceDesc } from '../lib/voices';
 import { authorName } from '../lib/authors';
 import { GENRES } from './StoryCreator';
 
+function HeroSection({ story, onPlay, onFavorite }: { story: any, onPlay: (id: string) => void, onFavorite: (id: string) => void }) {
+    if (!story) return null;
+    return (
+        <div className="relative w-full h-[320px] sm:h-[400px] mb-8 rounded-[2.5rem] overflow-hidden group cursor-pointer border border-slate-800 shadow-2xl animate-in fade-in zoom-in-95 duration-500" onClick={() => onPlay(story.id)}>
+            <img 
+                src={getThumbUrl(story.id, story.updated_at)} 
+                alt={story.title} 
+                className="w-full h-full object-cover grayscale-[10%] group-hover:scale-105 transition-transform duration-700" 
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
+            
+            <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-10">
+                <div className="flex items-center gap-2 mb-3">
+                    <span className="px-2 py-0.5 bg-primary/20 border border-primary/30 text-primary text-[10px] font-bold uppercase tracking-wider rounded-md backdrop-blur-md">
+                        Empfehlung des Labors
+                    </span>
+                </div>
+                <h2 className="text-3xl sm:text-4xl font-serif font-bold text-white mb-3 leading-tight drop-shadow-lg">
+                    {story.title}
+                </h2>
+                <p className="text-[14px] text-slate-300 line-clamp-2 max-w-lg mb-8 leading-relaxed italic drop-shadow-sm font-serif">
+                    {story.description}
+                </p>
+                
+                <div className="flex items-center gap-4">
+                    <button 
+                        onClick={(e) => { e.stopPropagation(); onPlay(story.id); }}
+                        className="btn-primary px-8 py-3 shadow-2xl shadow-primary/20 text-md"
+                    >
+                        <Play className="w-5 h-5 fill-current" />
+                        Jetzt hören
+                    </button>
+                    <button 
+                        onClick={(e) => { e.stopPropagation(); onFavorite(story.id); }}
+                        className={`w-12 h-12 rounded-2xl flex items-center justify-center border backdrop-blur-md transition-all active:scale-90 ${
+                            story.is_favorite 
+                            ? 'bg-red-500/10 border-red-500/50 text-red-500 shadow-lg shadow-red-500/10' 
+                            : 'bg-white/5 border-white/10 text-white hover:bg-white/10'
+                        }`}
+                    >
+                        <Heart className={`w-6 h-6 ${story.is_favorite ? 'fill-current' : ''}`} />
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function CollectionRow({ title, stories, onPlay }: { title: string, stories: any[], onPlay: (id: string) => void }) {
+    if (stories.length === 0) return null;
+    const scrollRef = useRef<HTMLDivElement>(null);
+    const [showLeft, setShowLeft] = useState(false);
+    const [showRight, setShowRight] = useState(true);
+
+    const handleScroll = () => {
+        if (scrollRef.current) {
+            const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
+            setShowLeft(scrollLeft > 20);
+            setShowRight(scrollLeft < scrollWidth - clientWidth - 20);
+        }
+    };
+
+    return (
+        <div className="mb-10 last:mb-0">
+            <h3 className="text-xs font-bold uppercase tracking-[0.25em] text-slate-500 mb-5 ml-1 flex items-center gap-2.5">
+                <Sparkles className="w-4 h-4 text-primary" />
+                {title}
+            </h3>
+            <div className="relative group/row">
+                <div 
+                    ref={scrollRef}
+                    onScroll={handleScroll}
+                    className="flex gap-4 overflow-x-auto no-scrollbar scroll-smooth px-1 pb-6"
+                >
+                    {stories.map(s => (
+                        <div 
+                            key={s.id} 
+                            onClick={() => onPlay(s.id)}
+                            className="shrink-0 w-[160px] sm:w-[190px] group/card cursor-pointer"
+                        >
+                            <div className="relative aspect-[3/4] rounded-3xl overflow-hidden border border-slate-800 mb-3 transition-all duration-500 group-hover/card:scale-[1.03] group-hover/card:shadow-2xl group-hover/card:shadow-primary/10">
+                                <img 
+                                    src={getThumbUrl(s.id, s.updated_at)} 
+                                    alt={s.title} 
+                                    className="w-full h-full object-cover grayscale-[15%] group-hover/card:grayscale-0 transition-all duration-700" 
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/20 to-transparent opacity-60 group-hover/card:opacity-90 transition-opacity" />
+                                
+                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/card:opacity-100 transition-all">
+                                    <div className="w-12 h-12 bg-primary text-white rounded-full flex items-center justify-center shadow-2xl scale-75 group-hover/card:scale-100 transition-transform duration-300">
+                                        <Play className="w-6 h-6 fill-current ml-1" />
+                                    </div>
+                                </div>
+
+                                <div className="absolute bottom-3 left-3 right-3">
+                                    <div className="text-[10px] font-bold text-primary mb-1 uppercase tracking-wider">{s.genre}</div>
+                                    <h4 className="text-[13px] font-bold text-white line-clamp-2 leading-tight">
+                                        {s.title}
+                                    </h4>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                    {/* Ghost card for spacing */}
+                    <div className="shrink-0 w-8" />
+                </div>
+                
+                {/* Scroll Buttons for Desktop */}
+                {showLeft && (
+                    <button 
+                        onClick={() => scrollRef.current?.scrollBy({ left: -400, behavior: 'smooth' })}
+                        className="absolute left-0 top-[40%] -translate-y-1/2 -ml-5 w-11 h-11 rounded-full bg-slate-900/90 border border-slate-800 text-slate-400 hidden md:flex items-center justify-center hover:text-white hover:bg-slate-800 transition-all shadow-xl backdrop-blur-md z-10"
+                    >
+                        <ChevronLeft className="w-6 h-6" />
+                    </button>
+                )}
+                {showRight && (
+                    <button 
+                        onClick={() => scrollRef.current?.scrollBy({ left: 400, behavior: 'smooth' })}
+                        className="absolute right-0 top-[40%] -translate-y-1/2 -mr-5 w-11 h-11 rounded-full bg-slate-900/90 border border-slate-800 text-slate-400 hidden md:flex items-center justify-center hover:text-white hover:bg-slate-800 transition-all shadow-xl backdrop-blur-md z-10"
+                    >
+                        <ChevronRight className="w-6 h-6" />
+                    </button>
+                )}
+            </div>
+        </div>
+    );
+}
+
+
 export default function StoryArchive() {
     const { 
         stories, loadStories, setActiveView, 
@@ -42,6 +172,12 @@ export default function StoryArchive() {
     const [deleteConfirm, setDeleteConfirm] = useState<{ id: string, title: string } | null>(null);
     const audioRef = useRef<HTMLAudioElement>(null);
     
+    // Discovery Collections
+    const [fairytales, setFairytales] = useState<any[]>([]);
+    const [adventure, setAdventure] = useState<any[]>([]);
+    const [sleepStories, setSleepStories] = useState<any[]>([]);
+    const [scifi, setScifi] = useState<any[]>([]);
+    
     // Filter UI state
     const [isScrolled, setIsScrolled] = useState(false);
     const [filterLevel, setFilterLevel] = useState<'main' | 'search' | 'genre'>('main');
@@ -65,7 +201,38 @@ export default function StoryArchive() {
     useEffect(() => {
         // First load with the initial filter
         loadStories(1);
-    }, []);
+        
+        // If we are in discover mode, pre-fetch rows
+        if (archiveFilter === 'public') {
+            loadCollections();
+        }
+    }, [archiveFilter]);
+
+    const loadCollections = async () => {
+        const { fetchStories } = await import('../lib/api');
+        try {
+            const [ft, adv, sleep, sf] = await Promise.all([
+                fetchStories({ page: 1, pageSize: 8, filter: 'public', genre: ['Märchen'] }),
+                fetchStories({ page: 1, pageSize: 8, filter: 'public', genre: ['Abenteuer'] }),
+                fetchStories({ page: 1, pageSize: 8, filter: 'public', genre: ['Gute Nacht'] }),
+                fetchStories({ page: 1, pageSize: 8, filter: 'public', genre: ['Science-Fiction'] }),
+            ]);
+            setFairytales(ft.stories);
+            setAdventure(adv.stories);
+            setSleepStories(sleep.stories);
+            setScifi(sf.stories);
+        } catch (err) {
+            console.error("Failed to load collections", err);
+        }
+    };
+
+    const handleShuffle = () => {
+        if (stories.length > 0) {
+            const randomStory = stories[Math.floor(Math.random() * stories.length)];
+            handlePlay(randomStory.id);
+            toast.success('Zufällige Geschichte ausgewählt!', { icon: '🎲' });
+        }
+    };
 
     // Effect to switch to "public" if "my" is empty on first load
     useEffect(() => {
@@ -498,6 +665,55 @@ export default function StoryArchive() {
                     >
                         {archiveFilter === 'favorites' ? 'Entdecken' : 'Jetzt starten'}
                     </button>
+                </div>
+            ) : archiveFilter === 'public' && !archiveSearch && archiveGenre.length === 0 ? (
+                <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+                    <HeroSection 
+                        story={stories[0]} 
+                        onPlay={handlePlay} 
+                        onFavorite={toggleFavorite} 
+                    />
+                    
+                    <CollectionRow 
+                        title="Neu im Labor" 
+                        stories={stories.slice(1, 11)} 
+                        onPlay={handlePlay} 
+                    />
+                    
+                    <CollectionRow 
+                        title="Zauberhafte Märchen" 
+                        stories={fairytales} 
+                        onPlay={handlePlay} 
+                    />
+
+                    <CollectionRow 
+                        title="Action & Abenteuer" 
+                        stories={adventure} 
+                        onPlay={handlePlay} 
+                    />
+
+                    <CollectionRow 
+                        title="Schlaf gut" 
+                        stories={sleepStories} 
+                        onPlay={handlePlay} 
+                    />
+
+                    <CollectionRow 
+                        title="Zukunft & Weltraum" 
+                        stories={scifi} 
+                        onPlay={handlePlay} 
+                    />
+                    
+                    {/* Shuffle Button */}
+                    <div className="fixed bottom-[90px] right-6 z-40">
+                        <button
+                            onClick={handleShuffle}
+                            className="w-14 h-14 bg-slate-900 border-2 border-primary/40 text-primary rounded-full flex items-center justify-center shadow-[0_8px_32px_rgba(34,197,94,0.3)] hover:scale-110 active:scale-95 transition-all group"
+                            title="Zufallsgeschichte"
+                        >
+                            <RefreshCw className="w-6 h-6 group-hover:rotate-180 transition-transform duration-500" />
+                        </button>
+                    </div>
                 </div>
             ) : (
                 <div className="space-y-3">
