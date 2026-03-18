@@ -1,6 +1,6 @@
 import { useStore } from '../store/useStore';
 import { deleteStory, revoiceStory, getVoicePreviewUrl, exportStoryToKindle, getThumbUrl, regenerateStoryImage } from '../lib/api';
-import { Play, Trash2, BookOpen, Loader2, Mic, X, Venus, Mars, Users, Pause, Send, Image as ImageIcon, RefreshCw, Sparkles, Settings2, MessageCircle, Timer, Wand2, Edit, Feather, User as UserIcon, Search, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Play, Trash2, BookOpen, Loader2, Mic, X, Venus, Mars, Users, Pause, Send, Image as ImageIcon, RefreshCw, Sparkles, Settings2, MessageCircle, Timer, Wand2, Edit, Feather, User as UserIcon, Search, ChevronLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useEffect, useState, useRef } from 'react';
 import ConfirmModal from './ConfirmModal';
