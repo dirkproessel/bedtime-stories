@@ -53,6 +53,52 @@ GEMINI_VOICES = {
 }
 
 
+# 1a. Voice Basis-Regieanweisungen (User-Defined)
+VOICE_INSTRUCTIONS = {
+    "aoede": "„Sprich mit einer hellen, einladenden Tonalität. Hebe die Stimme am Satzende minimal an, um Neugier zu wecken. Halte das Tempo moderat und die Artikulation sehr klar.“",
+    "kore": "„Souveräne und entschlossene Sprechweise. Setze Punkte sehr bestimmt. Vermeide unnötiges Dehnen von Vokalen; bleibe präzise, kompetent und rhythmisch stabil.“",
+    "sulafat": "„Nutze eine weiche, mütterliche Klangfarbe. Verlangsame das Tempo leicht. Erzeuge Geborgenheit durch sanfte Übergänge zwischen den Worten (Legato).“",
+    "gacrux": "„Nutze die volle Tiefe deiner Resonanz. Sprich langsam und autoritär. Lass den Worten Raum, um nachzuschwingen. Pausen zwischen Sätzen sind gewollt und lang.“",
+    "charon": "„Sprich vollkommen sachlich und neutral. Vermeide emotionale Schwankungen in der Tonhöhe. Du bist der distanzierte Beobachter, der nur protokolliert.“",
+    "fenrir": "„Sprich mit hoher Energie und spürbarer Begeisterung. Die Intonation ist dynamisch und lebendig. Setze Akzente auf Adjektive, um die Wärme zu betonen.“",
+    "orus": "„Direkte, schnörkellose Ansprache. Sprich mit fester Stimme und ernstem Unterton. Keine Spielereien, nur die nackte, seriöse Information.“",
+    "zephyr": "„Frische, moderne Tonalität. Sprich flüssig und mit einer neutralen, fast jugendlichen Leichtigkeit. Kling wie ein aufgeweckter Erzähler von heute.“",
+    "enceladus": "„Senke die Lautstärke deutlich. Sprich mit viel Luftanteil (hauchig). Erzeuge Intimität durch sehr langsames Tempo und hörbare Atempausen.“",
+    "puck": "„Sprich schnell, quirlig und voller Tatendrang. Nutze eine hohe Varianz in der Tonhöhe. Sei verspielt und springe förmlich von Wort zu Wort.“",
+    "schedar": "„Bleibe vollkommen unaufgeregt und entspannt. Dein Rhythmus ist stetig wie ein Metronom. Souveräne Gelassenheit ohne dramatische Spitzen.“",
+    "iapetus": "„Sprich wie ein ganz normaler Mensch im Gespräch. Vermeide theatralische Betonung. Erzeuge Glaubwürdigkeit durch eine ehrliche, direkte Alltagsstimme.“",
+    "algenib": "„Betone die raue Textur deiner Stimme. Sprich markant, tief und mit bewussten Ecken und Kanten. Jedes Wort hat Gewicht und Charakter.“",
+    "laomedeia": "„Sprich neugierig und aktiv. Deine Stimme geht bei Fragen oder Entdeckungen im Text deutlich nach oben. Sei präsent und wach.“",
+    "despina": "„Kultivierte und elegante Sprechweise. Die Worte fließen ineinander über. Achte auf eine gehobene Intonierung und eine fließende Melodie.“",
+    "umbriel": "„Lockere, unkomplizierte Ansprache. Sprich so, als würdest du die Geschichte ganz entspannt nebenbei erzählen. Keine Anspannung, volle Flexibilität.“",
+}
+
+# 1b. Genre Tweaks (User-Defined)
+GENRE_INSTRUCTIONS = {
+    "Krimi": "„Sprich analytisch und trocken. Setze nach jedem Satz eine Pause von 1 Sekunde. Betone die Konsonanten scharf, um die Spannung physisch greifbar zu machen.“",
+    "Abenteuer": "„Erhöhe das Grundtempo leicht. Sprich mit viel Energie und hörbarem Einatmen vor neuen Absätzen. Die Stimme soll nach Vorwärtsbewegung klingen.“",
+    "Science-Fiction": "„Lies mit kühler Präzision und minimaler emotionaler Modulation. Artikuliere jedes Wort extrem sauber, fast schon technisch distanziert.“",
+    "Märchen": "„Nutze einen weiten Melodiebogen. Dehne Vokale bei Adjektiven minimal und sprich mit einer warmen, schützenden Tonalität. Zeitloses Tempo.“",
+    "Komödie": "„Sprich dynamisch mit hoher Varianz in der Tonhöhe. Setze vor Pointen eine kurze, erwartungsvolle Pause (0,5 Sek.). Sei lebhaft und präsent.“",
+    "Thriller": "„Sprich gepresst und gehetzt. Verringere die Pausen zwischen den Worten, aber lasse die Satzenden abrupt abbrechen. Erzeuge akustischen Druck.“",
+    "Drama": "„Lass die Stimme am Satzende schwer absinken. Sprich tiefer als gewöhnlich und erzeuge eine melancholische Resonanz durch langsames Tempo.“",
+    "Grusel": "„Senke die Lautstärke und sprich mit viel Luftanteil (hauchig). Dehne die Pausen zwischen den Sätzen auf 2 Sekunden aus. Erzeuge Flüstern.“",
+    "Fantasy": "„Sprich erhaben und mit viel Volumen. Nutze einen feierlichen Rhythmus. Pausen dienen dazu, die Größe der beschriebenen Welt wirken zu lassen.“",
+    "Satire": "„Nutze eine arrogante, fast übertriebene Betonung. Ziehe bestimmte Wörter spöttisch in die Länge. Ein scharfer, trockener Unterton ist essenziell.“",
+    "Dystopie": "„Vermeide Melodie in der Stimme. Sprich flach, aber nicht roboterhaft; eher wie jemand, der keine Hoffnung mehr hat. Reduziere die Dynamik.“",
+    "Historisch": "„Sprich mit aristokratischer Ruhe und perfekter Artikulation. Jedes Wort wird vollendet. Ein getragener, würdevoller Rhythmus ohne Hast.“",
+    "Mythologie": "„Lies wie ein Orakel: Langsam, gewichtig und mit großer Ernsthaftigkeit. Jedes Wort soll wie in Stein gemeißelt klingen.“",
+    "Roadtrip": "„Sprich locker und fließend, wie in einem entspannten Gespräch. Nutze eine natürliche, fast beiläufige Intonation. Wenig Inszenierung.“",
+    "Gute Nacht": "„Sprich extrem leise, monoton und ohne Akzente. Werde zum Ende jedes Chunks hin noch langsamer. Minimale Energie, maximale Weichheit.“",
+    "Fabel": "„Sprich wie ein gütiger Lehrer. Betone die Lehrsätze am Ende langsamer und mit einer tieferen, vertrauenserweckenden Stimme.“",
+    "Modern Romanze": "„Locker, urban und mit einem Lächeln in der Stimme. Sprich hell und herzlich, mit einer modernen, schnellen Satzmelodie.“",
+    "Sinnliche Romanze": "„Sprich sehr nah am Mikrofon, tief und langsam. Erzeuge eine intime Nähe durch sanfte, fließende Übergänge zwischen den Worten.“",
+    "Erotik": "„Hauchig, langsam und mit Fokus auf körperliche Präsenz. Nutze viele hörbare Atemphasen. Die Stimme soll vibrieren und knistern.“",
+    "Dark Romance": "„Fordernd und intensiv. Nutze eine dunkle, dominante Färbung. Sprich kontrolliert, aber mit einer unterdrückten emotionalen Schärfe.“",
+}
+
+
+
 DEFAULT_VOICE = "seraphina"
 
 
@@ -113,6 +159,8 @@ async def generate_tts_chunk(
     voice_key: str = DEFAULT_VOICE,
     rate: str = "-5%",
     is_title: bool = False,
+    genre: str | None = None,
+    previous_text: str | None = None,
 ) -> tuple[Path, str]:
     """
     Convert text to speech and save as MP3.
@@ -297,8 +345,8 @@ async def generate_tts_chunk(
             # The speed hint was removed as chunking ensures better cadence now.
             speed_hint = ""
             
-            MIN_CHUNK_BYTES = 500
-            MAX_CHUNK_BYTES = 800
+            MIN_CHUNK_BYTES = 750
+            MAX_CHUNK_BYTES = 1000
 
             def split_text_paragraphs(t: str, min_bytes=MIN_CHUNK_BYTES, max_bytes=MAX_CHUNK_BYTES):
                 chunks = []
@@ -360,20 +408,36 @@ async def generate_tts_chunk(
             text_chunks = split_text_paragraphs(clean_text)
             all_pcm_data = bytearray()
 
-            async def process_chunk(i, chunk):
+            async def process_chunk(i, chunk, chunk_previous_text=None):
                 max_retries = 3
                 for attempt in range(max_retries):
                     logger.info(f"TTS Gemini: Processing chunk {i+1}/{len(text_chunks)} ({len(chunk.encode('utf-8'))} bytes) - Attempt {attempt+1}")
                     try:
-                        # Wait for capacity before making request
+                        # Build System Instruction
+                        voice_basis = VOICE_INSTRUCTIONS.get(voice_key, "")
+                        genre_tweak = GENRE_INSTRUCTIONS.get(genre, "") if genre else ""
+                        sys_instr = f"{voice_basis} {genre_tweak}".strip()
+                        
+                        # Build Contents with Context Carry-over
+                        context_block = ""
+                        if chunk_previous_text:
+                            # Context prefix with rule to not speak it
+                            import re
+                            # Simple regex to find sentences (at least 2 last ones)
+                            sentences = re.split(r'(?<=[.!?]) +', chunk_previous_text.strip())
+                            last_context = " ".join(sentences[-2:])
+                            context_block = f"[KONTEXT (NICHT VORLESEN): {last_context}]\n\n[AKTUELLER TEXT (JETZT VORLESEN): "
+                        
+                        full_contents = f"{context_block}{chunk}{']' if context_block else ''}"
+                        
                         await rate_limiter.wait_for_capacity("tts")
                         
-                        # Added wait_for to prevent infinite network hangs
                         response = await asyncio.wait_for(
                             client.aio.models.generate_content(
                                 model='models/gemini-2.5-flash-preview-tts',
-                                contents=chunk + speed_hint,
+                                contents=full_contents,
                                 config=types.GenerateContentConfig(
+                                    system_instruction=sys_instr if sys_instr else None,
                                     speech_config=types.SpeechConfig(
                                         voice_config=types.VoiceConfig(
                                             prebuilt_voice_config=types.PrebuiltVoiceConfig(
@@ -427,11 +491,12 @@ async def generate_tts_chunk(
 
             try:
                 # Process chunks sequentially to prevent RPM (Requests Per Minute) spikes 
-                # which can quickly trigger the daily quota and rate limits.
+                # and to allow context carry-over between chunks.
+                last_chunk_text = previous_text
                 for i, chunk in enumerate(text_chunks):
-                    pcm_data = await process_chunk(i, chunk)
+                    pcm_data = await process_chunk(i, chunk, last_chunk_text)
                     all_pcm_data.extend(pcm_data)
-                    # No manual sleep needed here anymore, the RateLimiter handles RPM automatically!
+                    last_chunk_text = chunk
                     
             except Exception as e:
                 # If any chunk hit the quota limit, fall back for the entire chapter
@@ -524,6 +589,7 @@ async def chapters_to_audio(
     output_dir: Path,
     voice_key: str = DEFAULT_VOICE,
     rate: str = "-5%",
+    genre: str | None = None,
     on_progress: callable = None,
 ) -> list[Path]:
     """
@@ -550,29 +616,37 @@ async def chapters_to_audio(
             40
         )
 
+    # Pre-compute previous_text for each chapter (deterministic, no API needed)
+    chapter_contexts = [None] * len(chapters)
+    for i in range(1, len(chapters)):
+        chapter_contexts[i] = chapters[i - 1]["text"]
+
     async def process_chapter(i: int, chapter: dict):
         nonlocal actual_voice
         full_text = chapter["text"]
-        _, realized_voice = await generate_tts_chunk(full_text, audio_files[i], voice_key, rate)
+        _, realized_voice = await generate_tts_chunk(
+            full_text,
+            audio_files[i],
+            voice_key,
+            rate,
+            genre=genre,
+            previous_text=chapter_contexts[i],
+        )
         if realized_voice != voice_key:
             actual_voice = realized_voice
 
-    # Run chapter generations concurrently
-    # Premium voices (Gemini, OpenAI) are rate-limited: max 2 parallel chapters
-    # Edge has no API limits: allow up to 10
+    # Run chapter generations concurrently with semaphore
     import asyncio
     is_premium = voice_key in GEMINI_VOICES or voice_key in OPENAI_VOICES
     concurrency_limit = 2 if is_premium else 10
     semaphore = asyncio.Semaphore(concurrency_limit)
-    
+
     async def run_with_semaphore(i: int, ch: dict):
         async with semaphore:
             await process_chapter(i, ch)
             if on_progress:
-                # Signal that this specific chapter is done
                 await on_progress("tts_chapter_done", f"Kapitel {i+1} vertont")
 
-    # Create and await all tasks
     tasks = [run_with_semaphore(i, ch) for i, ch in enumerate(chapters)]
     await asyncio.gather(*tasks)
 

@@ -288,6 +288,7 @@ async def _run_revoice_pipeline(
             output_dir=chunks_dir,
             voice_key=voice_key,
             rate=speech_rate,
+            genre=meta.genre if meta else None,
             on_progress=on_progress,
         )
 
@@ -607,6 +608,7 @@ async def _run_pipeline(
             output_dir=chunks_dir,
             voice_key=voice_key,
             rate=speech_rate,
+            genre=genre,
             on_progress=tts_progress_wrapper,
         )
 
