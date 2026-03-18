@@ -436,7 +436,7 @@ export const useStore = create<AppState>((set, get) => {
     },
     revoiceStoryId: null,
     setRevoiceStoryId: (id) => set({ revoiceStoryId: id }),
-    revoiceStory: async (id, voiceKey, speechRate = '-15%') => {
+    revoiceStory: async (id, voiceKey, speechRate = '0%') => {
         set({ error: null });
         try {
             await apiRevoiceStory(id, voiceKey, speechRate);

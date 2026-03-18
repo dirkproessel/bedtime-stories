@@ -211,7 +211,7 @@ async def generate_tts_chunk(
     text: str,
     output_path: Path,
     voice_key: str = DEFAULT_VOICE,
-    rate: str = "-5%",
+    rate: str = "0%",
     is_title: bool = False,
     genre: str | None = None,
     previous_text: str | None = None,
@@ -412,22 +412,24 @@ async def generate_tts_chunk(
                         
                         prompt_parts = []
                         
-                        # Director's Notes (Voice + Genre)
-                        if voice_basis or genre_tweak:
-                            notes = f"### DIRECTOR'S NOTES\n{voice_basis}"
-                            if genre_tweak:
-                                notes += f"\n{genre_tweak}"
-                            prompt_parts.append(notes)
+                        # Instructions Block (Voice, Genre, Rate, and Continuity)
+                        instr = "### AUDIO_INSTRUCTIONS\n"
+                        if voice_basis: instr += f"VOICE_CHARACTER: {voice_basis}\n"
+                        if genre_tweak: instr += f"GENRE_TONE: {genre_tweak}\n"
+                        if rate: instr += f"SPEAKING_RATE: Sprich mit einer Geschwindigkeit von {rate} im Vergleich zum Standard.\n"
                         
-                        # Sample Context (last 2 sentences of previous chunk)
+                        instr += "CONTINUITY: Halte exakt dieselbe Stimme, Tonhöhe und Energie wie im vorangegangenen Kontext bei. Es darf keine hörbaren Sprünge zwischen den Aufnahmen geben."
+                        prompt_parts.append(instr)
+                        
+                        # Sample Context (to keep the voice consistent)
                         if chunk_previous_text:
                             import re
                             sentences = re.split(r'(?<=[.!?]) +', chunk_previous_text.strip())
                             last_context = " ".join(sentences[-2:])
-                            prompt_parts.append(f"### SAMPLE CONTEXT\n{last_context}")
+                            prompt_parts.append(f"### AUDIO_CONTEXT_REFERENCE\n{last_context}")
                         
                         # Transcript
-                        prompt_parts.append(f"#### TRANSCRIPT\n{chunk}")
+                        prompt_parts.append(f"### TRANSCRIPT\n{chunk}")
                         
                         full_contents = "\n\n".join(prompt_parts)
                         
@@ -594,7 +596,7 @@ async def chapters_to_audio(
     chapters: list[dict],
     output_dir: Path,
     voice_key: str = DEFAULT_VOICE,
-    rate: str = "-5%",
+    rate: str = "0%",
     genre: str | None = None,
     on_progress: callable = None,
 ) -> list[Path]:

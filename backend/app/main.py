@@ -201,7 +201,7 @@ async def start_generation(req: StoryRequest, current_user: User = Depends(get_c
 
 class RevoiceRequest(BaseModel):
     voice_key: str
-    speech_rate: str = "-15%"
+    speech_rate: str = "0%"
 
 
 @app.post("/api/stories/{story_id}/revoice")

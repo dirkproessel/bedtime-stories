@@ -101,7 +101,7 @@ class StoryRequest(BaseModel):
     characters: list[str] | None = None
     target_minutes: int = 5
     voice_key: str = "seraphina"
-    speech_rate: str = "-15%"
+    speech_rate: str = "0%"
     
     # Remix Features
     parent_id: Optional[str] = None
@@ -113,7 +113,7 @@ class FreeTextRequest(BaseModel):
     text: str
     voice_key: str = "seraphina"
     target_minutes: int = 20
-    speech_rate: str = "-15%"
+    speech_rate: str = "0%"
 
 class HookRequest(BaseModel):
     """Request to generate a hook idea via the dice feature."""

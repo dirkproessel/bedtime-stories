@@ -296,7 +296,7 @@ export async function exportStoryToKindle(id: string, email: string): Promise<an
     return response.json();
 }
 
-export async function revoiceStory(storyId: string, voiceKey: string, speechRate: string = '-15%'): Promise<{ id: string }> {
+export async function revoiceStory(storyId: string, voiceKey: string, speechRate: string = '0%'): Promise<{ id: string }> {
     const res = await fetch(`${API_BASE}/api/stories/${storyId}/revoice`, {
         method: 'POST',
         headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
