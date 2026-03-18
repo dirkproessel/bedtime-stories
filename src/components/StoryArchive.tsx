@@ -311,7 +311,7 @@ export default function StoryArchive() {
                                 onChange={(e) => setSearchValue(e.target.value)}
                                 placeholder="Titel oder Synopsis suchen..."
                                 autoFocus
-                                className="flex-1 bg-transparent border-none focus:ring-0 text-sm text-text placeholder:text-slate-600 px-2"
+                                className="flex-1 bg-transparent border-0 border-none outline-none focus:outline-none focus:ring-0 text-[15px] text-text placeholder:text-slate-500 px-2 min-w-0"
                             />
                             {searchValue && (
                                 <button 
@@ -335,8 +335,8 @@ export default function StoryArchive() {
                             {/* Genre Scroller */}
                             <div className="relative flex-1 overflow-hidden h-full flex items-center">
                                 {/* Fades */}
-                                {showLeftFade && <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-surface to-transparent z-10 pointer-events-none" />}
-                                {showRightFade && <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-surface to-transparent z-10 pointer-events-none" />}
+                                {showLeftFade && <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-background to-transparent z-10 pointer-events-none" />}
+                                {showRightFade && <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-background to-transparent z-10 pointer-events-none" />}
 
                                 <div 
                                     ref={genreScrollRef}
