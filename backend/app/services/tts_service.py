@@ -413,22 +413,31 @@ async def generate_tts_chunk(
                 for attempt in range(max_retries):
                     logger.info(f"TTS Gemini: Processing chunk {i+1}/{len(text_chunks)} ({len(chunk.encode('utf-8'))} bytes) - Attempt {attempt+1}")
                     try:
-                        # Build System Instruction
+                        # Build prompt following Google's TTS Prompting Guide:
+                        # Director's Notes + Sample Context + Transcript
                         voice_basis = VOICE_INSTRUCTIONS.get(voice_key, "")
                         genre_tweak = GENRE_INSTRUCTIONS.get(genre, "") if genre else ""
-                        sys_instr = f"{voice_basis} {genre_tweak}".strip()
                         
-                        # Build Contents with Context Carry-over
-                        context_block = ""
+                        prompt_parts = []
+                        
+                        # Director's Notes (Voice + Genre)
+                        if voice_basis or genre_tweak:
+                            notes = f"### DIRECTOR'S NOTES\n{voice_basis}"
+                            if genre_tweak:
+                                notes += f"\n{genre_tweak}"
+                            prompt_parts.append(notes)
+                        
+                        # Sample Context (last 2 sentences of previous chunk)
                         if chunk_previous_text:
-                            # Context prefix with rule to not speak it
                             import re
-                            # Simple regex to find sentences (at least 2 last ones)
                             sentences = re.split(r'(?<=[.!?]) +', chunk_previous_text.strip())
                             last_context = " ".join(sentences[-2:])
-                            context_block = f"[KONTEXT (NICHT VORLESEN): {last_context}]\n\n[AKTUELLER TEXT (JETZT VORLESEN): "
+                            prompt_parts.append(f"### SAMPLE CONTEXT\n{last_context}")
                         
-                        full_contents = f"{context_block}{chunk}{']' if context_block else ''}"
+                        # Transcript
+                        prompt_parts.append(f"#### TRANSCRIPT\n{chunk}")
+                        
+                        full_contents = "\n\n".join(prompt_parts)
                         
                         await rate_limiter.wait_for_capacity("tts")
                         
@@ -437,7 +446,6 @@ async def generate_tts_chunk(
                                 model='models/gemini-2.5-flash-preview-tts',
                                 contents=full_contents,
                                 config=types.GenerateContentConfig(
-                                    system_instruction=sys_instr if sys_instr else None,
                                     speech_config=types.SpeechConfig(
                                         voice_config=types.VoiceConfig(
                                             prebuilt_voice_config=types.PrebuiltVoiceConfig(
