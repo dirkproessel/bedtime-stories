@@ -1031,7 +1031,7 @@ export default function StoryArchive() {
                                                     {story.duration_seconds ? formatDuration(story.duration_seconds) : '--:--'} Min ({voiceName(story.voice_key)})
                                                 </span>
                                             )}
-                                            {(archiveFilter === 'public' || archiveFilter === 'favorites') && (
+                                            {archiveFilter === 'public' && (
                                                 <span className="flex items-center gap-2">
                                                     <Feather className="w-4 h-4 text-slate-600" />
                                                     {story.user_email || 'Anonym'}
