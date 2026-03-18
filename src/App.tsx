@@ -164,7 +164,7 @@ function App() {
   return (
     <div className="min-h-screen bg-background flex flex-col w-full relative overflow-hidden">
       {/* Global Brand Header */}
-      <header className="pt-2 px-4 pb-1 max-w-2xl mx-auto w-full flex flex-row items-center justify-center gap-3 sm:gap-5 text-left">
+      <header className="relative pt-2 px-4 pb-1 max-w-2xl mx-auto w-full flex flex-row items-center justify-center gap-3 sm:gap-5 text-left">
         <div className="shrink-0 mt-1">
           <img src="/logo.png" alt="Logo" className="w-18 h-18 sm:w-22 sm:h-22 object-contain" />
         </div>
@@ -174,6 +174,25 @@ function App() {
             Literatur auf Knopfdruck
           </p>
         </div>
+
+        {/* Absolute Right: Profile Avatar Button */}
+        <button 
+          onClick={() => {
+             setActiveView('profile');
+             if (useStore.getState().isReaderOpen) {
+                 useStore.getState().setReaderOpen(false);
+             }
+          }}
+          className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center justify-center w-10 h-10 rounded-full bg-surface border-2 border-slate-800 hover:border-slate-700 transition-colors"
+        >
+          {user ? (
+            <span className="text-sm font-bold text-slate-300 uppercase">
+              {user.email.charAt(0)}
+            </span>
+          ) : (
+            <User className="w-5 h-5 text-slate-400" />
+          )}
+        </button>
       </header>
 
       {/* Dynamic Page Title */}
