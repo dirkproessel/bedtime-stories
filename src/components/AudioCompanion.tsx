@@ -73,7 +73,7 @@ export default function AudioCompanion() {
     const progress = (currentTime / (duration || 1)) * 100 || 0;
 
     return (
-        <div className="fixed bottom-[84px] left-4 right-4 z-[60] animate-in slide-in-from-bottom duration-500">
+        <div className="fixed bottom-[84px] left-4 right-4 z-[90] animate-in slide-in-from-bottom duration-500">
             <audio ref={audioRef} />
             
             {story && (

@@ -139,7 +139,7 @@ export default function ReaderLayer() {
 
             {/* Kindle Modal (Simplified) */}
             {showKindleModal && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+                <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
                     <div className="bg-surface rounded-[2.5rem] w-full max-w-sm p-8 shadow-2xl border border-slate-800 animate-in zoom-in duration-200">
                         <h2 className="text-2xl font-bold text-text mb-2 font-serif">An Kindle senden</h2>
                         <p className="text-sm text-slate-500 mb-6 font-mono uppercase tracking-wider text-[10px]">E-Book Export</p>
@@ -166,8 +166,8 @@ export default function ReaderLayer() {
             )}
             {/* Floating Action Button for Favorites */}
             <div 
-                className={`fixed right-6 z-[90] transition-all duration-500 ease-in-out ${
-                    showAudioCompanion ? 'bottom-[148px]' : 'bottom-6'
+                className={`fixed right-6 z-[110] transition-all duration-500 ease-in-out ${
+                    showAudioCompanion ? 'bottom-[148px]' : 'bottom-[84px]'
                 }`}
             >
                 <button
