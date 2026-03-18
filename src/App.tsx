@@ -255,13 +255,13 @@ function App() {
                 }}
                 className={`flex flex-col items-center gap-1 px-4 py-1.5 rounded-xl transition-all relative ${isActive
                   ? 'text-primary'
-                  : 'text-slate-200 hover:text-white font-semibold'
+                  : 'text-slate-100 hover:text-white'
                   }`}
               >
-                <div className={`transition-transform duration-300 ${key === 'create' ? 'rotate-[165deg]' : ''}`}>
+                <div className={`transition-transform duration-300 ${key === 'create' ? '-rotate-[30deg]' : ''}`}>
                   <Icon className={`w-5 h-5 ${isActive ? 'stroke-[3]' : 'stroke-[2.5]'}`} />
                 </div>
-                <span className="text-[8px] font-mono uppercase tracking-[0.2em] font-semibold">
+                <span className="text-[8px] font-mono uppercase tracking-[0.25em] font-medium">
                   {isGuest ? 'Anmelden' : label}
                 </span>
                 {isGuest && (
