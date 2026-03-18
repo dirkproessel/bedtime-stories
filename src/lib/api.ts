@@ -256,6 +256,14 @@ export function getThumbUrl(storyId: string, version?: string): string {
     return url.toString();
 }
 
+export function getImageUrl(storyId: string, version?: string): string {
+    const token = localStorage.getItem('auth_token');
+    const url = new URL(`${API_BASE}/api/stories/${storyId}/image.png`);
+    if (token) url.searchParams.append('token', token);
+    if (version) url.searchParams.append('v', version);
+    return url.toString();
+}
+
 export async function deleteStory(storyId: string): Promise<void> {
     const res = await fetch(`${API_BASE}/api/stories/${storyId}`, { 
         method: 'DELETE',

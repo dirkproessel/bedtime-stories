@@ -108,7 +108,7 @@ _generation_status: dict[str, dict] = {}
 from app.services.store import store
 
 
-async def _generate_thumbnail(source: Path, dest: Path, size: int = 256):
+async def _generate_thumbnail(source: Path, dest: Path, size: int = 400):
     """Create a small JPEG thumbnail from a full-size cover image."""
     import asyncio
     def _resize():

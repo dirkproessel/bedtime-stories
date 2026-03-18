@@ -1,5 +1,5 @@
 import { useStore } from '../store/useStore';
-import { deleteStory, getVoicePreviewUrl, exportStoryToKindle, getThumbUrl, regenerateStoryImage } from '../lib/api';
+import { deleteStory, getVoicePreviewUrl, exportStoryToKindle, getThumbUrl, getImageUrl, regenerateStoryImage } from '../lib/api';
 import { Play, Trash2, Heart, BookOpen, Loader2, Mic, X, Venus, Mars, Users, Pause, Send, Image as ImageIcon, RefreshCw, Sparkles, Settings2, MessageCircle, Timer, Wand2, Edit, Feather, User as UserIcon, Search, ChevronLeft, ChevronRight, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useEffect, useState, useRef } from 'react';
@@ -14,11 +14,13 @@ function HeroSection({ story, onPlay, onFavorite }: { story: any, onPlay: (id: s
     if (!story) return null;
     return (
         <div className="relative w-full h-[320px] sm:h-[400px] mb-8 rounded-[2.5rem] overflow-hidden group cursor-pointer border border-slate-800 shadow-2xl animate-in fade-in zoom-in-95 duration-500" onClick={() => onPlay(story.id)}>
-            <img 
-                src={getThumbUrl(story.id, story.updated_at)} 
-                alt={story.title} 
-                className="w-full h-full object-cover grayscale-[10%] group-hover:scale-105 transition-transform duration-700" 
-            />
+            <div className="absolute inset-0 overflow-hidden">
+                <img 
+                    src={getImageUrl(story.id, story.updated_at)} 
+                    alt={story.title} 
+                    className="w-full h-full object-cover grayscale-[10%] scale-110 group-hover:scale-[1.15] transition-transform duration-700" 
+                />
+            </div>
             <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
             
             <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-10">
@@ -94,7 +96,7 @@ function CollectionRow({ title, stories, onPlay }: { title: string, stories: any
                                 <img 
                                     src={getThumbUrl(s.id, s.updated_at)} 
                                     alt={s.title} 
-                                    className="w-full h-full object-cover grayscale-[15%] group-hover/card:grayscale-0 transition-all duration-700" 
+                                    className="w-full h-full object-cover grayscale-[15%] scale-110 group-hover/card:grayscale-0 group-hover/card:scale-[1.15] transition-all duration-700" 
                                 />
                                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/20 to-transparent opacity-60 group-hover/card:opacity-90 transition-opacity" />
                                 
@@ -149,7 +151,7 @@ function DiscoveryCard({ story, onPlay, onFavorite }: { story: any, onPlay: (id:
             <img 
                 src={getThumbUrl(story.id, story.updated_at)} 
                 alt={story.title} 
-                className="w-full h-full object-cover grayscale-[15%] group-hover:grayscale-0 transition-all duration-700" 
+                className="w-full h-full object-cover grayscale-[15%] scale-110 group-hover:grayscale-0 group-hover:scale-[1.15] transition-all duration-700" 
             />
             <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/20 to-transparent opacity-80 group-hover:opacity-90 transition-opacity" />
             
@@ -795,7 +797,7 @@ export default function StoryArchive() {
                                         className="w-20 h-20 rounded-2xl overflow-hidden shrink-0 shadow-sm border border-slate-700 cursor-pointer"
                                         onClick={() => handlePlay(story.id)}
                                     >
-                                        <img src={getThumbUrl(story.id, story.updated_at)} alt={story.title} className="w-full h-full object-cover grayscale-[20%]" />
+                                        <img src={getThumbUrl(story.id, story.updated_at)} alt={story.title} className="w-full h-full object-cover grayscale-[20%] scale-110" />
                                     </div>
                                 ) : (
                                     <div
