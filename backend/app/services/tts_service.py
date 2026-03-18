@@ -252,10 +252,15 @@ async def generate_tts_chunk(
     try:
         if engine == "edge":
             # Edge TTS (Free)
+            # Normalize rate: must start with + or - for edge-tts regex ^[+-]\d+%$
+            edge_rate = rate
+            if edge_rate and not (edge_rate.startswith("+") or edge_rate.startswith("-")):
+                edge_rate = "+" + edge_rate
+                
             communicate = edge_tts.Communicate(
                 text=clean_text,
                 voice=voice_config["id"],
-                rate=rate,
+                rate=edge_rate,
             )
             await communicate.save(str(output_path))
         elif engine == "google":
