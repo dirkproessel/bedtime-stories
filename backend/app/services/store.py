@@ -95,7 +95,7 @@ class StoryStore:
         """DEPRECATED: Manual control preferred."""
         pass
 
-    def get_all(self, only_spotify: bool = False, user_id: str | None = None, genre: str | None = None, search: str | None = None) -> list[StoryMeta]:
+    def get_all(self, only_spotify: bool = False, user_id: str | None = None, genre: list[str] | None = None, search: str | None = None) -> list[StoryMeta]:
         """Get all stories with optional filtering, sorted by creation date (newest first)."""
         from sqlmodel import or_
         with Session(engine) as session:
@@ -105,18 +105,31 @@ class StoryStore:
             if user_id:
                 statement = statement.where(StoryMeta.user_id == user_id)
             if genre:
-                statement = statement.where(StoryMeta.genre == genre)
+                statement = statement.where(StoryMeta.genre.in_(genre))
             if search:
-                search_term = f"%{search}%"
-                statement = statement.where(
-                    or_(
-                        StoryMeta.title.like(search_term),
-                        StoryMeta.description.like(search_term)
+                import shlex
+                try:
+                    # Attempt to parse quotes for exact phrases
+                    terms = shlex.split(search)
+                except ValueError:
+                    # Fallback to simple split if quotes are mismatched
+                    terms = search.split()
+                
+                # Filter out empty terms and apply AND logic across terms
+                terms = [t for t in terms if t.strip()]
+                for term in terms:
+                    term_like = f"%{term}%"
+                    statement = statement.where(
+                        or_(
+                            StoryMeta.title.like(term_like),
+                            # Adding case insensitive approximation since SQLite handles mostly ascii case naturally with .like()
+                            StoryMeta.description.like(term_like)
+                        )
                     )
-                )
             
             results = session.exec(statement).all()
             return list(results)
+
 
     def get_all_users(self) -> list[User]:
         """Get all users for admin lookup."""

@@ -21,7 +21,7 @@ export default function StoryArchive() {
         setGeneratorMinutes, setGeneratorVoice, setGeneratorRemix,
         setReaderOpen,
         loadMoreStories, hasMore, isLoading,
-        archiveGenre, archiveSearch, setArchiveGenre, setArchiveSearch
+        archiveGenre, archiveSearch, setArchiveGenre, setArchiveSearch, toggleArchiveGenre
     } = useStore();
     const [selectedVoice, setSelectedVoice] = useState('seraphina');
     const [confirmRevoice, setConfirmRevoice] = useState(false);
@@ -41,6 +41,7 @@ export default function StoryArchive() {
     const audioRef = useRef<HTMLAudioElement>(null);
     
     // Filter UI state
+    const [isScrolled, setIsScrolled] = useState(false);
     const [filterLevel, setFilterLevel] = useState<'main' | 'search' | 'genre'>('main');
     const [searchValue, setSearchValue] = useState(archiveSearch || '');
     const genreScrollRef = useRef<HTMLDivElement>(null);
@@ -103,8 +104,14 @@ export default function StoryArchive() {
         return () => clearTimeout(timer);
     }, [searchValue, archiveSearch, setArchiveSearch, loadStories]);
 
-    const handleGenreSelect = (genreValue: string | null) => {
-        setArchiveGenre(genreValue);
+    const handleGenreSelect = (genre: string | null) => {
+        if (genre === null) {
+            setArchiveGenre([]);
+        } else {
+            toggleArchiveGenre(genre);
+        }
+        setArchiveSearch(null);
+        setSearchValue('');
         loadStories(1);
     };
 
@@ -127,6 +134,14 @@ export default function StoryArchive() {
 
         return () => observer.disconnect();
     }, [hasMore, isLoading, loadMoreStories]);
+
+    useEffect(() => {
+        const handleScroll = () => {
+            setIsScrolled(window.scrollY > 0);
+        };
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
 
 
     const formatDuration = (seconds: number | null) => {
@@ -295,7 +310,7 @@ export default function StoryArchive() {
     return (
         <div className="p-4 sm:p-6 max-w-2xl mx-auto">
             {/* V2: Two-Level Extensible Filter Bar */}
-            <div className="mb-6 sticky top-0 z-30 bg-background/80 backdrop-blur-md pb-2 -mx-4 px-4">
+            <div className={`mb-4 sticky top-0 z-30 bg-background/80 backdrop-blur-md pb-2 -mx-4 px-4 transition-all duration-300 ${isScrolled ? 'border-b border-primary/20 shadow-sm' : 'border-transparent'}`}>
                 <div className="relative flex items-center h-10 bg-surface/50 border border-slate-800 rounded-2xl overflow-hidden transition-all duration-300">
                     
                     {filterLevel === 'main' && (
@@ -320,25 +335,30 @@ export default function StoryArchive() {
                                 )}
                             </button>
                             
-                            <button 
-                                onClick={() => setFilterLevel('genre')}
-                                className={`flex items-center gap-2 px-3 h-7 rounded-xl text-sm font-medium transition-colors ${
-                                    archiveGenre 
-                                        ? 'bg-primary/20 text-primary border border-primary/20' 
-                                        : 'bg-slate-800/50 hover:bg-slate-800 text-slate-300 border border-transparent'
-                                }`}
-                            >
-                                <BookOpen className="w-3.5 h-3.5" />
-                                <span className="truncate max-w-[120px]">{archiveGenre ? GENRES.find(g => g.value === archiveGenre)?.label || 'Genre' : 'Genre'}</span>
-                                {archiveGenre && (
-                                    <div 
-                                        onClick={(e) => { e.stopPropagation(); handleGenreSelect(null); }}
-                                        className="ml-1 -mr-1 p-0.5 hover:bg-slate-900/50 rounded-full"
+                            {/* Genre Level 1 */}
+                            <div className="relative group">
+                                <button 
+                                    onClick={() => setFilterLevel('genre')}
+                                    className={`pl-3 pr-3 py-1.5 rounded-full text-[13px] font-bold tracking-wide transition-all border flex items-center gap-1.5 shadow-sm active:scale-95 ${
+                                        archiveGenre.length > 0
+                                            ? 'bg-primary/20 border-primary/40 text-primary hover:bg-primary/30' 
+                                            : 'bg-slate-900/50 border-slate-800 text-slate-400 hover:text-slate-300 hover:bg-slate-800 hover:border-slate-700'
+                                    }`}
+                                >
+                                    <BookOpen className="w-3.5 h-3.5" />
+                                    {archiveGenre.length > 0 
+                                        ? (archiveGenre.length === 1 ? archiveGenre[0] : `${archiveGenre.length} Genres`) 
+                                        : 'Genre'}
+                                </button>
+                                {archiveGenre.length > 0 && (
+                                    <button 
+                                        onClick={(e) => { e.stopPropagation(); setArchiveGenre([]); loadStories(1); }}
+                                        className="absolute -top-1 -right-1 p-0.5 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-full transition-colors border border-slate-700"
                                     >
-                                        <X className="w-3.5 h-3.5" />
-                                    </div>
+                                        <X className="w-2.5 h-2.5" />
+                                    </button>
                                 )}
-                            </button>
+                            </div>
                             
                             {/* Placeholder for future extensible filters */}
                             {/* 
@@ -356,7 +376,7 @@ export default function StoryArchive() {
                                 onClick={() => setFilterLevel('main')}
                                 className="p-1.5 -ml-1.5 mr-1 text-slate-500 hover:text-slate-300 transition-colors rounded-lg hover:bg-slate-800/50"
                             >
-                                <ChevronLeft className="w-5 h-5" />
+                                <X className="w-5 h-5" />
                             </button>
                             <input 
                                 type="text"
@@ -383,7 +403,7 @@ export default function StoryArchive() {
                                 onClick={() => setFilterLevel('main')}
                                 className="p-1.5 -ml-1.5 mr-2 text-slate-500 hover:text-slate-300 transition-colors rounded-lg hover:bg-slate-800/50 shrink-0 relative z-20"
                             >
-                                <ChevronLeft className="w-5 h-5" />
+                                <X className="w-5 h-5" />
                             </button>
 
                             <div className="relative flex-1 overflow-hidden h-full flex items-center pr-2">
@@ -428,7 +448,7 @@ export default function StoryArchive() {
                                     <button
                                         onClick={() => handleGenreSelect(null)}
                                         className={`px-3 py-1.5 rounded-full text-[12px] font-bold uppercase tracking-wider transition-all shrink-0 border ${
-                                            !archiveGenre 
+                                            archiveGenre.length === 0
                                                 ? 'bg-primary/20 border-primary/40 text-primary' 
                                                 : 'bg-slate-900/50 border-slate-800 text-slate-500 hover:border-slate-700'
                                         }`}
@@ -440,7 +460,7 @@ export default function StoryArchive() {
                                             key={g.value}
                                             onClick={() => handleGenreSelect(g.value)}
                                             className={`px-3 py-1.5 rounded-full text-[12px] font-bold uppercase tracking-wider transition-all shrink-0 border ${
-                                                archiveGenre === g.value
+                                                archiveGenre.includes(g.value)
                                                     ? 'bg-primary/20 border-primary/40 text-primary' 
                                                     : 'bg-slate-900/50 border-slate-800 text-slate-500 hover:border-slate-700'
                                             }`}
@@ -480,7 +500,7 @@ export default function StoryArchive() {
                     {stories.map(story => (
                         <div
                             key={story.id}
-                            className="bg-surface border border-slate-800 rounded-3xl p-5 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 group mb-6 relative overflow-hidden"
+                            className="bg-surface border border-slate-800 rounded-3xl p-5 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 group mb-4 relative overflow-hidden"
                         >
                             <div className="flex items-start gap-4">
                                 {story.image_url ? (

@@ -186,25 +186,28 @@ export async function fetchStatus(storyId: string): Promise<GenerationStatus> {
 }
 
 // Stories
-export async function fetchStories(
-    page: number = 1, 
-    pageSize: number = 30, 
-    filter: string = 'all', 
-    userId?: string,
-    genre?: string,
-    search?: string
-): Promise<{ 
+export async function fetchStories(params: {
+    page?: number;
+    pageSize?: number;
+    filter?: string;
+    userId?: string;
+    genre?: string[];
+    search?: string;
+}): Promise<{ 
     stories: StoryMeta[], 
     total: number,
     total_my: number,
     total_public: number
 }> {
+    const { page = 1, pageSize = 30, filter = 'all', userId, genre, search } = params;
     let url = `${API_BASE}/api/stories?page=${page}&page_size=${pageSize}&filter=${filter}`;
     if (userId) {
         url += `&user_id=${userId}`;
     }
-    if (genre) {
-        url += `&genre=${encodeURIComponent(genre)}`;
+    if (genre && genre.length > 0) {
+        genre.forEach(g => {
+            url += `&genre=${encodeURIComponent(g)}`;
+        });
     }
     if (search) {
         url += `&search=${encodeURIComponent(search)}`;

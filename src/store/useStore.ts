@@ -36,11 +36,12 @@ interface AppState {
     totalPublicStories: number;
     currArchivePage: number;
     archiveFilter: 'my' | 'all' | 'public';
-    archiveGenre: string | null;
+    archiveGenre: string[];
     archiveSearch: string | null;
     hasMore: boolean;
     setArchiveFilter: (filter: 'my' | 'all' | 'public') => void;
-    setArchiveGenre: (genre: string | null) => void;
+    setArchiveGenre: (genre: string[]) => void;
+    toggleArchiveGenre: (genre: string) => void;
     setArchiveSearch: (search: string | null) => void;
     loadStories: (page?: number, userId?: string, pageSize?: number) => Promise<void>;
     loadMoreStories: (userId?: string, pageSize?: number) => Promise<void>;
@@ -121,10 +122,15 @@ export const useStore = create<AppState>((set, get) => {
     currArchivePage: 1,
     hasMore: true,
     archiveFilter: 'my',
-    archiveGenre: null,
+    archiveGenre: [],
     archiveSearch: null,
     setArchiveFilter: (filter) => set({ archiveFilter: filter }),
     setArchiveGenre: (genre) => set({ archiveGenre: genre }),
+    toggleArchiveGenre: (genre) => set((state) => ({ 
+        archiveGenre: state.archiveGenre.includes(genre)
+            ? state.archiveGenre.filter(g => g !== genre)
+            : [...state.archiveGenre, genre]
+    })),
     setArchiveSearch: (search) => set({ archiveSearch: search }),
     activeView: 'create',
     adminUsers: [],
@@ -239,14 +245,15 @@ export const useStore = create<AppState>((set, get) => {
         set({ isLoading: true });
         try {
             const { fetchStories } = await import('../lib/api');
-            const { stories, total, total_my, total_public } = await fetchStories(
-                page, 
-                pageSize, 
-                archiveFilter, 
-                userId,
-                archiveGenre || undefined,
-                archiveSearch || undefined
-            );
+            const res = await fetchStories({
+                page: page, 
+                pageSize: pageSize, 
+                filter: archiveFilter, 
+                userId: userId,
+                genre: archiveGenre.length > 0 ? archiveGenre : undefined,
+                search: archiveSearch || undefined
+            });
+            const { stories, total, total_my, total_public } = res;
             set({ 
                 stories, 
                 totalStories: total,
@@ -270,14 +277,15 @@ export const useStore = create<AppState>((set, get) => {
         set({ isLoading: true });
         try {
             const { fetchStories } = await import('../lib/api');
-            const { stories: newStories, total, total_my, total_public } = await fetchStories(
-                nextPage, 
-                pageSize, 
-                archiveFilter, 
-                userId,
-                archiveGenre || undefined,
-                archiveSearch || undefined
-            );
+            const res = await fetchStories({ 
+                page: nextPage, 
+                pageSize: pageSize,
+                filter: archiveFilter,
+                userId: userId,
+                genre: archiveGenre.length > 0 ? archiveGenre : undefined,
+                search: archiveSearch || undefined
+            });
+            const { stories: newStories, total, total_my, total_public } = res;
             
             const updatedStories = [...existingStories, ...newStories];
             set({ 
@@ -378,19 +386,19 @@ export const useStore = create<AppState>((set, get) => {
         }
         // Handle filter auto-sync if switching to library/discover
         if (view === 'library') {
-            set({ archiveFilter: 'my', archiveGenre: null, archiveSearch: null });
-            if (get().user) {
-                get().loadStories(1);
-            } else {
-                set({ stories: [], totalStories: 0, totalMyStories: 0 });
-            }
-        }
-        if (view === 'discover') {
-            set({ archiveFilter: 'public', archiveGenre: null, archiveSearch: null });
+            get().setArchiveFilter('my');
+            get().setArchiveGenre([]);
+            get().setArchiveSearch(null);
             get().loadStories(1);
-        }
-        if (view === 'admin') {
-            set({ archiveFilter: 'all', archiveGenre: null, archiveSearch: null });
+        } else if (view === 'discover') {
+            get().setArchiveFilter('public');
+            get().setArchiveGenre([]);
+            get().setArchiveSearch(null);
+            get().loadStories(1);
+        } else if (view === 'admin') {
+            get().setArchiveFilter('all');
+            get().setArchiveGenre([]);
+            get().setArchiveSearch(null);
             get().loadStories(1);
         }
     },
