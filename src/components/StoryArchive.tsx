@@ -1,6 +1,6 @@
 import { useStore } from '../store/useStore';
 import { deleteStory, revoiceStory, getVoicePreviewUrl, exportStoryToKindle, getThumbUrl, regenerateStoryImage } from '../lib/api';
-import { Play, Trash2, BookOpen, Loader2, Mic, X, Venus, Mars, Users, Pause, Send, Image as ImageIcon, RefreshCw, Sparkles, Settings2, MessageCircle, Timer, Wand2, Edit, Feather, User as UserIcon, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Play, Trash2, BookOpen, Loader2, Mic, X, Venus, Mars, Users, Pause, Send, Image as ImageIcon, RefreshCw, Sparkles, Settings2, MessageCircle, Timer, Wand2, Edit, Feather, User as UserIcon, Search, ChevronLeft, ChevronRight, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useEffect, useState, useRef } from 'react';
 import ConfirmModal from './ConfirmModal';
@@ -376,7 +376,7 @@ export default function StoryArchive() {
                                 onClick={() => setFilterLevel('main')}
                                 className="p-1.5 -ml-1.5 mr-1 text-slate-500 hover:text-slate-300 transition-colors rounded-lg hover:bg-slate-800/50"
                             >
-                                <X className="w-5 h-5" />
+                                <ArrowLeft className="w-5 h-5" />
                             </button>
                             <input 
                                 type="text"
@@ -403,7 +403,7 @@ export default function StoryArchive() {
                                 onClick={() => setFilterLevel('main')}
                                 className="p-1.5 -ml-1.5 mr-2 text-slate-500 hover:text-slate-300 transition-colors rounded-lg hover:bg-slate-800/50 shrink-0 relative z-20"
                             >
-                                <X className="w-5 h-5" />
+                                <ArrowLeft className="w-5 h-5" />
                             </button>
 
                             <div className="relative flex-1 overflow-hidden h-full flex items-center pr-2">

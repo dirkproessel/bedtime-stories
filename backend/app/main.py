@@ -680,13 +680,15 @@ async def get_status(story_id: str):
 # Stories CRUD
 # ──────────────────────────────────
 
+from fastapi import Query
+
 @app.get("/api/stories", response_model=StoryListResponse)
 async def list_stories(
     page: int = 1,
     page_size: int = 30,
     filter: str = "all", # "my", "public", "all"
     user_id: str | None = None,
-    genre: str | None = None,
+    genre: list[str] | None = Query(default=None),
     search: str | None = None,
     current_user: User | None = Depends(get_optional_user)
 ):
