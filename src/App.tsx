@@ -258,7 +258,7 @@ function App() {
                   : 'text-slate-100 hover:text-white'
                   }`}
               >
-                <div className={`transition-transform duration-300 ${key === 'create' ? '-rotate-[30deg]' : ''}`}>
+                <div className={`transition-transform duration-300 ${key === 'create' ? '-rotate-[60deg]' : ''}`}>
                   <Icon className={`w-5 h-5 ${isActive ? 'stroke-[3]' : 'stroke-[2.5]'}`} />
                 </div>
                 <span className="text-[8px] font-mono uppercase tracking-[0.25em] font-medium">

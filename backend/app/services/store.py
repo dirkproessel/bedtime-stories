@@ -95,14 +95,25 @@ class StoryStore:
         """DEPRECATED: Manual control preferred."""
         pass
 
-    def get_all(self, only_spotify: bool = False, user_id: str | None = None) -> list[StoryMeta]:
-        """Get all stories, sorted by creation date (newest first)."""
+    def get_all(self, only_spotify: bool = False, user_id: str | None = None, genre: str | None = None, search: str | None = None) -> list[StoryMeta]:
+        """Get all stories with optional filtering, sorted by creation date (newest first)."""
+        from sqlmodel import or_
         with Session(engine) as session:
             statement = select(StoryMeta).order_by(StoryMeta.created_at.desc())
             if only_spotify:
                 statement = statement.where(StoryMeta.is_on_spotify == True)
             if user_id:
                 statement = statement.where(StoryMeta.user_id == user_id)
+            if genre:
+                statement = statement.where(StoryMeta.genre == genre)
+            if search:
+                search_term = f"%{search}%"
+                statement = statement.where(
+                    or_(
+                        StoryMeta.title.like(search_term),
+                        StoryMeta.description.like(search_term)
+                    )
+                )
             
             results = session.exec(statement).all()
             return list(results)
