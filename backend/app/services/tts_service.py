@@ -56,46 +56,46 @@ GEMINI_VOICES = {
 
 # 1a. Voice Basis-Regieanweisungen (User-Defined)
 VOICE_INSTRUCTIONS = {
-    "aoede": "„Sprich mit einer hellen, einladenden Tonalität. Hebe die Stimme am Satzende minimal an, um Neugier zu wecken. Halte das Tempo moderat und die Artikulation sehr klar.“",
-    "kore": "„Souveräne und entschlossene Sprechweise. Setze Punkte sehr bestimmt. Vermeide unnötiges Dehnen von Vokalen; bleibe präzise, kompetent und rhythmisch stabil.“",
-    "sulafat": "„Nutze eine weiche, mütterliche Klangfarbe. Erzeuge Geborgenheit durch sanfte Übergänge zwischen den Worten (Legato).“",
-    "gacrux": "„Nutze die volle Tiefe deiner Resonanz. Sprich autoritär. Lass den Worten Raum, um nachzuschwingen. Pausen zwischen Sätzen sind gewollt.“",
-    "charon": "„Sprich vollkommen sachlich and neutral. Vermeide emotionale Schwankungen in der Tonhöhe. Du bist der distanzierte Beobachter, der nur protokolliert.“",
-    "fenrir": "„Sprich mit hoher Energie und spürbarer Begeisterung. Die Intonation ist dynamisch und lebendig. Setze Akzente auf Adjektive, um die Wärme zu betonen.“",
-    "orus": "„Direkte, schnörkellose Ansprache. Sprich mit fester Stimme und ernstem Unterton. Keine Spielereien, nur die nackte, seriöse Information.“",
-    "zephyr": "„Frische, moderne Tonalität. Sprich flüssig und mit einer neutralen, fast jugendlichen Leichtigkeit. Kling wie ein aufgeweckter Erzähler von heute.“",
-    "enceladus": "„Senke die Lautstärke deutlich. Sprich mit viel Luftanteil (hauchig). Erzeuge Intimität durch langsameres Tempo und hörbare Atempausen.“",
-    "puck": "„Sprich quirlig und voller Tatendrang. Nutze eine hohe Varianz in der Tonhöhe. Sei verspielt und springe förmlich von Wort zu Wort.“",
-    "schedar": "„Bleibe vollkommen unaufgeregt und entspannt. Dein Rhythmus ist stetig wie ein Metronom. Souveräne Gelassenheit ohne dramatische Spitzen.“",
-    "iapetus": "„Sprich wie ein ganz normaler Mensch im Gespräch. Vermeide theatralische Betonung. Erzeuge Glaubwürdigkeit durch eine ehrliche, direkte Alltagsstimme.“",
-    "algenib": "„Betone die raue Textur deiner Stimme. Sprich markant, tief und mit bewussten Ecken und Kanten. Jedes Wort hat Gewicht und Charakter.“",
-    "laomedeia": "„Sprich neugierig und aktiv. Deine Stimme geht bei Fragen oder Entdeckungen im Text deutlich nach oben. Sei präsent und wach.“",
-    "despina": "„Kultivierte und elegante Sprechweise. Die Worte fließen ineinander über. Achte auf eine gehobene Intonierung und eine fließende Melodie.“",
-    "umbriel": "„Lockere, unkomplizierte Ansprache. Sprich so, als würdest du die Geschichte ganz entspannt nebenbei erzählen. Keine Anspannung, volle Flexibilität.“",
+    "aoede": "„Du bist eine Frau mit einer hellen, klaren und einladenden Stimme. Deine Ausstrahlung ist freundlich und neugierig.“",
+    "kore": "„Du bist eine Frau mit einer festen, souveränen und entschlossenen Stimme. Du klingst kompetent und direkt.“",
+    "sulafat": "„Du bist eine Frau mit einer warmen, mütterlichen und sanften Grundstimme. Du klingst vertrauenserweckend und fürsorglich.“",
+    "gacrux": "„Du bist ein Mann mit einer tiefen, voluminösen Resonanz. Deine Stimme ist kraftvoll und autoritär.“",
+    "charon": "„Du bist ein sachlicher, distanzierter Beobachter. Deine Stimme ist neutral, ruhig und ohne emotionale Schwankungen.“",
+    "fenrir": "„Du bist ein Mann mit einer energiegeladenen, begeisterungsfähigen Stimme. Deine Ausstrahlung ist herzlich und lebendig.“",
+    "orus": "„Du bist ein Mann mit einer ernsten, festen und seriösen Stimme. Du sprichst direkt und ohne Schnörkel.“",
+    "zephyr": "„Deine Stimme ist frisch, modern und hat eine jugendliche Leichtigkeit. Du klingst wie ein aufgeweckter Erzähler von heute.“",
+    "enceladus": "„Deine Stimme ist extrem sanft, leise und hat einen hohen Luftanteil (hauchend). Du erzeugst eine starke Intimität.“",
+    "puck": "„Deine Stimme ist quirlig, verspielt und voller Tatendrang. Du klingst wie ein flinker, lebhafter Charakter.“",
+    "schedar": "„Deine Stimme ist vollkommen unaufgeregt, entspannt und stetig. Du strahlst souveräne Gelassenheit aus.“",
+    "iapetus": "„Du bist ein bodenständiger Erzähler mit einer ehrlichen, direkten Alltagsstimme. Du klingst wie ein ganz normaler Mensch im Gespräch.“",
+    "algenib": "„Deine Stimme hat eine raue, markante Textur. Du klingst charakterstark, tief und kantig.“",
+    "laomedeia": "„Deine Stimme ist neugierig, aktiv und präsent. Du klingst stets wach und interessiert an der Geschichte.“",
+    "despina": "„Du hast eine kultivierte, elegante und gehobene Stimme. Deine Ausstrahlung ist aristokratisch und fließend.“",
+    "umbriel": "„Deine Stimme ist locker, unkompliziert und flexibel. Du klingst wie jemand, der eine Geschichte ganz entspannt nebenbei erzählt.“",
 }
 
 # 1b. Genre Tweaks (User-Defined)
 GENRE_INSTRUCTIONS = {
-    "Krimi": "„Sprich analytisch und trocken. Betone die Konsonanten scharf, um die Spannung physisch greifbar zu machen.“",
-    "Abenteuer": "„Sprich mit viel Energie und hörbarem Einatmen vor neuen Absätzen. Die Stimme soll nach Vorwärtsbewegung klingen.“",
-    "Science-Fiction": "„Lies mit kühler Präzision und minimaler emotionaler Modulation. Artikuliere jedes Wort extrem sauber, fast schon technisch distanziert.“",
-    "Märchen": "„Nutze einen weiten Melodiebogen. Dehne Vokale bei Adjektiven minimal und sprich mit einer warmen, schützenden Tonalität. Zeitloses Tempo.“",
-    "Komödie": "„Sprich dynamisch mit hoher Varianz in der Tonhöhe. Setze vor Pointen eine kurze, erwartungsvolle Pause (0,5 Sek.). Sei lebhaft und präsent.“",
-    "Thriller": "„Sprich leicht gehetzt. Verringere die Pausen zwischen den Worten, aber lasse die Satzenden nicht abrupt abbrechen. Erzeuge akustischen Druck.“",
-    "Drama": "„Lass die Stimme am Satzende schwer absinken. Sprich tiefer als gewöhnlich und erzeuge eine melancholische Resonanz.“",
-    "Grusel": "„Senke die Lautstärke und sprich mit viel Luftanteil (hauchig). Dehne die Pausen zwischen den Sätzen etwas aus. Erzeuge Flüstern.“",
-    "Fantasy": "„Sprich erhaben und mit viel Volumen. Nutze einen feierlichen Rhythmus. Pausen dienen dazu, die Größe der beschriebenen Welt wirken zu lassen.“",
-    "Satire": "„Nutze eine arrogante, fast übertriebene Betonung. Ziehe bestimmte Wörter spöttisch in die Länge. Ein scharfer, trockener Unterton ist essenziell.“",
-    "Dystopie": "„Vermeide Melodie in der Stimme. Sprich flach, aber nicht roboterhaft; eher wie jemand, der keine Hoffnung mehr hat. Reduziere die Dynamik.“",
-    "Historisch": "„Sprich mit aristokratischer Ruhe und perfekter Artikulation. Jedes Wort wird vollendet. Ein getragener, würdevoller Rhythmus ohne Hast.“",
-    "Mythologie": "„Lies wie ein Orakel: Langsam, gewichtig und mit großer Ernsthaftigkeit. Jedes Wort soll wie in Stein gemeißelt klingen.“",
-    "Roadtrip": "„Sprich locker und fließend, wie in einem entspannten Gespräch. Nutze eine natürliche, fast beiläufige Intonation. Wenig Inszenierung.“",
-    "Gute Nacht": "„Sprich extrem leise, monoton und ohne Akzente. Werde zum Ende jedes Chunks hin noch langsamer. Minimale Energie, maximale Weichheit.“",
-    "Fabel": "„Sprich wie ein gütiger Lehrer. Betone die Lehrsätze am Ende langsamer und mit einer tieferen, vertrauenserweckenden Stimme.“",
-    "Modern Romanze": "„Locker, urban und mit einem Lächeln in der Stimme. Sprich hell und herzlich, mit einer modernen Satzmelodie.“",
-    "Sinnliche Romanze": "„Sprich sehr nah am Mikrofon, tief und langsam. Erzeuge eine intime Nähe durch sanfte, fließende Übergänge zwischen den Worten.“",
-    "Erotik": "„Hauchig, langsam und mit Fokus auf körperliche Präsenz. Nutze viele hörbare Atemphasen. Die Stimme soll vibrieren und knistern.“",
-    "Dark Romance": "„Fordernd und intensiv. Nutze eine dunkle, dominante Färbung. Sprich kontrolliert, aber mit einer unterdrückten emotionalen Schärfe.“",
+    "Krimi": "„Erzähle analytisch und trocken. Achte auf eine scharfe Artikulation der Konsonanten, um Spannung zu erzeugen.“",
+    "Abenteuer": "„Erzähle mit viel Energie und Vorwärtsbewegung. Nutze einen dynamischen Rhythmus.“",
+    "Science-Fiction": "„Lies mit kühler Präzision. Deine Artikulation ist extrem sauber und technisch-distanziert.“",
+    "Märchen": "„Nutze einen weiten Melodiebogen. Erzähle warm und geborgen mit sanften, fließenden Übergängen (Legato).“",
+    "Komödie": "„Sprich dynamisch mit hoher Varianz in der Tonhöhe. Nutze präzise Pausen für Pointen. Sei lebhaft und präsent.“",
+    "Thriller": "„Erzähle gehetzt und mit akustischem Druck. Verringere die Pausen zwischen den Worten deutlich.“",
+    "Drama": "„Lass die Stimme am Satzende schwer absinken. Erzähle mit einer melancholischen Resonanz und einem getragenen Rhythmus.“",
+    "Grusel": "„Erzähle leise und hauchend. Dehne die Pausen zwischen den Sätzen aus, um eine unheimliche Atmosphäre zu schaffen.“",
+    "Fantasy": "„Sprich erhaben und mit viel Volumen. Nutze einen feierlichen, langsamen Rhythmus.“",
+    "Satire": "„Erzähle mit einem spöttischen, bewusst arroganten Unterton. Nutze eine scharfe Artikulation. Betone Pointen trocken und präzise.“",
+    "Dystopie": "„Erzähle flach und hoffnungslos. Reduziere die Dynamik und Melodie auf ein Minimum.“",
+    "Historisch": "„Sprich mit aristokratischer Ruhe und perfekter Artikulation. Nutze einen würdevollen, langsamen Rhythmus.“",
+    "Mythologie": "„Lies wie ein Orakel: Langsam, gewichtig und mit großer Ernsthaftigkeit.“",
+    "Roadtrip": "„Erzähle locker und beiläufig, wie in einem entspannten Gespräch. Nutze eine ganz natürliche Intonation.“",
+    "Gute Nacht": "„Lies extrem leise, monoton und ohne Akzente. Werde zum Ende hin immer langsamer und weicher. Minimale Energie.“",
+    "Fabel": "„Sprich wie ein gütiger Lehrer. Betone die Lehrsätze am Ende deutlicher und mit mehr Gewicht.“",
+    "Modern Romanze": "„Erzähle locker, urban und mit einem Lächeln in der Stimme. Nutze eine helle, moderne Satzmelodie.“",
+    "Sinnliche Romanze": "„Sprich sehr nah am Mikrofon, tief und langsam. Erzeuge Nähe durch sanfte, fließende Übergänge (Legato).“",
+    "Erotik": "„Lies hauchig, langsam und mit vielen kleinen Atemphasen. Erzeuge eine vibrierende, knisternde Atmosphäre.“",
+    "Dark Romance": "„Erzähle fordernd, intensiv und mit einer unterdrückten emotionalen Schärfe.“",
 }
 
 
@@ -414,8 +414,8 @@ async def generate_tts_chunk(
                         
                         # Instructions Block (Voice, Genre, Rate, and Continuity)
                         instr = "### AUDIO_INSTRUCTIONS\n"
-                        if voice_basis: instr += f"VOICE_CHARACTER: {voice_basis}\n"
-                        if genre_tweak: instr += f"GENRE_TONE: {genre_tweak}\n"
+                        if voice_basis: instr += f"STIMME_CHARAKTER: {voice_basis}\n"
+                        if genre_tweak: instr += f"ERZÄHL_STIL: {genre_tweak}\n"
                         if rate: instr += f"SPEAKING_RATE: Sprich mit einer Geschwindigkeit von {rate} im Vergleich zum Standard.\n"
                         
                         instr += "CONTINUITY: Halte exakt dieselbe Stimme, Tonhöhe und Energie wie im vorangegangenen Kontext bei. Es darf keine hörbaren Sprünge zwischen den Aufnahmen geben."
