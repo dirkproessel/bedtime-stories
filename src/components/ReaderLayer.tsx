@@ -49,7 +49,7 @@ export default function ReaderLayer() {
     if (!isReaderOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-40 bg-background overflow-y-auto animate-in slide-in-from-bottom duration-300 ease-out">
+        <div className="fixed inset-0 z-[80] bg-background overflow-y-auto animate-in slide-in-from-bottom duration-300 ease-out">
 
             <div className="p-4 sm:p-6 max-w-2xl mx-auto pb-32">
                 {isLoading ? (
@@ -166,12 +166,18 @@ export default function ReaderLayer() {
             )}
             {/* Floating Action Button for Favorites */}
             <div 
-                className={`fixed right-6 z-50 transition-all duration-500 ease-in-out ${
+                className={`fixed right-6 z-[90] transition-all duration-500 ease-in-out ${
                     showAudioCompanion ? 'bottom-[148px]' : 'bottom-6'
                 }`}
             >
                 <button
-                    onClick={() => story && toggleFavorite(story.id)}
+                    onClick={() => {
+                        if (!user) {
+                            toast.error('Bitte melde dich an, um Favoriten zu speichern');
+                            return;
+                        }
+                        story && toggleFavorite(story.id);
+                    }}
                     className={`w-14 h-14 rounded-full flex items-center justify-center shadow-2xl backdrop-blur-md border transition-all active:scale-90 group ${
                         story?.is_favorite
                         ? 'bg-red-500/20 border-red-500/50 text-red-500'

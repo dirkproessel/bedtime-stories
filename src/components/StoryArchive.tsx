@@ -665,7 +665,14 @@ export default function StoryArchive() {
 
                                             {/* Favorite Button */}
                                             <button
-                                                onClick={(e) => { e.stopPropagation(); toggleFavorite(story.id); }}
+                                                onClick={(e) => { 
+                                                    e.stopPropagation(); 
+                                                    if (!user) {
+                                                        toast.error('Bitte melde dich an, um Favoriten zu speichern');
+                                                        return;
+                                                    }
+                                                    toggleFavorite(story.id); 
+                                                }}
                                                 className={`w-11 h-11 rounded-xl flex items-center justify-center border transition-all active:scale-90 ${
                                                     story.is_favorite 
                                                     ? 'bg-red-500/10 border-red-500/50 text-red-500 shadow-lg shadow-red-500/10' 
