@@ -4,6 +4,7 @@ Generates MP3 chunks per chapter.
 """
 
 import edge_tts
+import random
 from pathlib import Path
 from app.config import settings
 from app.services.rate_limiter import rate_limiter
@@ -453,7 +454,8 @@ async def generate_tts_chunk(
                                             )
                                         )
                                     ),
-                                    response_modalities=["AUDIO"]
+                                    response_modalities=["AUDIO"],
+                                    tools=[],  # Disable AFC (Automatic Function Calling)
                                 )
                             ),
                             timeout=90.0
@@ -465,20 +467,21 @@ async def generate_tts_chunk(
                         if attempt == max_retries - 1:
                             logger.error(f"Gemini API timed out on chunk {i+1} after {max_retries} attempts. Triggering Fallback...")
                             raise RuntimeError("GEMINI_TIMEOUT_FALLBACK")
-                        logger.warning(f"Timeout on chunk {i+1}. Retrying...")
-                        await asyncio.sleep(2)
+                        retry_delay = 2 * (1 + random.random())  # Jitter: 2-4s
+                        logger.warning(f"Timeout on chunk {i+1}. Retrying in {retry_delay:.1f}s...")
+                        await asyncio.sleep(retry_delay)
                         continue
                     except Exception as e:
                         if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
                             logger.warning(f"Gemini API rate limit hit (429) on chunk {i+1}. Triggering Edge TTS Fallback...")
-                            # If we hit 429, we likely exhausted the exact daily quota from Google's side
                             raise RuntimeError("GEMINI_429_FALLBACK")
                         elif "500" in str(e) or "INTERNAL" in str(e).upper():
                             if attempt == max_retries - 1:
                                 logger.error(f"Gemini API 500 Internal Error on chunk {i+1} after {max_retries} attempts. Triggering Fallback...")
                                 raise RuntimeError("GEMINI_500_FALLBACK")
-                            logger.warning(f"500 Internal Error on chunk {i+1}. Retrying... ({e})")
-                            await asyncio.sleep(2)
+                            retry_delay = 2 * (1 + random.random())  # Jitter: 2-4s
+                            logger.warning(f"500 Internal Error on chunk {i+1}. Retrying in {retry_delay:.1f}s... ({e})")
+                            await asyncio.sleep(retry_delay)
                             continue
                         raise e
 
@@ -491,8 +494,9 @@ async def generate_tts_chunk(
                     if not pcm_data:
                         if attempt == max_retries - 1:
                             raise RuntimeError(f"No audio data returned from Gemini TTS for voice {voice_key} on chunk {i+1}")
-                        logger.warning(f"No audio data in response for chunk {i+1}. Retrying...")
-                        await asyncio.sleep(2)
+                        retry_delay = 2 * (1 + random.random())  # Jitter: 2-4s
+                        logger.warning(f"No audio data in response for chunk {i+1}. Retrying in {retry_delay:.1f}s...")
+                        await asyncio.sleep(retry_delay)
                         continue
                     
                     return pcm_data
