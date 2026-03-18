@@ -1,6 +1,6 @@
 import { useStore } from '../store/useStore';
 import { deleteStory, revoiceStory, getVoicePreviewUrl, exportStoryToKindle, getThumbUrl, regenerateStoryImage } from '../lib/api';
-import { Play, Trash2, BookOpen, Loader2, Mic, X, Venus, Mars, Users, Pause, Send, Image as ImageIcon, RefreshCw, Sparkles, Settings2, MessageCircle, Timer, Wand2, Edit, Feather, User as UserIcon, Search, ChevronLeft } from 'lucide-react';
+import { Play, Trash2, BookOpen, Loader2, Mic, X, Venus, Mars, Users, Pause, Send, Image as ImageIcon, RefreshCw, Sparkles, Settings2, MessageCircle, Timer, Wand2, Edit, Feather, User as UserIcon, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useEffect, useState, useRef } from 'react';
 import ConfirmModal from './ConfirmModal';
@@ -41,7 +41,7 @@ export default function StoryArchive() {
     const audioRef = useRef<HTMLAudioElement>(null);
     
     // Filter UI state
-    const [isSearchExpanded, setIsSearchExpanded] = useState(false);
+    const [filterLevel, setFilterLevel] = useState<'main' | 'search' | 'genre'>('main');
     const [searchValue, setSearchValue] = useState(archiveSearch || '');
     const genreScrollRef = useRef<HTMLDivElement>(null);
     const [showLeftFade, setShowLeftFade] = useState(false);
@@ -90,7 +90,7 @@ export default function StoryArchive() {
             handleScroll(); // Initial
         }
         return () => el?.removeEventListener('scroll', handleScroll);
-    }, [isSearchExpanded]);
+    }, [filterLevel]);
 
     // Handle Search Debounce
     useEffect(() => {
@@ -294,14 +294,67 @@ export default function StoryArchive() {
 
     return (
         <div className="p-4 sm:p-6 max-w-2xl mx-auto">
-            {/* Single-Line Filter Bar */}
+            {/* V2: Two-Level Extensible Filter Bar */}
             <div className="mb-6 sticky top-0 z-30 bg-background/80 backdrop-blur-md pb-2 -mx-4 px-4">
                 <div className="relative flex items-center h-10 bg-surface/50 border border-slate-800 rounded-2xl overflow-hidden transition-all duration-300">
-                    {isSearchExpanded ? (
-                        <div className="flex-1 flex items-center px-3 animate-in fade-in slide-in-from-left-2 duration-300">
+                    
+                    {filterLevel === 'main' && (
+                        <div className="flex-1 flex w-full items-center px-2 gap-2 animate-in fade-in zoom-in-95 duration-200">
                             <button 
-                                onClick={() => { setIsSearchExpanded(false); setSearchValue(''); }}
-                                className="p-1 text-slate-500 hover:text-slate-300 transition-colors"
+                                onClick={() => setFilterLevel('search')}
+                                className={`flex items-center gap-2 px-3 h-7 rounded-xl text-sm font-medium transition-colors ${
+                                    archiveSearch 
+                                        ? 'bg-primary/20 text-primary border border-primary/20' 
+                                        : 'bg-slate-800/50 hover:bg-slate-800 text-slate-300 border border-transparent'
+                                }`}
+                            >
+                                <Search className="w-3.5 h-3.5" />
+                                <span className="truncate max-w-[120px]">{archiveSearch ? `"${archiveSearch}"` : 'Suchen'}</span>
+                                {archiveSearch && (
+                                    <div 
+                                        onClick={(e) => { e.stopPropagation(); setArchiveSearch(null); setSearchValue(''); }}
+                                        className="ml-1 -mr-1 p-0.5 hover:bg-slate-900/50 rounded-full"
+                                    >
+                                        <X className="w-3.5 h-3.5" />
+                                    </div>
+                                )}
+                            </button>
+                            
+                            <button 
+                                onClick={() => setFilterLevel('genre')}
+                                className={`flex items-center gap-2 px-3 h-7 rounded-xl text-sm font-medium transition-colors ${
+                                    archiveGenre 
+                                        ? 'bg-primary/20 text-primary border border-primary/20' 
+                                        : 'bg-slate-800/50 hover:bg-slate-800 text-slate-300 border border-transparent'
+                                }`}
+                            >
+                                <BookOpen className="w-3.5 h-3.5" />
+                                <span className="truncate max-w-[120px]">{archiveGenre ? GENRES.find(g => g.value === archiveGenre)?.label || 'Genre' : 'Genre'}</span>
+                                {archiveGenre && (
+                                    <div 
+                                        onClick={(e) => { e.stopPropagation(); handleGenreSelect(null); }}
+                                        className="ml-1 -mr-1 p-0.5 hover:bg-slate-900/50 rounded-full"
+                                    >
+                                        <X className="w-3.5 h-3.5" />
+                                    </div>
+                                )}
+                            </button>
+                            
+                            {/* Placeholder for future extensible filters */}
+                            {/* 
+                            <button className="flex items-center gap-2 px-3 h-7 rounded-xl text-sm font-medium transition-colors bg-slate-800/50 hover:bg-slate-800 text-slate-400 border border-transparent border-dashed">
+                                <Feather className="w-3.5 h-3.5" />
+                                <span>Autor</span>
+                            </button>
+                            */}
+                        </div>
+                    )}
+
+                    {filterLevel === 'search' && (
+                        <div className="flex-1 flex w-full items-center px-3 animate-in fade-in slide-in-from-left-2 duration-200">
+                            <button 
+                                onClick={() => setFilterLevel('main')}
+                                className="p-1.5 -ml-1.5 mr-1 text-slate-500 hover:text-slate-300 transition-colors rounded-lg hover:bg-slate-800/50"
                             >
                                 <ChevronLeft className="w-5 h-5" />
                             </button>
@@ -315,36 +368,66 @@ export default function StoryArchive() {
                             />
                             {searchValue && (
                                 <button 
-                                    onClick={() => setSearchValue('')}
-                                    className="p-1 text-slate-600 hover:text-slate-400"
+                                    onClick={() => { setSearchValue(''); setArchiveSearch(null); }}
+                                    className="p-1.5 -mr-1.5 text-slate-500 hover:text-slate-300 transition-colors rounded-lg hover:bg-slate-800/50"
                                 >
                                     <X className="w-4 h-4" />
                                 </button>
                             )}
                         </div>
-                    ) : (
-                        <div className="flex-1 flex items-center">
-                            {/* Search Trigger */}
+                    )}
+
+                    {filterLevel === 'genre' && (
+                        <div className="flex-1 flex items-center w-full pl-3 animate-in fade-in slide-in-from-left-2 duration-200 relative">
                             <button 
-                                onClick={() => setIsSearchExpanded(true)}
-                                className="h-full px-3.5 flex items-center justify-center text-slate-500 hover:text-primary transition-colors border-r border-slate-800/50"
+                                onClick={() => setFilterLevel('main')}
+                                className="p-1.5 -ml-1.5 mr-2 text-slate-500 hover:text-slate-300 transition-colors rounded-lg hover:bg-slate-800/50 shrink-0 relative z-20"
                             >
-                                <Search className={`w-4 h-4 ${searchValue ? 'text-primary' : ''}`} />
+                                <ChevronLeft className="w-5 h-5" />
                             </button>
 
-                            {/* Genre Scroller */}
-                            <div className="relative flex-1 overflow-hidden h-full flex items-center">
-                                {/* Fades */}
-                                {showLeftFade && <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-background to-transparent z-10 pointer-events-none" />}
-                                {showRightFade && <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-background to-transparent z-10 pointer-events-none" />}
+                            <div className="relative flex-1 overflow-hidden h-full flex items-center pr-2">
+                                {/* Desktop Scroll Button Left */}
+                                {showLeftFade && (
+                                    <div className="absolute left-0 top-0 bottom-0 flex items-center bg-gradient-to-r from-surface via-surface to-transparent pr-4 z-10 pointer-events-none">
+                                        <button 
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                if (genreScrollRef.current) {
+                                                    genreScrollRef.current.scrollBy({ left: -200, behavior: 'smooth' });
+                                                }
+                                            }}
+                                            className="hidden md:flex p-1 ml-1 rounded-full bg-slate-800/80 backdrop-blur-sm text-slate-300 hover:bg-slate-700 pointer-events-auto border border-slate-700/50 shadow-sm transition-all"
+                                        >
+                                            <ChevronLeft className="w-3.5 h-3.5" />
+                                        </button>
+                                    </div>
+                                )}
+
+                                {/* Desktop Scroll Button Right */}
+                                {showRightFade && (
+                                    <div className="absolute right-0 top-0 bottom-0 flex items-center justify-end bg-gradient-to-l from-surface via-surface to-transparent pl-4 z-10 pointer-events-none">
+                                        <button 
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                if (genreScrollRef.current) {
+                                                    genreScrollRef.current.scrollBy({ left: 200, behavior: 'smooth' });
+                                                }
+                                            }}
+                                            className="hidden md:flex p-1 mr-1 rounded-full bg-slate-800/80 backdrop-blur-sm text-slate-300 hover:bg-slate-700 pointer-events-auto border border-slate-700/50 shadow-sm transition-all"
+                                        >
+                                            <ChevronRight className="w-3.5 h-3.5" />
+                                        </button>
+                                    </div>
+                                )}
 
                                 <div 
                                     ref={genreScrollRef}
-                                    className="flex gap-1.5 overflow-x-auto no-scrollbar px-3 items-center scroll-smooth pr-8"
+                                    className="flex gap-1.5 overflow-x-auto no-scrollbar items-center scroll-smooth pr-10 w-full"
                                 >
                                     <button
                                         onClick={() => handleGenreSelect(null)}
-                                        className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider transition-all shrink-0 border ${
+                                        className={`px-3 py-1.5 rounded-full text-[12px] font-bold uppercase tracking-wider transition-all shrink-0 border ${
                                             !archiveGenre 
                                                 ? 'bg-primary/20 border-primary/40 text-primary' 
                                                 : 'bg-slate-900/50 border-slate-800 text-slate-500 hover:border-slate-700'
@@ -356,7 +439,7 @@ export default function StoryArchive() {
                                         <button
                                             key={g.value}
                                             onClick={() => handleGenreSelect(g.value)}
-                                            className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider transition-all shrink-0 border ${
+                                            className={`px-3 py-1.5 rounded-full text-[12px] font-bold uppercase tracking-wider transition-all shrink-0 border ${
                                                 archiveGenre === g.value
                                                     ? 'bg-primary/20 border-primary/40 text-primary' 
                                                     : 'bg-slate-900/50 border-slate-800 text-slate-500 hover:border-slate-700'
