@@ -33,7 +33,7 @@ export default function LoginScreen() {
         <div className="flex flex-col items-center pt-2 px-6">
             <p className="text-sm text-text-muted font-serif italic mb-10 text-center max-w-sm leading-relaxed">
                 {isLoginMode 
-                    ? 'Logge dich ein, um deine Bibliothek zu durchforsten und neue literarische Experimente zu starten.' 
+                    ? 'Logge dich ein, um deine Entwürfe zu verwalten und neue literarische Experimente zu starten.' 
                     : 'Registriere dich, um neue literarische Experimente zu starten.'}
             </p>
 

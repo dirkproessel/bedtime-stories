@@ -173,7 +173,7 @@ export default function ReaderLayer() {
                 <button
                     onClick={() => {
                         if (!user) {
-                            toast.error('Bitte melde dich an, um Favoriten zu speichern');
+                            toast.error('Bitte melde dich an, um die Sammlung zu nutzen');
                             return;
                         }
                         story && toggleFavorite(story.id);
@@ -183,7 +183,7 @@ export default function ReaderLayer() {
                         ? 'bg-red-500/20 border-red-500/50 text-red-500'
                         : 'bg-slate-900/40 border-slate-700/50 text-slate-400 hover:text-red-400 hover:border-red-400/30'
                     }`}
-                    aria-label={story?.is_favorite ? "Von Favoriten entfernen" : "Zu Favoriten hinzufügen"}
+                    aria-label={story?.is_favorite ? "Aus Sammlung entfernen" : "Zur Sammlung hinzufügen"}
                 >
                     <Heart className={`w-7 h-7 transition-transform group-hover:scale-110 ${story?.is_favorite ? 'fill-current animate-pulse-subtle' : ''}`} />
                 </button>

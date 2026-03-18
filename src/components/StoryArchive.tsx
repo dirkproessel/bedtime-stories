@@ -483,13 +483,13 @@ export default function StoryArchive() {
                     </div>
                     <h2 className="font-serif text-2xl text-text mb-2 font-semibold">
                         {archiveFilter === 'public' && 'Noch keine öffentlichen Geschichten'}
-                        {archiveFilter === 'favorites' && 'Keine Favoriten gefunden'}
-                        {archiveFilter === 'my' && 'Deine Bibliothek ist leer'}
+                        {archiveFilter === 'favorites' && 'Deine Sammlung ist leer'}
+                        {archiveFilter === 'my' && 'Deine Entwürfe sind leer'}
                     </h2>
                     <p className="text-slate-500 text-sm max-w-[280px] mx-auto leading-relaxed">
                         {archiveFilter === 'public' && 'Erstelle die erste öffentliche Geschichte im Labor!'}
-                        {archiveFilter === 'favorites' && 'Markiere Geschichten mit einem Herz, um sie hier schnell wiederzufinden.'}
-                        {archiveFilter === 'my' && 'Hier werden deine literarischen Werke sicher aufbewahrt. Erstelle deine erste Geschichte im Labor!'}
+                        {archiveFilter === 'favorites' && 'Markiere Geschichten mit einem Herz, um sie deiner Sammlung hinzuzufügen.'}
+                        {archiveFilter === 'my' && 'Hier werden deine Entwürfe sicher aufbewahrt. Erstelle deine erste Geschichte im Labor!'}
                     </p>
                     <button 
                         onClick={() => setActiveView(archiveFilter === 'favorites' ? 'discover' : 'create')}
@@ -670,7 +670,7 @@ export default function StoryArchive() {
                                                 onClick={(e) => { 
                                                     e.stopPropagation(); 
                                                     if (!user) {
-                                                        toast.error('Bitte melde dich an, um Favoriten zu speichern');
+                                                        toast.error('Bitte melde dich an, um die Sammlung zu nutzen');
                                                         return;
                                                     }
                                                     toggleFavorite(story.id); 
@@ -680,7 +680,7 @@ export default function StoryArchive() {
                                                     ? 'bg-red-500/10 border-red-500/50 text-red-500 shadow-lg shadow-red-500/10' 
                                                     : 'bg-slate-900/80 border-slate-700/50 text-slate-400 hover:text-red-400 hover:border-red-400/30'
                                                 }`}
-                                                title={story.is_favorite ? "Von Favoriten entfernen" : "Zu Favoriten hinzufügen"}
+                                                title={story.is_favorite ? "Aus Sammlung entfernen" : "Zur Sammlung hinzufügen"}
                                             >
                                                 <Heart className={`w-5 h-5 ${story.is_favorite ? 'fill-current' : ''}`} />
                                             </button>

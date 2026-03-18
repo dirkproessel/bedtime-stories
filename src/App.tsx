@@ -10,10 +10,10 @@ import ReaderLayer from './components/ReaderLayer';
 import AudioCompanion from './components/AudioCompanion';
 import AdminDashboard from './components/AdminDashboard';
 const NAV_ITEMS = [
-  { key: 'create' as const, label: 'Erschaffen', icon: PenTool },
-  { key: 'library' as const, label: 'Bibliothek', icon: BookOpen },
+  { key: 'create' as const, label: 'Erstellen', icon: PenTool },
+  { key: 'library' as const, label: 'Entwürfe', icon: BookOpen },
   { key: 'discover' as const, label: 'Entdecken', icon: Compass },
-  { key: 'favorites' as const, label: 'Favoriten', icon: Heart },
+  { key: 'favorites' as const, label: 'Sammlung', icon: Heart },
 ];
 
 function App() {
@@ -214,10 +214,10 @@ function App() {
       {/* Dynamic Page Title */}
       <div className="px-3 sm:px-6 pb-1 max-w-2xl mx-auto w-full text-center">
         <h1 className="text-sm sm:text-lg font-bold text-text-muted/60 font-serif italic">
-          {activeView === 'create' && 'Erschaffe eine eigene Geschichte'}
-          {activeView === 'library' && 'Meine Bibliothek'}
+          {activeView === 'create' && 'Erstelle eine eigene Geschichte'}
+          {activeView === 'library' && 'Meine Entwürfe'}
           {activeView === 'discover' && 'Entdecke neue Geschichten'}
-          {activeView === 'favorites' && 'Meine Favoriten'}
+          {activeView === 'favorites' && 'Meine Sammlung'}
           {activeView === 'profile' && 'Mein Profil'}
           {activeView === 'admin' && 'Adminbereich'}
           {activeView === 'login' && (localStorage.getItem('is_registering') === 'true' ? 'Konto erstellen' : 'Willkommen zurück')}

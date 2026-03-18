@@ -492,7 +492,7 @@ export default function StoryCreator() {
                         className="btn-primary px-8 py-3.5 text-[17px] font-serif shadow-[0_8px_32px_rgba(22,163,74,0.35)]"
                     >
                         <Sparkles className="w-5 h-5 shrink-0" />
-                        Neue Geschichte erschaffen
+                        Neue Geschichte erstellen
                     </button>
                 </div>
             </div>
