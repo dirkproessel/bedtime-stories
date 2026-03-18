@@ -15,6 +15,7 @@ import {
     adminUpdateUser,
     adminDeleteStory,
     toggleStoryFavorite,
+    revoiceStory as apiRevoiceStory,
 } from '../lib/api';
 
 interface AppState {
@@ -103,6 +104,7 @@ interface AppState {
     // Global Modal States
     revoiceStoryId: string | null;
     setRevoiceStoryId: (id: string | null) => void;
+    revoiceStory: (id: string, voiceKey: string, speechRate?: string) => Promise<void>;
     toggleFavorite: (id: string) => Promise<void>;
 }
 
@@ -434,6 +436,22 @@ export const useStore = create<AppState>((set, get) => {
     },
     revoiceStoryId: null,
     setRevoiceStoryId: (id) => set({ revoiceStoryId: id }),
+    revoiceStory: async (id, voiceKey, speechRate = '-15%') => {
+        set({ error: null });
+        try {
+            await apiRevoiceStory(id, voiceKey, speechRate);
+            // Update local story status to "generating" to show progress UI
+            set((state) => ({
+                stories: state.stories.map((s) =>
+                    s.id === id ? { ...s, status: 'generating', progress: 'Starte Neuvertonung...', progress_pct: 0 } : s
+                ),
+            }));
+            get().pollStatus();
+        } catch (e: any) {
+            set({ error: e.message });
+            throw e;
+        }
+    },
 
     loadAdminUsers: async () => {
         set({ isLoading: true });

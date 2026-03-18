@@ -1,5 +1,5 @@
 import { useStore } from '../store/useStore';
-import { deleteStory, revoiceStory, getVoicePreviewUrl, exportStoryToKindle, getThumbUrl, regenerateStoryImage } from '../lib/api';
+import { deleteStory, getVoicePreviewUrl, exportStoryToKindle, getThumbUrl, regenerateStoryImage } from '../lib/api';
 import { Play, Trash2, Heart, BookOpen, Loader2, Mic, X, Venus, Mars, Users, Pause, Send, Image as ImageIcon, RefreshCw, Sparkles, Settings2, MessageCircle, Timer, Wand2, Edit, Feather, User as UserIcon, Search, ChevronLeft, ChevronRight, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useEffect, useState, useRef } from 'react';
@@ -22,7 +22,8 @@ export default function StoryArchive() {
         setReaderOpen,
         toggleFavorite,
         loadMoreStories, hasMore, isLoading,
-        archiveGenre, archiveSearch, setArchiveGenre, setArchiveSearch, toggleArchiveGenre
+        archiveGenre, archiveSearch, setArchiveGenre, setArchiveSearch, toggleArchiveGenre,
+        revoiceStory
     } = useStore();
     const [selectedVoice, setSelectedVoice] = useState('seraphina');
     const [confirmRevoice, setConfirmRevoice] = useState(false);

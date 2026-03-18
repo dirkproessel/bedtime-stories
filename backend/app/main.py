@@ -265,8 +265,6 @@ async def _run_revoice_pipeline(
     total_points = (10 * num_chapters) + 10
     completed_points = 0
 
-    completed_audio_chapters = 0
-
     async def on_progress(status_type: str, message: str, points: int | None = None, is_absolute_points: bool = False):
         nonlocal completed_points
         if points is not None:
@@ -294,11 +292,13 @@ async def _run_revoice_pipeline(
             curr.progress_pct = pct
             store.add_story(curr)
 
-    async def tts_progress_wrapper(stype, msg, pct=None):
-        nonlocal completed_audio_chapters
-        if stype == "tts_chapter_done":
-            completed_audio_chapters += 1
-            await on_progress("generating_audio", "Vertonung", points=10 * completed_audio_chapters, is_absolute_points=True)
+    async def tts_progress_wrapper(stype, msg, extra_data=None):
+        if stype == "tts_chunk_done" and extra_data:
+            # Distribute 10*num_chapters points across all chunks
+            completed = extra_data["completed"]
+            total = extra_data["total"]
+            chunk_points = int((completed / max(total, 1)) * 10 * num_chapters)
+            await on_progress("generating_audio", "Vertonung", points=chunk_points, is_absolute_points=True)
         else:
             await on_progress("generating_audio", "Vertonung")
 
@@ -621,13 +621,15 @@ async def _run_pipeline(
         await on_progress("generating_image", "Bild generieren", points=5)
         
         # We need to update chapters_to_audio to use points
-        completed_audio_chapters = 0
-        async def tts_progress_wrapper(stype, msg, pct=None):
-            nonlocal completed_audio_chapters
-            if stype == "tts_chapter_done":
-                completed_audio_chapters += 1
-                # Add 10 points per chapter
-                await on_progress("generating_audio", "Vertonung", points=5 + (10 * real_num_chapters) + 5 + (10 * completed_audio_chapters), is_absolute_points=True)
+        async def tts_progress_wrapper(stype, msg, extra_data=None):
+            if stype == "tts_chunk_done" and extra_data:
+                # Distribute 10*real_num_chapters points across all chunks
+                completed = extra_data["completed"]
+                total = extra_data["total"]
+                chunk_points = int((completed / max(total, 1)) * 10 * real_num_chapters)
+                # Offset: planning(5) + text(10*chapters) + image(5) + audio progress
+                base = 5 + (10 * real_num_chapters) + 5
+                await on_progress("generating_audio", "Vertonung", points=base + chunk_points, is_absolute_points=True)
             else:
                 await on_progress("generating_audio", "Vertonung")
 

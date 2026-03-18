@@ -100,6 +100,59 @@ GENRE_INSTRUCTIONS = {
 
 
 
+# ── Text Chunking for Gemini TTS ──
+MIN_CHUNK_BYTES = 750
+MAX_CHUNK_BYTES = 1000
+
+def split_text_paragraphs(t: str, min_bytes=MIN_CHUNK_BYTES, max_bytes=MAX_CHUNK_BYTES):
+    """Split text into paragraph-aware chunks for Gemini TTS."""
+    chunks = []
+    current_chunk = ""
+    
+    paragraphs = [p.strip() for p in t.replace("\r\n", "\n").split("\n\n") if p.strip()]
+    
+    for p in paragraphs:
+        p_bytes = len(p.encode("utf-8"))
+        curr_bytes = len(current_chunk.encode("utf-8"))
+        
+        if p_bytes > max_bytes:
+            if current_chunk:
+                chunks.append(current_chunk.strip())
+                current_chunk = ""
+                
+            sentences = p.replace("\n", " ").split(". ")
+            temp_chunk = ""
+            for s in sentences:
+                s = s.strip()
+                if not s: continue
+                s_mit_punkt = s + ". " if not s.endswith(".") else s + " "
+                
+                if len(temp_chunk.encode("utf-8")) + len(s_mit_punkt.encode("utf-8")) > max_bytes:
+                    if temp_chunk:
+                        chunks.append(temp_chunk.strip())
+                    temp_chunk = s_mit_punkt
+                else:
+                    temp_chunk += s_mit_punkt
+                    
+            if temp_chunk:
+                chunks.append(temp_chunk.strip())
+            continue
+            
+        if curr_bytes + p_bytes <= max_bytes:
+            current_chunk = current_chunk + "\n\n" + p if current_chunk else p
+        else:
+            if curr_bytes >= min_bytes:
+                chunks.append(current_chunk.strip())
+                current_chunk = p
+            else:
+                current_chunk = current_chunk + "\n\n" + p if current_chunk else p
+                
+    if current_chunk.strip():
+        chunks.append(current_chunk.strip())
+        
+    return chunks
+
+
 DEFAULT_VOICE = "seraphina"
 
 
@@ -162,6 +215,7 @@ async def generate_tts_chunk(
     is_title: bool = False,
     genre: str | None = None,
     previous_text: str | None = None,
+    on_chunk_progress: callable = None,
 ) -> tuple[Path, str]:
     """
     Convert text to speech and save as MP3.
@@ -343,69 +397,6 @@ async def generate_tts_chunk(
             
             client = genai.Client(api_key=settings.GEMINI_API_KEY)
             
-            # The speed hint was removed as chunking ensures better cadence now.
-            speed_hint = ""
-            
-            MIN_CHUNK_BYTES = 750
-            MAX_CHUNK_BYTES = 1000
-
-            def split_text_paragraphs(t: str, min_bytes=MIN_CHUNK_BYTES, max_bytes=MAX_CHUNK_BYTES):
-                chunks = []
-                current_chunk = ""
-                
-                # Basis-Split nach Doppelumbruch (Absätze)
-                paragraphs = [p.strip() for p in t.replace("\r\n", "\n").split("\n\n") if p.strip()]
-                
-                for p in paragraphs:
-                    p_bytes = len(p.encode("utf-8"))
-                    curr_bytes = len(current_chunk.encode("utf-8"))
-                    
-                    # Regel 1: Wenn der Absatz massiv ist (größer als max_bytes), muss er hart gesplittet werden
-                    if p_bytes > max_bytes:
-                        # Schließe aktuellen Sammel-Chunk ab, falls vorhanden
-                        if current_chunk:
-                            chunks.append(current_chunk.strip())
-                            current_chunk = ""
-                            curr_bytes = 0
-                            
-                        # Notfall-Split nach Sätzen für diesen riesigen Absatz
-                        sentences = p.replace("\n", " ").split(". ")
-                        temp_chunk = ""
-                        for s in sentences:
-                            s = s.strip()
-                            if not s: continue
-                            s_mit_punkt = s + ". " if not s.endswith(".") else s + " "
-                            
-                            if len(temp_chunk.encode("utf-8")) + len(s_mit_punkt.encode("utf-8")) > max_bytes:
-                                if temp_chunk:
-                                    chunks.append(temp_chunk.strip())
-                                temp_chunk = s_mit_punkt
-                            else:
-                                temp_chunk += s_mit_punkt
-                                
-                        if temp_chunk:
-                            chunks.append(temp_chunk.strip())
-                        continue
-                        
-                    # Regel 2: Passen wir den aktuellen Absatz noch in den aktuellen Chunk?
-                    if curr_bytes + p_bytes <= max_bytes:
-                        current_chunk = current_chunk + "\n\n" + p if current_chunk else p
-                    else:
-                        # Regel 3: Absatz passt nicht mehr, aber haben wir schon genug gesammelt (>= MIN)?
-                        if curr_bytes >= min_bytes:
-                            chunks.append(current_chunk.strip())
-                            current_chunk = p
-                        else:
-                            # Wir sind noch unter dem Minimum, also müssen wir ihn zwingend noch reinquetschen
-                            # (Selbst wenn wir leicht übers Ziel schießen, Fluss geht vor Hartem Limit hier)
-                            current_chunk = current_chunk + "\n\n" + p if current_chunk else p
-                            
-                # Letzten Rest anfügen
-                if current_chunk.strip():
-                    chunks.append(current_chunk.strip())
-                    
-                return chunks
-
             text_chunks = split_text_paragraphs(clean_text)
             all_pcm_data = bytearray()
 
@@ -509,6 +500,9 @@ async def generate_tts_chunk(
                     pcm_data = await process_chunk(i, chunk, last_chunk_text)
                     all_pcm_data.extend(pcm_data)
                     last_chunk_text = chunk
+                    # Report per-chunk progress
+                    if on_chunk_progress:
+                        await on_chunk_progress(i + 1, len(text_chunks))
                     
             except Exception as e:
                 # If any chunk hit the quota limit, fall back for the entire chapter
@@ -612,30 +606,56 @@ async def chapters_to_audio(
         output_dir: Directory for the MP3 chunks
         voice_key: Voice profile key
         rate: Speaking rate
-        on_progress: Async callback(status_type, message)
+        on_progress: Async callback(status_type, message, extra_data)
+            Called with "tts_chunk_done" after each text chunk completes.
+            extra_data = {"completed": int, "total": int}
 
     Returns:
-        List of paths to generated MP3 files
+        Tuple of (list of MP3 paths, actual voice key used)
     """
+    import asyncio
     output_dir.mkdir(parents=True, exist_ok=True)
     audio_files = [output_dir / f"chapter_{i + 1:02d}.mp3" for i in range(len(chapters))]
     actual_voice = voice_key
-
-    if on_progress:
-        await on_progress(
-            "tts",
-            f"Vertone {len(chapters)} Kapitel parallel...",
-            40
-        )
 
     # Pre-compute previous_text for each chapter (deterministic, no API needed)
     chapter_contexts = [None] * len(chapters)
     for i in range(1, len(chapters)):
         chapter_contexts[i] = chapters[i - 1]["text"]
 
+    # Pre-count total text chunks across all chapters (for Gemini voices)
+    is_gemini = voice_key in GEMINI_VOICES
+    total_all_chunks = 0
+    if is_gemini:
+        for ch in chapters:
+            clean = ch["text"].replace("*", "").replace("_", "").replace("#", "")
+            total_all_chunks += len(split_text_paragraphs(clean))
+    else:
+        total_all_chunks = len(chapters)  # 1 "chunk" per chapter for other engines
+
+    completed_chunks = 0
+
+    if on_progress:
+        await on_progress(
+            "tts",
+            f"Vertone {len(chapters)} Kapitel ({total_all_chunks} Chunks)...",
+            {"completed": 0, "total": total_all_chunks}
+        )
+
     async def process_chapter(i: int, chapter: dict):
-        nonlocal actual_voice
+        nonlocal actual_voice, completed_chunks
         full_text = chapter["text"]
+
+        async def chunk_done_cb(chunk_done: int, chunk_total: int):
+            nonlocal completed_chunks
+            completed_chunks += 1
+            if on_progress:
+                await on_progress(
+                    "tts_chunk_done",
+                    f"Kapitel {i+1} Chunk {chunk_done}/{chunk_total}",
+                    {"completed": completed_chunks, "total": total_all_chunks}
+                )
+
         _, realized_voice = await generate_tts_chunk(
             full_text,
             audio_files[i],
@@ -643,21 +663,28 @@ async def chapters_to_audio(
             rate,
             genre=genre,
             previous_text=chapter_contexts[i],
+            on_chunk_progress=chunk_done_cb,
         )
         if realized_voice != voice_key:
             actual_voice = realized_voice
 
+        # For non-Gemini engines (no chunk callback), report chapter as one chunk
+        if not is_gemini and on_progress:
+            completed_chunks += 1
+            await on_progress(
+                "tts_chunk_done",
+                f"Kapitel {i+1} vertont",
+                {"completed": completed_chunks, "total": total_all_chunks}
+            )
+
     # Run chapter generations concurrently with semaphore
-    import asyncio
     is_premium = voice_key in GEMINI_VOICES or voice_key in OPENAI_VOICES
-    concurrency_limit = 2 if is_premium else 10
+    concurrency_limit = 3 if is_premium else 10
     semaphore = asyncio.Semaphore(concurrency_limit)
 
     async def run_with_semaphore(i: int, ch: dict):
         async with semaphore:
             await process_chapter(i, ch)
-            if on_progress:
-                await on_progress("tts_chapter_done", f"Kapitel {i+1} vertont")
 
     tasks = [run_with_semaphore(i, ch) for i, ch in enumerate(chapters)]
     await asyncio.gather(*tasks)
