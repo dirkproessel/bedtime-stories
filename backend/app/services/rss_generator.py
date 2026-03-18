@@ -36,7 +36,7 @@ def generate_rss_feed(
     fg.podcast.itunes_category("Fiction", "Short Stories")
     fg.podcast.itunes_category("Kids & Family", "Stories for Kids")
     
-    fg.podcast.itunes_author("storyja.com (Deine Idee. Unsere Feder. Literatur in Echtzeit.)")
+    fg.podcast.itunes_author("storyja.com")
     fg.podcast.itunes_explicit("no")
     fg.podcast.itunes_summary(desc)
 
