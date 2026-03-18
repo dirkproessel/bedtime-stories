@@ -561,47 +561,51 @@ export default function StoryArchive() {
                                 </div>
                             </div>
 
-                            {/* Moved Synopsis / Generating out of the side-by-side flex to align with left image edge */}
-                            {story.status === 'generating' ? (
-                                <div className="mt-4 space-y-2 w-full">
-                                    <div className="flex justify-between items-end">
-                                        <div className="flex items-center gap-2 text-primary text-xs font-semibold">
-                                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                            {story.progress || 'Planung...'}
-                                        </div>
-                                        <span className="text-[10px] font-bold text-primary bg-accent/20 px-1.5 py-0.5 rounded-md">
-                                            {story.progress_pct || 0}%
-                                        </span>
+                            <div className="mt-3">
+                                {/* The Idea / Prompt (Only in Library) */}
+                                {archiveFilter !== 'public' && (
+                                    <div className="bg-background/40 border border-slate-800/50 rounded-xl p-3 text-[11px] text-slate-500 italic mb-3">
+                                        <span className="font-bold uppercase tracking-[0.15em] text-[8px] block mb-1 text-slate-600 not-italic">Die Idee</span>
+                                        {story.prompt}
                                     </div>
-                                    <div className="w-full h-1.5 bg-accent/20 rounded-full overflow-hidden border border-primary/20">
-                                        <div
-                                            className="h-full bg-primary transition-all duration-1000 ease-out"
-                                            style={{ width: `${story.progress_pct || 0}%` }}
-                                        />
-                                    </div>
-                                </div>
-                            ) : story.status === 'error' ? (
-                                <div className="mt-4">
-                                    <div className="px-3 py-2 bg-red-950/20 text-red-500 rounded-lg text-xs font-medium w-full border border-red-900/30 italic line-clamp-2 hover:line-clamp-none transition-all cursor-help" title={story.progress || 'Fehler bei der Erstellung'}>
-                                        {story.progress || 'Fehler bei der Erstellung'}
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="mt-3">
-                                    {/* The Idea / Prompt (Only in Library) */}
-                                    {archiveFilter !== 'public' && (
-                                        <div className="bg-background/40 border border-slate-800/50 rounded-xl p-3 text-[11px] text-slate-500 italic mb-3">
-                                            <span className="font-bold uppercase tracking-[0.15em] text-[8px] block mb-1 text-slate-600 not-italic">Die Idee</span>
-                                            {story.prompt}
-                                        </div>
-                                    )}
+                                )}
 
-                                    {/* Full Synopsis */}
+                                {/* Progress/Status during generation/error */}
+                                {story.status === 'generating' && (
+                                    <div className="mb-4 space-y-2 w-full">
+                                        <div className="flex justify-between items-end">
+                                            <div className="flex items-center gap-2 text-primary text-xs font-semibold">
+                                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                                {story.progress || 'Planung...'}
+                                            </div>
+                                            <span className="text-[10px] font-bold text-primary bg-accent/20 px-1.5 py-0.5 rounded-md">
+                                                {story.progress_pct || 0}%
+                                            </span>
+                                        </div>
+                                        <div className="w-full h-1.5 bg-accent/20 rounded-full overflow-hidden border border-primary/20">
+                                            <div
+                                                className="h-full bg-primary transition-all duration-1000 ease-out"
+                                                style={{ width: `${story.progress_pct || 0}%` }}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+                                
+                                {story.status === 'error' && (
+                                    <div className="mb-4">
+                                        <div className="px-3 py-2 bg-red-950/20 text-red-500 rounded-lg text-xs font-medium w-full border border-red-900/30 italic line-clamp-2 hover:line-clamp-none transition-all cursor-help" title={story.progress || 'Fehler bei der Erstellung'}>
+                                            {story.progress || 'Fehler bei der Erstellung'}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Full Synopsis - Show if available and NOT the initial 100-char prompt copy (which usually happens during very early generation) */}
+                                {story.description && (story.status === 'done' || (story.status === 'generating' && story.description.length > 100)) && (
                                     <div className="relative">
                                         <p className={`text-[13px] text-text/90 font-serif leading-relaxed italic ${expandedStories.has(story.id) ? '' : 'line-clamp-3'}`}>
-                                            {story.description}{!expandedStories.has(story.id) && story.description && story.description.length > 150 ? '...' : ''}
+                                            {story.description}{!expandedStories.has(story.id) && story.description.length > 150 ? '...' : ''}
                                         </p>
-                                        {!expandedStories.has(story.id) && story.description && story.description.length > 150 && (
+                                        {!expandedStories.has(story.id) && story.description.length > 150 && (
                                             <div className="absolute bottom-0 right-0 h-5 pl-16 bg-gradient-to-l from-surface via-surface/90 to-transparent flex items-center">
                                                 <button 
                                                     onClick={(e) => { e.stopPropagation(); toggleExpand(story.id); }}
@@ -620,8 +624,8 @@ export default function StoryArchive() {
                                             </button>
                                         )}
                                     </div>
-                                </div>
-                            )}
+                                )}
+                            </div>
 
                             {(story.status === 'done' || story.status === 'error') && (
                                 <div className="mt-4">

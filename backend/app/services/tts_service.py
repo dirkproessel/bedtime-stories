@@ -479,20 +479,27 @@ async def generate_tts_chunk(
                         raise e
 
                     pcm_data = None
-                    for part in response.candidates[0].content.parts:
-                        if part.inline_data:
-                            pcm_data = part.inline_data.data
-                            break
-                            
+                    try:
+                        if response.candidates and response.candidates[0].content and response.candidates[0].content.parts:
+                            for part in response.candidates[0].content.parts:
+                                if part.inline_data:
+                                    pcm_data = part.inline_data.data
+                                    break
+                    except Exception as parse_error:
+                        logger.warning(f"Error parsing Gemini response on chunk {i+1}: {parse_error}")
+
                     if not pcm_data:
                         if attempt == max_retries - 1:
+                            logger.error(f"No audio data returned from Gemini TTS (Max retries reached) for chunk {i+1}. Result: {response.candidates[0].finish_reason if response.candidates else 'No candidates'}")
                             raise RuntimeError(f"No audio data returned from Gemini TTS for voice {voice_key} on chunk {i+1}")
+                        
                         retry_delay = 2 * (1 + random.random())  # Jitter: 2-4s
-                        logger.warning(f"No audio data in response for chunk {i+1}. Retrying in {retry_delay:.1f}s...")
+                        logger.warning(f"No audio data in response for chunk {i+1} (Attempt {attempt+1}/{max_retries}). Retrying in {retry_delay:.1f}s...")
                         await asyncio.sleep(retry_delay)
                         continue
                     
                     return pcm_data
+
 
             try:
                 # Process chunks sequentially to prevent RPM (Requests Per Minute) spikes 
