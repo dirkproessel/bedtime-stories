@@ -36,11 +36,11 @@ interface AppState {
     totalMyStories: number;
     totalPublicStories: number;
     currArchivePage: number;
-    archiveFilter: 'my' | 'all' | 'public';
+    archiveFilter: 'my' | 'all' | 'public' | 'favorites';
     archiveGenre: string[];
     archiveSearch: string | null;
     hasMore: boolean;
-    setArchiveFilter: (filter: 'my' | 'all' | 'public') => void;
+    setArchiveFilter: (filter: 'my' | 'all' | 'public' | 'favorites') => void;
     setArchiveGenre: (genre: string[]) => void;
     toggleArchiveGenre: (genre: string) => void;
     setArchiveSearch: (search: string | null) => void;
@@ -55,8 +55,8 @@ interface AppState {
     updateStorySpotify: (id: string, enabled: boolean) => Promise<void>;
 
     // UI
-    activeView: 'discover' | 'create' | 'library' | 'profile' | 'login' | 'admin';
-    setActiveView: (view: 'discover' | 'create' | 'library' | 'profile' | 'login' | 'admin') => void;
+    activeView: 'discover' | 'create' | 'library' | 'favorites' | 'profile' | 'login' | 'admin';
+    setActiveView: (view: 'discover' | 'create' | 'library' | 'favorites' | 'profile' | 'login' | 'admin') => void;
     
     // Admin
     adminUsers: User[];
@@ -394,6 +394,11 @@ export const useStore = create<AppState>((set, get) => {
             get().loadStories(1);
         } else if (view === 'discover') {
             get().setArchiveFilter('public');
+            get().setArchiveGenre([]);
+            get().setArchiveSearch(null);
+            get().loadStories(1);
+        } else if (view === 'favorites') {
+            get().setArchiveFilter('favorites');
             get().setArchiveGenre([]);
             get().setArchiveSearch(null);
             get().loadStories(1);

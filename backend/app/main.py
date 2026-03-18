@@ -731,6 +731,12 @@ async def list_stories(
         # Apply UI filter (Selection from bucket)
         if filter == "my" and current_user:
             stories_to_list = [s for s in accessible_stories if s.user_id == current_user.id]
+        elif filter == "favorites" and current_user:
+            # Special case for favorites: Get directly from the store's specialized method
+            # but still filter by accessibility (though favorites should already be accessible)
+            fav_stories = store.get_favorites(current_user.id)
+            fav_ids = {s.id for s in fav_stories}
+            stories_to_list = [s for s in accessible_stories if s.id in fav_ids]
         elif filter == "public":
             stories_to_list = [s for s in accessible_stories if s.is_public]
         elif filter == "all" and current_user and current_user.is_admin:

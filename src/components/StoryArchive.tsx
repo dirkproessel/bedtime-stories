@@ -482,18 +482,20 @@ export default function StoryArchive() {
                         <BookOpen className="w-10 h-10 text-slate-700" />
                     </div>
                     <h2 className="font-serif text-2xl text-text mb-2 font-semibold">
-                        {archiveFilter === 'public' ? 'Noch keine öffentlichen Geschichten' : 'Deine Bibliothek ist leer'}
+                        {archiveFilter === 'public' && 'Noch keine öffentlichen Geschichten'}
+                        {archiveFilter === 'favorites' && 'Keine Favoriten gefunden'}
+                        {archiveFilter === 'my' && 'Deine Bibliothek ist leer'}
                     </h2>
                     <p className="text-slate-500 text-sm max-w-[280px] mx-auto leading-relaxed">
-                        {archiveFilter === 'public' 
-                            ? 'Erstelle die erste öffentliche Geschichte im Labor!' 
-                            : 'Hier werden deine literarischen Werke sicher aufbewahrt. Erstelle deine erste Geschichte im Labor!'}
+                        {archiveFilter === 'public' && 'Erstelle die erste öffentliche Geschichte im Labor!'}
+                        {archiveFilter === 'favorites' && 'Markiere Geschichten mit einem Herz, um sie hier schnell wiederzufinden.'}
+                        {archiveFilter === 'my' && 'Hier werden deine literarischen Werke sicher aufbewahrt. Erstelle deine erste Geschichte im Labor!'}
                     </p>
                     <button 
-                        onClick={() => setActiveView('create')}
+                        onClick={() => setActiveView(archiveFilter === 'favorites' ? 'discover' : 'create')}
                         className="btn-primary mt-8 px-8 mx-auto block"
                     >
-                        Jetzt starten
+                        {archiveFilter === 'favorites' ? 'Entdecken' : 'Jetzt starten'}
                     </button>
                 </div>
             ) : (

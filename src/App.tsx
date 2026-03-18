@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useStore } from './store/useStore';
-import { PenTool, BookOpen, User, Compass } from 'lucide-react';
+import { PenTool, BookOpen, User, Compass, Heart } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
 import StoryCreator from './components/StoryCreator';
 import StoryArchive from './components/StoryArchive';
@@ -9,12 +9,11 @@ import AccountScreen from './components/AccountScreen';
 import ReaderLayer from './components/ReaderLayer';
 import AudioCompanion from './components/AudioCompanion';
 import AdminDashboard from './components/AdminDashboard';
-
 const NAV_ITEMS = [
   { key: 'create' as const, label: 'Erschaffen', icon: PenTool },
   { key: 'library' as const, label: 'Bibliothek', icon: BookOpen },
   { key: 'discover' as const, label: 'Entdecken', icon: Compass },
-  { key: 'profile' as const, label: 'Profil', icon: User },
+  { key: 'favorites' as const, label: 'Favoriten', icon: Heart },
 ];
 
 function App() {
@@ -75,6 +74,11 @@ function App() {
         return;
       }
 
+      if (hash === '/favorites') {
+        setActiveView('favorites');
+        return;
+      }
+
       if (hash === '/profile') {
         setActiveView('profile');
         return;
@@ -117,6 +121,8 @@ function App() {
       desiredHash = `#/create`;
     } else if (activeView === 'profile') {
       desiredHash = `#/profile`;
+    } else if (activeView === 'favorites') {
+      desiredHash = `#/favorites`;
     } else if (activeView === 'admin') {
       desiredHash = `#/admin`;
     } else if (activeView === 'login') {
@@ -211,6 +217,7 @@ function App() {
           {activeView === 'create' && 'Erschaffe eine eigene Geschichte'}
           {activeView === 'library' && 'Meine Bibliothek'}
           {activeView === 'discover' && 'Entdecke neue Geschichten'}
+          {activeView === 'favorites' && 'Meine Favoriten'}
           {activeView === 'profile' && 'Mein Profil'}
           {activeView === 'admin' && 'Adminbereich'}
           {activeView === 'login' && (localStorage.getItem('is_registering') === 'true' ? 'Konto erstellen' : 'Willkommen zurück')}
@@ -258,6 +265,7 @@ function App() {
         {activeView === 'create' && <StoryCreator />}
         {activeView === 'discover' && <StoryArchive key="discover" />}
         {activeView === 'library' && <StoryArchive key="library" />}
+        {activeView === 'favorites' && <StoryArchive key="favorites" />}
         {activeView === 'profile' && <AccountScreen />}
         {activeView === 'admin' && <AdminDashboard />}
       </main>
@@ -269,8 +277,6 @@ function App() {
       <nav className="fixed bottom-0 left-0 right-0 bg-surface/80 backdrop-blur-xl border-t border-slate-800 safe-area-bottom z-50">
         <div className="max-w-2xl mx-auto flex items-center justify-around py-1 sm:py-1.5 px-2">
           {NAV_ITEMS.map(({ key, label, icon: Icon }) => {
-            const isProfile = key === 'profile';
-            const isGuest = isProfile && !user;
             const isActive = activeView === key;
             
             return (
@@ -291,11 +297,8 @@ function App() {
                   <Icon className={`w-5 h-5 ${isActive ? 'stroke-[3]' : 'stroke-[2.5]'}`} />
                 </div>
                 <span className="text-[8px] font-mono uppercase tracking-[0.25em] font-medium">
-                  {isGuest ? 'Anmelden' : label}
+                  {label}
                 </span>
-                {isGuest && (
-                  <div className="absolute top-1 right-2 w-2 h-2 rounded-full bg-amber-400 border-2 border-surface shadow-sm" />
-                )}
 
               </button>
             );
