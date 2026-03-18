@@ -139,6 +139,52 @@ function CollectionRow({ title, stories, onPlay }: { title: string, stories: any
     );
 }
 
+function DiscoveryCard({ story, onPlay, onFavorite }: { story: any, onPlay: (id: string) => void, onFavorite: (id: string) => void }) {
+    if (!story) return null;
+    return (
+        <div 
+            onClick={() => onPlay(story.id)}
+            className="relative aspect-[3/4] rounded-3xl overflow-hidden border border-slate-800 transition-all duration-500 hover:scale-[1.03] hover:shadow-2xl hover:shadow-primary/10 cursor-pointer group"
+        >
+            <img 
+                src={getThumbUrl(story.id, story.updated_at)} 
+                alt={story.title} 
+                className="w-full h-full object-cover grayscale-[15%] group-hover:grayscale-0 transition-all duration-700" 
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/20 to-transparent opacity-80 group-hover:opacity-90 transition-opacity" />
+            
+            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">
+                <div className="w-12 h-12 bg-primary text-white rounded-full flex items-center justify-center shadow-2xl scale-75 group-hover:scale-100 transition-transform duration-300">
+                    <Play className="w-6 h-6 fill-current ml-1" />
+                </div>
+            </div>
+
+            <div className="absolute top-3 right-3 z-10">
+                <button
+                    onClick={(e) => { 
+                        e.stopPropagation(); 
+                        onFavorite(story.id); 
+                    }}
+                    className={`w-9 h-9 rounded-xl flex items-center justify-center border backdrop-blur-md transition-all active:scale-90 ${
+                        story.is_favorite 
+                        ? 'bg-red-500/20 border-red-500/50 text-red-500 shadow-lg shadow-red-500/10' 
+                        : 'bg-white/5 border-white/10 text-white/70 hover:text-white hover:bg-white/10'
+                    }`}
+                    title={story.is_favorite ? "Aus Sammlung entfernen" : "Zur Sammlung hinzufügen"}
+                >
+                    <Heart className={`w-4 h-4 ${story.is_favorite ? 'fill-current' : ''}`} />
+                </button>
+            </div>
+
+            <div className="absolute bottom-4 left-4 right-4">
+                <div className="text-[10px] font-bold text-primary mb-1 uppercase tracking-wider">{story.genre}</div>
+                <h4 className="text-[14px] font-bold text-white line-clamp-2 leading-tight drop-shadow-md">
+                    {story.title}
+                </h4>
+            </div>
+        </div>
+    );
+}
 
 export default function StoryArchive() {
     const { 
@@ -704,7 +750,6 @@ export default function StoryArchive() {
                         onPlay={handlePlay} 
                     />
                     
-                    {/* Shuffle Button */}
                     <div className="fixed bottom-[90px] right-6 z-40">
                         <button
                             onClick={handleShuffle}
@@ -713,6 +758,28 @@ export default function StoryArchive() {
                         >
                             <RefreshCw className="w-6 h-6 group-hover:rotate-180 transition-transform duration-500" />
                         </button>
+                    </div>
+                </div>
+            ) : archiveFilter === 'public' && !archiveSearch && archiveGenre.length > 0 ? (
+                <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+                    <HeroSection 
+                        story={stories[0]} 
+                        onPlay={handlePlay} 
+                        onFavorite={toggleFavorite} 
+                    />
+                    <h3 className="text-xs font-bold uppercase tracking-[0.25em] text-slate-500 mb-6 ml-1 flex items-center gap-2.5">
+                        <BookOpen className="w-4 h-4 text-primary" />
+                        {archiveGenre.length === 1 ? archiveGenre[0] : 'Entdeckungen'}
+                    </h3>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-8 mb-12">
+                        {stories.slice(1).map(story => (
+                            <DiscoveryCard 
+                                key={story.id} 
+                                story={story} 
+                                onPlay={handlePlay} 
+                                onFavorite={toggleFavorite} 
+                            />
+                        ))}
                     </div>
                 </div>
             ) : (
