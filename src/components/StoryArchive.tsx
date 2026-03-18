@@ -482,7 +482,7 @@ export default function StoryArchive() {
                         <BookOpen className="w-10 h-10 text-slate-700" />
                     </div>
                     <h2 className="font-serif text-2xl text-text mb-2 font-semibold">
-                        {archiveFilter === 'public' ? 'Noch keine öffentlichen Geschichten' : 'Dein Archiv ist noch leer'}
+                        {archiveFilter === 'public' ? 'Noch keine öffentlichen Geschichten' : 'Deine Bibliothek ist leer'}
                     </h2>
                     <p className="text-slate-500 text-sm max-w-[280px] mx-auto leading-relaxed">
                         {archiveFilter === 'public' 
@@ -491,7 +491,7 @@ export default function StoryArchive() {
                     </p>
                     <button 
                         onClick={() => setActiveView('create')}
-                        className="btn-primary mt-8 px-8"
+                        className="btn-primary mt-8 px-8 mx-auto block"
                     >
                         Jetzt starten
                     </button>

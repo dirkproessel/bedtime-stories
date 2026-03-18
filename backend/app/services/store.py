@@ -3,7 +3,7 @@ import json
 import logging
 from pathlib import Path
 from sqlmodel import Session, select, delete
-from app.models import StoryMeta, User, UserFavorite
+from app.models import StoryMeta, User, UserFavorite, StoryMetaResponse
 from app.database import engine, create_db_and_tables
 from app.config import settings
 from app.auth_utils import get_password_hash
@@ -128,7 +128,7 @@ class StoryStore:
                     )
             
             results = session.exec(statement).all()
-            stories = list(results)
+            stories = [StoryMetaResponse.model_validate(s) for s in results]
 
             # Populate is_favorite if requesting_user_id is provided
             if requesting_user_id and stories:
@@ -149,11 +149,15 @@ class StoryStore:
         with Session(engine) as session:
             return list(session.exec(select(User)).all())
 
-    def get_by_id(self, story_id: str, requesting_user_id: str | None = None) -> StoryMeta | None:
+    def get_by_id(self, story_id: str, requesting_user_id: str | None = None) -> StoryMetaResponse | None:
         """Get a specific story by ID."""
         with Session(engine) as session:
-            story = session.get(StoryMeta, story_id)
-            if story and requesting_user_id:
+            db_story = session.get(StoryMeta, story_id)
+            if not db_story:
+                return None
+            
+            story = StoryMetaResponse.model_validate(db_story)
+            if requesting_user_id:
                 fav = session.exec(
                     select(UserFavorite).where(
                         UserFavorite.user_id == requesting_user_id,
@@ -183,12 +187,12 @@ class StoryStore:
                 session.commit()
                 return True
                 
-    def get_favorites(self, user_id: str) -> list[StoryMeta]:
+    def get_favorites(self, user_id: str) -> list[StoryMetaResponse]:
         """Get all favorited stories for a user."""
         with Session(engine) as session:
             statement = select(StoryMeta).join(UserFavorite).where(UserFavorite.user_id == user_id).order_by(UserFavorite.created_at.desc())
             results = session.exec(statement).all()
-            stories = list(results)
+            stories = [StoryMetaResponse.model_validate(s) for s in results]
             for s in stories:
                 s.is_favorite = True
             return stories

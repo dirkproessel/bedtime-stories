@@ -748,6 +748,7 @@ async def list_stories(
                 s.user_email = "System"
         
         # POPULATE IS_FAVORITE for the current user
+        stories_to_list = [StoryMetaResponse.model_validate(s) for s in stories_to_list]
         if current_user:
             story_ids = [s.id for s in stories_to_list]
             fav_results = store.get_all(requesting_user_id=current_user.id)
