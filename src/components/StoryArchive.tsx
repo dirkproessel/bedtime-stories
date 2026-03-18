@@ -308,9 +308,9 @@ export default function StoryArchive() {
     }
 
     return (
-        <div className="p-4 sm:p-6 max-w-2xl mx-auto">
+        <div className="px-3 py-4 sm:p-6 max-w-2xl mx-auto">
             {/* V2: Two-Level Extensible Filter Bar */}
-            <div className={`mb-4 sticky top-0 z-30 bg-background/80 backdrop-blur-md pb-2 -mx-4 px-4 transition-all duration-300 ${isScrolled ? 'border-b border-primary/20 shadow-sm' : 'border-transparent'}`}>
+            <div className={`mb-4 sticky top-0 z-30 bg-background/80 backdrop-blur-md pb-2 -mx-3 px-3 sm:-mx-6 sm:px-6 transition-all duration-300 ${isScrolled ? 'border-b border-primary/20 shadow-sm' : 'border-transparent'}`}>
                 <div className="relative flex items-center h-10 bg-surface/50 border border-slate-800 rounded-2xl overflow-hidden transition-all duration-300">
                     
                     {filterLevel === 'main' && (

@@ -164,18 +164,20 @@ function App() {
   return (
     <div className="min-h-screen bg-background flex flex-col w-full relative overflow-hidden">
       {/* Global Brand Header */}
-      <header className="relative pt-2 px-4 pb-1 max-w-2xl mx-auto w-full flex flex-row items-center justify-center gap-3 sm:gap-5 text-left">
-        <div className="shrink-0 mt-1">
-          <img src="/logo.png" alt="Logo" className="w-18 h-18 sm:w-22 sm:h-22 object-contain" />
-        </div>
-        <div className="flex flex-col">
-          <h2 className="text-xl sm:text-2xl font-semibold text-text mb-0.5 font-serif tracking-tight leading-tight">Kurzgeschichten-Labor</h2>
-          <p className="text-[11px] tracking-widest uppercase text-text-muted opacity-80 font-mono">
-            Literatur auf Knopfdruck
-          </p>
+      <header className="pt-2 px-3 sm:px-6 pb-1 max-w-2xl mx-auto w-full flex items-center justify-between">
+        <div className="flex items-center gap-3 sm:gap-5 text-left">
+            <div className="shrink-0 mt-1">
+              <img src="/logo.png" alt="Logo" className="w-18 h-18 sm:w-22 sm:h-22 object-contain" />
+            </div>
+            <div className="flex flex-col">
+              <h2 className="text-xl sm:text-2xl font-semibold text-text mb-0.5 font-serif tracking-tight leading-tight">Kurzgeschichten-Labor</h2>
+              <p className="text-[11px] tracking-widest uppercase text-text-muted opacity-80 font-mono">
+                Literatur auf Knopfdruck
+              </p>
+            </div>
         </div>
 
-        {/* Absolute Right: Profile Avatar Button */}
+        {/* Profile Avatar Button */}
         <button 
           onClick={() => {
              setActiveView('profile');
@@ -183,7 +185,7 @@ function App() {
                  useStore.getState().setReaderOpen(false);
              }
           }}
-          className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center justify-center w-10 h-10 rounded-full bg-surface border-2 border-slate-800 hover:border-slate-700 transition-colors"
+          className="shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-surface border-2 border-slate-800 hover:border-slate-700 transition-colors shadow-sm"
         >
           {user ? (
             <span className="text-sm font-bold text-slate-300 uppercase">
@@ -196,8 +198,8 @@ function App() {
       </header>
 
       {/* Dynamic Page Title */}
-      <div className="px-6 pb-2 max-w-2xl mx-auto w-full text-center">
-        <h1 className="text-lg font-bold text-text-muted/80 font-serif italic">
+      <div className="px-3 sm:px-6 pb-1 max-w-2xl mx-auto w-full text-left">
+        <h1 className="text-sm sm:text-lg font-bold text-text-muted/60 font-serif italic">
           {activeView === 'create' && 'Erschaffe eine eigene Geschichte'}
           {activeView === 'library' && 'Meine Bibliothek'}
           {activeView === 'discover' && 'Entdecke neue Geschichten'}
@@ -257,7 +259,7 @@ function App() {
 
       {/* Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 bg-surface/80 backdrop-blur-xl border-t border-slate-800 safe-area-bottom z-50">
-        <div className="max-w-2xl mx-auto flex items-center justify-around py-1.5">
+        <div className="max-w-2xl mx-auto flex items-center justify-around py-1 sm:py-1.5 px-2">
           {NAV_ITEMS.map(({ key, label, icon: Icon }) => {
             const isProfile = key === 'profile';
             const isGuest = isProfile && !user;
