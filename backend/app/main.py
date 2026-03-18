@@ -686,11 +686,13 @@ async def list_stories(
     page_size: int = 30,
     filter: str = "all", # "my", "public", "all"
     user_id: str | None = None,
+    genre: str | None = None,
+    search: str | None = None,
     current_user: User | None = Depends(get_optional_user)
 ):
     """List stories with pagination and filtering."""
     try:
-        all_stories = store.get_all()
+        all_stories = store.get_all(genre=genre, search=search)
         
         if not all_stories:
             logger.info("API list_stories: No stories found in database.")

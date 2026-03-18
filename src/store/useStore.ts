@@ -36,8 +36,12 @@ interface AppState {
     totalPublicStories: number;
     currArchivePage: number;
     archiveFilter: 'my' | 'all' | 'public';
+    archiveGenre: string | null;
+    archiveSearch: string | null;
     hasMore: boolean;
     setArchiveFilter: (filter: 'my' | 'all' | 'public') => void;
+    setArchiveGenre: (genre: string | null) => void;
+    setArchiveSearch: (search: string | null) => void;
     loadStories: (page?: number, userId?: string, pageSize?: number) => Promise<void>;
     loadMoreStories: (userId?: string, pageSize?: number) => Promise<void>;
 
@@ -117,7 +121,11 @@ export const useStore = create<AppState>((set, get) => {
     currArchivePage: 1,
     hasMore: true,
     archiveFilter: 'my',
+    archiveGenre: null,
+    archiveSearch: null,
     setArchiveFilter: (filter) => set({ archiveFilter: filter }),
+    setArchiveGenre: (genre) => set({ archiveGenre: genre }),
+    setArchiveSearch: (search) => set({ archiveSearch: search }),
     activeView: 'create',
     adminUsers: [],
     selectedStoryId: null,
@@ -227,11 +235,18 @@ export const useStore = create<AppState>((set, get) => {
     },
 
     loadStories: async (page = 1, userId?: string, pageSize = 20) => {
-        const { archiveFilter } = get();
+        const { archiveFilter, archiveGenre, archiveSearch } = get();
         set({ isLoading: true });
         try {
             const { fetchStories } = await import('../lib/api');
-            const { stories, total, total_my, total_public } = await fetchStories(page, pageSize, archiveFilter, userId);
+            const { stories, total, total_my, total_public } = await fetchStories(
+                page, 
+                pageSize, 
+                archiveFilter, 
+                userId,
+                archiveGenre || undefined,
+                archiveSearch || undefined
+            );
             set({ 
                 stories, 
                 totalStories: total,
@@ -248,14 +263,21 @@ export const useStore = create<AppState>((set, get) => {
     },
 
     loadMoreStories: async (userId?: string, pageSize = 20) => {
-        const { archiveFilter, currArchivePage, stories: existingStories, hasMore, isLoading } = get();
+        const { archiveFilter, archiveGenre, archiveSearch, currArchivePage, stories: existingStories, hasMore, isLoading } = get();
         if (!hasMore || isLoading) return;
 
         const nextPage = currArchivePage + 1;
         set({ isLoading: true });
         try {
             const { fetchStories } = await import('../lib/api');
-            const { stories: newStories, total, total_my, total_public } = await fetchStories(nextPage, pageSize, archiveFilter, userId);
+            const { stories: newStories, total, total_my, total_public } = await fetchStories(
+                nextPage, 
+                pageSize, 
+                archiveFilter, 
+                userId,
+                archiveGenre || undefined,
+                archiveSearch || undefined
+            );
             
             const updatedStories = [...existingStories, ...newStories];
             set({ 
@@ -356,7 +378,7 @@ export const useStore = create<AppState>((set, get) => {
         }
         // Handle filter auto-sync if switching to library/discover
         if (view === 'library') {
-            set({ archiveFilter: 'my' });
+            set({ archiveFilter: 'my', archiveGenre: null, archiveSearch: null });
             if (get().user) {
                 get().loadStories(1);
             } else {
@@ -364,11 +386,11 @@ export const useStore = create<AppState>((set, get) => {
             }
         }
         if (view === 'discover') {
-            set({ archiveFilter: 'public' });
+            set({ archiveFilter: 'public', archiveGenre: null, archiveSearch: null });
             get().loadStories(1);
         }
         if (view === 'admin') {
-            set({ archiveFilter: 'all' });
+            set({ archiveFilter: 'all', archiveGenre: null, archiveSearch: null });
             get().loadStories(1);
         }
     },

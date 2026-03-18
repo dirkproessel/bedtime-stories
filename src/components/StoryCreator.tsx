@@ -6,7 +6,7 @@ import { voiceName, voiceDesc, STANDARD_VOICE_KEYS, isStandardVoice } from '../l
 import { AUTHORS } from '../lib/authors';
 import toast from 'react-hot-toast';
 
-const GENRES = [
+export const GENRES = [
     { value: 'Krimi', label: 'Krimi', desc: 'Indizien, Verdächtige, falsche Fährten' },
     { value: 'Abenteuer', label: 'Abenteuer', desc: 'Aufbruch, Hindernisse, Heldenreise' },
     { value: 'Science-Fiction', label: 'Science-Fiction', desc: 'Zukunfts-Technik, fremde Welten' },

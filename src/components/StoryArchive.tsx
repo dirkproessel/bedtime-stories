@@ -1,6 +1,6 @@
 import { useStore } from '../store/useStore';
 import { deleteStory, revoiceStory, getVoicePreviewUrl, exportStoryToKindle, getThumbUrl, regenerateStoryImage } from '../lib/api';
-import { Play, Trash2, BookOpen, Loader2, Mic, X, Venus, Mars, Users, Pause, Send, Image as ImageIcon, RefreshCw, Sparkles, Settings2, MessageCircle, Timer, Wand2, Edit, Feather, User as UserIcon } from 'lucide-react';
+import { Play, Trash2, BookOpen, Loader2, Mic, X, Venus, Mars, Users, Pause, Send, Image as ImageIcon, RefreshCw, Sparkles, Settings2, MessageCircle, Timer, Wand2, Edit, Feather, User as UserIcon, Search, ChevronRight, ChevronLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useEffect, useState, useRef } from 'react';
 import ConfirmModal from './ConfirmModal';
@@ -8,6 +8,7 @@ import ConfirmModal from './ConfirmModal';
 
 import { voiceName, voiceDesc } from '../lib/voices';
 import { authorName } from '../lib/authors';
+import { GENRES } from './StoryCreator';
 
 export default function StoryArchive() {
     const { 
@@ -19,7 +20,8 @@ export default function StoryArchive() {
         setGeneratorPrompt, setGeneratorGenre, setGeneratorAuthors,
         setGeneratorMinutes, setGeneratorVoice, setGeneratorRemix,
         setReaderOpen,
-        loadMoreStories, hasMore, isLoading
+        loadMoreStories, hasMore, isLoading,
+        archiveGenre, archiveSearch, setArchiveGenre, setArchiveSearch
     } = useStore();
     const [selectedVoice, setSelectedVoice] = useState('seraphina');
     const [confirmRevoice, setConfirmRevoice] = useState(false);
@@ -37,6 +39,13 @@ export default function StoryArchive() {
     const [expandedStories, setExpandedStories] = useState<Set<string>>(new Set());
     const [deleteConfirm, setDeleteConfirm] = useState<{ id: string, title: string } | null>(null);
     const audioRef = useRef<HTMLAudioElement>(null);
+    
+    // Filter UI state
+    const [isSearchExpanded, setIsSearchExpanded] = useState(false);
+    const [searchValue, setSearchValue] = useState(archiveSearch || '');
+    const genreScrollRef = useRef<HTMLDivElement>(null);
+    const [showLeftFade, setShowLeftFade] = useState(false);
+    const [showRightFade, setShowRightFade] = useState(true);
 
     const activeToolboxStory = showToolbox ? stories.find(s => s.id === showToolbox) : null;
 
@@ -65,6 +74,39 @@ export default function StoryArchive() {
             setInitialCheckDone(true);
         }
     }, [totalMyStories, totalPublicStories, totalStories, initialCheckDone, archiveFilter, loadStories, setArchiveFilter, user]);
+
+    // Handle initial genres scroll check
+    useEffect(() => {
+        const handleScroll = () => {
+            if (genreScrollRef.current) {
+                const { scrollLeft, scrollWidth, clientWidth } = genreScrollRef.current;
+                setShowLeftFade(scrollLeft > 10);
+                setShowRightFade(scrollLeft < scrollWidth - clientWidth - 10);
+            }
+        };
+        const el = genreScrollRef.current;
+        if (el) {
+            el.addEventListener('scroll', handleScroll);
+            handleScroll(); // Initial
+        }
+        return () => el?.removeEventListener('scroll', handleScroll);
+    }, [isSearchExpanded]);
+
+    // Handle Search Debounce
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (searchValue !== (archiveSearch || '')) {
+                setArchiveSearch(searchValue || null);
+                loadStories(1);
+            }
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [searchValue, archiveSearch, setArchiveSearch, loadStories]);
+
+    const handleGenreSelect = (genreValue: string | null) => {
+        setArchiveGenre(genreValue);
+        loadStories(1);
+    };
 
 
     const observerTarget = useRef<HTMLDivElement>(null);
@@ -252,6 +294,84 @@ export default function StoryArchive() {
 
     return (
         <div className="p-4 sm:p-6 max-w-2xl mx-auto">
+            {/* Single-Line Filter Bar */}
+            <div className="mb-6 sticky top-0 z-30 bg-background/80 backdrop-blur-md pb-2 -mx-4 px-4">
+                <div className="relative flex items-center h-10 bg-surface/50 border border-slate-800 rounded-2xl overflow-hidden transition-all duration-300">
+                    {isSearchExpanded ? (
+                        <div className="flex-1 flex items-center px-3 animate-in fade-in slide-in-from-left-2 duration-300">
+                            <button 
+                                onClick={() => { setIsSearchExpanded(false); setSearchValue(''); }}
+                                className="p-1 text-slate-500 hover:text-slate-300 transition-colors"
+                            >
+                                <ChevronLeft className="w-5 h-5" />
+                            </button>
+                            <input 
+                                type="text"
+                                value={searchValue}
+                                onChange={(e) => setSearchValue(e.target.value)}
+                                placeholder="Titel oder Synopsis suchen..."
+                                autoFocus
+                                className="flex-1 bg-transparent border-none focus:ring-0 text-sm text-text placeholder:text-slate-600 px-2"
+                            />
+                            {searchValue && (
+                                <button 
+                                    onClick={() => setSearchValue('')}
+                                    className="p-1 text-slate-600 hover:text-slate-400"
+                                >
+                                    <X className="w-4 h-4" />
+                                </button>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="flex-1 flex items-center">
+                            {/* Search Trigger */}
+                            <button 
+                                onClick={() => setIsSearchExpanded(true)}
+                                className="h-full px-3.5 flex items-center justify-center text-slate-500 hover:text-primary transition-colors border-r border-slate-800/50"
+                            >
+                                <Search className={`w-4 h-4 ${searchValue ? 'text-primary' : ''}`} />
+                            </button>
+
+                            {/* Genre Scroller */}
+                            <div className="relative flex-1 overflow-hidden h-full flex items-center">
+                                {/* Fades */}
+                                {showLeftFade && <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-surface to-transparent z-10 pointer-events-none" />}
+                                {showRightFade && <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-surface to-transparent z-10 pointer-events-none" />}
+
+                                <div 
+                                    ref={genreScrollRef}
+                                    className="flex gap-1.5 overflow-x-auto no-scrollbar px-3 items-center scroll-smooth pr-8"
+                                >
+                                    <button
+                                        onClick={() => handleGenreSelect(null)}
+                                        className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider transition-all shrink-0 border ${
+                                            !archiveGenre 
+                                                ? 'bg-primary/20 border-primary/40 text-primary' 
+                                                : 'bg-slate-900/50 border-slate-800 text-slate-500 hover:border-slate-700'
+                                        }`}
+                                    >
+                                        Alle
+                                    </button>
+                                    {GENRES.map(g => (
+                                        <button
+                                            key={g.value}
+                                            onClick={() => handleGenreSelect(g.value)}
+                                            className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider transition-all shrink-0 border ${
+                                                archiveGenre === g.value
+                                                    ? 'bg-primary/20 border-primary/40 text-primary' 
+                                                    : 'bg-slate-900/50 border-slate-800 text-slate-500 hover:border-slate-700'
+                                            }`}
+                                        >
+                                            {g.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+
             {stories.length === 0 ? (
                 <div className="text-center py-20 animate-in fade-in duration-700">
                     <div className="w-24 h-24 mx-auto bg-surface rounded-[2rem] flex items-center justify-center mb-6 shadow-sm border border-slate-800">
