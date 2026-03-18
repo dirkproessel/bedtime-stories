@@ -60,6 +60,7 @@ from app.models import (
     HookRequest,
     HookResponse,
     StoryMeta,
+    StoryMetaResponse,
     StoryListResponse,
     VoiceProfile,
     KindleExportRequest,
