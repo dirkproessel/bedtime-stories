@@ -1,14 +1,13 @@
 import { useStore } from '../store/useStore';
 import { createPortal } from 'react-dom';
 import { getVoicePreviewUrl, exportStoryToKindle, getThumbUrl, getImageUrl, regenerateStoryImage } from '../lib/api';
-import { Play, Trash2, Heart, BookOpen, Loader2, Mic, X, Venus, Mars, Users, Pause, Send, Image as ImageIcon, RefreshCw, Sparkles, Settings2, MessageCircle, Timer, Wand2, Edit, Feather, User as UserIcon, Search, ChevronLeft, ChevronRight, ArrowLeft } from 'lucide-react';
+import { Play, Trash2, Heart, BookOpen, Loader2, Mic, X, Venus, Mars, Users, Pause, Send, Image as ImageIcon, RefreshCw, Sparkles, Settings2, MessageCircle, EyeOff, Search, ChevronLeft, ChevronRight, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useEffect, useState, useRef } from 'react';
 import ConfirmModal from './ConfirmModal';
 
 
 import { voiceName, voiceDesc } from '../lib/voices';
-import { authorName } from '../lib/authors';
 import { GENRES } from './StoryCreator';
 
 function HeroSection({ story, onPlay, onFavorite }: { story: any, onPlay: (id: string) => void, onFavorite: (id: string) => void }) {
@@ -258,12 +257,7 @@ export default function StoryArchive() {
 
     const activeToolboxStory = showToolbox ? stories.find(s => s.id === showToolbox) : null;
 
-    // Toolbox CSS Classes
-    const sectionClass = "mb-6";
-    const sectionTitleClass = "text-xs font-bold uppercase tracking-widest text-slate-600 mb-3 ml-1";
-    const listClass = "grid grid-cols-2 gap-2";
-    const itemClass = "flex items-center gap-2.5 p-2.5 bg-slate-900/60 border border-slate-800/80 rounded-xl transition-all active:scale-[0.98] hover:bg-primary/10 hover:border-primary/30 disabled:opacity-30 disabled:pointer-events-none w-full group/item";
-    const itemLabelClass = "text-[12px] font-medium text-slate-300 group-hover/item:text-primary transition-colors truncate";
+    const canModifyStory = (s: any) => s && (s.user_id === user?.id || user?.is_admin);
 
     // Track if we have performed the initial check for "my" stories
     const [initialCheckDone, setInitialCheckDone] = useState(false);
@@ -519,6 +513,79 @@ export default function StoryArchive() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
+    const renderDesktopFilters = () => (
+        <div className="hidden lg:block space-y-8 sticky top-8">
+            {/* Search Section */}
+            <div>
+                <div className="mb-3 flex items-center gap-2">
+                    <h3 className="status-label text-primary text-[10px] tracking-[0.2em] font-bold uppercase">Suchen</h3>
+                    <div className="h-px flex-1 bg-slate-800/50" />
+                </div>
+                <div className="relative group">
+                    <input 
+                        type="text"
+                        value={searchValue}
+                        onChange={(e) => setSearchValue(e.target.value)}
+                        placeholder="Titel oder Thema..."
+                        className="w-full pl-10 pr-4 py-3 bg-surface border-2 border-slate-800 rounded-2xl text-sm focus:outline-none focus:border-primary transition-all placeholder:text-slate-600 font-medium"
+                    />
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within:text-primary transition-colors" />
+                    {searchValue && (
+                        <button 
+                            onClick={() => { setSearchValue(''); setArchiveSearch(null); }}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-600 hover:text-white"
+                        >
+                            <X className="w-3.5 h-3.5" />
+                        </button>
+                    )}
+                </div>
+            </div>
+
+            {/* Genre Section (Vertical) */}
+            <div>
+                <div className="mb-3 flex items-center gap-2">
+                    <h3 className="status-label text-primary text-[10px] tracking-[0.2em] font-bold uppercase">Genre</h3>
+                    <div className="h-px flex-1 bg-slate-800/50" />
+                </div>
+                <div className="space-y-1.5 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar no-scrollbar">
+                    <button
+                        onClick={() => handleGenreSelect(null)}
+                        className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all border-2 ${
+                            archiveGenre.length === 0
+                                ? 'bg-primary/10 border-primary text-primary shadow-[0_0_15px_rgba(34,197,94,0.1)]' 
+                                : 'bg-slate-900 border-slate-800/50 text-slate-500 hover:border-slate-700'
+                        }`}
+                    >
+                        <span>Alle</span>
+                        {archiveGenre.length === 0 && <div className="w-1.5 h-1.5 rounded-full bg-primary" />}
+                    </button>
+                    {GENRES.filter(g => availableGenres.includes(g.value)).map(g => (
+                        <button
+                            key={g.key || g.value}
+                            onClick={() => handleGenreSelect(g.value)}
+                            className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all border-2 ${
+                                archiveGenre.includes(g.value)
+                                    ? 'bg-primary/10 border-primary text-primary shadow-[0_0_15px_rgba(34,197,94,0.1)]' 
+                                    : 'bg-slate-900 border-slate-800/50 text-slate-500 hover:border-slate-700'
+                            }`}
+                        >
+                            <span className="truncate">{g.label}</span>
+                            {archiveGenre.includes(g.value) && <div className="w-1.5 h-1.5 rounded-full bg-primary" />}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {/* Stats or extra info could go here */}
+            <div className="pt-8 border-t border-slate-800/30">
+                <div className="flex items-center justify-between text-[9px] uppercase font-bold tracking-[0.2em] text-slate-600">
+                    <span>Total</span>
+                    <span>{archiveFilter === 'my' ? totalMyStories : totalPublicStories} Geschichten</span>
+                </div>
+            </div>
+        </div>
+    );
+
     if (!user && archiveFilter === 'my') {
         return (
             <div className="p-4 sm:p-6 max-w-2xl mx-auto text-center py-20 animate-in fade-in duration-700">
@@ -540,80 +607,6 @@ export default function StoryArchive() {
 
     return (
         <div className="px-3 py-4 sm:p-6 w-full mx-auto">
-            {/* Desktop Filters (Portalled to Sidebar) */}
-            {typeof document !== 'undefined' && document.getElementById('desktop-context-sidebar') && createPortal(
-                <div className="hidden lg:block space-y-8">
-                    {/* Search Section */}
-                    <div>
-                        <div className="mb-3 flex items-center gap-2">
-                            <h3 className="status-label text-primary">Suchen</h3>
-                            <div className="h-px flex-1 bg-slate-800/50" />
-                        </div>
-                        <div className="relative group">
-                            <input 
-                                type="text"
-                                value={searchValue}
-                                onChange={(e) => setSearchValue(e.target.value)}
-                                placeholder="Titel oder Thema..."
-                                className="w-full pl-10 pr-4 py-3 bg-surface border-2 border-slate-800 rounded-2xl text-sm focus:outline-none focus:border-primary transition-all placeholder:text-slate-600"
-                            />
-                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within:text-primary transition-colors" />
-                            {searchValue && (
-                                <button 
-                                    onClick={() => { setSearchValue(''); setArchiveSearch(null); }}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-600 hover:text-white"
-                                >
-                                    <X className="w-3.5 h-3.5" />
-                                </button>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Genre Section (Vertical) */}
-                    <div>
-                        <div className="mb-3 flex items-center gap-2">
-                            <h3 className="status-label text-primary">Genre</h3>
-                            <div className="h-px flex-1 bg-slate-800/50" />
-                        </div>
-                        <div className="space-y-1.5 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                            <button
-                                onClick={() => handleGenreSelect(null)}
-                                className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all border-2 ${
-                                    archiveGenre.length === 0
-                                        ? 'bg-primary/10 border-primary text-primary' 
-                                        : 'bg-slate-900 border-slate-800 text-slate-500 hover:border-slate-700'
-                                }`}
-                            >
-                                <span>Alle</span>
-                                {archiveGenre.length === 0 && <div className="w-1.5 h-1.5 rounded-full bg-primary" />}
-                            </button>
-                            {GENRES.filter(g => availableGenres.includes(g.value)).map(g => (
-                                <button
-                                    key={g.value}
-                                    onClick={() => handleGenreSelect(g.value)}
-                                    className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all border-2 ${
-                                        archiveGenre.includes(g.value)
-                                            ? 'bg-primary/10 border-primary text-primary' 
-                                            : 'bg-slate-900 border-slate-800 text-slate-500 hover:border-slate-700'
-                                    }`}
-                                >
-                                    <span className="truncate">{g.label}</span>
-                                    {archiveGenre.includes(g.value) && <div className="w-1.5 h-1.5 rounded-full bg-primary" />}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Stats or extra info could go here */}
-                    <div className="pt-8 border-t border-slate-800/30">
-                        <div className="flex items-center justify-between text-xs uppercase font-bold tracking-widest text-slate-600">
-                            <span>Total</span>
-                            <span>{totalPublicStories} Geschichten</span>
-                        </div>
-                    </div>
-                </div>,
-                document.getElementById('desktop-context-sidebar')!
-            )}
 
             {/* Mobile Filter Bar (Hidden on Desktop) */}
             <div className={`lg:hidden mb-4 sticky top-0 z-30 bg-background/80 backdrop-blur-md pb-2 -mx-3 px-3 sm:-mx-6 sm:px-6 transition-all duration-300 ${isScrolled ? 'border-b border-primary/20 shadow-sm' : 'border-transparent'}`}>
@@ -624,9 +617,7 @@ export default function StoryArchive() {
                             <button 
                                 onClick={() => setFilterLevel('search')}
                                 className={`flex items-center gap-2 px-3 h-7 rounded-xl text-sm font-medium transition-colors ${
-                                    archiveSearch 
-                                        ? 'bg-primary/20 text-primary border border-primary/20' 
-                                        : 'bg-slate-800/50 hover:bg-slate-800 text-slate-300 border border-transparent'
+                                    archiveSearch ? 'bg-primary/20 text-primary border border-primary/20' : 'bg-slate-800/50 hover:bg-slate-800 text-slate-300 border border-transparent'
                                 }`}
                             >
                                 <Search className="w-3.5 h-3.5" />
@@ -803,318 +794,168 @@ export default function StoryArchive() {
                         {archiveFilter === 'favorites' ? 'Entdecken' : 'Jetzt starten'}
                     </button>
                 </div>
-            ) : archiveFilter === 'public' && !archiveSearch && archiveGenre.length === 0 ? (
-                <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-                    <HeroSection 
-                        story={stories[0]} 
-                        onPlay={handlePlay} 
-                        onFavorite={toggleFavorite} 
-                    />
-                    
-                    <CollectionRow 
-                        title="Neu bei storyja" 
-                        stories={stories.slice(1, 11)} 
-                        onPlay={handlePlay} 
-                        onFavorite={toggleFavorite}
-                        onToolbox={setShowToolbox}
-                    />
-                    
-                    <CollectionRow 
-                        title="Zauberhafte Märchen" 
-                        stories={fairytales} 
-                        onPlay={handlePlay} 
-                        onFavorite={toggleFavorite}
-                        onToolbox={setShowToolbox}
-                    />
-
-                    <CollectionRow 
-                        title="Action & Abenteuer" 
-                        stories={adventure} 
-                        onPlay={handlePlay} 
-                        onFavorite={toggleFavorite}
-                        onToolbox={setShowToolbox}
-                    />
-
-                    <CollectionRow 
-                        title="Schlaf gut" 
-                        stories={sleepStories} 
-                        onPlay={handlePlay} 
-                        onFavorite={toggleFavorite}
-                        onToolbox={setShowToolbox}
-                    />
-
-                    <CollectionRow 
-                        title="Zukunft & Weltraum" 
-                        stories={scifi} 
-                        onPlay={handlePlay} 
-                        onFavorite={toggleFavorite}
-                        onToolbox={setShowToolbox}
-                    />
-                </div>
-            ) : archiveFilter === 'public' && !archiveSearch && archiveGenre.length > 0 ? (
-                <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-                    <HeroSection 
-                        story={stories[0]} 
-                        onPlay={handlePlay} 
-                        onFavorite={toggleFavorite} 
-                    />
-                    <h3 className="text-xs font-bold uppercase tracking-[0.25em] text-slate-500 mb-6 ml-1 flex items-center gap-2.5">
-                        <BookOpen className="w-4 h-4 text-primary" />
-                        {archiveGenre.length === 1 ? archiveGenre[0] : 'Entdeckungen'}
-                    </h3>
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-4 gap-y-8 mb-12">
-                        {stories.slice(1).map(story => (
-                            <FlipStoryCard 
-                                key={story.id} 
-                                story={story} 
-                                onPlay={handlePlay} 
-                                onFavorite={toggleFavorite} 
-                                onToolbox={setShowToolbox}
-                            />
-                        ))}
-                    </div>
-                </div>
-            ) : archiveFilter === 'favorites' ? (
-                <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-4 gap-y-8 mb-12">
-                        {stories.map(story => (
-                            <FlipStoryCard 
-                                key={story.id} 
-                                story={story} 
-                                onPlay={handlePlay} 
-                                onFavorite={toggleFavorite} 
-                                onToolbox={setShowToolbox}
-                            />
-                        ))}
-                    </div>
-                </div>
             ) : (
-                <div className="grid grid-cols-1 gap-6">
-                    {stories.map(story => (
-                        <div
-                            key={story.id}
-                            className={`bg-surface border border-slate-800 rounded-3xl p-5 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 group mb-4 relative overflow-hidden ${story.status === 'generating' ? 'ring-1 ring-primary/20' : ''}`}
-                        >
-                            <div className="flex items-start gap-4">
-                                {story.image_url ? (
-                                    <div
-                                        className="w-24 h-24 lg:w-48 lg:h-48 rounded-[2rem] overflow-hidden shrink-0 shadow-md border border-slate-700/50 cursor-pointer"
-                                        onClick={() => handlePlay(story.id)}
-                                    >
-                                        <img src={getThumbUrl(story.id, story.updated_at)} alt={story.title} className="w-full h-full object-cover grayscale-[10%] scale-105 hover:scale-110 transition-transform duration-500" />
-                                    </div>
-                                ) : (
-                                    <div
-                                        className="w-24 h-24 lg:w-48 lg:h-48 rounded-[2rem] bg-slate-900 flex items-center justify-center shrink-0 border border-slate-800 cursor-pointer"
-                                        onClick={() => handlePlay(story.id)}
-                                    >
-                                        <BookOpen className="w-10 h-10 text-slate-700" />
-                                    </div>
-                                )}
-                                <div className="flex-1 min-w-0">
-                                    {/* Title & Top Metadata */}
-                                    <div className="flex flex-col gap-1.5">
-                                        <div className="flex items-center gap-2">
-                                            {story.status === 'generating' && (!story.title || story.title.includes('Schreibe') || story.title.includes('Fortsetzung')) ? (
-                                                <div className="text-lg font-semibold text-primary/40 animate-pulse flex flex-wrap gap-x-1">
-                                                    {"Lorem ipsum dolor sit amet".split(" ").map((word, i) => (
-                                                        <span key={i} className="flex gap-[1px]">
-                                                            {word.split("").map((char, j) => (
-                                                                <span key={j} className="inline-block animate-bounce" style={{ animationDelay: `${(i * 5 + j) * 80}ms`, animationDuration: '3s' }}>
-                                                                    {char}
-                                                                </span>
-                                                            ))}
-                                                        </span>
-                                                    ))}
-                                                </div>
-                                            ) : (
-                                                <h3 className="text-xl font-semibold text-text group-hover:text-primary transition-colors leading-tight cursor-pointer" onClick={() => story.status === 'done' && handlePlay(story.id)}>
-                                                    {story.title}
-                                                </h3>
-                                            )}
-                                        </div>
-                                        
-                                        <div className="flex gap-6 mb-1">
-                                            <div className="flex flex-col">
-                                                <span className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-0.5">Genre</span>
-                                                <span className="text-sm text-slate-300 font-bold">{story.genre || '—'}</span>
-                                            </div>
-                                            <div className="flex flex-col flex-1 min-w-0">
-                                                <span className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-0.5">Stil</span>
-                                                <span className="text-sm text-slate-300 font-medium">
-                                                    {story.style.split(',').map(id => authorName(id.trim())).join(', ')}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Synopsis Moved Here */}
-                                    <div className="mt-4">
-                                        {story.description && (story.status === 'done' || (story.status === 'generating' && story.description.length > 100)) && (
-                                            <div className="relative">
-                                                <p className={`text-sm lg:text-base text-text/90 leading-relaxed italic ${archiveFilter === 'my' ? '' : (expandedStories.has(story.id) ? '' : 'line-clamp-3')}`}>
-                                                    {story.description}
-                                                    {archiveFilter !== 'my' && !expandedStories.has(story.id) && story.description.length > 150 ? '...' : ''}
-                                                </p>
-                                                {archiveFilter !== 'my' && !expandedStories.has(story.id) && story.description.length > 150 && (
-                                                    <div className="absolute bottom-0 right-0 h-5 pl-16 bg-gradient-to-l from-surface via-surface/90 to-transparent flex items-center">
-                                                        <button 
-                                                            onClick={(e) => { e.stopPropagation(); toggleExpand(story.id); }}
-                                                            className="text-xs font-bold text-primary hover:text-emerald-400 uppercase tracking-wider transition-colors"
-                                                        >
-                                                            Mehr lesen
-                                                        </button>
+                <>
+                    {/* Main Content Areas */}
+                    {archiveFilter === 'public' && !archiveSearch && archiveGenre.length === 0 ? (
+                        <div className="space-y-12 animate-in fade-in duration-700">
+                            <HeroSection 
+                                story={stories[0]} 
+                                onPlay={handlePlay} 
+                                onFavorite={toggleFavorite} 
+                            />
+                            <div className="space-y-16">
+                                <CollectionRow title="Magische Märchen" stories={fairytales} onPlay={handlePlay} onFavorite={toggleFavorite} onToolbox={setShowToolbox} />
+                                <CollectionRow title="Große Abenteuer" stories={adventure} onPlay={handlePlay} onFavorite={toggleFavorite} onToolbox={setShowToolbox} />
+                                <CollectionRow title="Zum Einschlafen" stories={sleepStories} onPlay={handlePlay} onFavorite={toggleFavorite} onToolbox={setShowToolbox} />
+                                <CollectionRow title="Science-Fiction" stories={scifi} onPlay={handlePlay} onFavorite={toggleFavorite} onToolbox={setShowToolbox} />
+                            </div>
+                        </div>
+                    ) : (archiveFilter === 'public' && (archiveSearch || archiveGenre.length > 0)) || archiveFilter === 'favorites' ? (
+                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-4 gap-y-8 mb-12">
+                                {stories.map(story => (
+                                    <FlipStoryCard 
+                                        key={story.id} 
+                                        story={story} 
+                                        onPlay={handlePlay} 
+                                        onFavorite={toggleFavorite} 
+                                        onToolbox={setShowToolbox}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="flex flex-col lg:flex-row gap-8 items-start">
+                            <div className="flex-1 w-full min-w-0">
+                                <div className="grid grid-cols-1 gap-6">
+                                    {stories.map(story => (
+                                        <div
+                                            key={story.id}
+                                            className={`bg-surface border border-slate-800 rounded-3xl p-5 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 group mb-4 relative overflow-hidden ${story.status === 'generating' ? 'ring-1 ring-primary/20' : ''}`}
+                                        >
+                                            <div className="flex items-start gap-4">
+                                                {story.image_url ? (
+                                                    <div
+                                                        className="w-24 h-24 lg:w-48 lg:h-48 rounded-[2rem] overflow-hidden shrink-0 cursor-pointer shadow-lg group-hover:shadow-primary/10 transition-shadow border border-slate-700/50"
+                                                        onClick={() => handlePlay(story.id)}
+                                                    >
+                                                        <img
+                                                            src={getThumbUrl(story.id, story.updated_at)}
+                                                            alt={story.title}
+                                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                                        />
+                                                    </div>
+                                                ) : (
+                                                    <div className="w-24 h-24 lg:w-48 lg:h-48 bg-slate-900 rounded-[2rem] flex items-center justify-center shrink-0 border border-slate-800">
+                                                        <BookOpen className="w-10 h-10 text-slate-800" />
                                                     </div>
                                                 )}
-                                                {archiveFilter !== 'my' && expandedStories.has(story.id) && (
-                                                    <button 
-                                                        onClick={(e) => { e.stopPropagation(); toggleExpand(story.id); }}
-                                                        className="text-xs font-bold text-primary hover:text-emerald-400 mt-1 uppercase tracking-wider transition-colors block"
-                                                    >
-                                                        Weniger anzeigen
-                                                    </button>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
 
-                            <div className="mt-3">
-                                {/* Progress/Status during generation/error */}
-                                {story.status === 'generating' && (
-                                    <div className="mb-4 space-y-2 w-full">
-                                        <div className="flex justify-between items-end">
-                                            <div className="flex items-center gap-2 text-primary text-xs font-semibold">
-                                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                                {story.progress || 'Planung...'}
-                                            </div>
-                                            <div className="flex items-center gap-3">
-                                                <button 
-                                                    onClick={(e) => { e.stopPropagation(); if(confirm('Möchtest du diese Generierung wirklich abbrechen?')) deleteStory(story.id); }}
-                                                    className="text-[10px] uppercase font-bold tracking-wider text-red-500/60 hover:text-red-500 transition-colors"
-                                                >
-                                                    Abbrechen
-                                                </button>
-                                                <span className="text-xs font-bold text-primary bg-accent/20 px-1.5 py-0.5 rounded-md">
-                                                    {story.progress_pct || 0}%
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <div className="w-full h-1.5 bg-accent/20 rounded-full overflow-hidden border border-primary/20">
-                                            <div
-                                                className="h-full bg-primary transition-all duration-1000 ease-out"
-                                                style={{ width: `${story.progress_pct || 0}%` }}
-                                            />
-                                        </div>
-                                    </div>
-                                )}
-                                
-                                {story.status === 'error' && (
-                                    <div className="mb-4">
-                                        <div className="px-3 py-2 bg-red-950/20 text-red-500 rounded-lg text-xs font-medium w-full border border-red-900/30 italic line-clamp-2 hover:line-clamp-none transition-all cursor-help" title={story.progress || 'Fehler bei der Erstellung'}>
-                                            {story.progress || 'Fehler bei der Erstellung'}
-                                        </div>
-                                    </div>
-                                )}
+                                                <div className="flex-1 min-w-0 flex flex-col h-full lg:min-h-[12rem]">
+                                                    <div className="flex justify-between items-start gap-2">
+                                                        <div className="flex-1 min-w-0">
+                                                            <h3
+                                                                className="text-[17px] lg:text-xl font-bold text-text mb-1 truncate cursor-pointer hover:text-primary transition-colors pr-8"
+                                                                onClick={() => story.status === 'done' && handlePlay(story.id)}
+                                                            >
+                                                                {story.title}
+                                                            </h3>
+                                                            <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">
+                                                                <span className="bg-slate-800/50 px-2 py-1 rounded-md border border-slate-700/50">
+                                                                    {story.genre}
+                                                                </span>
+                                                                <span>•</span>
+                                                                <span className="text-slate-600">
+                                                                    {formatDuration(story.duration_seconds)} Min
+                                                                </span>
+                                                                <span>•</span>
+                                                                <span className="text-slate-600">
+                                                                    {voiceName(story.voice_key)}
+                                                                </span>
+                                                            </div>
+                                                            
+                                                            {/* Full Synopsis */}
+                                                            <div className="text-sm lg:text-base text-slate-400 leading-relaxed mb-4 italic">
+                                                                {story.description}
+                                                            </div>
+                                                        </div>
 
-                                {/* End of synopsis section (moved) */}
-                            </div>
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); setShowToolbox(story.id); }}
+                                                            className="p-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-all"
+                                                        >
+                                                            <Settings2 className="w-5 h-5" />
+                                                        </button>
+                                                    </div>
 
-                            {(story.status === 'done' || story.status === 'error') && (
-                                <div className="mt-4">
-                                    <div className="h-px bg-slate-800/50 w-full mb-3" />
-                                    
-                                    <div className="flex items-end justify-between px-2">
-                                        {/* Left: Metadata */}
-                                        <div className="flex flex-col gap-1 text-xs text-slate-500 font-medium">
-                                            <span className="flex items-center gap-2">
-                                                <BookOpen className="w-4 h-4 text-slate-600" />
-                                                {(story.word_count && story.word_count > 0) ? `${story.word_count} Worte` : (story.chapter_count > 0 ? `${story.chapter_count} Kapitel` : 'Entwurf')}
-                                            </span>
-                                            {story.voice_key !== 'none' && (
-                                                <span className="flex items-center gap-2">
-                                                    <Timer className="w-4 h-4 text-slate-600" />
-                                                    {story.duration_seconds ? formatDuration(story.duration_seconds) : '--:--'} Min ({voiceName(story.voice_key)})
-                                                </span>
-                                            )}
-                                            {archiveFilter === 'public' && (
-                                                <span className="flex items-center gap-2">
-                                                    <Feather className="w-4 h-4 text-slate-600" />
-                                                    {story.user_email || 'Anonym'}
-                                                </span>
-                                            )}
-                                            {archiveFilter === 'my' && story.is_public && (
-                                                <div className="mt-1">
-                                                    <span className="px-1.5 py-0.5 rounded-md bg-slate-800 border border-slate-700 text-xs font-bold text-slate-400 uppercase tracking-wider animate-in fade-in slide-in-from-left-1 duration-500">
-                                                        Veröffentlicht
-                                                    </span>
+                                                    <div className="mt-auto flex items-center justify-between pt-4 border-t border-slate-800/30">
+                                                        <div className="flex items-center gap-3">
+                                                            <button
+                                                                onClick={() => handlePlay(story.id)}
+                                                                className="flex items-center gap-2 text-primary hover:text-emerald-400 font-bold text-xs uppercase tracking-widest transition-colors"
+                                                            >
+                                                                <div className="w-7 h-7 bg-primary/10 rounded-full flex items-center justify-center">
+                                                                    <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
+                                                                </div>
+                                                                Hören
+                                                            </button>
+                                                            <div className="w-px h-3 bg-slate-800" />
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); toggleStoryVisibility(story.id); }}
+                                                                className={`flex items-center gap-2 font-bold text-[10px] tracking-wider transition-colors ${story.is_public ? 'text-emerald-500' : 'text-slate-500 hover:text-slate-300'}`}
+                                                            >
+                                                                {story.is_public ? <Send className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                                                                {story.is_public ? 'Veröffentlicht' : 'Privat'}
+                                                            </button>
+                                                        </div>
+
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); toggleFavorite(story.id); }}
+                                                            className={`p-2 transition-all duration-300 ${story.is_favorite ? 'text-red-500 scale-110' : 'text-slate-600 hover:text-white'}`}
+                                                        >
+                                                            <Heart className={`w-5 h-5 ${story.is_favorite ? 'fill-current shadow-[0_0_10px_rgba(239,68,68,0.3)]' : ''}`} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {story.status === 'generating' && (
+                                                <div className="absolute inset-x-0 bottom-0 h-1 bg-slate-800 overflow-hidden">
+                                                    <div 
+                                                        className="h-full bg-primary animate-pulse transition-all duration-500" 
+                                                        style={{ width: `${story.progress_pct || 5}%` }}
+                                                    />
                                                 </div>
                                             )}
                                         </div>
-
-                                        {/* Center/Right Actions */}
-                                        <div className="flex items-center gap-2">
-                                            {/* Listen Button */}
-                                            <button
-                                                onClick={() => handlePlay(story.id)}
-                                                className="w-11 h-11 bg-accent/20 border border-emerald-500/30 rounded-xl flex items-center justify-center text-primary hover:bg-accent/30 hover:border-emerald-500/50 transition-all active:scale-90 shadow-lg shadow-primary/10"
-                                                title="Anhören"
-                                            >
-                                                <Play className="w-5 h-5 fill-current" />
-                                            </button>
-
-                                            {/* Favorite Button */}
-                                            <button
-                                                onClick={(e) => { 
-                                                    e.stopPropagation(); 
-                                                    if (!user) {
-                                                        toast.error('Bitte melde dich an, um die Sammlung zu nutzen');
-                                                        return;
-                                                    }
-                                                    toggleFavorite(story.id); 
-                                                }}
-                                                className={`w-11 h-11 rounded-xl flex items-center justify-center border transition-all active:scale-90 ${
-                                                    story.is_favorite 
-                                                    ? 'bg-red-500/10 border-red-500/50 text-red-500 shadow-lg shadow-red-500/10' 
-                                                    : 'bg-slate-900/80 border-slate-700/50 text-slate-400 hover:text-red-400 hover:border-red-400/30'
-                                                }`}
-                                                title={story.is_favorite ? "Aus Sammlung entfernen" : "Zur Sammlung hinzufügen"}
-                                            >
-                                                <Heart className={`w-5 h-5 ${story.is_favorite ? 'fill-current' : ''}`} />
-                                            </button>
-
-                                            {/* Toolbox Button */}
-                                            <button
-                                                onClick={() => setShowToolbox(story.id)}
-                                                className="w-11 h-11 bg-slate-900/80 border border-slate-700/50 rounded-xl flex items-center justify-center text-slate-400 hover:text-primary hover:border-primary/50 transition-all active:scale-90"
-                                                title="Werkzeuge"
-                                            >
-                                                <Wand2 className="w-5 h-5" />
-                                            </button>
-                                        </div>
-                                    </div>
+                                    ))}
                                 </div>
-                            )}
-                        </div>
-                    ))}
-                </div>
-            )}
+                            </div>
 
-            {/* Sentinel for Infinite Scroll */}
-            <div ref={observerTarget} className="h-20 flex items-center justify-center">
-                {isLoading && stories.length > 0 && (
-                    <div className="flex flex-col items-center gap-2 animate-in fade-in duration-300">
-                        <Loader2 className="w-6 h-6 text-primary animate-spin" />
-                        <span className="text-xs uppercase tracking-widest text-slate-500 font-bold">Lade mehr...</span>
+                            {/* Desktop Right Sidebar Filters */}
+                            <aside className="hidden lg:block w-72 shrink-0 h-fit">
+                                {renderDesktopFilters()}
+                            </aside>
+                        </div>
+                    )}
+
+                    {/* Sentinel for Infinite Scroll */}
+                    <div ref={observerTarget} className="h-20 flex items-center justify-center">
+                        {isLoading && stories.length > 0 && (
+                            <div className="flex flex-col items-center gap-2 animate-in fade-in duration-300">
+                                <Loader2 className="w-6 h-6 text-primary animate-spin" />
+                                <span className="text-xs uppercase tracking-widest text-slate-500 font-bold">Lade mehr...</span>
+                            </div>
+                        )}
+                        {!hasMore && stories.length > 0 && archiveFilter !== 'my' && (
+                            <div className="text-xs uppercase tracking-widest text-slate-700 font-bold">
+                                Dich erwarten bald neue Geschichten
+                            </div>
+                        )}
                     </div>
-                )}
-                {!hasMore && stories.length > 0 && archiveFilter !== 'my' && (
-                    <div className="text-xs uppercase tracking-widest text-slate-700 font-bold">
-                        Dich erwarten bald neue Geschichten
-                    </div>
-                )}
-            </div>
+                </>
+            )}
 
             {/* Re-voice Modal */}
             {revoiceStoryId && (
