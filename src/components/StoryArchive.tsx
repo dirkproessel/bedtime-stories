@@ -1,7 +1,6 @@
 import { useStore } from '../store/useStore';
-import { createPortal } from 'react-dom';
 import { getVoicePreviewUrl, exportStoryToKindle, getThumbUrl, getImageUrl, regenerateStoryImage } from '../lib/api';
-import { Play, Trash2, Heart, BookOpen, Loader2, Mic, X, Venus, Mars, Users, Pause, Send, Image as ImageIcon, RefreshCw, Sparkles, Settings2, MessageCircle, EyeOff, Search, ChevronLeft, ChevronRight, ArrowLeft } from 'lucide-react';
+import { Play, Trash2, Heart, BookOpen, Loader2, Mic, X, Venus, Mars, Users, Pause, Send, Image as ImageIcon, RefreshCw, Sparkles, Settings2, MessageCircle, EyeOff, Search, ChevronLeft, ChevronRight, ArrowLeft, Wand2, Edit, User as UserIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useEffect, useState, useRef } from 'react';
 import ConfirmModal from './ConfirmModal';
@@ -237,7 +236,6 @@ export default function StoryArchive() {
     const [remixInstructions, setRemixInstructions] = useState('');
     const [isRemixing, setIsRemixing] = useState(false);
     const [showToolbox, setShowToolbox] = useState<string | null>(null);
-    const [expandedStories, setExpandedStories] = useState<Set<string>>(new Set());
     const [deleteConfirm, setDeleteConfirm] = useState<{ id: string, title: string } | null>(null);
     const audioRef = useRef<HTMLAudioElement>(null);
     
@@ -382,14 +380,6 @@ export default function StoryArchive() {
         setReaderOpen(true, id);
     };
 
-    const toggleExpand = (id: string) => {
-        setExpandedStories(prev => {
-            const next = new Set(prev);
-            if (next.has(id)) next.delete(id);
-            else next.add(id);
-            return next;
-        });
-    };
 
     const handleDelete = async (id: string, title: string) => {
         setDeleteConfirm({ id, title });
@@ -513,78 +503,6 @@ export default function StoryArchive() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    const renderDesktopFilters = () => (
-        <div className="hidden lg:block space-y-8 sticky top-8">
-            {/* Search Section */}
-            <div>
-                <div className="mb-3 flex items-center gap-2">
-                    <h3 className="status-label text-primary text-[10px] tracking-[0.2em] font-bold uppercase">Suchen</h3>
-                    <div className="h-px flex-1 bg-slate-800/50" />
-                </div>
-                <div className="relative group">
-                    <input 
-                        type="text"
-                        value={searchValue}
-                        onChange={(e) => setSearchValue(e.target.value)}
-                        placeholder="Titel oder Thema..."
-                        className="w-full pl-10 pr-4 py-3 bg-surface border-2 border-slate-800 rounded-2xl text-sm focus:outline-none focus:border-primary transition-all placeholder:text-slate-600 font-medium"
-                    />
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within:text-primary transition-colors" />
-                    {searchValue && (
-                        <button 
-                            onClick={() => { setSearchValue(''); setArchiveSearch(null); }}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-600 hover:text-white"
-                        >
-                            <X className="w-3.5 h-3.5" />
-                        </button>
-                    )}
-                </div>
-            </div>
-
-            {/* Genre Section (Vertical) */}
-            <div>
-                <div className="mb-3 flex items-center gap-2">
-                    <h3 className="status-label text-primary text-[10px] tracking-[0.2em] font-bold uppercase">Genre</h3>
-                    <div className="h-px flex-1 bg-slate-800/50" />
-                </div>
-                <div className="space-y-1.5 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar no-scrollbar">
-                    <button
-                        onClick={() => handleGenreSelect(null)}
-                        className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all border-2 ${
-                            archiveGenre.length === 0
-                                ? 'bg-primary/10 border-primary text-primary shadow-[0_0_15px_rgba(34,197,94,0.1)]' 
-                                : 'bg-slate-900 border-slate-800/50 text-slate-500 hover:border-slate-700'
-                        }`}
-                    >
-                        <span>Alle</span>
-                        {archiveGenre.length === 0 && <div className="w-1.5 h-1.5 rounded-full bg-primary" />}
-                    </button>
-                    {GENRES.filter(g => availableGenres.includes(g.value)).map(g => (
-                        <button
-                            key={g.key || g.value}
-                            onClick={() => handleGenreSelect(g.value)}
-                            className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all border-2 ${
-                                archiveGenre.includes(g.value)
-                                    ? 'bg-primary/10 border-primary text-primary shadow-[0_0_15px_rgba(34,197,94,0.1)]' 
-                                    : 'bg-slate-900 border-slate-800/50 text-slate-500 hover:border-slate-700'
-                            }`}
-                        >
-                            <span className="truncate">{g.label}</span>
-                            {archiveGenre.includes(g.value) && <div className="w-1.5 h-1.5 rounded-full bg-primary" />}
-                        </button>
-                    ))}
-                </div>
-            </div>
-
-            {/* Stats or extra info could go here */}
-            <div className="pt-8 border-t border-slate-800/30">
-                <div className="flex items-center justify-between text-[9px] uppercase font-bold tracking-[0.2em] text-slate-600">
-                    <span>Total</span>
-                    <span>{archiveFilter === 'my' ? totalMyStories : totalPublicStories} Geschichten</span>
-                </div>
-            </div>
-        </div>
-    );
 
     if (!user && archiveFilter === 'my') {
         return (
@@ -608,8 +526,8 @@ export default function StoryArchive() {
     return (
         <div className="px-3 py-4 sm:p-6 w-full mx-auto">
 
-            {/* Mobile Filter Bar (Hidden on Desktop) */}
-            <div className={`lg:hidden mb-4 sticky top-0 z-30 bg-background/80 backdrop-blur-md pb-2 -mx-3 px-3 sm:-mx-6 sm:px-6 transition-all duration-300 ${isScrolled ? 'border-b border-primary/20 shadow-sm' : 'border-transparent'}`}>
+            {/* Sticky Filter Bar (Now on Desktop too) */}
+            <div className={`mb-4 sticky top-0 z-30 bg-background/80 backdrop-blur-md pb-2 -mx-3 px-3 sm:-mx-6 sm:px-6 transition-all duration-300 ${isScrolled ? 'border-b border-primary/20 shadow-sm' : 'border-transparent'}`}>
                 <div className="relative flex items-center h-10 bg-surface/50 border border-slate-800 rounded-2xl overflow-hidden transition-all duration-300">
                     
                     {filterLevel === 'main' && (
@@ -826,117 +744,108 @@ export default function StoryArchive() {
                             </div>
                         </div>
                     ) : (
-                        <div className="flex flex-col lg:flex-row gap-8 items-start">
-                            <div className="flex-1 w-full min-w-0">
-                                <div className="grid grid-cols-1 gap-6">
-                                    {stories.map(story => (
-                                        <div
-                                            key={story.id}
-                                            className={`bg-surface border border-slate-800 rounded-3xl p-5 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 group mb-4 relative overflow-hidden ${story.status === 'generating' ? 'ring-1 ring-primary/20' : ''}`}
-                                        >
-                                            <div className="flex items-start gap-4">
-                                                {story.image_url ? (
-                                                    <div
-                                                        className="w-24 h-24 lg:w-48 lg:h-48 rounded-[2rem] overflow-hidden shrink-0 cursor-pointer shadow-lg group-hover:shadow-primary/10 transition-shadow border border-slate-700/50"
-                                                        onClick={() => handlePlay(story.id)}
+                        <div className="grid grid-cols-1 gap-6">
+                            {stories.map(story => (
+                                <div
+                                    key={story.id}
+                                    className={`bg-surface border border-slate-800 rounded-3xl p-5 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 group mb-4 relative overflow-hidden ${story.status === 'generating' ? 'ring-1 ring-primary/20' : ''}`}
+                                >
+                                    <div className="flex items-start gap-4">
+                                        {story.image_url ? (
+                                            <div
+                                                className="w-24 h-24 lg:w-48 lg:h-48 rounded-[2rem] overflow-hidden shrink-0 cursor-pointer shadow-lg group-hover:shadow-primary/10 transition-shadow border border-slate-700/50"
+                                                onClick={() => handlePlay(story.id)}
+                                            >
+                                                <img
+                                                    src={getThumbUrl(story.id, story.updated_at)}
+                                                    alt={story.title}
+                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                                />
+                                            </div>
+                                        ) : (
+                                            <div className="w-24 h-24 lg:w-48 lg:h-48 bg-slate-900 rounded-[2rem] flex items-center justify-center shrink-0 border border-slate-800">
+                                                <BookOpen className="w-10 h-10 text-slate-800" />
+                                            </div>
+                                        )}
+
+                                        <div className="flex-1 min-w-0 flex flex-col h-full lg:min-h-[12rem]">
+                                            <div className="flex justify-between items-start gap-2">
+                                                <div className="flex-1 min-w-0">
+                                                    <h3
+                                                        className="text-[17px] lg:text-xl font-bold text-text mb-1 truncate cursor-pointer hover:text-primary transition-colors pr-8"
+                                                        onClick={() => story.status === 'done' && handlePlay(story.id)}
                                                     >
-                                                        <img
-                                                            src={getThumbUrl(story.id, story.updated_at)}
-                                                            alt={story.title}
-                                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                                        />
+                                                        {story.title}
+                                                    </h3>
+                                                    <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">
+                                                        <span className="bg-slate-800/50 px-2 py-1 rounded-md border border-slate-700/50">
+                                                            {story.genre}
+                                                        </span>
+                                                        <span>•</span>
+                                                        <span className="text-slate-600">
+                                                            {formatDuration(story.duration_seconds)} Min
+                                                        </span>
+                                                        <span>•</span>
+                                                        <span className="text-slate-600">
+                                                            {voiceName(story.voice_key)}
+                                                        </span>
                                                     </div>
-                                                ) : (
-                                                    <div className="w-24 h-24 lg:w-48 lg:h-48 bg-slate-900 rounded-[2rem] flex items-center justify-center shrink-0 border border-slate-800">
-                                                        <BookOpen className="w-10 h-10 text-slate-800" />
-                                                    </div>
-                                                )}
-
-                                                <div className="flex-1 min-w-0 flex flex-col h-full lg:min-h-[12rem]">
-                                                    <div className="flex justify-between items-start gap-2">
-                                                        <div className="flex-1 min-w-0">
-                                                            <h3
-                                                                className="text-[17px] lg:text-xl font-bold text-text mb-1 truncate cursor-pointer hover:text-primary transition-colors pr-8"
-                                                                onClick={() => story.status === 'done' && handlePlay(story.id)}
-                                                            >
-                                                                {story.title}
-                                                            </h3>
-                                                            <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">
-                                                                <span className="bg-slate-800/50 px-2 py-1 rounded-md border border-slate-700/50">
-                                                                    {story.genre}
-                                                                </span>
-                                                                <span>•</span>
-                                                                <span className="text-slate-600">
-                                                                    {formatDuration(story.duration_seconds)} Min
-                                                                </span>
-                                                                <span>•</span>
-                                                                <span className="text-slate-600">
-                                                                    {voiceName(story.voice_key)}
-                                                                </span>
-                                                            </div>
-                                                            
-                                                            {/* Full Synopsis */}
-                                                            <div className="text-sm lg:text-base text-slate-400 leading-relaxed mb-4 italic">
-                                                                {story.description}
-                                                            </div>
-                                                        </div>
-
-                                                        <button
-                                                            onClick={(e) => { e.stopPropagation(); setShowToolbox(story.id); }}
-                                                            className="p-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-all"
-                                                        >
-                                                            <Settings2 className="w-5 h-5" />
-                                                        </button>
-                                                    </div>
-
-                                                    <div className="mt-auto flex items-center justify-between pt-4 border-t border-slate-800/30">
-                                                        <div className="flex items-center gap-3">
-                                                            <button
-                                                                onClick={() => handlePlay(story.id)}
-                                                                className="flex items-center gap-2 text-primary hover:text-emerald-400 font-bold text-xs uppercase tracking-widest transition-colors"
-                                                            >
-                                                                <div className="w-7 h-7 bg-primary/10 rounded-full flex items-center justify-center">
-                                                                    <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
-                                                                </div>
-                                                                Hören
-                                                            </button>
-                                                            <div className="w-px h-3 bg-slate-800" />
-                                                            <button
-                                                                onClick={(e) => { e.stopPropagation(); toggleStoryVisibility(story.id); }}
-                                                                className={`flex items-center gap-2 font-bold text-[10px] tracking-wider transition-colors ${story.is_public ? 'text-emerald-500' : 'text-slate-500 hover:text-slate-300'}`}
-                                                            >
-                                                                {story.is_public ? <Send className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-                                                                {story.is_public ? 'Veröffentlicht' : 'Privat'}
-                                                            </button>
-                                                        </div>
-
-                                                        <button
-                                                            onClick={(e) => { e.stopPropagation(); toggleFavorite(story.id); }}
-                                                            className={`p-2 transition-all duration-300 ${story.is_favorite ? 'text-red-500 scale-110' : 'text-slate-600 hover:text-white'}`}
-                                                        >
-                                                            <Heart className={`w-5 h-5 ${story.is_favorite ? 'fill-current shadow-[0_0_10px_rgba(239,68,68,0.3)]' : ''}`} />
-                                                        </button>
+                                                    
+                                                    {/* Full Synopsis */}
+                                                    <div className="text-sm lg:text-base text-slate-400 leading-relaxed mb-4 italic">
+                                                        {story.description}
                                                     </div>
                                                 </div>
+
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); setShowToolbox(story.id); }}
+                                                    className="p-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-all"
+                                                >
+                                                    <Settings2 className="w-5 h-5" />
+                                                </button>
                                             </div>
 
-                                            {story.status === 'generating' && (
-                                                <div className="absolute inset-x-0 bottom-0 h-1 bg-slate-800 overflow-hidden">
-                                                    <div 
-                                                        className="h-full bg-primary animate-pulse transition-all duration-500" 
-                                                        style={{ width: `${story.progress_pct || 5}%` }}
-                                                    />
+                                            <div className="mt-auto flex items-center justify-between pt-4 border-t border-slate-800/30">
+                                                <div className="flex items-center gap-3">
+                                                    <button
+                                                        onClick={() => handlePlay(story.id)}
+                                                        className="flex items-center gap-2 text-primary hover:text-emerald-400 font-bold text-xs uppercase tracking-widest transition-colors"
+                                                    >
+                                                        <div className="w-7 h-7 bg-primary/10 rounded-full flex items-center justify-center">
+                                                            <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
+                                                        </div>
+                                                        Hören
+                                                    </button>
+                                                    <div className="w-px h-3 bg-slate-800" />
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); toggleStoryVisibility(story.id, !story.is_public); }}
+                                                        className={`flex items-center gap-2 font-bold text-[10px] tracking-wider transition-colors ${story.is_public ? 'text-emerald-500' : 'text-slate-500 hover:text-slate-300'}`}
+                                                    >
+                                                        {story.is_public ? <Send className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                                                        {story.is_public ? 'Veröffentlicht' : 'Privat'}
+                                                    </button>
                                                 </div>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
 
-                            {/* Desktop Right Sidebar Filters */}
-                            <aside className="hidden lg:block w-72 shrink-0 h-fit">
-                                {renderDesktopFilters()}
-                            </aside>
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); toggleFavorite(story.id); }}
+                                                    className={`p-2 transition-all duration-300 ${story.is_favorite ? 'text-red-500 scale-110' : 'text-slate-600 hover:text-white'}`}
+                                                >
+                                                    <Heart className={`w-5 h-5 ${story.is_favorite ? 'fill-current shadow-[0_0_10px_rgba(239,68,68,0.3)]' : ''}`} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {story.status === 'generating' && (
+                                        <div className="absolute inset-x-0 bottom-0 h-1 bg-slate-800 overflow-hidden">
+                                            <div 
+                                                className="h-full bg-primary animate-pulse transition-all duration-500" 
+                                                style={{ width: `${story.progress_pct || 5}%` }}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
                         </div>
                     )}
 
