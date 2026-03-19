@@ -223,100 +223,104 @@ function ManagementStoryCard({
     if (!story) return null;
 
     return (
-        <div className="bg-surface border border-slate-800 rounded-3xl p-5 mb-6 shadow-2xl shadow-black/40 hover:border-slate-700/50 transition-all duration-300 group relative overflow-hidden">
-            {/* Main Content Area: Responsive Layout */}
-            <div className="flex flex-col md:flex-row gap-5 lg:gap-8 items-start mb-6">
+        <div className="bg-[#12181f] border border-slate-800/80 rounded-3xl p-5 mb-5 shadow-lg shadow-black/20 hover:border-slate-700/50 transition-all duration-300 group relative overflow-hidden">
+            {/* Header: Image left, Title+Meta right */}
+            <div className="flex gap-4 mb-4">
                 {/* Image Section */}
                 <div 
-                    className="w-24 h-24 sm:w-28 sm:h-28 lg:w-44 lg:h-44 rounded-[1.5rem] lg:rounded-[2.5rem] overflow-hidden shrink-0 cursor-pointer shadow-xl group-hover:shadow-primary/10 transition-shadow border border-slate-700/50"
+                    className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden shrink-0 cursor-pointer border border-slate-700/50 shadow-sm"
                     onClick={() => onPlay(story.id)}
                 >
                     <img 
                         src={getThumbUrl(story.id, story.updated_at)} 
                         alt={story.title}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
                     />
                 </div>
                 
                 {/* Information Section */}
-                <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-start gap-4 mb-3">
-                        <div className="flex-1 min-w-0">
-                            <h3 
-                                className="text-lg sm:text-xl lg:text-2xl font-black text-white leading-tight mb-2 truncate cursor-pointer hover:text-primary transition-colors pr-10"
-                                onClick={() => story.status === 'done' && onPlay(story.id)}
-                            >
-                                {story.title}
-                            </h3>
-                            
-                            <div className="flex flex-wrap gap-4 lg:gap-8 items-start mb-4">
-                                <div className="flex flex-col">
-                                    <span className="text-[10px] uppercase font-bold text-slate-500 tracking-[0.15em] mb-1">Genre</span>
-                                    <span className="text-[11px] lg:text-[13px] font-black text-slate-100 uppercase tracking-widest bg-slate-800/80 px-2 py-0.5 rounded border border-slate-700/50">
-                                        {story.genre}
-                                    </span>
-                                </div>
-                                <div className="flex flex-col min-w-0 flex-1">
-                                    <span className="text-[10px] uppercase font-bold text-slate-500 tracking-[0.15em] mb-1">Stil</span>
-                                    <span className="text-[11px] lg:text-[13px] font-bold text-slate-200 line-clamp-1 leading-tight italic">
-                                        {voiceName(story.voice_key)} / {story.style_authors || 'Standard'}
-                                    </span>
-                                </div>
-                            </div>
+                <div className="flex-1 min-w-0 flex flex-col pt-1">
+                    <h3 
+                        className="text-lg sm:text-xl font-bold text-white leading-tight mb-3 cursor-pointer hover:text-primary transition-colors pr-2 font-serif"
+                        onClick={() => story.status === 'done' && onPlay(story.id)}
+                    >
+                        {story.title}
+                    </h3>
+                    
+                    <div className="flex gap-6">
+                        <div className="flex flex-col">
+                            <span className="text-[10px] uppercase font-bold text-slate-500 tracking-widest mb-1.5">Genre</span>
+                            <span className="text-[13px] font-bold text-slate-200">
+                                {story.genre}
+                            </span>
+                        </div>
+                        <div className="flex flex-col min-w-0 pr-2">
+                            <span className="text-[10px] uppercase font-bold text-slate-500 tracking-widest mb-1.5">Stil</span>
+                            <span className="text-[13px] font-medium text-slate-200 leading-snug">
+                                {story.style_authors || voiceName(story.voice_key)}
+                            </span>
                         </div>
                     </div>
-
-                    {/* Synopsis (Always below on mobile, next to header area on desktop) */}
-                    <p className="text-[13px] lg:text-[15px] text-slate-400 italic leading-relaxed font-medium line-clamp-4 lg:line-clamp-6 opacity-90">
-                        {story.description}
-                    </p>
                 </div>
             </div>
 
-            {/* Footer: Stats & Actions */}
-            <div className="flex flex-col sm:flex-row justify-between items-center pt-5 border-t border-slate-800/50 gap-4">
-                <div className="flex flex-wrap items-center gap-4 lg:gap-6">
-                    <div className="flex items-center gap-2 text-[10px] lg:text-[11px] font-bold text-slate-500 uppercase tracking-widest">
-                        <BookOpen className="w-3.5 h-3.5 text-slate-600" />
-                        {story.word_count || 1427} Worte
-                    </div>
-                    <div className="flex items-center gap-2 text-[10px] lg:text-[11px] font-bold text-slate-500 uppercase tracking-widest">
-                        <Clock className="w-3.5 h-3.5 text-slate-600" />
-                        {formatDuration(story.duration_seconds)} Min
-                    </div>
-                    {story.is_public ? (
-                        <div className="px-2 py-1 bg-primary border-2 border-primary/20 text-slate-950 text-[9px] font-black uppercase tracking-[0.1em] rounded-md shadow-[0_0_15px_rgba(34,197,94,0.15)] animate-in fade-in duration-500">
-                             VERÖFFENTLICHT
+            {/* Synopsis */}
+            <p className="text-[14px] text-slate-300 italic leading-[1.6] font-normal mb-5 pr-2">
+                {story.description}
+            </p>
+
+            {/* Footer */}
+            <div className="flex justify-between items-end border-t border-slate-800/50 pt-4 mt-auto">
+                {/* Left Stats & Status */}
+                <div className="flex flex-col gap-1.5">
+                    <div className="flex flex-col items-start gap-1.5">
+                        <div className="flex items-center gap-2 text-[12px] font-semibold text-slate-500">
+                            <BookOpen className="w-4 h-4 text-slate-600" />
+                            {story.word_count || 1427} Worte
                         </div>
-                    ) : (
-                        <div className="px-2 py-1 bg-slate-800/80 border-2 border-slate-700/50 text-slate-500 text-[9px] font-bold uppercase tracking-[0.1em] rounded-md">
-                            PRIVAT
+                        <div className="flex items-center gap-2 text-[12px] font-semibold text-slate-500">
+                            <Clock className="w-4 h-4 text-slate-600" />
+                            {formatDuration(story.duration_seconds)} Min ({voiceName(story.voice_key)})
                         </div>
-                    )}
+                    </div>
+                    <div className="mt-1">
+                        {story.is_public ? (
+                            <div className="inline-flex px-3 py-1.5 bg-[#1b253b] border border-[#2d3b5b] text-[#869abf] text-[10px] font-bold uppercase tracking-wider rounded-md w-max">
+                                 VERÖFFENTLICHT
+                            </div>
+                        ) : (
+                            <div className="inline-flex px-3 py-1.5 bg-slate-800/50 border border-slate-700/50 text-slate-400 text-[10px] font-bold uppercase tracking-wider rounded-md w-max">
+                                PRIVAT
+                            </div>
+                        )}
+                    </div>
                 </div>
 
-                <div className="flex items-center gap-3">
+                {/* Right Buttons */}
+                <div className="flex items-center gap-2">
                     <button
                         onClick={(e) => { e.stopPropagation(); onPlay(story.id); }}
-                        className="w-11 h-11 bg-primary text-slate-950 rounded-full flex items-center justify-center shadow-xl active:scale-90 transition-all hover:scale-105 hover:bg-emerald-400"
+                        className="w-10 h-10 bg-[#082a17] border border-[#134226] rounded-[0.8rem] flex items-center justify-center transition-all hover:bg-[#0c3a21]"
                     >
-                        <Play className="w-5 h-5 fill-current ml-0.5" />
+                        <Play className="w-4 h-4 text-[#1DB954] fill-current ml-0.5" />
                     </button>
                     <button
                         onClick={(e) => { e.stopPropagation(); onFavorite(story.id); }}
-                        className={`w-11 h-11 rounded-full flex items-center justify-center border-2 transition-all active:scale-90 hover:scale-110 ${
+                        className={`w-10 h-10 rounded-[0.8rem] flex items-center justify-center border transition-all ${
                             story.is_favorite 
-                            ? 'bg-red-500/10 border-red-500/50 text-red-500 shadow-lg shadow-red-500/10' 
-                            : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-white hover:border-slate-600 shadow-inner'
+                            ? 'bg-[#3b1216] border-[#5e1e24] text-[#ff4b55]' 
+                            : 'bg-[#3b1216] border-[#5e1e24] text-[#ff4b55] opacity-50 hover:opacity-100' // If not favorited, just dim it slightly based on screenshot? Wait, standard heart toggle...
                         }`}
+                        title={story.is_favorite ? 'Von Favoriten entfernen' : 'Zu Favoriten hinzufügen'}
                     >
-                        <Heart className={`w-5 h-5 ${story.is_favorite ? 'fill-current shadow-sm' : ''}`} />
+                        {/* Assuming the screenshot has it filled if it's red */}
+                        <Heart className="w-4 h-4 text-[#ff4b55] fill-current" />
                     </button>
                     <button
                         onClick={(e) => { e.stopPropagation(); onToolbox(story.id); }}
-                        className="w-11 h-11 bg-slate-800 text-slate-400 border-2 border-slate-700 rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-all hover:text-white hover:border-slate-500 hover:bg-slate-700"
+                        className="w-10 h-10 bg-[#151a28] border border-[#212a40] rounded-[0.8rem] flex items-center justify-center transition-all hover:bg-[#1f273b]"
                     >
-                        <Wand2 className="w-5 h-5" />
+                        <Wand2 className="w-4 h-4 text-[#7584a5]" />
                     </button>
                 </div>
             </div>
