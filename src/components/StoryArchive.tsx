@@ -1230,90 +1230,92 @@ export default function StoryArchive() {
                         className="fixed inset-0" 
                         onClick={() => setShowToolbox(null)}
                     />
-                    <div className="relative w-full max-w-md lg:max-w-lg h-full bg-surface/95 lg:bg-surface backdrop-blur-2xl border-t lg:border-t-0 lg:border-l border-slate-800/50 rounded-t-[3rem] lg:rounded-none p-8 lg:p-10 shadow-2xl animate-in slide-in-from-bottom lg:slide-in-from-right duration-700 cubic-bezier(0.16, 1, 0.3, 1)">
-                        <div className="flex flex-col items-center lg:items-start mb-6 lg:mb-8">
-                            <h2 className="text-sm lg:text-base uppercase tracking-widest text-slate-300 font-bold">
-                                Werkzeugkasten
+                    <div className="relative w-full max-w-[320px] h-full bg-[#12181f] border-t lg:border-t-0 lg:border-l border-slate-800/80 p-5 shadow-2xl animate-in slide-in-from-bottom lg:slide-in-from-right duration-300">
+                        <div className="flex flex-col mb-4 pr-6">
+                            <h2 className="text-[14px] uppercase tracking-[0.2em] text-[#e2e8f0] font-bold">
+                                WERKZEUGKASTEN
                             </h2>
                             {activeToolboxStory && (
-                                <p className="hidden lg:block text-slate-500 text-xs mt-1 font-medium">
+                                <p className="text-[#64748b] text-[12px] mt-1 truncate">
                                     "{activeToolboxStory.title}"
                                 </p>
                             )}
                         </div>
                         <button
                             onClick={() => setShowToolbox(null)}
-                            className="absolute top-6 right-6 lg:top-8 lg:right-8 p-2 text-slate-500 hover:text-white transition-all active:scale-95"
+                            className="absolute top-5 right-5 text-slate-500 hover:text-white transition-all"
                         >
-                            <X className="w-5 h-5 lg:w-6 lg:h-6" />
+                            <X className="w-5 h-5" />
                         </button>
 
                         {activeToolboxStory && (
-                            <div className="max-h-[70vh] overflow-y-auto custom-scrollbar pr-2 pb-10 flex flex-col gap-0.5">
+                            <div className="flex flex-col gap-0.5">
                                 {/* Remix Labor */}
-                                <div className="text-[10px] uppercase text-slate-500 font-bold tracking-widest mt-1 mb-1.5 px-3">Remix Labor</div>
+                                <div className="text-[10px] uppercase text-[#64748b] font-bold tracking-widest mt-2 mb-1 px-2">REMIX LABOR</div>
                                 
                                 <button 
                                     onClick={() => { setShowRemixModal(activeToolboxStory.id); setRemixType('sequel'); setShowToolbox(null); }}
-                                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-800/50 transition-all group/btn"
+                                    className="w-full flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-white/5 transition-all outline-none"
                                 >
-                                    <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-primary/10 transition-colors group-hover/btn:bg-primary/20">
-                                        <Play className="w-4 h-4 text-primary fill-current" />
+                                    <div className="w-8 h-8 rounded-[0.4rem] flex items-center justify-center shrink-0 bg-[#082a17] text-[#1DB954]">
+                                        <Play className="w-4 h-4 fill-current ml-0.5" />
                                     </div>
-                                    <div className="text-left flex-1 text-[13px] font-semibold text-slate-200">
+                                    <div className="text-left text-[14px] font-medium text-[#e2e8f0]">
                                         Fortsetzung schreiben
                                     </div>
                                 </button>
 
                                 <button 
                                     onClick={() => { setShowRemixModal(activeToolboxStory.id); setRemixType('improvement'); setShowToolbox(null); }}
-                                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-800/50 transition-all group/btn"
+                                    className="w-full flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-white/5 transition-all outline-none"
                                 >
-                                    <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-indigo-500/10 transition-colors group-hover/btn:bg-indigo-500/20">
-                                        <RefreshCw className="w-4 h-4 text-indigo-400" />
+                                    <div className="w-8 h-8 rounded-[0.4rem] flex items-center justify-center shrink-0 bg-[#1e293b] text-[#818cf8]">
+                                        <RefreshCw className="w-4 h-4" />
                                     </div>
-                                    <div className="text-left flex-1 text-[13px] font-semibold text-slate-200">
+                                    <div className="text-left text-[14px] font-medium text-[#e2e8f0]">
                                         Anpassen / Verbessern
                                     </div>
                                 </button>
 
                                 {/* Werkzeuge */}
-                                <div className="text-[10px] uppercase text-slate-500 font-bold tracking-widest mt-5 mb-1.5 px-3">Werkzeuge</div>
+                                <div className="text-[10px] uppercase text-[#64748b] font-bold tracking-widest mt-3 mb-1 px-2">WERKZEUGE</div>
                                 
                                 <button 
                                     onClick={() => { setRevoiceStoryId(activeToolboxStory.id); setConfirmRevoice(false); setShowToolbox(null); }}
-                                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-800/50 transition-all group/btn"
+                                    className="w-full flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-white/5 transition-all outline-none"
                                 >
-                                    <div className="w-8 h-8 bg-emerald-500/10 rounded-lg flex items-center justify-center shrink-0 group-hover/btn:bg-emerald-500/20">
-                                        <Mic className="w-4 h-4 text-emerald-400" />
+                                    <div className="w-8 h-8 bg-[#064e3b] rounded-[0.4rem] flex items-center justify-center shrink-0 text-[#34d399]">
+                                        <Mic className="w-4 h-4" />
                                     </div>
-                                    <div className="text-left flex-1 text-[13px] font-semibold text-slate-200">
+                                    <div className="text-left text-[14px] font-medium text-[#e2e8f0]">
                                         Neu vertonen
                                     </div>
                                 </button>
 
                                 <button 
                                     onClick={() => { handleRegenerateImage(activeToolboxStory.id); setShowToolbox(null); }}
-                                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-800/50 transition-all group/btn"
+                                    className="w-full flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-white/5 transition-all outline-none"
                                 >
-                                    <div className="w-8 h-8 bg-orange-500/10 rounded-lg flex items-center justify-center shrink-0 group-hover/btn:bg-orange-500/20">
-                                        <ImageIcon className="w-4 h-4 text-orange-400" />
+                                    <div className="w-8 h-8 bg-[#7c2d12] rounded-[0.4rem] flex items-center justify-center shrink-0 text-[#fb923c]">
+                                        <ImageIcon className="w-4 h-4" />
                                     </div>
-                                    <div className="text-left flex-1 text-[13px] font-semibold text-slate-200">
+                                    <div className="text-left text-[14px] font-medium text-[#e2e8f0]">
                                         Bild neu generieren
                                     </div>
                                 </button>
 
                                 {/* Sichtbarkeit & Versand */}
-                                <div className="text-[10px] uppercase text-slate-500 font-bold tracking-widest mt-5 mb-1.5 px-3">Sichtbarkeit & Versand</div>
+                                <div className="text-[10px] uppercase text-[#64748b] font-bold tracking-widest mt-3 mb-1 px-2">SICHTBARKEIT & VERSAND</div>
                                 
                                 {archiveFilter === 'my' && activeToolboxStory.user_id === user?.id && (
-                                    <div className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-800/50 transition-all">
-                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${activeToolboxStory.is_public ? 'bg-primary/20 text-primary' : 'bg-slate-800 text-slate-500'}`}>
-                                            <Sparkles className="w-4 h-4" />
-                                        </div>
-                                        <div className="text-left flex-1 text-[13px] font-semibold text-slate-200">
-                                            Öffentlich in Bibliothek
+                                    <div className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg hover:bg-white/5 transition-all">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-[0.4rem] flex items-center justify-center shrink-0 bg-[#1e293b] text-[#64748b]">
+                                                <Sparkles className="w-4 h-4" />
+                                            </div>
+                                            <div className="text-left text-[14px] font-medium text-[#e2e8f0]">
+                                                Öffentlich in Bibliothek
+                                            </div>
                                         </div>
                                         <button 
                                             onClick={async () => {
@@ -1327,12 +1329,12 @@ export default function StoryArchive() {
                                                 }
                                             }}
                                             disabled={isPublicLoading === activeToolboxStory.id}
-                                            className={`relative w-10 h-5 rounded-full transition-all duration-300 flex items-center p-0.5 ${
-                                                activeToolboxStory.is_public ? 'bg-primary' : 'bg-slate-700'
+                                            className={`relative w-[34px] h-[20px] rounded-full transition-all duration-300 flex items-center p-0.5 shrink-0 ${
+                                                activeToolboxStory.is_public ? 'bg-[#51618a]' : 'bg-[#1e293b]'
                                             }`}
                                         >
-                                            <div className={`w-4 h-4 bg-white rounded-full transition-transform duration-300 transform ${
-                                                activeToolboxStory.is_public ? 'translate-x-5' : 'translate-x-0'
+                                            <div className={`w-[16px] h-[16px] bg-white rounded-full transition-transform duration-300 transform ${
+                                                activeToolboxStory.is_public ? 'translate-x-[14px]' : 'translate-x-0'
                                             } flex items-center justify-center`}>
                                                 {isPublicLoading === activeToolboxStory.id && (
                                                     <Loader2 className="w-2.5 h-2.5 animate-spin text-primary" />
@@ -1343,24 +1345,25 @@ export default function StoryArchive() {
                                 )}
 
                                 {user?.is_admin && (
-                                    <div className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-800/50 transition-all">
-                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${activeToolboxStory.is_on_spotify ? 'bg-[#1DB954]/20 text-[#1DB954]' : 'bg-slate-800 text-slate-500'}`}>
-                                            <Play className="w-4 h-4 fill-current" />
-                                        </div>
-                                        <div className="text-left flex-1 text-[13px] font-semibold text-slate-200">
-                                            Auf Spotify
+                                    <div className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg hover:bg-white/5 transition-all">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-[0.4rem] flex items-center justify-center shrink-0 bg-[#1e293b] text-[#64748b]">
+                                                <Play className="w-4 h-4 fill-current ml-0.5" />
+                                            </div>
+                                            <div className="text-left text-[14px] font-medium text-[#e2e8f0]">
+                                                Auf Spotify
+                                            </div>
                                         </div>
                                         <button 
                                             onClick={() => {
                                                 handleSpotifyToggle(activeToolboxStory.id, !activeToolboxStory.is_on_spotify);
-                                                setShowToolbox(null);
                                             }}
-                                            className={`relative w-10 h-5 rounded-full transition-all duration-300 flex items-center p-0.5 ${
-                                                activeToolboxStory.is_on_spotify ? 'bg-[#1DB954]' : 'bg-slate-700'
+                                            className={`relative w-[34px] h-[20px] rounded-full transition-all duration-300 flex items-center p-0.5 shrink-0 ${
+                                                activeToolboxStory.is_on_spotify ? 'bg-[#51618a]' : 'bg-[#1e293b]'
                                             }`}
                                         >
-                                            <div className={`w-4 h-4 bg-white rounded-full transition-transform duration-300 transform ${
-                                                activeToolboxStory.is_on_spotify ? 'translate-x-5' : 'translate-x-0'
+                                            <div className={`w-[16px] h-[16px] bg-white rounded-full transition-transform duration-300 transform ${
+                                                activeToolboxStory.is_on_spotify ? 'translate-x-[14px]' : 'translate-x-0'
                                             }`} />
                                         </button>
                                     </div>
@@ -1373,24 +1376,24 @@ export default function StoryArchive() {
                                         window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
                                         setShowToolbox(null);
                                     }}
-                                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-800/50 transition-all group/btn"
+                                    className="w-full flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-white/5 transition-all outline-none"
                                 >
-                                    <div className="w-8 h-8 bg-green-500/10 rounded-lg flex items-center justify-center shrink-0 group-hover/btn:bg-green-500/20">
-                                        <MessageCircle className="w-4 h-4 text-green-500" />
+                                    <div className="w-8 h-8 bg-[#064e3b] rounded-[0.4rem] flex items-center justify-center shrink-0 text-[#1DB954]">
+                                        <MessageCircle className="w-4 h-4" />
                                     </div>
-                                    <div className="text-left flex-1 text-[13px] font-semibold text-slate-200">
+                                    <div className="text-left text-[14px] font-medium text-[#e2e8f0]">
                                         Via WhatsApp teilen
                                     </div>
                                 </button>
 
                                 <button 
                                     onClick={() => { setShowKindleModal(activeToolboxStory.id); setShowToolbox(null); }}
-                                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-800/50 transition-all group/btn"
+                                    className="w-full flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-white/5 transition-all outline-none"
                                 >
-                                    <div className="w-8 h-8 bg-blue-500/10 rounded-lg flex items-center justify-center shrink-0 group-hover/btn:bg-blue-500/20">
-                                        <Send className="w-4 h-4 text-blue-400" />
+                                    <div className="w-8 h-8 bg-[#1e3a8a] rounded-[0.4rem] flex items-center justify-center shrink-0 text-[#60a5fa]">
+                                        <Send className="w-4 h-4 ml-0.5 mt-0.5" />
                                     </div>
-                                    <div className="text-left flex-1 text-[13px] font-semibold text-slate-200">
+                                    <div className="text-left text-[14px] font-medium text-[#e2e8f0]">
                                         An Kindle senden
                                     </div>
                                 </button>
@@ -1398,15 +1401,15 @@ export default function StoryArchive() {
                                 {/* Löschen */}
                                 {activeToolboxStory.user_id === user?.id && (
                                     <>
-                                        <div className="text-[10px] uppercase text-red-500/70 font-bold tracking-widest mt-5 mb-1.5 px-3">Gefahrenzone</div>
+                                        <div className="mt-3"></div>
                                         <button 
                                             onClick={() => { handleDelete(activeToolboxStory.id, activeToolboxStory.title); setShowToolbox(null); }}
-                                            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-red-500/10 transition-all group/btn"
+                                            className="w-full flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-white/5 transition-all outline-none group/delete"
                                         >
-                                            <div className="w-8 h-8 bg-red-400/10 rounded-lg flex items-center justify-center shrink-0 group-hover/btn:bg-red-400/20">
-                                                <Trash2 className="w-4 h-4 text-red-400" />
+                                            <div className="w-8 h-8 bg-transparent rounded-[0.4rem] flex items-center justify-center shrink-0 text-[#64748b] group-hover/delete:bg-red-500/10 group-hover/delete:text-red-500 transition-colors">
+                                                <Trash2 className="w-4 h-4" />
                                             </div>
-                                            <div className="text-left flex-1 text-[13px] font-semibold text-red-400">
+                                            <div className="text-left text-[14px] font-medium text-[#64748b] group-hover/delete:text-red-400 transition-colors">
                                                 Geschichte löschen
                                             </div>
                                         </button>
