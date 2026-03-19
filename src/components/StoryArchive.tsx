@@ -947,6 +947,36 @@ export default function StoryArchive() {
                                             </div>
                                         </div>
                                     </div>
+
+                                    {/* Synopsis Moved Here */}
+                                    <div className="mt-4">
+                                        {story.description && (story.status === 'done' || (story.status === 'generating' && story.description.length > 100)) && (
+                                            <div className="relative">
+                                                <p className={`text-sm lg:text-base text-text/90 leading-relaxed italic ${archiveFilter === 'my' ? '' : (expandedStories.has(story.id) ? '' : 'line-clamp-3')}`}>
+                                                    {story.description}
+                                                    {archiveFilter !== 'my' && !expandedStories.has(story.id) && story.description.length > 150 ? '...' : ''}
+                                                </p>
+                                                {archiveFilter !== 'my' && !expandedStories.has(story.id) && story.description.length > 150 && (
+                                                    <div className="absolute bottom-0 right-0 h-5 pl-16 bg-gradient-to-l from-surface via-surface/90 to-transparent flex items-center">
+                                                        <button 
+                                                            onClick={(e) => { e.stopPropagation(); toggleExpand(story.id); }}
+                                                            className="text-xs font-bold text-primary hover:text-emerald-400 uppercase tracking-wider transition-colors"
+                                                        >
+                                                            Mehr lesen
+                                                        </button>
+                                                    </div>
+                                                )}
+                                                {archiveFilter !== 'my' && expandedStories.has(story.id) && (
+                                                    <button 
+                                                        onClick={(e) => { e.stopPropagation(); toggleExpand(story.id); }}
+                                                        className="text-xs font-bold text-primary hover:text-emerald-400 mt-1 uppercase tracking-wider transition-colors block"
+                                                    >
+                                                        Weniger anzeigen
+                                                    </button>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
 
@@ -988,32 +1018,7 @@ export default function StoryArchive() {
                                     </div>
                                 )}
 
-                                {story.description && (story.status === 'done' || (story.status === 'generating' && story.description.length > 100)) && (
-                                    <div className="relative">
-                                        <p className={`text-sm lg:text-base text-text/90 leading-relaxed italic ${archiveFilter === 'my' ? '' : (expandedStories.has(story.id) ? '' : 'line-clamp-3')}`}>
-                                            {story.description}
-                                            {archiveFilter !== 'my' && !expandedStories.has(story.id) && story.description.length > 150 ? '...' : ''}
-                                        </p>
-                                        {archiveFilter !== 'my' && !expandedStories.has(story.id) && story.description.length > 150 && (
-                                            <div className="absolute bottom-0 right-0 h-5 pl-16 bg-gradient-to-l from-surface via-surface/90 to-transparent flex items-center">
-                                                <button 
-                                                    onClick={(e) => { e.stopPropagation(); toggleExpand(story.id); }}
-                                                    className="text-xs font-bold text-primary hover:text-emerald-400 uppercase tracking-wider transition-colors"
-                                                >
-                                                    Mehr lesen
-                                                </button>
-                                            </div>
-                                        )}
-                                        {archiveFilter !== 'my' && expandedStories.has(story.id) && (
-                                            <button 
-                                                onClick={(e) => { e.stopPropagation(); toggleExpand(story.id); }}
-                                                className="text-xs font-bold text-primary hover:text-emerald-400 mt-1 uppercase tracking-wider transition-colors block"
-                                            >
-                                                Weniger anzeigen
-                                            </button>
-                                        )}
-                                    </div>
-                                )}
+                                {/* End of synopsis section (moved) */}
                             </div>
 
                             {(story.status === 'done' || story.status === 'error') && (
@@ -1370,22 +1375,19 @@ export default function StoryArchive() {
                         onClick={() => setShowToolbox(null)}
                     />
                     <div className="relative w-full max-w-md lg:max-w-lg h-auto lg:h-full bg-surface/95 lg:bg-surface backdrop-blur-2xl border-t lg:border-t-0 lg:border-l border-slate-800/50 rounded-t-[3rem] lg:rounded-none p-8 lg:p-10 shadow-2xl animate-in slide-in-from-bottom lg:slide-in-from-right duration-700 cubic-bezier(0.16, 1, 0.3, 1)">
-                        <div className="flex flex-col items-center lg:items-start mb-8 lg:mb-12">
-                            <div className="w-12 h-12 lg:w-16 lg:h-16 bg-primary/20 text-primary rounded-2xl flex items-center justify-center mb-3 lg:mb-4 shadow-lg shadow-primary/10">
-                                <Wand2 className="w-7 h-7 lg:w-9 lg:h-9" />
-                            </div>
-                            <h2 className="text-sm lg:text-base uppercase tracking-[0.2em] text-slate-300 font-bold">
+                        <div className="flex flex-col items-center lg:items-start mb-6 lg:mb-8">
+                            <h2 className="text-sm lg:text-base uppercase tracking-widest text-slate-300 font-bold">
                                 Werkzeugkasten
                             </h2>
                             {activeToolboxStory && (
-                                <p className="hidden lg:block text-slate-500 text-sm mt-2 font-medium">
-                                    Optionen für "{activeToolboxStory.title}"
+                                <p className="hidden lg:block text-slate-500 text-xs mt-1 font-medium">
+                                    "{activeToolboxStory.title}"
                                 </p>
                             )}
                         </div>
                         <button
                             onClick={() => setShowToolbox(null)}
-                            className="absolute top-6 right-6 lg:top-8 lg:right-8 p-3 bg-slate-900/80 text-slate-500 hover:text-white rounded-2xl hover:bg-slate-800 transition-all active:scale-95 border border-slate-800/50"
+                            className="absolute top-6 right-6 lg:top-8 lg:right-8 p-2 text-slate-500 hover:text-white transition-all active:scale-95"
                         >
                             <X className="w-5 h-5 lg:w-6 lg:h-6" />
                         </button>
@@ -1393,19 +1395,23 @@ export default function StoryArchive() {
                         {activeToolboxStory && (
                             <div className="max-h-[70vh] overflow-y-auto custom-scrollbar pr-1 pb-4">
                                 {/* Remix Labor */}
-                                <div className={sectionClass}>
-                                    <h3 className={sectionTitleClass}>Remix Labor</h3>
-                                    <div className={listClass}>
+                                <div className="mb-6 lg:mb-8">
+                                    <div className="flex items-center gap-2 mb-2 px-2">
+                                        <span className="text-[10px] uppercase tracking-[0.2em] text-slate-600 font-bold">Remix Labor</span>
+                                        <div className="h-px flex-1 bg-slate-800/50" />
+                                    </div>
+                                    {/* Minimalist style: no boxes, tighter layout */}
+                                    <div className="grid grid-cols-1 gap-2">
                                         <button 
                                             onClick={() => { 
                                                 setShowRemixModal(activeToolboxStory.id); 
                                                 setRemixType('improvement'); 
                                                 setShowToolbox(null); 
                                             }}
-                                            className={`${itemClass} lg:p-4 lg:gap-4`}
+                                            className="flex items-center gap-3 p-2 text-slate-400 hover:text-emerald-400 hover:bg-emerald-400/5 rounded-lg transition-all"
                                         >
-                                            <Edit className="w-4 h-4 lg:w-5 lg:h-5 text-emerald-400 shrink-0" />
-                                            <span className={`${itemLabelClass} lg:text-sm`}>Anpassen</span>
+                                            <Edit className="w-4 h-4 shrink-0" />
+                                            <span className="text-sm font-medium">Anpassen</span>
                                         </button>
                                         <button 
                                             onClick={() => { 
@@ -1413,26 +1419,81 @@ export default function StoryArchive() {
                                                 setRemixType('sequel'); 
                                                 setShowToolbox(null); 
                                             }}
-                                            className={`${itemClass} lg:p-4 lg:gap-4`}
+                                            className="flex items-center gap-3 p-2 text-slate-400 hover:text-emerald-500 hover:bg-emerald-500/5 rounded-lg transition-all"
                                         >
-                                            <Sparkles className="w-4 h-4 lg:w-5 lg:h-5 text-emerald-500 shrink-0" />
-                                            <span className={`${itemLabelClass} lg:text-sm`}>Fortsetzen</span>
+                                            <Sparkles className="w-4 h-4 shrink-0" />
+                                            <span className="text-sm font-medium">Fortsetzen</span>
                                         </button>
                                     </div>
                                 </div>
 
-                                {/* Sichtbarkeit & Versand */}
-                                <div className={sectionClass}>
-                                    <h3 className={sectionTitleClass}>Sichtbarkeit & Versand</h3>
-                                    <div className={listClass}>
-                                        {/* Publish Toggle - Only for own stories in library */}
-                                        {archiveFilter === 'my' && activeToolboxStory.user_id === user?.id && (
-                                            <div className={`${itemClass} flex-col !items-start gap-1.5 lg:p-4 lg:gap-3`}>
-                                                <div className="flex items-center gap-2">
-                                                    <Sparkles className="w-3.5 h-3.5 lg:w-4 lg:h-4 text-primary shrink-0" />
-                                                    <span className={`${itemLabelClass} lg:text-sm`}>Veröffentlichen</span>
+                                {/* Reordered: 2. WERKZEUGE */}
+                                <div className="mb-6 lg:mb-8">
+                                    <div className="flex items-center gap-2 mb-2 px-2">
+                                        <span className="text-[10px] uppercase tracking-[0.2em] text-slate-600 font-bold">Werkzeuge</span>
+                                        <div className="h-px flex-1 bg-slate-800/50" />
+                                    </div>
+                                    <div className="grid grid-cols-1 gap-2">
+                                        {canModifyStory(activeToolboxStory) && (
+                                            <>
+                                                <button 
+                                                    onClick={() => { 
+                                                        setRevoiceStoryId(activeToolboxStory.id); 
+                                                        setSelectedVoice(activeToolboxStory.voice_key || 'seraphina'); 
+                                                        setShowToolbox(null); 
+                                                    }}
+                                                    className="flex items-center gap-3 p-2 text-slate-400 hover:text-amber-500 hover:bg-amber-500/5 rounded-lg transition-all"
+                                                >
+                                                    <Mic className="w-4 h-4 shrink-0" />
+                                                    <span className="text-sm font-medium">Neu vertonen</span>
+                                                </button>
+                                                <button 
+                                                    onClick={() => { handleRegenerateImage(activeToolboxStory.id); setShowToolbox(null); }}
+                                                    className="flex items-center gap-3 p-2 text-slate-400 hover:text-indigo-400 hover:bg-indigo-400/5 rounded-lg transition-all"
+                                                >
+                                                    <ImageIcon className="w-4 h-4 shrink-0" />
+                                                    <span className="text-sm font-medium">Neues Bild</span>
+                                                </button>
+                                            </>
+                                        )}
+                                        {user?.is_admin && (
+                                            <div className="flex items-center justify-between p-2 text-slate-400 hover:bg-slate-800/20 rounded-lg transition-all">
+                                                <div className="flex items-center gap-3">
+                                                    <Play className="w-4 h-4 text-[#1DB954] shrink-0" />
+                                                    <span className="text-sm font-medium">Spotify</span>
                                                 </div>
-                                                
+                                                <button 
+                                                    onClick={() => {
+                                                        handleSpotifyToggle(activeToolboxStory.id, !activeToolboxStory.is_on_spotify);
+                                                        setShowToolbox(null);
+                                                    }}
+                                                    className={`relative w-8 h-4 rounded-full transition-all duration-300 flex items-center p-0.5 cursor-pointer ${
+                                                        activeToolboxStory.is_on_spotify ? 'bg-[#1DB954]' : 'bg-slate-700'
+                                                    }`}
+                                                >
+                                                    <div className={`w-3 h-3 bg-white rounded-full transition-transform duration-300 transform ${
+                                                        activeToolboxStory.is_on_spotify ? 'translate-x-4' : 'translate-x-0'
+                                                    }`} />
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Reordered: 3. SICHTBARKEIT & VERSAND */}
+                                <div className="mb-6 lg:mb-8">
+                                    <div className="flex items-center gap-2 mb-2 px-2">
+                                        <span className="text-[10px] uppercase tracking-[0.2em] text-slate-600 font-bold">Sichtbarkeit & Versand</span>
+                                        <div className="h-px flex-1 bg-slate-800/50" />
+                                    </div>
+                                    <div className="grid grid-cols-1 gap-2">
+                                        {/* Publish Toggle */}
+                                        {archiveFilter === 'my' && activeToolboxStory.user_id === user?.id && (
+                                            <div className="flex items-center justify-between p-2 text-slate-400 hover:bg-slate-800/20 rounded-lg transition-all">
+                                                <div className="flex items-center gap-3">
+                                                    <Sparkles className="w-4 h-4 text-primary shrink-0" />
+                                                    <span className="text-sm font-medium">Veröffentlichen</span>
+                                                </div>
                                                 <button 
                                                     onClick={async () => {
                                                         const targetId = activeToolboxStory.id;
@@ -1445,19 +1506,17 @@ export default function StoryArchive() {
                                                         }
                                                     }}
                                                     disabled={isPublicLoading === activeToolboxStory.id}
-                                                    className={`relative w-10 h-5 lg:w-12 lg:h-6 rounded-full transition-all duration-300 flex items-center p-0.5 ${
+                                                    className={`relative w-8 h-4 rounded-full transition-all duration-300 flex items-center p-0.5 ${
                                                         isPublicLoading === activeToolboxStory.id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
                                                     } ${
-                                                        activeToolboxStory.is_public 
-                                                            ? 'bg-[#00F5D4] shadow-[0_0_12px_rgba(0,245,212,0.4)]' 
-                                                            : 'bg-slate-800'
+                                                        activeToolboxStory.is_public ? 'bg-[#00F5D4]' : 'bg-slate-700'
                                                     }`}
                                                 >
-                                                    <div className={`w-4 h-4 lg:w-5 lg:h-5 bg-[#0a0f1d] rounded-full shadow-sm transition-transform duration-300 transform ${
-                                                        activeToolboxStory.is_public ? 'translate-x-5 lg:translate-x-6' : 'translate-x-0'
+                                                    <div className={`w-3 h-3 bg-white rounded-full transition-transform duration-300 transform ${
+                                                        activeToolboxStory.is_public ? 'translate-x-4' : 'translate-x-0'
                                                     } flex items-center justify-center`}>
                                                         {isPublicLoading === activeToolboxStory.id && (
-                                                            <Loader2 className="w-2.5 h-2.5 lg:w-3 lg:h-3 animate-spin text-[#00F5D4]" />
+                                                            <Loader2 className="w-2 h-2 animate-spin text-[#00F5D4]" />
                                                         )}
                                                     </div>
                                                 </button>
@@ -1471,86 +1530,32 @@ export default function StoryArchive() {
                                                 window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
                                                 setShowToolbox(null);
                                             }}
-                                            className={`${itemClass} lg:p-4 lg:gap-4`}
+                                            className="flex items-center gap-3 p-2 text-slate-400 hover:text-green-500 hover:bg-green-500/5 rounded-lg transition-all"
                                         >
-                                            <MessageCircle className="w-4 h-4 lg:w-5 lg:h-5 text-green-500 shrink-0" />
-                                            <span className={`${itemLabelClass} lg:text-sm`}>WhatsApp</span>
+                                            <MessageCircle className="w-4 h-4 shrink-0" />
+                                            <span className="text-sm font-medium">WhatsApp</span>
                                         </button>
 
                                         <button 
                                             onClick={() => { setShowKindleModal(activeToolboxStory.id); setShowToolbox(null); }}
-                                            className={`${itemClass} lg:p-4 lg:gap-4`}
+                                            className="flex items-center gap-3 p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-400/5 rounded-lg transition-all"
                                         >
-                                            <Send className="w-4 h-4 lg:w-5 lg:h-5 text-blue-400 shrink-0" />
-                                            <span className={`${itemLabelClass} lg:text-sm`}>An Kindle</span>
+                                            <Send className="w-4 h-4 shrink-0" />
+                                            <span className="text-sm font-medium">An Kindle</span>
                                         </button>
                                     </div>
                                 </div>
 
-                                {/* Werkzeuge */}
-                                <div className={sectionClass}>
-                                    <h3 className={sectionTitleClass}>Werkzeuge</h3>
-                                    <div className={listClass}>
-                                        {/* Admin/Own only Tools */}
-                                        {archiveFilter === 'my' && (activeToolboxStory.user_id === user?.id || user?.is_admin) && (
-                                            <>
-                                                <button 
-                                                    onClick={() => { 
-                                                        setRevoiceStoryId(activeToolboxStory.id); 
-                                                        setSelectedVoice(activeToolboxStory.voice_key || 'seraphina'); 
-                                                        setShowToolbox(null); 
-                                                    }}
-                                                    className={`${itemClass} lg:p-4 lg:gap-4`}
-                                                >
-                                                    <Mic className="w-4 h-4 lg:w-5 lg:h-5 text-amber-500 shrink-0" />
-                                                    <span className={`${itemLabelClass} lg:text-sm`}>Neu vertonen</span>
-                                                </button>
-                                                <button 
-                                                    onClick={() => { handleRegenerateImage(activeToolboxStory.id); setShowToolbox(null); }}
-                                                    className={`${itemClass} lg:p-4 lg:gap-4`}
-                                                >
-                                                    <ImageIcon className="w-4 h-4 lg:w-5 lg:h-5 text-indigo-400 shrink-0" />
-                                                    <span className={`${itemLabelClass} lg:text-sm`}>Neues Bild</span>
-                                                </button>
-                                            </>
-                                        )}
-
-                                        {user?.is_admin && (
-                                            <div className={`${itemClass} flex-col !items-start gap-1.5 lg:p-4 lg:gap-3`}>
-                                                <div className="flex items-center gap-2">
-                                                    <Play className="w-3.5 h-3.5 lg:w-4 lg:h-4 text-[#1DB954] shrink-0" />
-                                                    <span className={`${itemLabelClass} lg:text-sm`}>Spotify</span>
-                                                </div>
-                                                <button 
-                                                    onClick={() => {
-                                                        handleSpotifyToggle(activeToolboxStory.id, !activeToolboxStory.is_on_spotify);
-                                                        setShowToolbox(null);
-                                                    }}
-                                                    className={`relative w-10 h-5 lg:w-12 lg:h-6 rounded-full transition-all duration-300 flex items-center p-0.5 cursor-pointer ${
-                                                        activeToolboxStory.is_on_spotify 
-                                                            ? 'bg-[#1DB954] shadow-[0_0_12px_rgba(29,185,84,0.3)]' 
-                                                            : 'bg-slate-800'
-                                                    }`}
-                                                >
-                                                    <div className={`w-4 h-4 lg:w-5 lg:h-5 bg-[#0a0f1d] rounded-full shadow-sm transition-transform duration-300 transform ${
-                                                        activeToolboxStory.is_on_spotify ? 'translate-x-5 lg:translate-x-6' : 'translate-x-0'
-                                                    }`} />
-                                                </button>
-                                            </div>
-                                        )}
-
-                                        {activeToolboxStory.user_id === user?.id && (
-                                            <button 
-                                                onClick={() => { handleDelete(activeToolboxStory.id, activeToolboxStory.title); setShowToolbox(null); }}
-                                                className={`${itemClass} border-red-500/20 hover:bg-red-500/10 hover:border-red-500/40 group/delete col-span-2 lg:p-4 lg:gap-4`}
-                                            >
-                                                <Trash2 className="w-4 h-4 lg:w-5 lg:h-5 text-red-500 shrink-0 opacity-70 group-hover/delete:opacity-100" />
-                                                <span className={`${itemLabelClass} lg:text-sm group-hover/delete:text-red-500`}>Löschen</span>
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
+                                {/* Reordered: 4. LÖSCHEN */}
+                                {activeToolboxStory.user_id === user?.id && (
+                                    <button 
+                                        onClick={() => { handleDelete(activeToolboxStory.id, activeToolboxStory.title); setShowToolbox(null); }}
+                                        className="flex items-center gap-3 p-2 mt-4 text-slate-500 hover:text-red-500 hover:bg-red-500/5 rounded-lg transition-all group/delete"
+                                    >
+                                        <Trash2 className="w-4 h-4 shrink-0 opacity-70 group-hover/delete:opacity-100" />
+                                        <span className="text-sm font-medium">Geschichte löschen</span>
+                                    </button>
+                                )}                            </div>
                         )}
                     </div>
                 </div>
