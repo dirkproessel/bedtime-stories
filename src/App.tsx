@@ -236,10 +236,10 @@ function App() {
        <div className="flex-1 flex flex-col relative h-screen overflow-hidden">
           <header className="lg:hidden h-16 shrink-0 flex items-center justify-between px-4 bg-background/80 backdrop-blur-md border-b border-slate-800/50 sticky top-0 z-40">
             <div className="flex items-center gap-3">
-                <img src="/logo.png" alt="Logo" className="w-10 h-10 object-contain rounded-lg mix-blend-screen" />
+                <img src="/logo.png" alt="Logo" className="w-12 h-12 object-contain rounded-lg mix-blend-screen" />
                 <div>
-                  <h1 className="text-base font-semibold text-text font-serif tracking-tight leading-tight">Kurzgeschichten-Labor</h1>
-                  <p className="text-[7px] tracking-[0.15em] uppercase text-text-muted opacity-80 font-mono">Literatur auf Knopfdruck</p>
+                  <h1 className="text-lg font-semibold text-text font-serif tracking-tight leading-tight">Kurzgeschichten-Labor</h1>
+                  <p className="text-[9px] tracking-[0.15em] uppercase text-text-muted opacity-80 font-mono">Literatur auf Knopfdruck</p>
                 </div>
             </div>
             <button 

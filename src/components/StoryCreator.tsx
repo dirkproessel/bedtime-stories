@@ -244,7 +244,11 @@ export default function StoryCreator() {
                         </div>
                     )}
 
-                    <div className="bg-surface p-6 rounded-2xl border border-slate-800/50">
+                    <div className="bg-surface p-5 lg:p-6 rounded-2xl border border-slate-800/50">
+                        <div className="mb-3 flex items-center gap-2">
+                             <h3 className="status-label text-primary">Deine Idee</h3>
+                             <div className="h-px flex-1 bg-slate-800/50" />
+                        </div>
                         <div className="flex items-center justify-between mb-4">
                             <h2 className="text-lg font-bold text-text font-serif">
                                 Erstelle eine eigene Geschichte
@@ -264,7 +268,7 @@ export default function StoryCreator() {
                                 value={freeText}
                                 onChange={(e) => setFreeText(e.target.value)}
                                 placeholder="Was soll passieren? Beschreibe Charakter, Ort oder den ersten Satz..."
-                                className="w-full px-6 py-5 bg-background border-2 border-slate-800 rounded-2xl text-lg focus:outline-none focus:border-primary transition-all placeholder:text-slate-700 resize-none pr-16 font-serif text-text min-h-[220px] shadow-inner"
+                                className="w-full px-6 py-5 bg-background border-2 border-slate-800 rounded-2xl text-base lg:text-lg focus:outline-none focus:border-primary transition-all placeholder:text-slate-700 resize-none pr-16 font-serif text-text min-h-[160px] lg:min-h-[220px] shadow-inner"
                             />
                             <button
                                 onClick={isListening ? handleStopListening : handleStartListening}
@@ -312,8 +316,8 @@ export default function StoryCreator() {
                                         : 'border-slate-800 bg-surface text-slate-400 hover:border-slate-700'
                                         }`}
                                 >
-                                    <h4 className={`text-xs font-bold tracking-tight ${genre === g.value ? 'text-primary' : 'text-slate-300'}`}>{g.label}</h4>
-                                    <div className={`text-[10px] mt-0.5 leading-tight ${genre === g.value ? 'text-primary/70' : 'text-slate-500'}`}>{g.desc}</div>
+                                    <h4 className={`text-sm font-bold tracking-tight ${genre === g.value ? 'text-primary' : 'text-slate-300'}`}>{g.label}</h4>
+                                    <div className={`text-[11px] mt-0.5 leading-tight ${genre === g.value ? 'text-primary/70' : 'text-slate-500'}`}>{g.desc}</div>
                                 </button>
                             ))}
                         </div>
@@ -346,8 +350,8 @@ export default function StoryCreator() {
                                             : 'border-slate-800 bg-surface hover:border-slate-700 text-slate-300'
                                             }`}
                                     >
-                                        <h4 className={`text-xs font-bold ${isSelected ? 'text-text' : 'text-slate-300'}`}>{s.name}</h4>
-                                        <div className={`text-[10px] mt-0.5 ${isSelected ? 'text-primary' : 'text-slate-500'}`}>{s.desc}</div>
+                                        <h4 className={`text-sm font-bold ${isSelected ? 'text-text' : 'text-slate-300'}`}>{s.name}</h4>
+                                        <div className={`text-[11px] mt-0.5 ${isSelected ? 'text-primary' : 'text-slate-500'}`}>{s.desc}</div>
                                     </button>
                                 );
                             })}
@@ -393,7 +397,7 @@ export default function StoryCreator() {
                             </div>
                             <div className="space-y-4">
                                 {/* Standard Voices */}
-                                <div className="space-y-2">
+                                <div className="grid grid-cols-2 gap-2">
                                     {voices
                                         .filter(v => STANDARD_VOICE_KEYS.includes(v.key))
                                         .sort((a, b) => STANDARD_VOICE_KEYS.indexOf(a.key) - STANDARD_VOICE_KEYS.indexOf(b.key))
@@ -406,25 +410,27 @@ export default function StoryCreator() {
                                                 }`}
                                             onClick={() => setVoiceKey(v.key)}
                                         >
-                                            <div className="flex items-center gap-3">
-                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${voiceKey === v.key ? 'bg-primary/20 text-primary' : 'bg-slate-900 text-slate-600'}`}>
-                                                    {v.gender === 'female' ? <Venus className="w-4 h-4" /> :
-                                                        v.gender === 'male' ? <Mars className="w-4 h-4" /> : <Users className="w-4 h-4" />}
+                                            <div className="flex flex-col gap-3">
+                                                <div className="flex items-center justify-between w-full">
+                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${voiceKey === v.key ? 'bg-primary/20 text-primary' : 'bg-slate-900 text-slate-600'}`}>
+                                                        {v.gender === 'female' ? <Venus className="w-4 h-4" /> :
+                                                            v.gender === 'male' ? <Mars className="w-4 h-4" /> : <Users className="w-4 h-4" />}
+                                                    </div>
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); handlePreviewVoice(v.key); }}
+                                                        className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${previewVoice === v.key ? 'bg-primary text-white' : 'bg-slate-800 text-slate-500'}`}
+                                                    >
+                                                        {previewVoice === v.key ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3 ml-0.5" />}
+                                                    </button>
                                                 </div>
-                                                <div className="flex-1 min-w-0 text-left">
-                                                    <div className={`text-xs font-bold truncate ${voiceKey === v.key ? 'text-text' : 'text-slate-300'}`}>
+                                                <div className="text-left">
+                                                    <div className={`text-sm font-bold truncate ${voiceKey === v.key ? 'text-text' : 'text-slate-300'}`}>
                                                         {voiceName(v.key)}
                                                     </div>
-                                                    <div className={`text-[10px] ${voiceKey === v.key ? 'text-primary' : 'text-slate-500'}`}>
+                                                    <div className={`text-[11px] line-clamp-1 ${voiceKey === v.key ? 'text-primary' : 'text-slate-500'}`}>
                                                         {voiceDesc(v.key)}
                                                     </div>
                                                 </div>
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); handlePreviewVoice(v.key); }}
-                                                    className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${previewVoice === v.key ? 'bg-primary text-white' : 'bg-slate-800 text-slate-500'}`}
-                                                >
-                                                    {previewVoice === v.key ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3 ml-0.5" />}
-                                                </button>
                                             </div>
                                         </div>
                                     ))}
@@ -441,34 +447,36 @@ export default function StoryCreator() {
                                     </button>
                                     
                                     {showAllVoices && (
-                                        <div className="space-y-2 mt-2 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
+                                        <div className="grid grid-cols-2 gap-2 mt-2 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
                                             {sortedVoices
                                                 .filter(v => !isStandardVoice(v.key))
                                                 .map(v => (
                                                 <div
                                                     key={v.key}
-                                                    className={`p-2.5 rounded-lg transition-all border cursor-pointer ${voiceKey === v.key
-                                                        ? 'border-primary bg-primary/5'
+                                                    className={`p-2.5 rounded-xl transition-all border-2 cursor-pointer ${voiceKey === v.key
+                                                        ? 'border-primary bg-primary/10'
                                                         : 'border-slate-800 bg-surface/40 hover:border-slate-700'
                                                         }`}
                                                     onClick={() => setVoiceKey(v.key)}
                                                 >
-                                                    <div className="flex items-center gap-3">
-                                                        <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${voiceKey === v.key ? 'bg-primary/20 text-primary' : 'bg-slate-900 text-slate-600'}`}>
-                                                            {v.gender === 'female' ? <Venus className="w-3.5 h-3.5" /> :
-                                                                v.gender === 'male' ? <Mars className="w-3.5 h-3.5" /> : <Users className="w-3.5 h-3.5" />}
+                                                    <div className="flex flex-col gap-2">
+                                                        <div className="flex items-center justify-between w-full">
+                                                            <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${voiceKey === v.key ? 'bg-primary/20 text-primary' : 'bg-slate-900 text-slate-600'}`}>
+                                                                {v.gender === 'female' ? <Venus className="w-3.5 h-3.5" /> :
+                                                                    v.gender === 'male' ? <Mars className="w-3.5 h-3.5" /> : <Users className="w-3.5 h-3.5" />}
+                                                            </div>
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); handlePreviewVoice(v.key); }}
+                                                                className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${previewVoice === v.key ? 'bg-primary text-white' : 'bg-slate-800 text-slate-500'}`}
+                                                            >
+                                                                {previewVoice === v.key ? <Pause className="w-2.5 h-2.5" /> : <Play className="w-2.5 h-2.5 ml-0.5" />}
+                                                            </button>
                                                         </div>
-                                                        <div className="flex-1 min-w-0 text-left">
-                                                            <div className={`text-[11px] font-bold truncate ${voiceKey === v.key ? 'text-text' : 'text-slate-300'}`}>
+                                                        <div className="text-left">
+                                                            <div className={`text-[12px] font-bold truncate ${voiceKey === v.key ? 'text-text' : 'text-slate-300'}`}>
                                                                 {voiceName(v.key)}
                                                             </div>
                                                         </div>
-                                                        <button
-                                                            onClick={(e) => { e.stopPropagation(); handlePreviewVoice(v.key); }}
-                                                            className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${previewVoice === v.key ? 'bg-primary text-white' : 'bg-slate-800 text-slate-500'}`}
-                                                        >
-                                                            {previewVoice === v.key ? <Pause className="w-2.5 h-2.5" /> : <Play className="w-2.5 h-2.5 ml-0.5" />}
-                                                        </button>
                                                     </div>
                                                 </div>
                                             ))}
