@@ -265,7 +265,7 @@ export default function StoryCreator() {
                                 value={freeText}
                                 onChange={(e) => setFreeText(e.target.value)}
                                 placeholder="Was soll passieren? Beschreibe Charakter, Ort oder den ersten Satz..."
-                                className="w-full px-5 py-4 bg-background border-2 border-slate-800 rounded-2xl text-xs lg:text-sm focus:outline-none focus:border-primary transition-all placeholder:text-slate-700 resize-none pr-16 font-serif text-text min-h-[160px] lg:min-h-[220px] shadow-inner"
+                                className="w-full px-5 py-4 bg-background border-2 border-slate-700/50 rounded-2xl text-sm lg:text-base focus:outline-none focus:border-primary transition-all placeholder:text-slate-700 resize-none pr-16 font-serif text-text min-h-[160px] lg:min-h-[220px] shadow-inner"
                             />
                             <button
                                 onClick={isListening ? handleStopListening : handleStartListening}
@@ -308,7 +308,7 @@ export default function StoryCreator() {
                                     onClick={() => setGenre(g.value)}
                                     className={`p-3 rounded-xl text-left transition-all border-2 ${genre === g.value
                                         ? 'border-primary bg-primary/10'
-                                        : 'border-slate-700 bg-slate-800/60 text-slate-400 hover:border-slate-600'
+                                        : 'border-slate-700/50 bg-slate-800/60 text-slate-400 hover:border-slate-600'
                                         }`}
                                 >
                                     <h4 className={`text-sm font-bold tracking-tight ${genre === g.value ? 'text-primary' : 'text-slate-300'}`}>{g.label}</h4>
@@ -342,7 +342,7 @@ export default function StoryCreator() {
                                         onClick={() => toggleAuthor(s.id)}
                                         className={`relative p-3 rounded-xl text-left transition-all border-2 ${isSelected
                                             ? 'border-primary bg-primary/10'
-                                            : 'border-slate-700 bg-slate-800/60 hover:border-slate-600 text-slate-300'
+                                            : 'border-slate-700/50 bg-slate-800/60 hover:border-slate-600 text-slate-300'
                                             }`}
                                     >
                                         <h4 className={`text-sm font-bold ${isSelected ? 'text-text' : 'text-slate-300'}`}>{s.name}</h4>
@@ -376,7 +376,7 @@ export default function StoryCreator() {
                                         onClick={() => setTargetMinutes(l.value)}
                                         className={`p-2 rounded-xl text-center transition-all border-2 ${targetMinutes === l.value
                                             ? 'border-primary bg-primary/10'
-                                            : 'border-slate-700 bg-slate-800/60 hover:border-slate-600'
+                                            : 'border-slate-700/50 bg-slate-800/60 hover:border-slate-600'
                                             }`}
                                     >
                                         <div className={`text-xs font-bold ${targetMinutes === l.value ? 'text-primary' : 'text-slate-300'}`}>{l.label}</div>
@@ -392,7 +392,7 @@ export default function StoryCreator() {
                             </div>
                             <div className="space-y-4">
                                 {/* Standard Voices */}
-                                <div className="grid grid-cols-2 gap-2">
+                                <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
                                     {voices
                                         .filter(v => STANDARD_VOICE_KEYS.includes(v.key))
                                         .sort((a, b) => STANDARD_VOICE_KEYS.indexOf(a.key) - STANDARD_VOICE_KEYS.indexOf(b.key))
@@ -401,7 +401,7 @@ export default function StoryCreator() {
                                             key={v.key}
                                             className={`p-3 rounded-xl transition-all border-2 cursor-pointer ${voiceKey === v.key
                                                 ? 'border-primary bg-primary/10'
-                                                : 'border-slate-700 bg-slate-800/60 hover:border-slate-600'
+                                                : 'border-slate-700/50 bg-slate-800/60 hover:border-slate-600'
                                                 }`}
                                             onClick={() => setVoiceKey(v.key)}
                                         >
@@ -442,7 +442,7 @@ export default function StoryCreator() {
                                     </button>
                                     
                                     {showAllVoices && (
-                                        <div className="grid grid-cols-2 gap-2 mt-2 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
+                                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 mt-2 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
                                             {sortedVoices
                                                 .filter(v => !isStandardVoice(v.key))
                                                 .map(v => (
@@ -450,7 +450,7 @@ export default function StoryCreator() {
                                                     key={v.key}
                                                     className={`p-2.5 rounded-xl transition-all border-2 cursor-pointer ${voiceKey === v.key
                                                         ? 'border-primary bg-primary/10'
-                                                        : 'border-slate-700 bg-slate-800/60 hover:border-slate-600'
+                                                        : 'border-slate-700/50 bg-slate-800/60 hover:border-slate-600'
                                                         }`}
                                                     onClick={() => setVoiceKey(v.key)}
                                                 >
