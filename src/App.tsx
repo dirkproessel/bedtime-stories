@@ -172,8 +172,10 @@ function App() {
        {/* Sidebar Navigation (Desktop) / Bottom Nav (Mobile) */}
        <nav className="fixed bottom-0 left-0 right-0 lg:static lg:w-64 lg:h-screen bg-surface/80 lg:bg-surface backdrop-blur-xl lg:backdrop-blur-none border-t lg:border-t-0 lg:border-r border-slate-800 safe-area-bottom z-[100] flex flex-col">
          {/* Desktop Brand Logo */}
-         <div className="hidden lg:flex flex-col items-center gap-4 py-8 px-6 border-b border-slate-800/50">
-           <img src="/logo.png" alt="Logo" className="w-24 h-24 object-contain mix-blend-screen" />
+          <div className="hidden lg:flex flex-col items-center gap-4 py-8 px-6 border-b border-slate-800/50">
+            <div className="w-24 h-24 overflow-hidden flex items-center justify-center">
+              <img src="/logo.png" alt="Logo" className="w-full h-full object-contain mix-blend-screen scale-[1.4]" />
+            </div>
            <div className="text-center">
              <h2 className="text-xl font-semibold text-text tracking-tight leading-tight">Kurzgeschichten-Labor</h2>
              <p className="text-xs tracking-widest uppercase text-text-muted opacity-80 mt-1">
@@ -204,9 +206,9 @@ function App() {
                  <div className={`transition-transform duration-300 ${key === 'create' ? '-rotate-90' : ''} group-hover:scale-110`}>
                    <Icon className={`w-5 h-5 lg:w-6 lg:h-6 ${isActive ? 'stroke-[3]' : 'stroke-[2.5]'}`} />
                  </div>
-                 <span className="text-xs font-semibold uppercase lg:capitalize tracking-wider lg:tracking-normal">
-                   {label}
-                 </span>
+                  <span className="text-xs font-medium uppercase lg:capitalize tracking-wider lg:tracking-normal">
+                    {label}
+                  </span>
                  
                  {/* Desktop Active Indicator */}
                  {isActive && (
@@ -227,7 +229,7 @@ function App() {
                      <img src={user.avatar_url} className="w-full h-full object-cover" />
                    ) : <User className="w-4 h-4 text-slate-400" />}
                 </div>
-                <span className="text-xs font-semibold">Mein Profil</span>
+                 <span className="text-xs font-medium">Mein Profil</span>
               </button>
            </div>
          </div>
@@ -236,7 +238,9 @@ function App() {
        <div className="flex-1 flex flex-col relative h-screen overflow-hidden">
           <header className="lg:hidden h-16 shrink-0 flex items-center justify-between px-4 bg-background/80 backdrop-blur-md border-b border-slate-800/50 sticky top-0 z-40">
             <div className="flex items-center gap-3">
-                <img src="/logo.png" alt="Logo" className="w-12 h-12 object-contain rounded-lg mix-blend-screen" />
+                <div className="w-14 h-14 overflow-hidden flex items-center justify-center">
+                    <img src="/logo.png" alt="Logo" className="w-full h-full object-contain mix-blend-screen scale-[1.4]" />
+                </div>
                 <div>
                   <h1 className="text-lg font-semibold text-text tracking-tight leading-tight">Kurzgeschichten-Labor</h1>
                   <p className="text-xs tracking-widest uppercase text-text-muted opacity-80">Literatur auf Knopfdruck</p>
@@ -276,8 +280,8 @@ function App() {
              className="flex-1 overflow-y-auto pb-40 lg:pb-8 pt-2 lg:pt-8"
            >
              {/* Dynamic Page Title (Responsive adjusting spacing) */}
-             <div className="px-3 sm:px-6 mb-3 lg:mb-6 max-w-7xl mx-auto w-full">
-               <h1 className="text-lg lg:text-3xl font-bold text-text lg:text-white text-center lg:text-left opacity-60 lg:opacity-100">
+              <div className="px-3 sm:px-6 mb-3 lg:mb-6 max-w-7xl mx-auto w-full">
+                <h1 className="text-lg lg:text-3xl font-semibold text-text lg:text-white text-center lg:text-left opacity-60 lg:opacity-100">
                  {activeView === 'create' && 'Erstelle eine eigene Geschichte'}
                  {activeView === 'library' && 'Meine Entwürfe'}
                  {activeView === 'discover' && 'Entdecke neue Geschichten'}

@@ -265,7 +265,7 @@ export default function StoryCreator() {
                             <button
                                 onClick={handleDiceClick}
                                 disabled={isRolling}
-                                className="flex items-center gap-2 px-4 py-2 bg-slate-800 border border-slate-700 text-slate-300 rounded-xl hover:text-primary hover:border-primary/40 hover:bg-slate-700 transition-all font-semibold text-xs disabled:opacity-50 shadow-sm shrink-0"
+                                className="flex items-center gap-2 px-4 py-2 bg-slate-900/40 border border-slate-800 text-slate-500 rounded-xl hover:text-primary hover:border-primary/40 hover:bg-slate-800 transition-all font-medium text-xs disabled:opacity-50 shadow-sm shrink-0"
                             >
                                 {isRolling ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Dices className="w-4 h-4" />}
                                 Inspiration
