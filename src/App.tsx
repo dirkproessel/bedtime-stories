@@ -196,10 +196,10 @@ function App() {
                      useStore.getState().setReaderOpen(false);
                    }
                  }}
-                 className={`flex flex-col lg:flex-row items-center gap-1 lg:gap-4 px-4 lg:px-6 py-1.5 lg:py-3.5 rounded-xl lg:rounded-2xl transition-all relative group ${isActive
-                   ? 'text-primary bg-primary/5 lg:bg-primary/10'
-                   : 'text-slate-100 hover:text-white hover:bg-white/5'
-                   }`}
+                  className={`flex flex-col lg:flex-row items-center justify-center lg:justify-start gap-1 lg:gap-4 px-2 sm:px-4 lg:px-6 py-2 lg:py-3.5 rounded-xl lg:rounded-2xl transition-all relative group ${isActive
+                    ? 'text-primary bg-primary/10 lg:bg-primary/10'
+                    : 'text-slate-100 hover:text-white hover:bg-white/5'
+                    }`}
                >
                  <div className={`transition-transform duration-300 ${key === 'create' ? '-rotate-90' : ''} group-hover:scale-110`}>
                    <Icon className={`w-5 h-5 lg:w-6 lg:h-6 ${isActive ? 'stroke-[3]' : 'stroke-[2.5]'}`} />
