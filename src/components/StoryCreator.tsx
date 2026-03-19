@@ -32,9 +32,9 @@ export const GENRES = [
 
 
 const LENGTHS = [
-    { value: 10, label: '~10 Min', sub: '2 Kapitel' },
-    { value: 15, label: '~15 Min', sub: '3 Kapitel' },
-    { value: 20, label: '~20 Min', sub: '4 Kapitel' },
+    { value: 10, label: 'Kurz', sub: '~10 Min' },
+    { value: 15, label: 'Mittel', sub: '~15 Min' },
+    { value: 20, label: 'Lang', sub: '~20 Min' },
 ];
 
 const BEST_OF_COUNT = 8;
@@ -278,16 +278,7 @@ export default function StoryCreator() {
                                 {isListening ? <MicOff className="w-5 h-5 animate-pulse" /> : <Mic className="w-5 h-5" />}
                             </button>
                             
-                            {/* Desktop Generate Button */}
-                            <div className="hidden lg:flex mt-6 justify-end">
-                                <button
-                                    onClick={handleGenerate}
-                                    className="btn-primary group/btn px-10 py-4 text-xl font-serif shadow-xl hover:shadow-primary/20"
-                                >
-                                    <Sparkles className="w-6 h-6 group-hover/btn:rotate-12 transition-transform" />
-                                    Geschichte erschaffen
-                                </button>
-                            </div>
+                            {/* Inline Generate Button removed to use floating version */}
                         </div>
                     </div>
                 </div>
@@ -380,6 +371,7 @@ export default function StoryCreator() {
                                             }`}
                                     >
                                         <div className={`text-xs font-bold ${targetMinutes === l.value ? 'text-primary' : 'text-slate-300'}`}>{l.label}</div>
+                                        <div className={`text-[10px] ${targetMinutes === l.value ? 'text-primary' : 'text-slate-500'}`}>{l.sub}</div>
                                     </button>
                                 ))}
                             </div>
@@ -405,28 +397,37 @@ export default function StoryCreator() {
                                                 }`}
                                             onClick={() => setVoiceKey(v.key)}
                                         >
-                                            <div className="flex flex-col gap-3">
-                                                <div className="flex items-center justify-between w-full">
+                                        <div
+                                            key={v.key}
+                                            className={`p-3 rounded-xl transition-all border-2 cursor-pointer ${voiceKey === v.key
+                                                ? 'border-primary bg-primary/10'
+                                                : 'border-slate-700/50 bg-slate-800/60 hover:border-slate-600'
+                                                }`}
+                                            onClick={() => setVoiceKey(v.key)}
+                                        >
+                                            <div className="flex flex-col gap-2">
+                                                <div className="flex items-center gap-3 w-full">
                                                     <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${voiceKey === v.key ? 'bg-primary/20 text-primary' : 'bg-slate-900 text-slate-600'}`}>
                                                         {v.gender === 'female' ? <Venus className="w-4 h-4" /> :
                                                             v.gender === 'male' ? <Mars className="w-4 h-4" /> : <Users className="w-4 h-4" />}
                                                     </div>
+                                                    <div className={`text-sm font-bold truncate flex-1 min-w-0 ${voiceKey === v.key ? 'text-text' : 'text-slate-300'}`}>
+                                                        {voiceName(v.key)}
+                                                    </div>
                                                     <button
                                                         onClick={(e) => { e.stopPropagation(); handlePreviewVoice(v.key); }}
-                                                        className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${previewVoice === v.key ? 'bg-primary text-white' : 'bg-slate-800 text-slate-500'}`}
+                                                        className={`w-7 h-7 rounded-full flex items-center justify-center transition-all shrink-0 ${previewVoice === v.key ? 'bg-primary text-white' : 'bg-slate-800 text-slate-500'}`}
                                                     >
                                                         {previewVoice === v.key ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3 ml-0.5" />}
                                                     </button>
                                                 </div>
                                                 <div className="text-left">
-                                                    <div className={`text-sm font-bold truncate ${voiceKey === v.key ? 'text-text' : 'text-slate-300'}`}>
-                                                        {voiceName(v.key)}
-                                                    </div>
-                                                    <div className={`text-[11px] line-clamp-1 ${voiceKey === v.key ? 'text-primary' : 'text-slate-500'}`}>
+                                                    <div className={`text-[11px] line-clamp-1 ${voiceKey === v.key ? 'text-primary/70' : 'text-slate-500'}`}>
                                                         {voiceDesc(v.key)}
                                                     </div>
                                                 </div>
                                             </div>
+                                        </div>
                                         </div>
                                     ))}
                                 </div>
@@ -455,21 +456,24 @@ export default function StoryCreator() {
                                                     onClick={() => setVoiceKey(v.key)}
                                                 >
                                                     <div className="flex flex-col gap-2">
-                                                        <div className="flex items-center justify-between w-full">
+                                                        <div className="flex items-center gap-3 w-full">
                                                             <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${voiceKey === v.key ? 'bg-primary/20 text-primary' : 'bg-slate-900 text-slate-600'}`}>
                                                                 {v.gender === 'female' ? <Venus className="w-3.5 h-3.5" /> :
                                                                     v.gender === 'male' ? <Mars className="w-3.5 h-3.5" /> : <Users className="w-3.5 h-3.5" />}
                                                             </div>
+                                                            <div className={`text-xs font-bold truncate flex-1 min-w-0 ${voiceKey === v.key ? 'text-text' : 'text-slate-300'}`}>
+                                                                {voiceName(v.key)}
+                                                            </div>
                                                             <button
                                                                 onClick={(e) => { e.stopPropagation(); handlePreviewVoice(v.key); }}
-                                                                className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${previewVoice === v.key ? 'bg-primary text-white' : 'bg-slate-800 text-slate-500'}`}
+                                                                className={`w-6 h-6 rounded-full flex items-center justify-center transition-all shrink-0 ${previewVoice === v.key ? 'bg-primary text-white' : 'bg-slate-800 text-slate-500'}`}
                                                             >
                                                                 {previewVoice === v.key ? <Pause className="w-2.5 h-2.5" /> : <Play className="w-2.5 h-2.5 ml-0.5" />}
                                                             </button>
                                                         </div>
                                                         <div className="text-left">
-                                                            <div className={`text-[12px] font-bold truncate ${voiceKey === v.key ? 'text-text' : 'text-slate-300'}`}>
-                                                                {voiceName(v.key)}
+                                                            <div className={`text-[10px] line-clamp-1 ${voiceKey === v.key ? 'text-primary/70' : 'text-slate-500'}`}>
+                                                                {voiceDesc(v.key)}
                                                             </div>
                                                         </div>
                                                     </div>
@@ -484,16 +488,16 @@ export default function StoryCreator() {
                 </div>
             </div>
 
-            {/* Mobile Generate Button (Hidden on Desktop) */}
-            <div className="lg:hidden fixed bottom-24 left-0 right-0 flex justify-center z-40 pointer-events-none px-4">
+            {/* Unified Floating Generate Button */}
+            <div className="fixed bottom-10 lg:bottom-12 left-0 right-0 flex justify-center z-40 pointer-events-none px-4">
                 <div className="pointer-events-auto relative">
-                    <div className="absolute -inset-1.5 bg-background/30 backdrop-blur-md rounded-full -z-10 border border-white/5" />
+                    <div className="absolute -inset-2 bg-background/40 backdrop-blur-xl rounded-full -z-10 border border-white/10 shadow-2xl" />
                     <button
                         onClick={handleGenerate}
-                        className="btn-primary px-8 py-3.5 text-[17px] font-serif shadow-xl"
+                        className="btn-primary px-10 py-4 lg:px-14 lg:py-5 text-lg lg:text-2xl font-serif shadow-2xl hover:scale-105 active:scale-95 transition-all"
                     >
-                        <Sparkles className="w-5 h-5 shrink-0" />
-                        Neue Geschichte
+                        <Sparkles className="w-5 h-5 lg:w-7 lg:h-7 shrink-0" />
+                        Geschichte erstellen
                     </button>
                 </div>
             </div>
