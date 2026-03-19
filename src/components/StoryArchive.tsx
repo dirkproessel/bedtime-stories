@@ -8,6 +8,7 @@ import ConfirmModal from './ConfirmModal';
 
 import { voiceName, voiceDesc } from '../lib/voices';
 import { GENRES } from './StoryCreator';
+import { formatAuthorStyles } from '../lib/authors';
 
 function HeroSection({ story, onPlay, onFavorite }: { story: any, onPlay: (id: string) => void, onFavorite: (id: string) => void }) {
     if (!story) return null;
@@ -257,7 +258,7 @@ function ManagementStoryCard({
                         <div className="flex flex-col min-w-0 pr-2">
                             <span className="text-[10px] uppercase font-bold text-slate-500 tracking-widest mb-1.5">Stil</span>
                             <span className="text-[13px] font-medium text-slate-200 leading-snug">
-                                {story.style_authors || voiceName(story.voice_key)}
+                                {formatAuthorStyles(story.style)}
                             </span>
                         </div>
                     </div>
@@ -1260,7 +1261,7 @@ export default function StoryArchive() {
                                     <div className="w-8 h-8 rounded-[0.4rem] flex items-center justify-center shrink-0 bg-[#082a17] text-[#1DB954]">
                                         <Play className="w-4 h-4 fill-current ml-0.5" />
                                     </div>
-                                    <div className="text-left text-[14px] font-medium text-[#e2e8f0]">
+                                    <div className="text-left text-[14px] text-[#e2e8f0]">
                                         Fortsetzung schreiben
                                     </div>
                                 </button>
@@ -1272,7 +1273,7 @@ export default function StoryArchive() {
                                     <div className="w-8 h-8 rounded-[0.4rem] flex items-center justify-center shrink-0 bg-[#1e293b] text-[#818cf8]">
                                         <RefreshCw className="w-4 h-4" />
                                     </div>
-                                    <div className="text-left text-[14px] font-medium text-[#e2e8f0]">
+                                    <div className="text-left text-[14px] text-[#e2e8f0]">
                                         Anpassen / Verbessern
                                     </div>
                                 </button>
@@ -1287,7 +1288,7 @@ export default function StoryArchive() {
                                     <div className="w-8 h-8 bg-[#064e3b] rounded-[0.4rem] flex items-center justify-center shrink-0 text-[#34d399]">
                                         <Mic className="w-4 h-4" />
                                     </div>
-                                    <div className="text-left text-[14px] font-medium text-[#e2e8f0]">
+                                    <div className="text-left text-[14px] text-[#e2e8f0]">
                                         Neu vertonen
                                     </div>
                                 </button>
@@ -1299,7 +1300,7 @@ export default function StoryArchive() {
                                     <div className="w-8 h-8 bg-[#7c2d12] rounded-[0.4rem] flex items-center justify-center shrink-0 text-[#fb923c]">
                                         <ImageIcon className="w-4 h-4" />
                                     </div>
-                                    <div className="text-left text-[14px] font-medium text-[#e2e8f0]">
+                                    <div className="text-left text-[14px] text-[#e2e8f0]">
                                         Bild neu generieren
                                     </div>
                                 </button>
@@ -1313,8 +1314,8 @@ export default function StoryArchive() {
                                             <div className="w-8 h-8 rounded-[0.4rem] flex items-center justify-center shrink-0 bg-[#1e293b] text-[#64748b]">
                                                 <Sparkles className="w-4 h-4" />
                                             </div>
-                                            <div className="text-left text-[14px] font-medium text-[#e2e8f0]">
-                                                Öffentlich in Bibliothek
+                                            <div className="text-left text-[14px] text-[#e2e8f0]">
+                                                Veröffentlichen
                                             </div>
                                         </div>
                                         <button 
@@ -1350,8 +1351,8 @@ export default function StoryArchive() {
                                             <div className="w-8 h-8 rounded-[0.4rem] flex items-center justify-center shrink-0 bg-[#1e293b] text-[#64748b]">
                                                 <Play className="w-4 h-4 fill-current ml-0.5" />
                                             </div>
-                                            <div className="text-left text-[14px] font-medium text-[#e2e8f0]">
-                                                Auf Spotify
+                                            <div className="text-left text-[14px] text-[#e2e8f0]">
+                                                Spotify Podcast
                                             </div>
                                         </div>
                                         <button 
@@ -1381,7 +1382,7 @@ export default function StoryArchive() {
                                     <div className="w-8 h-8 bg-[#064e3b] rounded-[0.4rem] flex items-center justify-center shrink-0 text-[#1DB954]">
                                         <MessageCircle className="w-4 h-4" />
                                     </div>
-                                    <div className="text-left text-[14px] font-medium text-[#e2e8f0]">
+                                    <div className="text-left text-[14px] text-[#e2e8f0]">
                                         Via WhatsApp teilen
                                     </div>
                                 </button>
@@ -1393,7 +1394,7 @@ export default function StoryArchive() {
                                     <div className="w-8 h-8 bg-[#1e3a8a] rounded-[0.4rem] flex items-center justify-center shrink-0 text-[#60a5fa]">
                                         <Send className="w-4 h-4 ml-0.5 mt-0.5" />
                                     </div>
-                                    <div className="text-left text-[14px] font-medium text-[#e2e8f0]">
+                                    <div className="text-left text-[14px] text-[#e2e8f0]">
                                         An Kindle senden
                                     </div>
                                 </button>
@@ -1409,7 +1410,7 @@ export default function StoryArchive() {
                                             <div className="w-8 h-8 bg-transparent rounded-[0.4rem] flex items-center justify-center shrink-0 text-[#64748b] group-hover/delete:bg-red-500/10 group-hover/delete:text-red-500 transition-colors">
                                                 <Trash2 className="w-4 h-4" />
                                             </div>
-                                            <div className="text-left text-[14px] font-medium text-[#64748b] group-hover/delete:text-red-400 transition-colors">
+                                            <div className="text-left text-[14px] text-[#64748b] group-hover/delete:text-red-400 transition-colors">
                                                 Geschichte löschen
                                             </div>
                                         </button>
