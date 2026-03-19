@@ -278,11 +278,11 @@ export default function StoryCreator() {
                                 value={freeText}
                                 onChange={(e) => setFreeText(e.target.value)}
                                 placeholder="Was soll passieren? Beschreibe Charakter, Ort oder den ersten Satz..."
-                                className="w-full px-5 py-4 bg-slate-800/40 border-2 border-slate-700/50 rounded-2xl text-sm lg:text-base focus:outline-none focus:border-primary transition-all placeholder:text-slate-500 resize-none pr-16 font-serif text-text min-h-[160px] lg:min-h-[220px] shadow-inner"
+                                className="w-full px-5 py-4 bg-slate-800/40 border-2 border-slate-700/50 rounded-2xl text-sm lg:text-base focus:outline-none focus:border-primary transition-all placeholder:text-slate-500 resize-none pr-5 lg:pr-16 font-serif text-text min-h-[140px] lg:min-h-[160px] shadow-inner"
                             />
                             <button
                                 onClick={isListening ? handleStopListening : handleStartListening}
-                                className={`absolute right-3 top-4 p-2.5 rounded-xl transition-all ${isListening
+                                className={`absolute right-3 top-4 p-2.5 rounded-xl transition-all hidden lg:flex ${isListening
                                     ? 'bg-red-500 text-white'
                                     : 'bg-surface text-slate-500 hover:text-primary border border-slate-800'
                                     }`}
@@ -501,7 +501,7 @@ export default function StoryCreator() {
             </div>
 
             {/* Unified Floating Generate Button */}
-            <div className="fixed bottom-28 lg:bottom-12 left-0 right-0 flex justify-center z-[110] pointer-events-none px-4">
+            <div className="fixed bottom-22 lg:bottom-12 left-0 right-0 flex justify-center z-[110] pointer-events-none px-4">
                 <div className="pointer-events-auto relative">
                     <div className="absolute -inset-2 bg-background/40 backdrop-blur-xl rounded-full -z-10 border border-white/10 shadow-2xl" />
                     <button
