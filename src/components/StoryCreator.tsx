@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { getVoicePreviewUrl, generateHook, fetchPopularity } from '../lib/api';
-import { Sparkles, Mic, MicOff, Play, Pause, Venus, Mars, Users, Loader2, ChevronDown, RefreshCw } from 'lucide-react';
+import { Sparkles, Mic, MicOff, Play, Pause, Venus, Mars, Users, Loader2, ChevronDown, RefreshCw, Dices } from 'lucide-react';
 import { voiceName, voiceDesc, STANDARD_VOICE_KEYS, isStandardVoice } from '../lib/voices';
 import { AUTHORS } from '../lib/authors';
 import toast from 'react-hot-toast';
@@ -244,21 +244,18 @@ export default function StoryCreator() {
                         </div>
                     )}
 
-                    <div className="bg-surface p-5 lg:p-6 rounded-2xl border border-slate-800/50">
-                        <div className="mb-3 flex items-center gap-2">
-                             <h3 className="status-label text-primary">Deine Idee</h3>
-                             <div className="h-px flex-1 bg-slate-800/50" />
-                        </div>
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-lg font-bold text-text font-serif">
-                                Erstelle eine eigene Geschichte
-                            </h2>
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between gap-4">
+                            <div className="flex-1 flex items-center gap-2">
+                                <h3 className="status-label text-primary shrink-0">Deine Idee</h3>
+                                <div className="h-px flex-1 bg-slate-800/50" />
+                            </div>
                             <button
                                 onClick={handleDiceClick}
                                 disabled={isRolling}
-                                className="flex items-center gap-2 px-4 py-2 bg-slate-800 border border-slate-700 text-slate-300 rounded-xl hover:text-primary hover:border-primary/40 hover:bg-slate-700 transition-all font-semibold text-xs disabled:opacity-50 shadow-sm"
+                                className="flex items-center gap-2 px-4 py-2 bg-slate-800 border border-slate-700 text-slate-300 rounded-xl hover:text-primary hover:border-primary/40 hover:bg-slate-700 transition-all font-semibold text-xs disabled:opacity-50 shadow-sm shrink-0"
                             >
-                                {isRolling ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                                {isRolling ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Dices className="w-4 h-4" />}
                                 Inspiration
                             </button>
                         </div>
@@ -268,20 +265,20 @@ export default function StoryCreator() {
                                 value={freeText}
                                 onChange={(e) => setFreeText(e.target.value)}
                                 placeholder="Was soll passieren? Beschreibe Charakter, Ort oder den ersten Satz..."
-                                className="w-full px-6 py-5 bg-background border-2 border-slate-800 rounded-2xl text-base lg:text-lg focus:outline-none focus:border-primary transition-all placeholder:text-slate-700 resize-none pr-16 font-serif text-text min-h-[160px] lg:min-h-[220px] shadow-inner"
+                                className="w-full px-5 py-4 bg-background border-2 border-slate-800 rounded-2xl text-xs lg:text-sm focus:outline-none focus:border-primary transition-all placeholder:text-slate-700 resize-none pr-16 font-serif text-text min-h-[160px] lg:min-h-[220px] shadow-inner"
                             />
                             <button
                                 onClick={isListening ? handleStopListening : handleStartListening}
-                                className={`absolute right-4 top-5 p-3 rounded-xl transition-all ${isListening
+                                className={`absolute right-3 top-4 p-2.5 rounded-xl transition-all ${isListening
                                     ? 'bg-red-500 text-white'
                                     : 'bg-surface text-slate-500 hover:text-primary border border-slate-800'
                                     }`}
                                 title={isListening ? 'Aufnahme stoppen' : 'Spracheingabe'}
                             >
-                                {isListening ? <MicOff className="w-6 h-6 animate-pulse" /> : <Mic className="w-6 h-6" />}
+                                {isListening ? <MicOff className="w-5 h-5 animate-pulse" /> : <Mic className="w-5 h-5" />}
                             </button>
                             
-                            {/* Desktop Generate Button integrated here or below */}
+                            {/* Desktop Generate Button */}
                             <div className="hidden lg:flex mt-6 justify-end">
                                 <button
                                     onClick={handleGenerate}
@@ -292,8 +289,6 @@ export default function StoryCreator() {
                                 </button>
                             </div>
                         </div>
-
-
                     </div>
                 </div>
 
@@ -313,7 +308,7 @@ export default function StoryCreator() {
                                     onClick={() => setGenre(g.value)}
                                     className={`p-3 rounded-xl text-left transition-all border-2 ${genre === g.value
                                         ? 'border-primary bg-primary/10'
-                                        : 'border-slate-800 bg-surface text-slate-400 hover:border-slate-700'
+                                        : 'border-slate-700 bg-slate-800/60 text-slate-400 hover:border-slate-600'
                                         }`}
                                 >
                                     <h4 className={`text-sm font-bold tracking-tight ${genre === g.value ? 'text-primary' : 'text-slate-300'}`}>{g.label}</h4>
@@ -347,7 +342,7 @@ export default function StoryCreator() {
                                         onClick={() => toggleAuthor(s.id)}
                                         className={`relative p-3 rounded-xl text-left transition-all border-2 ${isSelected
                                             ? 'border-primary bg-primary/10'
-                                            : 'border-slate-800 bg-surface hover:border-slate-700 text-slate-300'
+                                            : 'border-slate-700 bg-slate-800/60 hover:border-slate-600 text-slate-300'
                                             }`}
                                     >
                                         <h4 className={`text-sm font-bold ${isSelected ? 'text-text' : 'text-slate-300'}`}>{s.name}</h4>
@@ -381,7 +376,7 @@ export default function StoryCreator() {
                                         onClick={() => setTargetMinutes(l.value)}
                                         className={`p-2 rounded-xl text-center transition-all border-2 ${targetMinutes === l.value
                                             ? 'border-primary bg-primary/10'
-                                            : 'border-slate-800 bg-surface hover:border-slate-700'
+                                            : 'border-slate-700 bg-slate-800/60 hover:border-slate-600'
                                             }`}
                                     >
                                         <div className={`text-xs font-bold ${targetMinutes === l.value ? 'text-primary' : 'text-slate-300'}`}>{l.label}</div>
@@ -406,7 +401,7 @@ export default function StoryCreator() {
                                             key={v.key}
                                             className={`p-3 rounded-xl transition-all border-2 cursor-pointer ${voiceKey === v.key
                                                 ? 'border-primary bg-primary/10'
-                                                : 'border-slate-800 bg-surface hover:border-slate-700'
+                                                : 'border-slate-700 bg-slate-800/60 hover:border-slate-600'
                                                 }`}
                                             onClick={() => setVoiceKey(v.key)}
                                         >
@@ -455,7 +450,7 @@ export default function StoryCreator() {
                                                     key={v.key}
                                                     className={`p-2.5 rounded-xl transition-all border-2 cursor-pointer ${voiceKey === v.key
                                                         ? 'border-primary bg-primary/10'
-                                                        : 'border-slate-800 bg-surface/40 hover:border-slate-700'
+                                                        : 'border-slate-700 bg-slate-800/60 hover:border-slate-600'
                                                         }`}
                                                     onClick={() => setVoiceKey(v.key)}
                                                 >
