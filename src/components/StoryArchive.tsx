@@ -1,6 +1,6 @@
 import { useStore } from '../store/useStore';
 import { createPortal } from 'react-dom';
-import { deleteStory as apiDeleteStory, getVoicePreviewUrl, exportStoryToKindle, getThumbUrl, getImageUrl, regenerateStoryImage } from '../lib/api';
+import { getVoicePreviewUrl, exportStoryToKindle, getThumbUrl, getImageUrl, regenerateStoryImage } from '../lib/api';
 import { Play, Trash2, Heart, BookOpen, Loader2, Mic, X, Venus, Mars, Users, Pause, Send, Image as ImageIcon, RefreshCw, Sparkles, Settings2, MessageCircle, Timer, Wand2, Edit, Feather, User as UserIcon, Search, ChevronLeft, ChevronRight, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useEffect, useState, useRef } from 'react';
@@ -218,7 +218,7 @@ export default function StoryArchive() {
         updateStorySpotify, startGeneration,
         setGeneratorPrompt, setGeneratorGenre, setGeneratorAuthors,
         setGeneratorMinutes, setGeneratorVoice, setGeneratorRemix,
-        setAudioCompanion,
+        setReaderOpen,
         toggleFavorite,
         deleteStory,
         loadMoreStories, hasMore, isLoading,
