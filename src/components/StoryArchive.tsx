@@ -1,6 +1,6 @@
 import { useStore } from '../store/useStore';
 import { createPortal } from 'react-dom';
-import { deleteStory, getVoicePreviewUrl, exportStoryToKindle, getThumbUrl, getImageUrl, regenerateStoryImage } from '../lib/api';
+import { deleteStory as apiDeleteStory, getVoicePreviewUrl, exportStoryToKindle, getThumbUrl, getImageUrl, regenerateStoryImage } from '../lib/api';
 import { Play, Trash2, Heart, BookOpen, Loader2, Mic, X, Venus, Mars, Users, Pause, Send, Image as ImageIcon, RefreshCw, Sparkles, Settings2, MessageCircle, Timer, Wand2, Edit, Feather, User as UserIcon, Search, ChevronLeft, ChevronRight, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useEffect, useState, useRef } from 'react';
@@ -218,8 +218,9 @@ export default function StoryArchive() {
         updateStorySpotify, startGeneration,
         setGeneratorPrompt, setGeneratorGenre, setGeneratorAuthors,
         setGeneratorMinutes, setGeneratorVoice, setGeneratorRemix,
-        setReaderOpen,
+        setAudioCompanion,
         toggleFavorite,
+        deleteStory,
         loadMoreStories, hasMore, isLoading,
         archiveGenre, archiveSearch, setArchiveGenre, setArchiveSearch, toggleArchiveGenre,
         revoiceStory, availableGenres
@@ -405,7 +406,6 @@ export default function StoryArchive() {
         const { id } = deleteConfirm;
         try {
             await deleteStory(id);
-            await loadStories();
             toast.success('Geschichte gelöscht');
         } catch {
             toast.error('Fehler beim Löschen');
@@ -967,9 +967,17 @@ export default function StoryArchive() {
                                                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
                                                 {story.progress || 'Planung...'}
                                             </div>
-                                            <span className="text-xs font-bold text-primary bg-accent/20 px-1.5 py-0.5 rounded-md">
-                                                {story.progress_pct || 0}%
-                                            </span>
+                                            <div className="flex items-center gap-3">
+                                                <button 
+                                                    onClick={(e) => { e.stopPropagation(); if(confirm('Möchtest du diese Generierung wirklich abbrechen?')) deleteStory(story.id); }}
+                                                    className="text-[10px] uppercase font-bold tracking-wider text-red-500/60 hover:text-red-500 transition-colors"
+                                                >
+                                                    Abbrechen
+                                                </button>
+                                                <span className="text-xs font-bold text-primary bg-accent/20 px-1.5 py-0.5 rounded-md">
+                                                    {story.progress_pct || 0}%
+                                                </span>
+                                            </div>
                                         </div>
                                         <div className="w-full h-1.5 bg-accent/20 rounded-full overflow-hidden border border-primary/20">
                                             <div

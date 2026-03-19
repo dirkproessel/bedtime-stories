@@ -107,6 +107,7 @@ interface AppState {
     setRevoiceStoryId: (id: string | null) => void;
     revoiceStory: (id: string, voiceKey: string, speechRate?: string) => Promise<void>;
     toggleFavorite: (id: string) => Promise<void>;
+    deleteStory: (id: string) => Promise<void>;
 }
 
 let pollInterval: ReturnType<typeof setInterval> | null = null;
@@ -507,6 +508,19 @@ export const useStore = create<AppState>((set, get) => {
             const { is_favorite } = await toggleStoryFavorite(id);
             set(state => ({
                 stories: state.stories.map(s => s.id === id ? { ...s, is_favorite } : s)
+            }));
+        } catch (e: any) {
+            set({ error: e.message });
+            throw e;
+        }
+    },
+    deleteStory: async (id) => {
+        try {
+            const { deleteStory: apiDeleteStory } = await import('../lib/api');
+            await apiDeleteStory(id);
+            set(state => ({
+                stories: state.stories.filter(s => s.id !== id),
+                totalMyStories: state.totalMyStories - 1
             }));
         } catch (e: any) {
             set({ error: e.message });
