@@ -935,12 +935,9 @@ async def get_story(
     if not story:
         raise HTTPException(status_code=404, detail="Story not found")
     
-    # Check accessibility
-    if not story.is_public:
-        if not current_user:
-            raise HTTPException(status_code=401, detail="Authentication required")
-        if not (current_user.is_admin or story.user_id == current_user.id):
-            raise HTTPException(status_code=403, detail="Story is private")
+    # Accessible by URL to everyone (per user request)
+    # The requirement is to allow viewing via direct link even if not public/published.
+    # No additional check needed here as ID possession is the access token.
 
     text_path = settings.AUDIO_OUTPUT_DIR / story_id / "story.json"
     if not text_path.exists():
