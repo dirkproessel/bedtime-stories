@@ -62,7 +62,7 @@ export default function AdminUserManagement({ onShowStories }: Props) {
                         <div className="flex flex-col">
                             <span className="text-white font-medium flex items-center gap-2">
                                 {user.username || user.email}
-                                {user.is_admin && <span className="text-[10px] bg-emerald-500 text-white px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">Admin</span>}
+                                {user.is_admin && <span className="text-xs bg-emerald-500 text-white px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">Admin</span>}
                             </span>
                             <div className="flex items-center gap-3 text-xs text-slate-500">
                                 <span className="flex items-center gap-1"><Mail className="w-3 h-3" /> {user.email}</span>
@@ -77,7 +77,7 @@ export default function AdminUserManagement({ onShowStories }: Props) {
                             className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl hover:bg-white/5 transition-all text-slate-400 hover:text-emerald-400"
                         >
                             <span className="text-lg font-bold leading-none">{user.story_count || 0}</span>
-                            <span className="text-[9px] uppercase tracking-tighter font-medium">Stories</span>
+                            <span className="text-xs uppercase tracking-tighter font-medium">Stories</span>
                         </button>
 
                         <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">

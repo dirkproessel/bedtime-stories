@@ -84,9 +84,9 @@ export default function ReaderLayer() {
                             )}
                             <h1 className="text-3xl font-bold text-text font-serif leading-tight">{story.title}</h1>
                             
-                            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 mt-4 text-[11px] font-medium text-slate-500 uppercase tracking-wider font-mono">
+                            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 mt-4 text-xs font-medium text-slate-500 uppercase tracking-wider">
                                 {story.genre && (
-                                    <span className="text-primary bg-accent/20 px-2 py-0.5 rounded text-[10px]">{story.genre}</span>
+                                    <span className="text-primary bg-accent/20 px-2 py-0.5 rounded text-xs">{story.genre}</span>
                                 )}
                                 <span className="flex items-center gap-1">
                                     <BookOpen className="w-3.5 h-3.5" />
@@ -141,8 +141,8 @@ export default function ReaderLayer() {
             {showKindleModal && (
                 <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
                     <div className="bg-surface rounded-[2.5rem] w-full max-w-sm p-8 shadow-2xl border border-slate-800 animate-in zoom-in duration-200">
-                        <h2 className="text-2xl font-bold text-text mb-2 font-serif">An Kindle senden</h2>
-                        <p className="text-sm text-slate-500 mb-6 font-mono uppercase tracking-wider text-[10px]">E-Book Export</p>
+                        <h2 className="text-2xl font-bold text-text mb-2">An Kindle senden</h2>
+                        <p className="text-xs text-slate-500 mb-6 uppercase tracking-wider">E-Book Export</p>
                         <input 
                             type="email"
                             value={kindleEmail}

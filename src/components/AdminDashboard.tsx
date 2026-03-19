@@ -26,7 +26,7 @@ export default function AdminDashboard() {
                     <ChevronLeft className="w-4 h-4" />
                     Zurück zum Profil
                 </button>
-                <h1 className="text-2xl font-serif font-bold text-white">Adminbereich</h1>
+                <h1 className="text-2xl font-bold text-white">Adminbereich</h1>
                 <div className="w-20"></div> {/* Spacer */}
             </div>
 

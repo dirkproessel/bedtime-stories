@@ -26,14 +26,14 @@ function HeroSection({ story, onPlay, onFavorite }: { story: any, onPlay: (id: s
             
             <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-10">
                 <div className="flex items-center gap-2 mb-3">
-                    <span className="px-2 py-0.5 bg-primary/20 border border-primary/30 text-primary text-[10px] font-bold uppercase tracking-wider rounded-md backdrop-blur-md">
+                    <span className="px-2 py-0.5 bg-primary/20 border border-primary/30 text-primary text-xs font-bold uppercase tracking-wider rounded-md backdrop-blur-md">
                         storyja-Empfehlung
                     </span>
                 </div>
-                <h2 className="text-3xl sm:text-4xl font-serif font-bold text-white mb-3 leading-tight drop-shadow-lg">
+                <h2 className="text-3xl sm:text-4xl font-bold text-white mb-3 leading-tight drop-shadow-lg">
                     {story.title}
                 </h2>
-                <p className="text-[14px] text-slate-300 line-clamp-2 max-w-lg mb-8 leading-relaxed italic drop-shadow-sm font-serif">
+                <p className="text-sm text-slate-300 line-clamp-2 max-w-lg mb-8 leading-relaxed italic drop-shadow-sm">
                     {story.description}
                 </p>
                 
@@ -185,7 +185,7 @@ function FlipStoryCard({ story, onPlay, onFavorite, onToolbox }: { story: any, o
 
                     <div className="absolute bottom-4 left-4 right-4">
                         <div className="flex items-center gap-1.5 mb-1">
-                            <div className="text-[10px] font-bold text-primary uppercase tracking-wider">{story.genre}</div>
+                            <div className="text-xs font-bold text-primary uppercase tracking-wider">{story.genre}</div>
                             {story.voice_key !== 'none' && (
                                 <Mic className="w-3 h-3 text-primary/70" strokeWidth={3} />
                             )}
@@ -259,7 +259,7 @@ export default function StoryArchive() {
 
     // Toolbox CSS Classes
     const sectionClass = "mb-6";
-    const sectionTitleClass = "text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-slate-600 mb-3 ml-1";
+    const sectionTitleClass = "text-xs font-bold uppercase tracking-widest text-slate-600 mb-3 ml-1";
     const listClass = "grid grid-cols-2 gap-2";
     const itemClass = "flex items-center gap-2.5 p-2.5 bg-slate-900/60 border border-slate-800/80 rounded-xl transition-all active:scale-[0.98] hover:bg-primary/10 hover:border-primary/30 disabled:opacity-30 disabled:pointer-events-none w-full group/item";
     const itemLabelClass = "text-[12px] font-medium text-slate-300 group-hover/item:text-primary transition-colors truncate";
@@ -606,7 +606,7 @@ export default function StoryArchive() {
 
                     {/* Stats or extra info could go here */}
                     <div className="pt-8 border-t border-slate-800/30">
-                        <div className="flex items-center justify-between text-[10px] uppercase font-bold tracking-widest text-slate-600">
+                        <div className="flex items-center justify-between text-xs uppercase font-bold tracking-widest text-slate-600">
                             <span>Total</span>
                             <span>{totalPublicStories} Geschichten</span>
                         </div>
@@ -786,7 +786,7 @@ export default function StoryArchive() {
                     <div className="w-24 h-24 mx-auto bg-surface rounded-[2rem] flex items-center justify-center mb-6 shadow-sm border border-slate-800">
                         <BookOpen className="w-10 h-10 text-slate-700" />
                     </div>
-                    <h2 className="font-serif text-2xl text-text mb-2 font-semibold">
+                    <h2 className="text-2xl text-text mb-2 font-semibold">
                         {archiveFilter === 'public' && 'Noch keine öffentlichen Geschichten'}
                         {archiveFilter === 'favorites' && 'Deine Sammlung ist leer'}
                         {archiveFilter === 'my' && 'Deine Entwürfe sind leer'}
@@ -916,7 +916,7 @@ export default function StoryArchive() {
                                     <div className="flex flex-col gap-1.5">
                                         <div className="flex items-center gap-2">
                                             {story.status === 'generating' && (!story.title || story.title.includes('Schreibe') || story.title.includes('Fortsetzung')) ? (
-                                                <div className="font-serif text-lg font-semibold text-primary/40 animate-pulse flex flex-wrap gap-x-1">
+                                                <div className="text-lg font-semibold text-primary/40 animate-pulse flex flex-wrap gap-x-1">
                                                     {"Lorem ipsum dolor sit amet".split(" ").map((word, i) => (
                                                         <span key={i} className="flex gap-[1px]">
                                                             {word.split("").map((char, j) => (
@@ -928,7 +928,7 @@ export default function StoryArchive() {
                                                     ))}
                                                 </div>
                                             ) : (
-                                                <h3 className="font-serif text-xl font-semibold text-text group-hover:text-primary transition-colors leading-tight cursor-pointer" onClick={() => story.status === 'done' && handlePlay(story.id)}>
+                                                <h3 className="text-xl font-semibold text-text group-hover:text-primary transition-colors leading-tight cursor-pointer" onClick={() => story.status === 'done' && handlePlay(story.id)}>
                                                     {story.title}
                                                 </h3>
                                             )}
@@ -936,12 +936,12 @@ export default function StoryArchive() {
                                         
                                         <div className="flex gap-6 mb-1">
                                             <div className="flex flex-col">
-                                                <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-slate-500 mb-0.5">Genre</span>
-                                                <span className="text-xs text-slate-300 font-bold">{story.genre || '—'}</span>
+                                                <span className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-0.5">Genre</span>
+                                                <span className="text-sm text-slate-300 font-bold">{story.genre || '—'}</span>
                                             </div>
                                             <div className="flex flex-col flex-1 min-w-0">
-                                                <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-slate-500 mb-0.5">Stil</span>
-                                                <span className="text-xs text-slate-300 font-medium">
+                                                <span className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-0.5">Stil</span>
+                                                <span className="text-sm text-slate-300 font-medium">
                                                     {story.style.split(',').map(id => authorName(id.trim())).join(', ')}
                                                 </span>
                                             </div>
@@ -953,8 +953,8 @@ export default function StoryArchive() {
                             <div className="mt-3">
                                 {/* The Idea / Prompt (Only in Library) */}
                                 {archiveFilter === 'my' && (
-                                    <div className="bg-background/40 border border-slate-800/50 rounded-xl p-3 text-[11px] text-slate-500 italic mb-3">
-                                        <span className="font-bold uppercase tracking-[0.15em] text-[8px] block mb-1 text-slate-600 not-italic">Die Idee</span>
+                                    <div className="bg-background/40 border border-slate-800/50 rounded-xl p-3 text-xs text-slate-500 italic mb-3">
+                                        <span className="font-bold uppercase tracking-wider text-xs block mb-1 text-slate-600 not-italic">Die Idee</span>
                                         {story.prompt}
                                     </div>
                                 )}
@@ -967,7 +967,7 @@ export default function StoryArchive() {
                                                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
                                                 {story.progress || 'Planung...'}
                                             </div>
-                                            <span className="text-[10px] font-bold text-primary bg-accent/20 px-1.5 py-0.5 rounded-md">
+                                            <span className="text-xs font-bold text-primary bg-accent/20 px-1.5 py-0.5 rounded-md">
                                                 {story.progress_pct || 0}%
                                             </span>
                                         </div>
@@ -991,14 +991,14 @@ export default function StoryArchive() {
                                 {/* Full Synopsis - Show if available and NOT the initial 100-char prompt copy (which usually happens during very early generation) */}
                                 {story.description && (story.status === 'done' || (story.status === 'generating' && story.description.length > 100)) && (
                                     <div className="relative">
-                                        <p className={`text-[13px] text-text/90 font-serif leading-relaxed italic ${expandedStories.has(story.id) ? '' : 'line-clamp-3'}`}>
+                                        <p className={`text-sm text-text/90 leading-relaxed italic ${expandedStories.has(story.id) ? '' : 'line-clamp-3'}`}>
                                             {story.description}{!expandedStories.has(story.id) && story.description.length > 150 ? '...' : ''}
                                         </p>
                                         {!expandedStories.has(story.id) && story.description.length > 150 && (
                                             <div className="absolute bottom-0 right-0 h-5 pl-16 bg-gradient-to-l from-surface via-surface/90 to-transparent flex items-center">
                                                 <button 
                                                     onClick={(e) => { e.stopPropagation(); toggleExpand(story.id); }}
-                                                    className="text-[10px] font-bold text-primary hover:text-emerald-400 uppercase tracking-[0.1em] transition-colors"
+                                                    className="text-xs font-bold text-primary hover:text-emerald-400 uppercase tracking-wider transition-colors"
                                                 >
                                                     Mehr lesen
                                                 </button>
@@ -1007,7 +1007,7 @@ export default function StoryArchive() {
                                         {expandedStories.has(story.id) && (
                                             <button 
                                                 onClick={(e) => { e.stopPropagation(); toggleExpand(story.id); }}
-                                                className="text-[10px] font-bold text-primary hover:text-emerald-400 mt-1 uppercase tracking-wider transition-colors block"
+                                                className="text-xs font-bold text-primary hover:text-emerald-400 mt-1 uppercase tracking-wider transition-colors block"
                                             >
                                                 Weniger anzeigen
                                             </button>
@@ -1022,7 +1022,7 @@ export default function StoryArchive() {
                                     
                                     <div className="flex items-end justify-between px-2">
                                         {/* Left: Metadata */}
-                                        <div className="flex flex-col gap-1 text-[11px] text-slate-500 font-medium">
+                                        <div className="flex flex-col gap-1 text-xs text-slate-500 font-medium">
                                             <span className="flex items-center gap-2">
                                                 <BookOpen className="w-4 h-4 text-slate-600" />
                                                 {(story.word_count && story.word_count > 0) ? `${story.word_count} Worte` : (story.chapter_count > 0 ? `${story.chapter_count} Kapitel` : 'Entwurf')}
@@ -1041,7 +1041,7 @@ export default function StoryArchive() {
                                             )}
                                             {archiveFilter === 'my' && story.is_public && (
                                                 <div className="mt-1">
-                                                    <span className="px-1.5 py-0.5 rounded-md bg-slate-800 border border-slate-700 text-[9px] font-bold text-slate-400 uppercase tracking-wider animate-in fade-in slide-in-from-left-1 duration-500">
+                                                    <span className="px-1.5 py-0.5 rounded-md bg-slate-800 border border-slate-700 text-xs font-bold text-slate-400 uppercase tracking-wider animate-in fade-in slide-in-from-left-1 duration-500">
                                                         Veröffentlicht
                                                     </span>
                                                 </div>
@@ -1101,11 +1101,11 @@ export default function StoryArchive() {
                 {isLoading && stories.length > 0 && (
                     <div className="flex flex-col items-center gap-2 animate-in fade-in duration-300">
                         <Loader2 className="w-6 h-6 text-primary animate-spin" />
-                        <span className="text-[10px] font-mono uppercase tracking-widest text-slate-500 font-bold">Lade mehr...</span>
+                        <span className="text-xs uppercase tracking-widest text-slate-500 font-bold">Lade mehr...</span>
                     </div>
                 )}
                 {!hasMore && stories.length > 0 && archiveFilter !== 'my' && (
-                    <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-slate-700 font-bold">
+                    <div className="text-xs uppercase tracking-widest text-slate-700 font-bold">
                         Dich erwarten bald neue Geschichten
                     </div>
                 )}
@@ -1151,7 +1151,7 @@ export default function StoryArchive() {
                                                         <div className={`text-xs font-bold ${selectedVoice === v.key ? 'text-text' : 'text-slate-400'}`}>
                                                             {voiceName(v.key)}
                                                         </div>
-                                                        <div className={`text-[10px] ${selectedVoice === v.key ? 'text-primary' : 'text-slate-600'}`}>
+                                                        <div className={`text-xs ${selectedVoice === v.key ? 'text-primary' : 'text-slate-600'}`}>
                                                             {voiceDesc(v.key)}
                                                         </div>
                                                     </div>
@@ -1253,7 +1253,7 @@ export default function StoryArchive() {
 
                             <div className="space-y-4">
                                 <div>
-                                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-1.5 ml-1">
+                                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1.5 ml-1">
                                         Kindle E-Mail Adresse
                                     </label>
                                     <input
@@ -1278,7 +1278,7 @@ export default function StoryArchive() {
                                     Jetzt senden
                                 </button>
 
-                                <p className="text-[10px] text-slate-500 text-center leading-relaxed">
+                                <p className="text-xs text-slate-500 text-center leading-relaxed">
                                     Stelle sicher, dass <span className="text-slate-300 font-semibold">dirk.proessel@gmail.com</span> in deinem Amazon-Konto als zugelassener Absender eingetragen ist.
                                 </p>
                             </div>
@@ -1374,7 +1374,7 @@ export default function StoryArchive() {
                             <div className="w-12 h-12 bg-primary/20 text-primary rounded-2xl flex items-center justify-center mb-3 shadow-lg shadow-primary/10">
                                 <Wand2 className="w-7 h-7" />
                             </div>
-                            <h2 className="text-sm font-mono uppercase tracking-[0.25em] text-slate-300 font-bold">
+                            <h2 className="text-sm uppercase tracking-widest text-slate-300 font-bold">
                                 Werkzeugkasten
                             </h2>
                         </div>

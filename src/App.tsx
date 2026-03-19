@@ -144,7 +144,7 @@ function App() {
           <div className="absolute bottom-2 right-2 w-4 h-4 bg-primary rounded-full border-2 border-background shadow-[0_0_15px_rgba(34,197,94,0.3)]" />
         </div>
         <div className="flex flex-col items-center gap-3">
-          <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-slate-400 font-medium tracking-widest">Labor wird vorbereitet</span>
+          <span className="text-xs uppercase tracking-widest text-slate-400 font-medium">Labor wird vorbereitet</span>
           <div className="w-32 h-1 bg-slate-100 rounded-full overflow-hidden relative">
             <div className="absolute inset-0 bg-[#2D5A4C] w-1/3 rounded-full animate-shimmer" />
           </div>
@@ -158,8 +158,8 @@ function App() {
     return (
       <div className="min-h-screen bg-[#F8F9FA] flex flex-col items-center justify-center w-full p-6 text-center">
         <div className="w-16 h-16 bg-red-100 text-red-500 rounded-2xl flex items-center justify-center mb-4 text-2xl font-bold">!</div>
-        <h2 className="text-xl font-serif font-bold text-[#1A1C1E] mb-2">Verbindungsfehler</h2>
-        <p className="text-[#6B7280] text-sm mb-6 font-mono text-[11px] uppercase tracking-wider">{error}</p>
+        <h2 className="text-xl font-bold text-[#1A1C1E] mb-2">Verbindungsfehler</h2>
+        <p className="text-[#6B7280] text-xs mb-6 uppercase tracking-wider">{error}</p>
         <button onClick={() => fetchData()} className="btn-primary px-8">
           Erneut versuchen
         </button>
@@ -175,8 +175,8 @@ function App() {
          <div className="hidden lg:flex flex-col items-center gap-4 py-8 px-6 border-b border-slate-800/50">
            <img src="/logo.png" alt="Logo" className="w-24 h-24 object-contain mix-blend-screen" />
            <div className="text-center">
-             <h2 className="text-xl font-semibold text-text font-serif tracking-tight leading-tight">Kurzgeschichten-Labor</h2>
-             <p className="text-[9px] tracking-[0.2em] uppercase text-text-muted opacity-80 font-mono mt-1">
+             <h2 className="text-xl font-semibold text-text tracking-tight leading-tight">Kurzgeschichten-Labor</h2>
+             <p className="text-xs tracking-widest uppercase text-text-muted opacity-80 mt-1">
                Literatur auf Knopfdruck
              </p>
            </div>
@@ -197,14 +197,14 @@ function App() {
                    }
                  }}
                   className={`flex flex-col lg:flex-row items-center justify-center lg:justify-start gap-1 lg:gap-4 px-2 sm:px-4 lg:px-6 py-2 lg:py-3.5 rounded-xl lg:rounded-2xl transition-all relative group ${isActive
-                    ? 'text-primary bg-primary/10 lg:bg-primary/10'
+                    ? 'text-primary lg:bg-primary/10'
                     : 'text-slate-100 hover:text-white hover:bg-white/5'
                     }`}
                >
                  <div className={`transition-transform duration-300 ${key === 'create' ? '-rotate-90' : ''} group-hover:scale-110`}>
                    <Icon className={`w-5 h-5 lg:w-6 lg:h-6 ${isActive ? 'stroke-[3]' : 'stroke-[2.5]'}`} />
                  </div>
-                 <span className="text-[8px] lg:text-[11px] font-mono lg:font-inter lg:font-semibold uppercase lg:capitalize tracking-[0.25em] lg:tracking-normal font-medium">
+                 <span className="text-xs font-semibold uppercase lg:capitalize tracking-wider lg:tracking-normal">
                    {label}
                  </span>
                  
@@ -227,7 +227,7 @@ function App() {
                      <img src={user.avatar_url} className="w-full h-full object-cover" />
                    ) : <User className="w-4 h-4 text-slate-400" />}
                 </div>
-                <span className="text-[11px] font-semibold">Mein Profil</span>
+                <span className="text-xs font-semibold">Mein Profil</span>
               </button>
            </div>
          </div>
@@ -238,8 +238,8 @@ function App() {
             <div className="flex items-center gap-3">
                 <img src="/logo.png" alt="Logo" className="w-12 h-12 object-contain rounded-lg mix-blend-screen" />
                 <div>
-                  <h1 className="text-lg font-semibold text-text font-serif tracking-tight leading-tight">Kurzgeschichten-Labor</h1>
-                  <p className="text-[9px] tracking-[0.15em] uppercase text-text-muted opacity-80 font-mono">Literatur auf Knopfdruck</p>
+                  <h1 className="text-lg font-semibold text-text tracking-tight leading-tight">Kurzgeschichten-Labor</h1>
+                  <p className="text-xs tracking-widest uppercase text-text-muted opacity-80">Literatur auf Knopfdruck</p>
                 </div>
             </div>
             <button 
@@ -277,7 +277,7 @@ function App() {
            >
              {/* Dynamic Page Title (Responsive adjusting spacing) */}
              <div className="px-3 sm:px-6 mb-3 lg:mb-6 max-w-7xl mx-auto w-full">
-               <h1 className="text-lg lg:text-3xl font-bold text-text lg:text-white font-serif italic text-center lg:text-left opacity-60 lg:opacity-100">
+               <h1 className="text-lg lg:text-3xl font-bold text-text lg:text-white text-center lg:text-left opacity-60 lg:opacity-100">
                  {activeView === 'create' && 'Erstelle eine eigene Geschichte'}
                  {activeView === 'library' && 'Meine Entwürfe'}
                  {activeView === 'discover' && 'Entdecke neue Geschichten'}
@@ -303,27 +303,7 @@ function App() {
              </div>
            </main>
 
-           {/* Right Context Sidebar (Desktop Only) */}
-           <aside id="desktop-context-sidebar" className="hidden lg:flex w-80 h-full border-l border-slate-800/50 flex-col p-6 overflow-y-auto">
-              {/* Dynamic Content could be injected here or handled inside components via Portals/Layout state */}
-              <div className="flex flex-col gap-8">
-                 {activeView === 'create' && (
-                    <div className="flex flex-col gap-4">
-                       <h3 className="status-label text-primary">Editor Guide</h3>
-                       <p className="text-sm text-text-muted">Hier kannst du deine Geschichte verfeinern. Nutze rechts die KI-Tools zur Inspiration.</p>
-                    </div>
-                 )}
-                 {activeView === 'discover' && (
-                    <div className="flex flex-col gap-4">
-                       <h3 className="status-label text-primary">Filter & Suche</h3>
-                       <div id="sidebar-filters-portal" className="flex flex-col gap-4">
-                          {/* Portal for filters from StoryArchive */}
-                       </div>
-                    </div>
-                 )}
-                 {/* Persistent Audio Companion Placeholder for Sidebar if desired */}
-              </div>
-           </aside>
+
          </div>
        </div>
 

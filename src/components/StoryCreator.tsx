@@ -243,15 +243,15 @@ export default function StoryCreator() {
                                 </div>
                                 <button 
                                     onClick={() => setGeneratorRemix(null, null, null)}
-                                    className="text-[10px] uppercase font-bold tracking-wider px-2 py-1 bg-surface rounded-lg border border-slate-700 hover:border-primary transition-colors hover:text-white"
+                                    className="text-xs uppercase font-bold tracking-wider px-2 py-1 bg-surface rounded-lg border border-slate-700 hover:border-primary transition-colors hover:text-white"
                                 >
                                     Abbrechen
                                 </button>
                             </div>
                             {generatorContext && (
                                 <div className="bg-surface/60 p-3 rounded-xl border border-primary/10">
-                                    <h4 className="font-bold text-xs text-slate-200 truncate">{generatorContext.title}</h4>
-                                    <p className="text-[10px] text-slate-400 line-clamp-2 mt-0.5 leading-relaxed">{generatorContext.synopsis}</p>
+                                    <h4 className="font-bold text-sm text-slate-200 truncate">{generatorContext.title}</h4>
+                                    <p className="text-xs text-slate-400 line-clamp-2 mt-0.5 leading-relaxed">{generatorContext.synopsis}</p>
                                 </div>
                             )}
                         </div>
@@ -260,8 +260,7 @@ export default function StoryCreator() {
                     <div className="space-y-3">
                         <div className="flex items-center justify-between gap-4">
                             <div className="flex-1 flex items-center gap-2">
-                                <h3 className="text-[10px] uppercase font-bold tracking-wider text-slate-400 shrink-0">Deine Idee</h3>
-                                <div className="h-px flex-1 bg-slate-800/50" />
+                                <h3 className="text-xs uppercase font-bold tracking-wider text-slate-400 shrink-0">Deine Idee</h3>
                             </div>
                             <button
                                 onClick={handleDiceClick}
@@ -278,7 +277,7 @@ export default function StoryCreator() {
                                 value={freeText}
                                 onChange={(e) => setFreeText(e.target.value)}
                                 placeholder="Was soll passieren? Beschreibe Charakter, Ort oder den ersten Satz..."
-                                className="w-full px-5 py-4 bg-slate-800/40 border-2 border-slate-700/50 rounded-2xl text-sm lg:text-base focus:outline-none focus:border-primary transition-all placeholder:text-slate-500 resize-none pr-5 lg:pr-16 font-serif text-text min-h-[140px] lg:min-h-[160px] shadow-inner"
+                                className="w-full px-5 py-4 bg-slate-800/40 border-2 border-slate-700/50 rounded-2xl text-sm lg:text-base focus:outline-none focus:border-primary transition-all placeholder:text-slate-500 resize-none pr-5 lg:pr-16 text-text min-h-[140px] lg:min-h-[160px] shadow-inner"
                             />
                             <button
                                 onClick={isListening ? handleStopListening : handleStartListening}
@@ -301,9 +300,8 @@ export default function StoryCreator() {
                     
                     {/* Genre */}
                     <div>
-                             <div className="mb-1.5 flex items-center gap-2">
-                                <h3 className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Genre</h3>
-                            <div className="h-px flex-1 bg-slate-800/50" />
+                        <div className="mb-1.5 flex items-center gap-2">
+                                <h3 className="text-xs uppercase font-bold tracking-wider text-slate-400">Genre</h3>
                         </div>
                         <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
                             {(showAllGenres ? sortedGenres : sortedGenres.slice(0, BEST_OF_COUNT)).map(g => (
@@ -315,15 +313,15 @@ export default function StoryCreator() {
                                         : 'border-slate-700/50 bg-slate-800/60 text-slate-400 hover:border-slate-600'
                                         }`}
                                 >
-                                    <h4 className={`text-sm font-bold tracking-tight ${genre === g.value ? 'text-primary' : 'text-slate-300'}`}>{g.label}</h4>
-                                    <div className={`text-[11px] mt-0.5 leading-tight ${genre === g.value ? 'text-primary/70' : 'text-slate-500'}`}>{g.desc}</div>
+                                    <h4 className={`text-sm font-bold tracking-tight ${genre === g.value ? 'text-white' : 'text-slate-300'}`}>{g.label}</h4>
+                                    <div className={`text-xs mt-0.5 leading-tight ${genre === g.value ? 'text-white/80' : 'text-slate-500'}`}>{g.desc}</div>
                                 </button>
                             ))}
                         </div>
                         {!showAllGenres && sortedGenres.length > BEST_OF_COUNT && (
                             <button
                                 onClick={() => setShowAllGenres(true)}
-                                className="mt-2 w-full py-2 rounded-xl border border-dashed border-slate-800 text-[10px] uppercase font-bold text-slate-500 hover:border-slate-600 hover:text-slate-400 transition-all flex items-center justify-center gap-1"
+                                className="mt-2 w-full py-2 rounded-xl border border-dashed border-slate-800 text-xs uppercase font-bold text-slate-500 hover:border-slate-600 hover:text-slate-400 transition-all flex items-center justify-center gap-1"
                             >
                                 <ChevronDown className="w-3 h-3" />
                                 Weitere Genres
@@ -333,9 +331,8 @@ export default function StoryCreator() {
 
                     {/* Authors */}
                     <div>
-                             <div className="mb-1.5 flex items-center gap-2">
-                                <h3 className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Stil</h3>
-                            <div className="h-px flex-1 bg-slate-800/50" />
+                        <div className="mb-1.5 flex items-center gap-2">
+                                <h3 className="text-xs uppercase font-bold tracking-wider text-slate-400">Stil</h3>
                         </div>
                         <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
                             {(showAllAuthors ? sortedAuthors : sortedAuthors.slice(0, BEST_OF_COUNT)).map(s => {
@@ -349,8 +346,8 @@ export default function StoryCreator() {
                                             : 'border-slate-700/50 bg-slate-800/60 hover:border-slate-600 text-slate-300'
                                             }`}
                                     >
-                                        <h4 className={`text-sm font-bold ${isSelected ? 'text-text' : 'text-slate-300'}`}>{s.name}</h4>
-                                        <div className={`text-[11px] mt-0.5 ${isSelected ? 'text-primary' : 'text-slate-500'}`}>{s.desc}</div>
+                                        <h4 className={`text-sm font-bold tracking-tight ${isSelected ? 'text-white' : 'text-slate-300'}`}>{s.name}</h4>
+                                        <div className={`text-xs mt-0.5 ${isSelected ? 'text-white/80' : 'text-slate-500'}`}>{s.desc}</div>
                                     </button>
                                 );
                             })}
@@ -358,7 +355,7 @@ export default function StoryCreator() {
                         {!showAllAuthors && sortedAuthors.length > BEST_OF_COUNT && (
                             <button
                                 onClick={() => setShowAllAuthors(true)}
-                                className="mt-2 w-full py-2 rounded-xl border border-dashed border-slate-800 text-[10px] font-bold text-slate-500 hover:border-slate-600 hover:text-slate-400 transition-all flex items-center justify-center gap-1"
+                                className="mt-2 w-full py-2 rounded-xl border border-dashed border-slate-800 text-xs font-bold text-slate-500 hover:border-slate-600 hover:text-slate-400 transition-all flex items-center justify-center gap-1"
                             >
                                 <ChevronDown className="w-3 h-3" />
                                 Mehr Autoren
@@ -369,9 +366,8 @@ export default function StoryCreator() {
                     {/* Voice & Length */}
                     <div className="space-y-5">
                         <div>
-                                  <div className="mb-1.5 flex items-center gap-2">
-                                <h3 className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Dauer</h3>
-                                <div className="h-px flex-1 bg-slate-800/50" />
+                                <div className="mb-1.5 flex items-center gap-2">
+                                <h3 className="text-xs uppercase font-bold tracking-wider text-slate-400">Dauer</h3>
                             </div>
                             <div className="grid grid-cols-3 gap-2">
                                 {LENGTHS.map(l => (
@@ -383,24 +379,22 @@ export default function StoryCreator() {
                                             : 'border-slate-700/50 bg-slate-800/60 hover:border-slate-600'
                                             }`}
                                     >
-                                        <div className={`text-xs font-bold ${targetMinutes === l.value ? 'text-primary' : 'text-slate-300'}`}>{l.label}</div>
-                                        <div className={`text-[10px] ${targetMinutes === l.value ? 'text-primary' : 'text-slate-500'}`}>{l.sub}</div>
+                                        <div className={`text-sm font-bold tracking-tight ${targetMinutes === l.value ? 'text-white' : 'text-slate-300'}`}>{l.label}</div>
+                                        <div className={`text-xs ${targetMinutes === l.value ? 'text-white/80' : 'text-slate-500'}`}>{l.sub}</div>
                                     </button>
                                 ))}
                             </div>
                         </div>
 
                         <div>
-                                 <div className="mb-1.5 flex items-center gap-2">
-                                <h3 className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Erzähler</h3>
-                                <div className="h-px flex-1 bg-slate-800/50" />
+                                <div className="mb-1.5 flex items-center gap-2">
+                                <h3 className="text-xs uppercase font-bold tracking-wider text-slate-400">Erzähler</h3>
                             </div>
                             <div className="space-y-3">
                                 {/* Standard Voices */}
                                 <div className="space-y-3">
                                      <div className="mb-1.5 flex items-center gap-2">
-                                        <h4 className="text-[10px] font-bold tracking-wider text-slate-500">Standard-Stimmen</h4>
-                                        <div className="h-px flex-1 bg-slate-800/30" />
+                                        <h4 className="text-xs font-bold tracking-wider text-slate-500">Standard-Stimmen</h4>
                                     </div>
                                     <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
                                     {voices
@@ -417,15 +411,15 @@ export default function StoryCreator() {
                                         >
                                             <div className="flex-1 min-w-0 pr-1">
                                                 <div className="flex items-center gap-1.5 mb-0.5">
-                                                    <h4 className={`text-sm font-bold truncate ${voiceKey === v.key ? 'text-text' : 'text-slate-300'}`}>
+                                                    <h4 className={`text-sm font-bold truncate tracking-tight ${voiceKey === v.key ? 'text-white' : 'text-slate-300'}`}>
                                                         {v.key === 'none' ? 'Keine Stimme' : voiceName(v.key)}
                                                     </h4>
-                                                    <div className={`${voiceKey === v.key ? 'text-primary' : 'text-slate-600'}`}>
+                                                    <div className={`${voiceKey === v.key ? 'text-white' : 'text-slate-600'}`}>
                                                         {v.gender === 'female' ? <Venus className="w-3.5 h-3.5" /> :
                                                             v.gender === 'male' ? <Mars className="w-3.5 h-3.5" /> : <Users className="w-3.5 h-3.5" />}
                                                     </div>
                                                 </div>
-                                                <div className={`text-[11px] line-clamp-1 ${voiceKey === v.key ? 'text-primary/70' : 'text-slate-500'}`}>
+                                                <div className={`text-xs line-clamp-1 ${voiceKey === v.key ? 'text-white/80' : 'text-slate-500'}`}>
                                                     {v.key === 'none' ? 'Nur Text generieren' : voiceDesc(v.key)}
                                                 </div>
                                             </div>
@@ -444,9 +438,8 @@ export default function StoryCreator() {
 
                                 {/* Premium Voices */}
                                 <div className="space-y-3">
-                                    <div className="flex items-center gap-2">
-                                        <h4 className="text-[10px] font-bold tracking-wider text-slate-500">Premium-Stimmen</h4>
-                                        <div className="h-px flex-1 bg-slate-800/30" />
+                                    <div className="flex items-center gap-2 mb-1.5">
+                                        <h4 className="text-xs font-bold tracking-wider text-slate-500">Premium-Stimmen</h4>
                                     </div>
                                     <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
                                         {sortedVoices
@@ -463,15 +456,15 @@ export default function StoryCreator() {
                                             >
                                                 <div className="flex-1 min-w-0 pr-1">
                                                     <div className="flex items-center gap-1.5 mb-0.5">
-                                                        <h4 className={`text-sm font-bold truncate ${voiceKey === v.key ? 'text-text' : 'text-slate-300'}`}>
+                                                        <h4 className={`text-sm font-bold truncate tracking-tight ${voiceKey === v.key ? 'text-white' : 'text-slate-300'}`}>
                                                             {voiceName(v.key)}
                                                         </h4>
-                                                        <div className={`${voiceKey === v.key ? 'text-primary' : 'text-slate-600'}`}>
+                                                        <div className={`${voiceKey === v.key ? 'text-white' : 'text-slate-600'}`}>
                                                             {v.gender === 'female' ? <Venus className="w-3.5 h-3.5" /> :
                                                                 v.gender === 'male' ? <Mars className="w-3.5 h-3.5" /> : <Users className="w-3.5 h-3.5" />}
                                                         </div>
                                                     </div>
-                                                    <div className={`text-[10px] line-clamp-1 ${voiceKey === v.key ? 'text-primary/70' : 'text-slate-500'}`}>
+                                                    <div className={`text-xs line-clamp-1 ${voiceKey === v.key ? 'text-white/80' : 'text-slate-500'}`}>
                                                         {voiceDesc(v.key)}
                                                     </div>
                                                 </div>
@@ -487,7 +480,7 @@ export default function StoryCreator() {
                                     {sortedVoices.filter(v => !isStandardVoice(v.key)).length > 4 && (
                                         <button 
                                             onClick={() => setShowAllVoices(!showAllVoices)}
-                                            className="w-full flex items-center justify-center gap-2 p-2 rounded-xl border border-slate-800 text-[10px] font-bold text-slate-500 hover:text-slate-400 transition-all bg-slate-800/20"
+                                            className="w-full flex items-center justify-center gap-2 p-2 rounded-xl border border-slate-800 text-xs font-bold text-slate-500 hover:text-slate-400 transition-all bg-slate-800/20"
                                         >
                                             <span>{showAllVoices ? 'Weniger anzeigen' : `Alle Premiumstimmen (${sortedVoices.filter(v => !isStandardVoice(v.key)).length})`}</span>
                                             <ChevronDown className={`w-3 h-3 transition-transform ${showAllVoices ? 'rotate-180' : ''}`} />
@@ -506,7 +499,7 @@ export default function StoryCreator() {
                     <div className="absolute -inset-2 bg-background/40 backdrop-blur-xl rounded-full -z-10 border border-white/10 shadow-2xl" />
                     <button
                         onClick={handleGenerate}
-                        className="btn-primary px-10 py-4 lg:px-14 lg:py-5 text-lg lg:text-2xl font-serif shadow-2xl hover:scale-105 active:scale-95 transition-all"
+                        className="btn-primary px-10 py-4 lg:px-14 lg:py-5 text-lg lg:text-xl shadow-2xl hover:scale-105 active:scale-95 transition-all"
                     >
                         <Sparkles className="w-5 h-5 lg:w-7 lg:h-7 shrink-0" />
                         Geschichte erstellen

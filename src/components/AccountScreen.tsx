@@ -84,13 +84,13 @@ export default function AccountScreen() {
                         </button>
                     </div>
                     {user.is_admin && (
-                        <div className="absolute -top-1 -right-1 bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-lg border border-emerald-400 z-10">
+                        <div className="absolute -top-1 -right-1 bg-emerald-500 text-white text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-lg border border-emerald-400 z-10">
                             <Shield className="w-3 h-3" />
                             ADMIN
                         </div>
                     )}
                 </div>
-                <h2 className="text-2xl font-serif font-bold text-white tracking-tight">
+                <h2 className="text-2xl font-bold text-white tracking-tight">
                     {user.username || 'Dein Profil'}
                 </h2>
                 <div className="flex items-center justify-center gap-2 text-slate-400 text-sm">
@@ -155,7 +155,7 @@ export default function AccountScreen() {
                     </button>
                 </div>
                 
-                <p className="text-[10px] text-slate-500 leading-relaxed italic">
+                <p className="text-xs text-slate-500 leading-relaxed italic">
                     Wichtig: Füge "{user.email}" in deinem Amazon-Konto als genehmigte E-Mail hinzu.
                 </p>
             </div>
@@ -199,7 +199,7 @@ export default function AccountScreen() {
                             type="text"
                             readOnly
                             value={rssUrl}
-                            className="flex-1 px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-[10px] font-mono text-slate-400 outline-none"
+                            className="flex-1 px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-xs text-slate-400 outline-none"
                         />
                         <button
                             onClick={copyToClipboard}

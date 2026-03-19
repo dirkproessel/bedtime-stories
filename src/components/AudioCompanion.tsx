@@ -119,10 +119,10 @@ export default function AudioCompanion() {
 
                     {/* Title & info */}
                     <div className="flex-1 min-w-0 py-1 relative z-20 mt-1" onClick={() => setReaderOpen(true, story.id)}>
-                        <h3 className="text-[12px] font-serif font-bold text-slate-100 truncate leading-tight group-hover:text-primary transition-colors">
+                        <h3 className="text-xs font-bold text-slate-100 truncate leading-tight group-hover:text-primary transition-colors">
                             {story.title}
                         </h3>
-                        <p className="text-[9px] font-mono text-slate-500 uppercase tracking-widest truncate mt-0.5">
+                        <p className="text-xs text-slate-500 uppercase tracking-widest truncate mt-0.5">
                             {formatTime(currentTime)} / {formatTime(duration)}
                         </p>
                     </div>

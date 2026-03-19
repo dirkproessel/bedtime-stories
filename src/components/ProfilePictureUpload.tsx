@@ -158,7 +158,7 @@ export default function ProfilePictureUpload({ onUpload, onClose }: ProfilePictu
                 
                 {/* Header */}
                 <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-xl font-bold font-serif text-white">Profilbild ändern</h3>
+                    <h3 className="text-xl font-bold text-white">Profilbild ändern</h3>
                     <button onClick={onClose} className="p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors text-slate-300">
                         <X className="w-5 h-5" />
                     </button>
@@ -233,7 +233,7 @@ export default function ProfilePictureUpload({ onUpload, onClose }: ProfilePictu
                                     />
                                     <ZoomIn className="w-5 h-5" />
                                 </div>
-                                <p className="text-[10px] text-slate-500 text-center font-mono uppercase tracking-wider">
+                                <p className="text-xs text-slate-500 text-center uppercase tracking-wider">
                                     Bewege das Bild um den Fokus zu setzen
                                 </p>
                             </div>

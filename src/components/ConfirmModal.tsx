@@ -47,7 +47,7 @@ export default function ConfirmModal({
                             <AlertCircle className="w-8 h-8" />
                         </div>
 
-                        <h2 className="text-xl font-bold text-text mb-3 font-serif">
+                        <h2 className="text-xl font-bold text-text mb-3">
                             {title}
                         </h2>
                         

@@ -110,7 +110,7 @@ export default function AdminStoryManagement({ filterUserId, onClearFilter }: Pr
                             <span className="text-white font-medium truncate group-hover:text-emerald-400 transition-colors">
                                 {story.title}
                             </span>
-                            <div className="flex items-center gap-3 text-[10px] text-slate-500 uppercase tracking-wider font-mono">
+                            <div className="flex items-center gap-3 text-xs text-slate-500 uppercase tracking-wider">
                                 <span className="flex items-center gap-1"><UserIcon className="w-3 h-3" /> {story.user_email || 'System'}</span>
                                 <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {formatDuration(story.duration_seconds)}</span>
                                 <span className="text-slate-600 italic">{new Date(story.created_at).toLocaleDateString()}</span>
@@ -155,11 +155,11 @@ export default function AdminStoryManagement({ filterUserId, onClearFilter }: Pr
                 {isLoading && stories.length > 0 && (
                     <div className="flex flex-col items-center gap-2 animate-in fade-in duration-300">
                         <Loader2 className="w-6 h-6 text-emerald-500 animate-spin" />
-                        <span className="text-[10px] font-mono uppercase tracking-widest text-slate-500 font-bold">Lade mehr...</span>
+                        <span className="text-xs uppercase tracking-widest text-slate-500 font-bold">Lade mehr...</span>
                     </div>
                 )}
                 {!hasMore && stories.length > 0 && (
-                    <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-slate-700 font-bold">
+                    <div className="text-xs uppercase tracking-widest text-slate-700 font-bold">
                         Alle Geschichten geladen
                     </div>
                 )}
