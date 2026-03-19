@@ -176,10 +176,9 @@ function FlipStoryCard({ story, onPlay, onFavorite }: { story: any, onPlay: (id:
                     </div>
                 </div>
 
-                {/* Back Side */}
                 <div className={`absolute inset-0 backface-hidden rotate-y-180 rounded-3xl overflow-hidden border border-slate-700/50 bg-slate-900/95 backdrop-blur-xl p-3 flex flex-col shadow-2xl ${!isFlipped ? 'pointer-events-none' : ''}`}>
                     <div className="flex-1 min-h-0 no-scrollbar overflow-y-auto">
-                        <p className="text-[12px] text-slate-200 leading-[1.4] tracking-tight">
+                        <p className="text-[12px] text-slate-300 font-normal leading-[1.4] tracking-tight">
                             {story.description}
                         </p>
                     </div>
