@@ -173,7 +173,7 @@ function App() {
        <nav className="fixed bottom-0 left-0 right-0 lg:static lg:w-64 lg:h-screen bg-surface/80 lg:bg-surface backdrop-blur-xl lg:backdrop-blur-none border-t lg:border-t-0 lg:border-r border-slate-800 safe-area-bottom z-[100] flex flex-col">
          {/* Desktop Brand Logo */}
          <div className="hidden lg:flex flex-col items-center gap-4 py-8 px-6 border-b border-slate-800/50">
-           <img src="/logo.png" alt="Logo" className="w-24 h-24 object-contain rounded-xl mix-blend-screen" />
+           <img src="/logo.png" alt="Logo" className="w-24 h-24 object-contain mix-blend-screen" />
            <div className="text-center">
              <h2 className="text-xl font-semibold text-text font-serif tracking-tight leading-tight">Kurzgeschichten-Labor</h2>
              <p className="text-[9px] tracking-[0.2em] uppercase text-text-muted opacity-80 font-mono mt-1">
