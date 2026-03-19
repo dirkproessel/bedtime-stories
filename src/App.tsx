@@ -273,10 +273,10 @@ function App() {
            {/* Main Content Area */}
            <main 
              id="main-scroll-container" 
-             className="flex-1 overflow-y-auto pb-40 lg:pb-8 pt-4 lg:pt-8"
+             className="flex-1 overflow-y-auto pb-40 lg:pb-8 pt-2 lg:pt-8"
            >
              {/* Dynamic Page Title (Responsive adjusting spacing) */}
-             <div className="px-3 sm:px-6 mb-6 max-w-7xl mx-auto w-full">
+             <div className="px-3 sm:px-6 mb-3 lg:mb-6 max-w-7xl mx-auto w-full">
                <h1 className="text-lg lg:text-3xl font-bold text-text lg:text-white font-serif italic text-center lg:text-left opacity-60 lg:opacity-100">
                  {activeView === 'create' && 'Erstelle eine eigene Geschichte'}
                  {activeView === 'library' && 'Meine Entwürfe'}

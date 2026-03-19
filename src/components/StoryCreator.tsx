@@ -129,12 +129,25 @@ export default function StoryCreator() {
         recognition.continuous = true;
         recognition.interimResults = true;
 
+        if (isListening) return;
+        const initialText = freeText.trim();
+
         recognition.onresult = (event: any) => {
-            let transcript = '';
+            let sessionFinalPart = '';
+            let sessionInterimPart = '';
+            
             for (let i = 0; i < event.results.length; i++) {
-                transcript += event.results[i][0].transcript;
+                if (event.results[i].isFinal) {
+                    sessionFinalPart += event.results[i][0].transcript;
+                } else {
+                    sessionInterimPart += event.results[i][0].transcript;
+                }
             }
-            setFreeText(transcript);
+            
+            const sessionText = (sessionFinalPart + sessionInterimPart).trim();
+            if (sessionText) {
+                setFreeText(initialText + (initialText ? ' ' : '') + sessionText);
+            }
         };
 
         recognition.onend = () => setIsListening(false);
@@ -217,10 +230,10 @@ export default function StoryCreator() {
     return (
         <div className="pb-32 lg:pb-8">
             {/* Single column layout – same flow as mobile, just wider tiles */}
-            <div className="space-y-8">
+            <div className="space-y-5">
                 
                 {/* MAIN EDITOR / IDEA */}
-                <div className="space-y-8">
+                <div className="space-y-5">
                     {generatorParentId && (
                         <div className="p-4 bg-accent/20 border-2 border-primary/20 rounded-2xl animate-in slide-in-from-top-4 duration-300">
                             <div className="flex items-center justify-between mb-3 text-primary">
@@ -244,10 +257,10 @@ export default function StoryCreator() {
                         </div>
                     )}
 
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                         <div className="flex items-center justify-between gap-4">
                             <div className="flex-1 flex items-center gap-2">
-                                <h3 className="status-label text-primary shrink-0">Deine Idee</h3>
+                                <h3 className="text-[10px] uppercase font-bold tracking-wider text-slate-400 shrink-0">Deine Idee</h3>
                                 <div className="h-px flex-1 bg-slate-800/50" />
                             </div>
                             <button
@@ -284,12 +297,12 @@ export default function StoryCreator() {
                 </div>
 
                 {/* SETTINGS – below editor, full width */}
-                <div className="space-y-8">
+                <div className="space-y-5">
                     
                     {/* Genre */}
                     <div>
-                        <div className="mb-3 flex items-center gap-2">
-                            <h3 className="status-label text-primary">Genre</h3>
+                             <div className="mb-1.5 flex items-center gap-2">
+                                <h3 className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Genre</h3>
                             <div className="h-px flex-1 bg-slate-800/50" />
                         </div>
                         <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
@@ -320,8 +333,8 @@ export default function StoryCreator() {
 
                     {/* Authors */}
                     <div>
-                        <div className="mb-3 flex items-center gap-2">
-                            <h3 className="status-label text-primary">Stil</h3>
+                             <div className="mb-1.5 flex items-center gap-2">
+                                <h3 className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Stil</h3>
                             <div className="h-px flex-1 bg-slate-800/50" />
                         </div>
                         <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
@@ -354,10 +367,10 @@ export default function StoryCreator() {
                     </div>
 
                     {/* Voice & Length */}
-                    <div className="space-y-8">
+                    <div className="space-y-5">
                         <div>
-                             <div className="mb-3 flex items-center gap-2">
-                                <h3 className="status-label text-primary">Dauer</h3>
+                                  <div className="mb-1.5 flex items-center gap-2">
+                                <h3 className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Dauer</h3>
                                 <div className="h-px flex-1 bg-slate-800/50" />
                             </div>
                             <div className="grid grid-cols-3 gap-2">
@@ -378,15 +391,15 @@ export default function StoryCreator() {
                         </div>
 
                         <div>
-                            <div className="mb-3 flex items-center gap-2">
-                                <h3 className="status-label text-primary">Erzähler</h3>
+                                 <div className="mb-1.5 flex items-center gap-2">
+                                <h3 className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Erzähler</h3>
                                 <div className="h-px flex-1 bg-slate-800/50" />
                             </div>
-                            <div className="space-y-4">
+                            <div className="space-y-3">
                                 {/* Standard Voices */}
-                                <div className="space-y-4">
-                                    <div className="flex items-center gap-2">
-                                        <h4 className="text-[10px] uppercase font-bold tracking-wider text-slate-500">Standard-Stimmen</h4>
+                                <div className="space-y-3">
+                                     <div className="mb-1.5 flex items-center gap-2">
+                                        <h4 className="text-[10px] font-bold tracking-wider text-slate-500">Standard-Stimmen</h4>
                                         <div className="h-px flex-1 bg-slate-800/30" />
                                     </div>
                                     <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
@@ -430,9 +443,9 @@ export default function StoryCreator() {
                             </div>
 
                                 {/* Premium Voices */}
-                                <div className="space-y-4">
+                                <div className="space-y-3">
                                     <div className="flex items-center gap-2">
-                                        <h4 className="text-[10px] uppercase font-bold tracking-wider text-slate-500">Premium-Stimmen</h4>
+                                        <h4 className="text-[10px] font-bold tracking-wider text-slate-500">Premium-Stimmen</h4>
                                         <div className="h-px flex-1 bg-slate-800/30" />
                                     </div>
                                     <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
@@ -488,7 +501,7 @@ export default function StoryCreator() {
             </div>
 
             {/* Unified Floating Generate Button */}
-            <div className="fixed bottom-10 lg:bottom-12 left-0 right-0 flex justify-center z-40 pointer-events-none px-4">
+            <div className="fixed bottom-28 lg:bottom-12 left-0 right-0 flex justify-center z-[110] pointer-events-none px-4">
                 <div className="pointer-events-auto relative">
                     <div className="absolute -inset-2 bg-background/40 backdrop-blur-xl rounded-full -z-10 border border-white/10 shadow-2xl" />
                     <button
