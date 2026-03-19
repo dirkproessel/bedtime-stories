@@ -889,7 +889,7 @@ export default function StoryArchive() {
                     </div>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-6">
                     {stories.map(story => (
                         <div
                             key={story.id}
@@ -898,17 +898,17 @@ export default function StoryArchive() {
                             <div className="flex items-start gap-4">
                                 {story.image_url ? (
                                     <div
-                                        className="w-20 h-20 rounded-2xl overflow-hidden shrink-0 shadow-sm border border-slate-700 cursor-pointer"
+                                        className="w-24 h-24 lg:w-48 lg:h-48 rounded-[2rem] overflow-hidden shrink-0 shadow-md border border-slate-700/50 cursor-pointer"
                                         onClick={() => handlePlay(story.id)}
                                     >
-                                        <img src={getThumbUrl(story.id, story.updated_at)} alt={story.title} className="w-full h-full object-cover grayscale-[20%] scale-110" />
+                                        <img src={getThumbUrl(story.id, story.updated_at)} alt={story.title} className="w-full h-full object-cover grayscale-[10%] scale-105 hover:scale-110 transition-transform duration-500" />
                                     </div>
                                 ) : (
                                     <div
-                                        className="w-20 h-20 rounded-2xl bg-slate-900 flex items-center justify-center shrink-0 border border-slate-800 cursor-pointer"
+                                        className="w-24 h-24 lg:w-48 lg:h-48 rounded-[2rem] bg-slate-900 flex items-center justify-center shrink-0 border border-slate-800 cursor-pointer"
                                         onClick={() => handlePlay(story.id)}
                                     >
-                                        <BookOpen className="w-7 h-7 text-slate-700" />
+                                        <BookOpen className="w-10 h-10 text-slate-700" />
                                     </div>
                                 )}
                                 <div className="flex-1 min-w-0">
@@ -951,14 +951,6 @@ export default function StoryArchive() {
                             </div>
 
                             <div className="mt-3">
-                                {/* The Idea / Prompt (Only in Library) */}
-                                {archiveFilter === 'my' && (
-                                    <div className="bg-background/40 border border-slate-800/50 rounded-xl p-3 text-xs text-slate-500 italic mb-3">
-                                        <span className="font-bold uppercase tracking-wider text-xs block mb-1 text-slate-600 not-italic">Die Idee</span>
-                                        {story.prompt}
-                                    </div>
-                                )}
-
                                 {/* Progress/Status during generation/error */}
                                 {story.status === 'generating' && (
                                     <div className="mb-4 space-y-2 w-full">
@@ -996,13 +988,13 @@ export default function StoryArchive() {
                                     </div>
                                 )}
 
-                                {/* Full Synopsis - Show if available and NOT the initial 100-char prompt copy (which usually happens during very early generation) */}
                                 {story.description && (story.status === 'done' || (story.status === 'generating' && story.description.length > 100)) && (
                                     <div className="relative">
-                                        <p className={`text-sm text-text/90 leading-relaxed italic ${expandedStories.has(story.id) ? '' : 'line-clamp-3'}`}>
-                                            {story.description}{!expandedStories.has(story.id) && story.description.length > 150 ? '...' : ''}
+                                        <p className={`text-sm lg:text-base text-text/90 leading-relaxed italic ${archiveFilter === 'my' ? '' : (expandedStories.has(story.id) ? '' : 'line-clamp-3')}`}>
+                                            {story.description}
+                                            {archiveFilter !== 'my' && !expandedStories.has(story.id) && story.description.length > 150 ? '...' : ''}
                                         </p>
-                                        {!expandedStories.has(story.id) && story.description.length > 150 && (
+                                        {archiveFilter !== 'my' && !expandedStories.has(story.id) && story.description.length > 150 && (
                                             <div className="absolute bottom-0 right-0 h-5 pl-16 bg-gradient-to-l from-surface via-surface/90 to-transparent flex items-center">
                                                 <button 
                                                     onClick={(e) => { e.stopPropagation(); toggleExpand(story.id); }}
@@ -1012,7 +1004,7 @@ export default function StoryArchive() {
                                                 </button>
                                             </div>
                                         )}
-                                        {expandedStories.has(story.id) && (
+                                        {archiveFilter !== 'my' && expandedStories.has(story.id) && (
                                             <button 
                                                 onClick={(e) => { e.stopPropagation(); toggleExpand(story.id); }}
                                                 className="text-xs font-bold text-primary hover:text-emerald-400 mt-1 uppercase tracking-wider transition-colors block"
@@ -1372,25 +1364,30 @@ export default function StoryArchive() {
 
             {/* Toolbox Overlay */}
             {showToolbox && (
-                <div className="fixed inset-0 z-[100] flex items-end justify-center bg-background/70 backdrop-blur-sm animate-in fade-in duration-500">
+                <div className="fixed inset-0 z-[100] flex items-end lg:items-center justify-center lg:justify-end bg-background/70 backdrop-blur-sm animate-in fade-in duration-500">
                     <div 
                         className="fixed inset-0" 
                         onClick={() => setShowToolbox(null)}
                     />
-                    <div className="relative w-full max-w-md bg-surface/95 backdrop-blur-2xl border-t border-slate-800/50 rounded-t-[3rem] p-8 shadow-2xl animate-in slide-in-from-bottom duration-700 cubic-bezier(0.16, 1, 0.3, 1)">
-                        <div className="flex flex-col items-center mb-8">
-                            <div className="w-12 h-12 bg-primary/20 text-primary rounded-2xl flex items-center justify-center mb-3 shadow-lg shadow-primary/10">
-                                <Wand2 className="w-7 h-7" />
+                    <div className="relative w-full max-w-md lg:max-w-lg h-auto lg:h-full bg-surface/95 lg:bg-surface backdrop-blur-2xl border-t lg:border-t-0 lg:border-l border-slate-800/50 rounded-t-[3rem] lg:rounded-none p-8 lg:p-10 shadow-2xl animate-in slide-in-from-bottom lg:slide-in-from-right duration-700 cubic-bezier(0.16, 1, 0.3, 1)">
+                        <div className="flex flex-col items-center lg:items-start mb-8 lg:mb-12">
+                            <div className="w-12 h-12 lg:w-16 lg:h-16 bg-primary/20 text-primary rounded-2xl flex items-center justify-center mb-3 lg:mb-4 shadow-lg shadow-primary/10">
+                                <Wand2 className="w-7 h-7 lg:w-9 lg:h-9" />
                             </div>
-                            <h2 className="text-sm uppercase tracking-widest text-slate-300 font-bold">
+                            <h2 className="text-sm lg:text-base uppercase tracking-[0.2em] text-slate-300 font-bold">
                                 Werkzeugkasten
                             </h2>
+                            {activeToolboxStory && (
+                                <p className="hidden lg:block text-slate-500 text-sm mt-2 font-medium">
+                                    Optionen für "{activeToolboxStory.title}"
+                                </p>
+                            )}
                         </div>
                         <button
                             onClick={() => setShowToolbox(null)}
-                            className="absolute top-6 right-6 p-2.5 bg-slate-900/80 text-slate-500 hover:text-white rounded-full hover:bg-slate-800 transition-all active:scale-95"
+                            className="absolute top-6 right-6 lg:top-8 lg:right-8 p-3 bg-slate-900/80 text-slate-500 hover:text-white rounded-2xl hover:bg-slate-800 transition-all active:scale-95 border border-slate-800/50"
                         >
-                            <X className="w-5 h-5" />
+                            <X className="w-5 h-5 lg:w-6 lg:h-6" />
                         </button>
 
                         {activeToolboxStory && (
@@ -1405,10 +1402,10 @@ export default function StoryArchive() {
                                                 setRemixType('improvement'); 
                                                 setShowToolbox(null); 
                                             }}
-                                            className={itemClass}
+                                            className={`${itemClass} lg:p-4 lg:gap-4`}
                                         >
-                                            <Edit className="w-4 h-4 text-emerald-400 shrink-0" />
-                                            <span className={itemLabelClass}>Anpassen</span>
+                                            <Edit className="w-4 h-4 lg:w-5 lg:h-5 text-emerald-400 shrink-0" />
+                                            <span className={`${itemLabelClass} lg:text-sm`}>Anpassen</span>
                                         </button>
                                         <button 
                                             onClick={() => { 
@@ -1416,10 +1413,10 @@ export default function StoryArchive() {
                                                 setRemixType('sequel'); 
                                                 setShowToolbox(null); 
                                             }}
-                                            className={itemClass}
+                                            className={`${itemClass} lg:p-4 lg:gap-4`}
                                         >
-                                            <Sparkles className="w-4 h-4 text-emerald-500 shrink-0" />
-                                            <span className={itemLabelClass}>Fortsetzen</span>
+                                            <Sparkles className="w-4 h-4 lg:w-5 lg:h-5 text-emerald-500 shrink-0" />
+                                            <span className={`${itemLabelClass} lg:text-sm`}>Fortsetzen</span>
                                         </button>
                                     </div>
                                 </div>
@@ -1430,10 +1427,10 @@ export default function StoryArchive() {
                                     <div className={listClass}>
                                         {/* Publish Toggle - Only for own stories in library */}
                                         {archiveFilter === 'my' && activeToolboxStory.user_id === user?.id && (
-                                            <div className={`${itemClass} flex-col !items-start gap-1.5`}>
+                                            <div className={`${itemClass} flex-col !items-start gap-1.5 lg:p-4 lg:gap-3`}>
                                                 <div className="flex items-center gap-2">
-                                                    <Sparkles className="w-3.5 h-3.5 text-primary shrink-0" />
-                                                    <span className={itemLabelClass}>Veröffentlichen</span>
+                                                    <Sparkles className="w-3.5 h-3.5 lg:w-4 lg:h-4 text-primary shrink-0" />
+                                                    <span className={`${itemLabelClass} lg:text-sm`}>Veröffentlichen</span>
                                                 </div>
                                                 
                                                 <button 
@@ -1448,7 +1445,7 @@ export default function StoryArchive() {
                                                         }
                                                     }}
                                                     disabled={isPublicLoading === activeToolboxStory.id}
-                                                    className={`relative w-10 h-5 rounded-full transition-all duration-300 flex items-center p-0.5 ${
+                                                    className={`relative w-10 h-5 lg:w-12 lg:h-6 rounded-full transition-all duration-300 flex items-center p-0.5 ${
                                                         isPublicLoading === activeToolboxStory.id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
                                                     } ${
                                                         activeToolboxStory.is_public 
@@ -1456,11 +1453,11 @@ export default function StoryArchive() {
                                                             : 'bg-slate-800'
                                                     }`}
                                                 >
-                                                    <div className={`w-4 h-4 bg-[#0a0f1d] rounded-full shadow-sm transition-transform duration-300 transform ${
-                                                        activeToolboxStory.is_public ? 'translate-x-5' : 'translate-x-0'
+                                                    <div className={`w-4 h-4 lg:w-5 lg:h-5 bg-[#0a0f1d] rounded-full shadow-sm transition-transform duration-300 transform ${
+                                                        activeToolboxStory.is_public ? 'translate-x-5 lg:translate-x-6' : 'translate-x-0'
                                                     } flex items-center justify-center`}>
                                                         {isPublicLoading === activeToolboxStory.id && (
-                                                            <Loader2 className="w-2.5 h-2.5 animate-spin text-[#00F5D4]" />
+                                                            <Loader2 className="w-2.5 h-2.5 lg:w-3 lg:h-3 animate-spin text-[#00F5D4]" />
                                                         )}
                                                     </div>
                                                 </button>
@@ -1474,18 +1471,18 @@ export default function StoryArchive() {
                                                 window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
                                                 setShowToolbox(null);
                                             }}
-                                            className={itemClass}
+                                            className={`${itemClass} lg:p-4 lg:gap-4`}
                                         >
-                                            <MessageCircle className="w-4 h-4 text-green-500 shrink-0" />
-                                            <span className={itemLabelClass}>WhatsApp</span>
+                                            <MessageCircle className="w-4 h-4 lg:w-5 lg:h-5 text-green-500 shrink-0" />
+                                            <span className={`${itemLabelClass} lg:text-sm`}>WhatsApp</span>
                                         </button>
 
                                         <button 
                                             onClick={() => { setShowKindleModal(activeToolboxStory.id); setShowToolbox(null); }}
-                                            className={itemClass}
+                                            className={`${itemClass} lg:p-4 lg:gap-4`}
                                         >
-                                            <Send className="w-4 h-4 text-blue-400 shrink-0" />
-                                            <span className={itemLabelClass}>An Kindle</span>
+                                            <Send className="w-4 h-4 lg:w-5 lg:h-5 text-blue-400 shrink-0" />
+                                            <span className={`${itemLabelClass} lg:text-sm`}>An Kindle</span>
                                         </button>
                                     </div>
                                 </div>
@@ -1503,40 +1500,40 @@ export default function StoryArchive() {
                                                         setSelectedVoice(activeToolboxStory.voice_key || 'seraphina'); 
                                                         setShowToolbox(null); 
                                                     }}
-                                                    className={itemClass}
+                                                    className={`${itemClass} lg:p-4 lg:gap-4`}
                                                 >
-                                                    <Mic className="w-4 h-4 text-amber-500 shrink-0" />
-                                                    <span className={itemLabelClass}>Neu vertonen</span>
+                                                    <Mic className="w-4 h-4 lg:w-5 lg:h-5 text-amber-500 shrink-0" />
+                                                    <span className={`${itemLabelClass} lg:text-sm`}>Neu vertonen</span>
                                                 </button>
                                                 <button 
                                                     onClick={() => { handleRegenerateImage(activeToolboxStory.id); setShowToolbox(null); }}
-                                                    className={itemClass}
+                                                    className={`${itemClass} lg:p-4 lg:gap-4`}
                                                 >
-                                                    <ImageIcon className="w-4 h-4 text-indigo-400 shrink-0" />
-                                                    <span className={itemLabelClass}>Neues Bild</span>
+                                                    <ImageIcon className="w-4 h-4 lg:w-5 lg:h-5 text-indigo-400 shrink-0" />
+                                                    <span className={`${itemLabelClass} lg:text-sm`}>Neues Bild</span>
                                                 </button>
                                             </>
                                         )}
 
                                         {user?.is_admin && (
-                                            <div className={`${itemClass} flex-col !items-start gap-1.5`}>
+                                            <div className={`${itemClass} flex-col !items-start gap-1.5 lg:p-4 lg:gap-3`}>
                                                 <div className="flex items-center gap-2">
-                                                    <Play className="w-3.5 h-3.5 text-[#1DB954] shrink-0" />
-                                                    <span className={itemLabelClass}>Spotify</span>
+                                                    <Play className="w-3.5 h-3.5 lg:w-4 lg:h-4 text-[#1DB954] shrink-0" />
+                                                    <span className={`${itemLabelClass} lg:text-sm`}>Spotify</span>
                                                 </div>
                                                 <button 
                                                     onClick={() => {
                                                         handleSpotifyToggle(activeToolboxStory.id, !activeToolboxStory.is_on_spotify);
                                                         setShowToolbox(null);
                                                     }}
-                                                    className={`relative w-10 h-5 rounded-full transition-all duration-300 flex items-center p-0.5 cursor-pointer ${
+                                                    className={`relative w-10 h-5 lg:w-12 lg:h-6 rounded-full transition-all duration-300 flex items-center p-0.5 cursor-pointer ${
                                                         activeToolboxStory.is_on_spotify 
                                                             ? 'bg-[#1DB954] shadow-[0_0_12px_rgba(29,185,84,0.3)]' 
                                                             : 'bg-slate-800'
                                                     }`}
                                                 >
-                                                    <div className={`w-4 h-4 bg-[#0a0f1d] rounded-full shadow-sm transition-transform duration-300 transform ${
-                                                        activeToolboxStory.is_on_spotify ? 'translate-x-5' : 'translate-x-0'
+                                                    <div className={`w-4 h-4 lg:w-5 lg:h-5 bg-[#0a0f1d] rounded-full shadow-sm transition-transform duration-300 transform ${
+                                                        activeToolboxStory.is_on_spotify ? 'translate-x-5 lg:translate-x-6' : 'translate-x-0'
                                                     }`} />
                                                 </button>
                                             </div>
@@ -1545,10 +1542,10 @@ export default function StoryArchive() {
                                         {activeToolboxStory.user_id === user?.id && (
                                             <button 
                                                 onClick={() => { handleDelete(activeToolboxStory.id, activeToolboxStory.title); setShowToolbox(null); }}
-                                                className={`${itemClass} border-red-500/20 hover:bg-red-500/10 hover:border-red-500/40 group/delete col-span-2`}
+                                                className={`${itemClass} border-red-500/20 hover:bg-red-500/10 hover:border-red-500/40 group/delete col-span-2 lg:p-4 lg:gap-4`}
                                             >
-                                                <Trash2 className="w-4 h-4 text-red-500 shrink-0 opacity-70 group-hover/delete:opacity-100" />
-                                                <span className={`${itemLabelClass} group-hover/delete:text-red-500`}>Löschen</span>
+                                                <Trash2 className="w-4 h-4 lg:w-5 lg:h-5 text-red-500 shrink-0 opacity-70 group-hover/delete:opacity-100" />
+                                                <span className={`${itemLabelClass} lg:text-sm group-hover/delete:text-red-500`}>Löschen</span>
                                             </button>
                                         )}
                                     </div>
