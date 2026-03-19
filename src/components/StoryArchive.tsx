@@ -60,7 +60,7 @@ function HeroSection({ story, onPlay, onFavorite }: { story: any, onPlay: (id: s
     );
 }
 
-function CollectionRow({ title, stories, onPlay, onFavorite }: { title: string, stories: any[], onPlay: (id: string) => void, onFavorite: (id: string) => void }) {
+function CollectionRow({ title, stories, onPlay, onFavorite, onToolbox }: { title: string, stories: any[], onPlay: (id: string) => void, onFavorite: (id: string) => void, onToolbox: (id: string) => void }) {
     if (stories.length === 0) return null;
     const scrollRef = useRef<HTMLDivElement>(null);
     const [showLeft, setShowLeft] = useState(false);
@@ -95,6 +95,7 @@ function CollectionRow({ title, stories, onPlay, onFavorite }: { title: string, 
                                 story={s} 
                                 onPlay={onPlay} 
                                 onFavorite={onFavorite} 
+                                onToolbox={onToolbox}
                             />
                         </div>
                     ))}
@@ -124,7 +125,7 @@ function CollectionRow({ title, stories, onPlay, onFavorite }: { title: string, 
     );
 }
 
-function FlipStoryCard({ story, onPlay, onFavorite }: { story: any, onPlay: (id: string) => void, onFavorite: (id: string) => void }) {
+function FlipStoryCard({ story, onPlay, onFavorite, onToolbox }: { story: any, onPlay: (id: string) => void, onFavorite: (id: string) => void, onToolbox: (id: string) => void }) {
     const [isFlipped, setIsFlipped] = useState(false);
     if (!story) return null;
 
@@ -144,33 +145,51 @@ function FlipStoryCard({ story, onPlay, onFavorite }: { story: any, onPlay: (id:
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/20 to-transparent opacity-80" />
                     
-                    {/* Quick Play Icon */}
-                    <div className="absolute top-3 left-3 z-10">
+                    {/* Top Actions */}
+                    <div className="absolute top-3 left-3 right-3 z-10 flex items-center justify-between">
+                        {/* Play Button */}
                         <button
                             onClick={(e) => { e.stopPropagation(); onPlay(story.id); }}
-                            className="w-9 h-9 bg-primary text-white rounded-xl flex items-center justify-center shadow-lg active:scale-90 transition-transform"
+                            className="w-9 h-9 bg-primary text-white rounded-xl flex items-center justify-center shadow-lg active:scale-95 transition-all cursor-pointer"
                         >
                             <Play className="w-4 h-4 fill-current ml-0.5" />
                         </button>
-                    </div>
 
-                    {/* Heart Toggle */}
-                    <div className="absolute top-3 right-3 z-10">
-                        <button
-                            onClick={(e) => { e.stopPropagation(); onFavorite(story.id); }}
-                            className={`w-9 h-9 rounded-xl flex items-center justify-center border backdrop-blur-md transition-all active:scale-90 ${
-                                story.is_favorite 
-                                ? 'bg-red-500/20 border-red-500/50 text-red-500 shadow-lg shadow-red-500/10' 
-                                : 'bg-white/5 border-white/10 text-white/70 hover:text-white hover:bg-white/10'
-                            }`}
-                        >
-                            <Heart className={`w-4 h-4 ${story.is_favorite ? 'fill-current' : ''}`} />
-                        </button>
+                        {/* Grouped Actions (Heart & Toolbox) */}
+                        <div className="flex items-center bg-slate-900/40 backdrop-blur-md rounded-xl border border-white/10 p-0.5">
+                            {/* Heart Toggle */}
+                            <button
+                                onClick={(e) => { e.stopPropagation(); onFavorite(story.id); }}
+                                className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all active:scale-95 cursor-pointer ${
+                                    story.is_favorite 
+                                    ? 'text-red-500 bg-red-500/10' 
+                                    : 'text-white/70 hover:text-white hover:bg-white/5'
+                                }`}
+                            >
+                                <Heart className={`w-4 h-4 ${story.is_favorite ? 'fill-current' : ''}`} />
+                            </button>
+                            
+                            {/* Divider if both could be present */}
+                            <div className="w-px h-4 bg-white/10 mx-0.5" />
+
+                            {/* Toolbox Button */}
+                            <button
+                                onClick={(e) => { e.stopPropagation(); onToolbox(story.id); }}
+                                className="w-9 h-9 rounded-lg flex items-center justify-center text-white/70 hover:text-white hover:bg-white/5 transition-all active:scale-95 cursor-pointer"
+                            >
+                                <Wand2 className="w-4 h-4" />
+                            </button>
+                        </div>
                     </div>
 
                     <div className="absolute bottom-4 left-4 right-4">
-                        <div className="text-[10px] font-bold text-primary mb-1 uppercase tracking-wider">{story.genre}</div>
-                        <h4 className="text-[14px] font-bold text-white line-clamp-2 leading-tight drop-shadow-md">
+                        <div className="flex items-center gap-1.5 mb-1">
+                            <div className="text-[10px] font-bold text-primary uppercase tracking-wider">{story.genre}</div>
+                            {story.voice_key !== 'none' && (
+                                <Mic className="w-3 h-3 text-primary/70" />
+                            )}
+                        </div>
+                        <h4 className="text-[14px] font-bold text-white line-clamp-3 leading-tight drop-shadow-md">
                             {story.title}
                         </h4>
                     </div>
@@ -721,6 +740,7 @@ export default function StoryArchive() {
                         stories={stories.slice(1, 11)} 
                         onPlay={handlePlay} 
                         onFavorite={toggleFavorite}
+                        onToolbox={setShowToolbox}
                     />
                     
                     <CollectionRow 
@@ -728,6 +748,7 @@ export default function StoryArchive() {
                         stories={fairytales} 
                         onPlay={handlePlay} 
                         onFavorite={toggleFavorite}
+                        onToolbox={setShowToolbox}
                     />
 
                     <CollectionRow 
@@ -735,6 +756,7 @@ export default function StoryArchive() {
                         stories={adventure} 
                         onPlay={handlePlay} 
                         onFavorite={toggleFavorite}
+                        onToolbox={setShowToolbox}
                     />
 
                     <CollectionRow 
@@ -742,6 +764,7 @@ export default function StoryArchive() {
                         stories={sleepStories} 
                         onPlay={handlePlay} 
                         onFavorite={toggleFavorite}
+                        onToolbox={setShowToolbox}
                     />
 
                     <CollectionRow 
@@ -749,6 +772,7 @@ export default function StoryArchive() {
                         stories={scifi} 
                         onPlay={handlePlay} 
                         onFavorite={toggleFavorite}
+                        onToolbox={setShowToolbox}
                     />
                 </div>
             ) : archiveFilter === 'public' && !archiveSearch && archiveGenre.length > 0 ? (
@@ -769,6 +793,7 @@ export default function StoryArchive() {
                                 story={story} 
                                 onPlay={handlePlay} 
                                 onFavorite={toggleFavorite} 
+                                onToolbox={setShowToolbox}
                             />
                         ))}
                     </div>
@@ -782,6 +807,7 @@ export default function StoryArchive() {
                                 story={story} 
                                 onPlay={handlePlay} 
                                 onFavorite={toggleFavorite} 
+                                onToolbox={setShowToolbox}
                             />
                         ))}
                     </div>
