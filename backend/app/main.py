@@ -728,54 +728,60 @@ async def list_stories(
 ):
     """List stories with pagination and filtering."""
     try:
-        all_stories = store.get_all(genre=genre, search=search)
+        # Fetch stories with search but WITHOUT genre filter first to calculate available genres
+        all_stories_base = store.get_all(search=search)
         
-        if not all_stories:
+        if not all_stories_base:
             logger.info("API list_stories: No stories found in database.")
 
         # Fetch users to map IDs to display names (username or email)
         users_map = {u.id: (u.username or u.email) for u in store.get_all_users()}
 
-        # Calculate counts regardless of filter
-        stories_my_all = [s for s in all_stories if s.user_id == (current_user.id if current_user else None)]
-        total_my = len(stories_my_all)
-        
-        if current_user and current_user.is_admin:
-            # For admins, "public/all" count means "stories from others"
-            total_public = len([s for s in all_stories if s.user_id != current_user.id])
-        else:
-            total_public = len([s for s in all_stories if s.is_public])
-
         # Initial bucket: what is visible to this user?
-        accessible_stories = []
-        for s in all_stories:
+        accessible_stories_base = []
+        for s in all_stories_base:
             if s.is_public:
-                accessible_stories.append(s)
+                accessible_stories_base.append(s)
             elif current_user and (s.user_id == current_user.id or current_user.is_admin):
-                accessible_stories.append(s)
+                accessible_stories_base.append(s)
         
         # Apply user_id filter if provided (server-side)
         if user_id:
             can_filter_by_user = current_user and (current_user.is_admin or current_user.id == user_id)
             if not can_filter_by_user:
                 raise HTTPException(status_code=403, detail="Keine Berechtigung diesen Nutzer zu filtern.")
-            accessible_stories = [s for s in accessible_stories if s.user_id == user_id]
+            accessible_stories_base = [s for s in accessible_stories_base if s.user_id == user_id]
+
+        # Calculate base counts for the current search (respecting search but not genre)
+        stories_my_base = [s for s in accessible_stories_base if current_user and s.user_id == current_user.id]
+        total_my = len(stories_my_base)
+        
+        if current_user and current_user.is_admin:
+            total_public = len([s for s in accessible_stories_base if s.user_id != current_user.id])
+        else:
+            total_public = len([s for s in accessible_stories_base if s.is_public])
 
         # Apply UI filter (Selection from bucket)
         if filter == "my" and current_user:
-            stories_to_list = [s for s in accessible_stories if s.user_id == current_user.id]
+            stories_to_list_base = stories_my_base
         elif filter == "favorites" and current_user:
-            # Special case for favorites: Get directly from the store's specialized method
-            # but still filter by accessibility (though favorites should already be accessible)
             fav_stories = store.get_favorites(current_user.id)
             fav_ids = {s.id for s in fav_stories}
-            stories_to_list = [s for s in accessible_stories if s.id in fav_ids]
+            stories_to_list_base = [s for s in accessible_stories_base if s.id in fav_ids]
         elif filter == "public":
-            stories_to_list = [s for s in accessible_stories if s.is_public]
-        elif filter == "all" and current_user and current_user.is_admin:
-            stories_to_list = accessible_stories
+            stories_to_list_base = [s for s in accessible_stories_base if s.is_public]
         else:
-            stories_to_list = accessible_stories
+            stories_to_list_base = accessible_stories_base
+
+        # Calculate available genres for THIS view/search context (ignoring current genre selection)
+        available_genres = sorted(list(set(s.genre for s in stories_to_list_base if s.genre)))
+
+        # NOW apply the genre filter to the actual results
+        if genre:
+            genre_set = set(genre)
+            stories_to_list = [s for s in stories_to_list_base if s.genre in genre_set]
+        else:
+            stories_to_list = stories_to_list_base
             
         # Sort by creation date (newest first)
         stories_to_list.sort(key=lambda x: x.created_at, reverse=True)
@@ -797,7 +803,7 @@ async def list_stories(
                 s.is_favorite = s.id in fav_ids
 
         total = len(stories_to_list)
-        logger.info(f"API list_stories: Filter='{filter}', UserID='{user_id}', Total={total}")
+        logger.info(f"API list_stories: Filter='{filter}', UserID='{user_id}', GenreCount={len(genre) if genre else 0}, Total={total}")
         
         start = (page - 1) * page_size
         end = start + page_size
@@ -807,7 +813,8 @@ async def list_stories(
             stories=paginated_stories, 
             total=total,
             total_my=total_my,
-            total_public=total_public
+            total_public=total_public,
+            available_genres=available_genres
         )
     except HTTPException:
         raise

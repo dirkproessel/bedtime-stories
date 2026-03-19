@@ -60,7 +60,7 @@ function HeroSection({ story, onPlay, onFavorite }: { story: any, onPlay: (id: s
     );
 }
 
-function CollectionRow({ title, stories, onPlay }: { title: string, stories: any[], onPlay: (id: string) => void }) {
+function CollectionRow({ title, stories, onPlay, onFavorite }: { title: string, stories: any[], onPlay: (id: string) => void, onFavorite: (id: string) => void }) {
     if (stories.length === 0) return null;
     const scrollRef = useRef<HTMLDivElement>(null);
     const [showLeft, setShowLeft] = useState(false);
@@ -89,30 +89,13 @@ function CollectionRow({ title, stories, onPlay }: { title: string, stories: any
                     {stories.map(s => (
                         <div 
                             key={s.id} 
-                            onClick={() => onPlay(s.id)}
-                            className="shrink-0 w-[160px] sm:w-[190px] group/card cursor-pointer"
+                            className="shrink-0 w-[160px] sm:w-[190px]"
                         >
-                            <div className="relative aspect-[3/4] rounded-3xl overflow-hidden border border-slate-800 mb-3 transition-all duration-500 group-hover/card:scale-[1.03] group-hover/card:shadow-2xl group-hover/card:shadow-primary/10">
-                                <img 
-                                    src={getThumbUrl(s.id, s.updated_at)} 
-                                    alt={s.title} 
-                                    className="w-full h-full object-cover grayscale-[15%] scale-110 group-hover/card:grayscale-0 group-hover/card:scale-[1.15] transition-all duration-700" 
-                                />
-                                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/20 to-transparent opacity-60 group-hover/card:opacity-90 transition-opacity" />
-                                
-                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/card:opacity-100 transition-all">
-                                    <div className="w-12 h-12 bg-primary text-white rounded-full flex items-center justify-center shadow-2xl scale-75 group-hover/card:scale-100 transition-transform duration-300">
-                                        <Play className="w-6 h-6 fill-current ml-1" />
-                                    </div>
-                                </div>
-
-                                <div className="absolute bottom-3 left-3 right-3">
-                                    <div className="text-[10px] font-bold text-primary mb-1 uppercase tracking-wider">{s.genre}</div>
-                                    <h4 className="text-[13px] font-bold text-white line-clamp-2 leading-tight">
-                                        {s.title}
-                                    </h4>
-                                </div>
-                            </div>
+                            <FlipStoryCard 
+                                story={s} 
+                                onPlay={onPlay} 
+                                onFavorite={onFavorite} 
+                            />
                         </div>
                     ))}
                     {/* Ghost card for spacing */}
@@ -153,7 +136,7 @@ function FlipStoryCard({ story, onPlay, onFavorite }: { story: any, onPlay: (id:
             <div className={`relative w-full h-full transition-all duration-700 preserve-3d ${isFlipped ? 'rotate-y-180' : ''}`}>
                 
                 {/* Front Side */}
-                <div className="absolute inset-0 backface-hidden rounded-3xl overflow-hidden border border-slate-800 shadow-xl group-hover:shadow-primary/10 transition-shadow">
+                <div className={`absolute inset-0 backface-hidden rounded-3xl overflow-hidden border border-slate-800 shadow-xl group-hover:shadow-primary/10 transition-shadow ${isFlipped ? 'pointer-events-none' : ''}`}>
                     <img 
                         src={getThumbUrl(story.id, story.updated_at)} 
                         alt={story.title} 
@@ -194,74 +177,18 @@ function FlipStoryCard({ story, onPlay, onFavorite }: { story: any, onPlay: (id:
                 </div>
 
                 {/* Back Side */}
-                <div className="absolute inset-0 backface-hidden rotate-y-180 rounded-3xl overflow-hidden border border-slate-700/50 bg-slate-900/95 backdrop-blur-xl p-5 flex flex-col shadow-2xl">
-                    <div className="flex-1 min-h-0 no-scrollbar overflow-y-auto mb-2">
-                        <p className="font-serif text-[11px] text-slate-300 leading-relaxed italic">
+                <div className={`absolute inset-0 backface-hidden rotate-y-180 rounded-3xl overflow-hidden border border-slate-700/50 bg-slate-900/95 backdrop-blur-xl p-4 flex flex-col shadow-2xl ${!isFlipped ? 'pointer-events-none' : ''}`}>
+                    <div className="flex-1 min-h-0 no-scrollbar overflow-y-auto">
+                        <p className="font-serif text-[13px] text-slate-200 leading-relaxed italic">
                             {story.description}
                         </p>
                     </div>
-
-                    <div className="pt-2">
-                        <button
-                            onClick={(e) => { e.stopPropagation(); onPlay(story.id); }}
-                            className="w-full bg-primary/20 border border-primary/30 text-primary py-2 rounded-xl font-bold text-[11px] hover:bg-primary/30 transition-colors flex items-center justify-center gap-2 active:scale-95"
-                        >
-                            <Play className="w-3 h-3 fill-current" />
-                            Hören
-                        </button>
-                    </div>
                 </div>
             </div>
         </div>
     );
 }
 
-function DiscoveryCard({ story, onPlay, onFavorite }: { story: any, onPlay: (id: string) => void, onFavorite: (id: string) => void }) {
-    if (!story) return null;
-    return (
-        <div 
-            onClick={() => onPlay(story.id)}
-            className="relative aspect-[3/4] rounded-3xl overflow-hidden border border-slate-800 transition-all duration-500 hover:scale-[1.03] hover:shadow-2xl hover:shadow-primary/10 cursor-pointer group"
-        >
-            <img 
-                src={getThumbUrl(story.id, story.updated_at)} 
-                alt={story.title} 
-                className="w-full h-full object-cover grayscale-[15%] scale-110 group-hover:grayscale-0 group-hover:scale-[1.15] transition-all duration-700" 
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/20 to-transparent opacity-80 group-hover:opacity-90 transition-opacity" />
-            
-            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">
-                <div className="w-12 h-12 bg-primary text-white rounded-full flex items-center justify-center shadow-2xl scale-75 group-hover:scale-100 transition-transform duration-300">
-                    <Play className="w-6 h-6 fill-current ml-1" />
-                </div>
-            </div>
-
-            <div className="absolute top-3 right-3 z-10">
-                <button
-                    onClick={(e) => { 
-                        e.stopPropagation(); 
-                        onFavorite(story.id); 
-                    }}
-                    className={`w-9 h-9 rounded-xl flex items-center justify-center border backdrop-blur-md transition-all active:scale-90 ${
-                        story.is_favorite 
-                        ? 'bg-red-500/20 border-red-500/50 text-red-500 shadow-lg shadow-red-500/10' 
-                        : 'bg-white/5 border-white/10 text-white/70 hover:text-white hover:bg-white/10'
-                    }`}
-                    title={story.is_favorite ? "Aus Sammlung entfernen" : "Zur Sammlung hinzufügen"}
-                >
-                    <Heart className={`w-4 h-4 ${story.is_favorite ? 'fill-current' : ''}`} />
-                </button>
-            </div>
-
-            <div className="absolute bottom-4 left-4 right-4">
-                <div className="text-[10px] font-bold text-primary mb-1 uppercase tracking-wider">{story.genre}</div>
-                <h4 className="text-[14px] font-bold text-white line-clamp-2 leading-tight drop-shadow-md">
-                    {story.title}
-                </h4>
-            </div>
-        </div>
-    );
-}
 
 export default function StoryArchive() {
     const { 
@@ -276,7 +203,7 @@ export default function StoryArchive() {
         toggleFavorite,
         loadMoreStories, hasMore, isLoading,
         archiveGenre, archiveSearch, setArchiveGenre, setArchiveSearch, toggleArchiveGenre,
-        revoiceStory
+        revoiceStory, availableGenres
     } = useStore();
     const [selectedVoice, setSelectedVoice] = useState('seraphina');
     const [confirmRevoice, setConfirmRevoice] = useState(false);
@@ -349,13 +276,6 @@ export default function StoryArchive() {
         }
     };
 
-    const handleShuffle = () => {
-        if (stories.length > 0) {
-            const randomStory = stories[Math.floor(Math.random() * stories.length)];
-            handlePlay(randomStory.id);
-            toast.success('Zufällige Geschichte ausgewählt!', { icon: '🎲' });
-        }
-    };
 
     // Effect to switch to "public" if "my" is empty on first load
     useEffect(() => {
@@ -747,7 +667,7 @@ export default function StoryArchive() {
                                     >
                                         Alle
                                     </button>
-                                    {GENRES.map(g => (
+                                    {GENRES.filter(g => availableGenres.includes(g.value)).map(g => (
                                         <button
                                             key={g.value}
                                             onClick={() => handleGenreSelect(g.value)}
@@ -801,41 +721,36 @@ export default function StoryArchive() {
                         title="Neu im Labor" 
                         stories={stories.slice(1, 11)} 
                         onPlay={handlePlay} 
+                        onFavorite={toggleFavorite}
                     />
                     
                     <CollectionRow 
                         title="Zauberhafte Märchen" 
                         stories={fairytales} 
                         onPlay={handlePlay} 
+                        onFavorite={toggleFavorite}
                     />
 
                     <CollectionRow 
                         title="Action & Abenteuer" 
                         stories={adventure} 
                         onPlay={handlePlay} 
+                        onFavorite={toggleFavorite}
                     />
 
                     <CollectionRow 
                         title="Schlaf gut" 
                         stories={sleepStories} 
                         onPlay={handlePlay} 
+                        onFavorite={toggleFavorite}
                     />
 
                     <CollectionRow 
                         title="Zukunft & Weltraum" 
                         stories={scifi} 
                         onPlay={handlePlay} 
+                        onFavorite={toggleFavorite}
                     />
-                    
-                    <div className="fixed bottom-[90px] right-6 z-40">
-                        <button
-                            onClick={handleShuffle}
-                            className="w-14 h-14 bg-slate-900 border-2 border-primary/40 text-primary rounded-full flex items-center justify-center shadow-[0_8px_32px_rgba(34,197,94,0.3)] hover:scale-110 active:scale-95 transition-all group"
-                            title="Zufallsgeschichte"
-                        >
-                            <RefreshCw className="w-6 h-6 group-hover:rotate-180 transition-transform duration-500" />
-                        </button>
-                    </div>
                 </div>
             ) : archiveFilter === 'public' && !archiveSearch && archiveGenre.length > 0 ? (
                 <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -850,7 +765,7 @@ export default function StoryArchive() {
                     </h3>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-8 mb-12">
                         {stories.slice(1).map(story => (
-                            <DiscoveryCard 
+                            <FlipStoryCard 
                                 key={story.id} 
                                 story={story} 
                                 onPlay={handlePlay} 
@@ -861,11 +776,7 @@ export default function StoryArchive() {
                 </div>
             ) : archiveFilter === 'favorites' ? (
                 <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-                    <h3 className="text-xs font-bold uppercase tracking-[0.25em] text-slate-500 mb-6 ml-1 flex items-center gap-2.5">
-                        <Heart className="w-4 h-4 text-red-500" />
-                        Deine Schätze
-                    </h3>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-8 mb-12">
+<div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-8 mb-12">
                         {stories.map(story => (
                             <FlipStoryCard 
                                 key={story.id} 

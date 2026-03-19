@@ -40,6 +40,7 @@ interface AppState {
     archiveFilter: 'my' | 'all' | 'public' | 'favorites';
     archiveGenre: string[];
     archiveSearch: string | null;
+    availableGenres: string[];
     hasMore: boolean;
     setArchiveFilter: (filter: 'my' | 'all' | 'public' | 'favorites') => void;
     setArchiveGenre: (genre: string[]) => void;
@@ -128,6 +129,7 @@ export const useStore = create<AppState>((set, get) => {
     archiveFilter: 'my',
     archiveGenre: [],
     archiveSearch: null,
+    availableGenres: [],
     setArchiveFilter: (filter) => set({ archiveFilter: filter }),
     setArchiveGenre: (genre) => set({ archiveGenre: genre }),
     toggleArchiveGenre: (genre) => set((state) => ({ 
@@ -257,13 +259,14 @@ export const useStore = create<AppState>((set, get) => {
                 genre: archiveGenre.length > 0 ? archiveGenre : undefined,
                 search: archiveSearch || undefined
             });
-            const { stories, total, total_my, total_public } = res;
+            const { stories, total, total_my, total_public, available_genres } = res;
             set({ 
                 stories, 
                 totalStories: total,
                 totalMyStories: total_my,
                 totalPublicStories: total_public,
                 currArchivePage: page,
+                availableGenres: available_genres || [],
                 hasMore: stories.length === pageSize && stories.length < (archiveFilter === 'my' ? total_my : archiveFilter === 'public' ? total_public : total)
             });
         } catch (e: any) {
@@ -289,7 +292,7 @@ export const useStore = create<AppState>((set, get) => {
                 genre: archiveGenre.length > 0 ? archiveGenre : undefined,
                 search: archiveSearch || undefined
             });
-            const { stories: newStories, total, total_my, total_public } = res;
+            const { stories: newStories, total, total_my, total_public, available_genres } = res;
             
             const updatedStories = [...existingStories, ...newStories];
             set({ 
@@ -298,6 +301,7 @@ export const useStore = create<AppState>((set, get) => {
                 totalMyStories: total_my,
                 totalPublicStories: total_public,
                 currArchivePage: nextPage,
+                availableGenres: available_genres || [],
                 hasMore: newStories.length === pageSize && updatedStories.length < (archiveFilter === 'my' ? total_my : archiveFilter === 'public' ? total_public : total)
             });
         } catch (e: any) {

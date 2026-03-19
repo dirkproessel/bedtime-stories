@@ -159,4 +159,5 @@ class StoryListResponse(BaseModel):
     total: int
     total_my: int = 0
     total_public: int = 0
+    available_genres: list[str] = []
 

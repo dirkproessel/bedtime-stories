@@ -215,7 +215,8 @@ export async function fetchStories(params: {
     stories: StoryMeta[], 
     total: number,
     total_my: number,
-    total_public: number
+    total_public: number,
+    available_genres: string[]
 }> {
     const { page = 1, pageSize = 30, filter = 'all', userId, genre, search } = params;
     let url = `${API_BASE}/api/stories?page=${page}&page_size=${pageSize}&filter=${filter}`;

@@ -217,7 +217,11 @@ function App() {
           {activeView === 'create' && 'Erstelle eine eigene Geschichte'}
           {activeView === 'library' && 'Meine Entwürfe'}
           {activeView === 'discover' && 'Entdecke neue Geschichten'}
-          {activeView === 'favorites' && 'Meine Sammlung'}
+          {activeView === 'favorites' && (
+            <span className="flex items-center justify-center gap-2">
+              Meine <Heart className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-500 fill-current inline-block" /> Sammlung
+            </span>
+          )}
           {activeView === 'profile' && 'Mein Profil'}
           {activeView === 'admin' && 'Adminbereich'}
           {activeView === 'login' && (localStorage.getItem('is_registering') === 'true' ? 'Konto erstellen' : 'Willkommen zurück')}
