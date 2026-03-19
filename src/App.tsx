@@ -173,9 +173,9 @@ function App() {
        <nav className="fixed bottom-0 left-0 right-0 lg:static lg:w-64 lg:h-screen bg-surface/80 lg:bg-surface backdrop-blur-xl lg:backdrop-blur-none border-t lg:border-t-0 lg:border-r border-slate-800 safe-area-bottom z-[100] flex flex-col">
          {/* Desktop Brand Logo */}
           <div className="hidden lg:flex flex-col items-center gap-4 py-8 px-6 border-b border-slate-800/50">
-            <div className="w-24 h-24 overflow-hidden flex items-center justify-center">
-              <img src="/logo.png" alt="Logo" className="w-full h-full object-contain mix-blend-screen scale-[1.4]" />
-            </div>
+          <div className="w-24 h-24 flex items-center justify-center">
+            <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
+          </div>
            <div className="text-center">
              <h2 className="text-xl font-semibold text-text tracking-tight leading-tight">Kurzgeschichten-Labor</h2>
              <p className="text-xs tracking-widest uppercase text-text-muted opacity-80 mt-1">
@@ -238,8 +238,8 @@ function App() {
        <div className="flex-1 flex flex-col relative h-screen overflow-hidden">
           <header className="lg:hidden h-16 shrink-0 flex items-center justify-between px-4 bg-background/80 backdrop-blur-md border-b border-slate-800/50 sticky top-0 z-40">
             <div className="flex items-center gap-3">
-                <div className="w-14 h-14 overflow-hidden flex items-center justify-center">
-                    <img src="/logo.png" alt="Logo" className="w-full h-full object-contain mix-blend-screen scale-[1.4]" />
+                <div className="w-14 h-14 flex items-center justify-center">
+                    <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
                 </div>
                 <div>
                   <h1 className="text-lg font-semibold text-text tracking-tight leading-tight">Kurzgeschichten-Labor</h1>
