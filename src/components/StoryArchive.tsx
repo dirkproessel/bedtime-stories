@@ -26,7 +26,7 @@ function HeroSection({ story, onPlay, onFavorite }: { story: any, onPlay: (id: s
             <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-10">
                 <div className="flex items-center gap-2 mb-3">
                     <span className="px-2 py-0.5 bg-primary/20 border border-primary/30 text-primary text-[10px] font-bold uppercase tracking-wider rounded-md backdrop-blur-md">
-                        Empfehlung des Labors
+                        storyja-Empfehlung
                     </span>
                 </div>
                 <h2 className="text-3xl sm:text-4xl font-serif font-bold text-white mb-3 leading-tight drop-shadow-lg">
@@ -89,7 +89,7 @@ function CollectionRow({ title, stories, onPlay, onFavorite, onToolbox }: { titl
                     {stories.map(s => (
                         <div 
                             key={s.id} 
-                            className="shrink-0 w-[160px] sm:w-[190px]"
+                            className="shrink-0 w-[180px] sm:w-[240px]"
                         >
                             <FlipStoryCard 
                                 story={s} 
@@ -186,7 +186,7 @@ function FlipStoryCard({ story, onPlay, onFavorite, onToolbox }: { story: any, o
                         <div className="flex items-center gap-1.5 mb-1">
                             <div className="text-[10px] font-bold text-primary uppercase tracking-wider">{story.genre}</div>
                             {story.voice_key !== 'none' && (
-                                <Mic className="w-3 h-3 text-primary/70" />
+                                <Mic className="w-3 h-3 text-primary/70" strokeWidth={3} />
                             )}
                         </div>
                         <h4 className="text-[14px] font-bold text-white line-clamp-3 leading-tight drop-shadow-md">
@@ -736,7 +736,7 @@ export default function StoryArchive() {
                     />
                     
                     <CollectionRow 
-                        title="Neu im Labor" 
+                        title="Neu bei storyja" 
                         stories={stories.slice(1, 11)} 
                         onPlay={handlePlay} 
                         onFavorite={toggleFavorite}
