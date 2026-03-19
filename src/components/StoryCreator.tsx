@@ -215,12 +215,12 @@ export default function StoryCreator() {
     };
 
     return (
-        <div className="pb-32 lg:pb-0">
-            {/* Split layout on Desktop */}
-            <div className="lg:grid lg:grid-cols-12 lg:gap-12 lg:items-start">
+        <div className="pb-32 lg:pb-8">
+            {/* Single column layout – same flow as mobile, just wider tiles */}
+            <div className="space-y-8">
                 
-                {/* LEFT: MAIN EDITOR / IDEA (8 cols) */}
-                <div className="lg:col-span-7 space-y-8">
+                {/* MAIN EDITOR / IDEA */}
+                <div className="space-y-8">
                     {generatorParentId && (
                         <div className="p-4 bg-accent/20 border-2 border-primary/20 rounded-2xl animate-in slide-in-from-top-4 duration-300">
                             <div className="flex items-center justify-between mb-3 text-primary">
@@ -296,8 +296,8 @@ export default function StoryCreator() {
                     </div>
                 </div>
 
-                {/* RIGHT: SETTINGS (4 cols) */}
-                <div className="lg:col-span-5 mt-8 lg:mt-0 space-y-8 lg:sticky lg:top-8">
+                {/* SETTINGS – below editor, full width */}
+                <div className="space-y-8">
                     
                     {/* Genre */}
                     <div>
@@ -305,7 +305,7 @@ export default function StoryCreator() {
                             <h3 className="status-label text-primary">Genre</h3>
                             <div className="h-px flex-1 bg-slate-800/50" />
                         </div>
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
                             {(showAllGenres ? sortedGenres : sortedGenres.slice(0, BEST_OF_COUNT)).map(g => (
                                 <button
                                     key={g.value}
@@ -337,7 +337,7 @@ export default function StoryCreator() {
                             <h3 className="status-label text-primary">Stil</h3>
                             <div className="h-px flex-1 bg-slate-800/50" />
                         </div>
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
                             {(showAllAuthors ? sortedAuthors : sortedAuthors.slice(0, BEST_OF_COUNT)).map(s => {
                                 const isSelected = selectedAuthors.includes(s.id);
                                 return (
