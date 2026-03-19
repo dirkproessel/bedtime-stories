@@ -862,7 +862,7 @@ export default function StoryArchive() {
                         <BookOpen className="w-4 h-4 text-primary" />
                         {archiveGenre.length === 1 ? archiveGenre[0] : 'Entdeckungen'}
                     </h3>
-                    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-x-4 gap-y-8 mb-12">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-4 gap-y-8 mb-12">
                         {stories.slice(1).map(story => (
                             <FlipStoryCard 
                                 key={story.id} 
@@ -876,7 +876,7 @@ export default function StoryArchive() {
                 </div>
             ) : archiveFilter === 'favorites' ? (
                 <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-                    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-x-4 gap-y-8 mb-12">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-4 gap-y-8 mb-12">
                         {stories.map(story => (
                             <FlipStoryCard 
                                 key={story.id} 

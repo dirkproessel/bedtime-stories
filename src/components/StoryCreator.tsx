@@ -215,7 +215,7 @@ export default function StoryCreator() {
     };
 
     return (
-        <div className="pb-20">
+        <div className="pb-32 lg:pb-0">
             {/* Split layout on Desktop */}
             <div className="lg:grid lg:grid-cols-12 lg:gap-12 lg:items-start">
                 
@@ -485,7 +485,7 @@ export default function StoryCreator() {
             </div>
 
             {/* Mobile Generate Button (Hidden on Desktop) */}
-            <div className="lg:hidden fixed bottom-[64px] left-0 right-0 flex justify-center z-40 pointer-events-none px-4">
+            <div className="lg:hidden fixed bottom-24 left-0 right-0 flex justify-center z-40 pointer-events-none px-4">
                 <div className="pointer-events-auto relative">
                     <div className="absolute -inset-1.5 bg-background/30 backdrop-blur-md rounded-full -z-10 border border-white/5" />
                     <button

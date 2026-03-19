@@ -234,53 +234,43 @@ function App() {
        </nav>
 
        <div className="flex-1 flex flex-col relative h-screen overflow-hidden">
-         {/* Global Brand Header (Mobile Only) */}
-         <header className="lg:hidden pt-2 px-3 sm:px-6 pb-1 max-w-2xl mx-auto w-full flex items-center justify-between">
-           <div className="flex items-center gap-3 sm:gap-5 text-left">
-               <div className="shrink-0 mt-1">
-                 <img src="/logo.png" alt="Logo" className="w-18 h-18 sm:w-22 sm:h-22 object-contain" />
-               </div>
-               <div className="flex flex-col">
-                 <h2 className="text-xl sm:text-2xl font-semibold text-text mb-0.5 font-serif tracking-tight leading-tight">Kurzgeschichten-Labor</h2>
-                 <p className="text-[11px] tracking-widest uppercase text-text-muted opacity-80 font-mono">
-                   Literatur auf Knopfdruck
-                 </p>
-               </div>
-           </div>
-  
-           {/* Profile Avatar Button (Mobile) */}
-           <button 
-             onClick={() => {
+          <header className="lg:hidden h-16 shrink-0 flex items-center justify-between px-4 bg-background/80 backdrop-blur-md border-b border-slate-800/50 sticky top-0 z-40">
+            <div className="flex items-center gap-2">
+                <img src="/logo.png" alt="Logo" className="w-8 h-8 rounded-lg" />
+                <h1 className="text-xl font-serif font-bold text-white uppercase tracking-tight">storyja</h1>
+            </div>
+            <button 
+              onClick={() => {
                 setActiveView('profile');
                 if (useStore.getState().isReaderOpen) {
                     useStore.getState().setReaderOpen(false);
                 }
-             }}
-             className="shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-surface border-2 border-slate-800 hover:border-slate-700 transition-colors shadow-sm overflow-hidden"
-           >
-             {user ? (
-               user.avatar_url ? (
-                 <img 
-                   src={user.avatar_url.replace('.jpg', '_thumb.jpg') + "?t=" + Date.now()} 
-                   alt="Avatar" 
-                   className="w-full h-full object-cover" 
-                 />
-               ) : (
-                 <span className="text-sm font-bold text-slate-300 uppercase">
-                   {user.email.charAt(0)}
-                 </span>
-               )
-             ) : (
-               <User className="w-5 h-5 text-slate-400" />
-             )}
-           </button>
-         </header>
+              }}
+              className="shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-surface border-2 border-slate-800 hover:border-slate-700 transition-colors shadow-sm overflow-hidden"
+            >
+              {user ? (
+                user.avatar_url ? (
+                  <img 
+                    src={user.avatar_url.replace('.jpg', '_thumb.jpg') + "?t=" + Date.now()} 
+                    alt="Avatar" 
+                    className="w-full h-full object-cover" 
+                  />
+                ) : (
+                  <span className="text-sm font-bold text-slate-300 uppercase">
+                    {user.email.charAt(0)}
+                  </span>
+                )
+              ) : (
+                <User className="w-5 h-5 text-slate-400" />
+              )}
+            </button>
+          </header>
 
          <div className="flex flex-1 overflow-hidden">
            {/* Main Content Area */}
            <main 
              id="main-scroll-container" 
-             className="flex-1 overflow-y-auto pb-24 lg:pb-8 pt-4 lg:pt-8"
+             className="flex-1 overflow-y-auto pb-40 lg:pb-8 pt-4 lg:pt-8"
            >
              {/* Dynamic Page Title (Responsive adjusting spacing) */}
              <div className="px-3 sm:px-6 mb-6 max-w-7xl mx-auto w-full">
