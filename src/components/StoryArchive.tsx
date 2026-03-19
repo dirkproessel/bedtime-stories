@@ -1,4 +1,5 @@
 import { useStore } from '../store/useStore';
+import { createPortal } from 'react-dom';
 import { deleteStory, getVoicePreviewUrl, exportStoryToKindle, getThumbUrl, getImageUrl, regenerateStoryImage } from '../lib/api';
 import { Play, Trash2, Heart, BookOpen, Loader2, Mic, X, Venus, Mars, Users, Pause, Send, Image as ImageIcon, RefreshCw, Sparkles, Settings2, MessageCircle, Timer, Wand2, Edit, Feather, User as UserIcon, Search, ChevronLeft, ChevronRight, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -13,7 +14,7 @@ import { GENRES } from './StoryCreator';
 function HeroSection({ story, onPlay, onFavorite }: { story: any, onPlay: (id: string) => void, onFavorite: (id: string) => void }) {
     if (!story) return null;
     return (
-        <div className="relative w-full h-[320px] sm:h-[400px] mb-8 rounded-[2.5rem] overflow-hidden group cursor-pointer border border-slate-800 shadow-2xl animate-in fade-in zoom-in-95 duration-500" onClick={() => onPlay(story.id)}>
+        <div className="relative w-full h-[320px] sm:h-[400px] lg:h-[500px] mb-8 rounded-[2.5rem] overflow-hidden group cursor-pointer border border-slate-800 shadow-2xl animate-in fade-in zoom-in-95 duration-500" onClick={() => onPlay(story.id)}>
             <div className="absolute inset-0 overflow-hidden">
                 <img 
                     src={getImageUrl(story.id, story.updated_at)} 
@@ -538,9 +539,84 @@ export default function StoryArchive() {
     }
 
     return (
-        <div className="px-3 py-4 sm:p-6 max-w-2xl mx-auto">
-            {/* V2: Two-Level Extensible Filter Bar */}
-            <div className={`mb-4 sticky top-0 z-30 bg-background/80 backdrop-blur-md pb-2 -mx-3 px-3 sm:-mx-6 sm:px-6 transition-all duration-300 ${isScrolled ? 'border-b border-primary/20 shadow-sm' : 'border-transparent'}`}>
+        <div className="px-3 py-4 sm:p-6 w-full mx-auto">
+            {/* Desktop Filters (Portalled to Sidebar) */}
+            {typeof document !== 'undefined' && document.getElementById('desktop-context-sidebar') && createPortal(
+                <div className="hidden lg:block space-y-8">
+                    {/* Search Section */}
+                    <div>
+                        <div className="mb-3 flex items-center gap-2">
+                            <h3 className="status-label text-primary">Suchen</h3>
+                            <div className="h-px flex-1 bg-slate-800/50" />
+                        </div>
+                        <div className="relative group">
+                            <input 
+                                type="text"
+                                value={searchValue}
+                                onChange={(e) => setSearchValue(e.target.value)}
+                                placeholder="Titel oder Thema..."
+                                className="w-full pl-10 pr-4 py-3 bg-surface border-2 border-slate-800 rounded-2xl text-sm focus:outline-none focus:border-primary transition-all placeholder:text-slate-600"
+                            />
+                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within:text-primary transition-colors" />
+                            {searchValue && (
+                                <button 
+                                    onClick={() => { setSearchValue(''); setArchiveSearch(null); }}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-600 hover:text-white"
+                                >
+                                    <X className="w-3.5 h-3.5" />
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Genre Section (Vertical) */}
+                    <div>
+                        <div className="mb-3 flex items-center gap-2">
+                            <h3 className="status-label text-primary">Genre</h3>
+                            <div className="h-px flex-1 bg-slate-800/50" />
+                        </div>
+                        <div className="space-y-1.5 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                            <button
+                                onClick={() => handleGenreSelect(null)}
+                                className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all border-2 ${
+                                    archiveGenre.length === 0
+                                        ? 'bg-primary/10 border-primary text-primary' 
+                                        : 'bg-slate-900 border-slate-800 text-slate-500 hover:border-slate-700'
+                                }`}
+                            >
+                                <span>Alle</span>
+                                {archiveGenre.length === 0 && <div className="w-1.5 h-1.5 rounded-full bg-primary" />}
+                            </button>
+                            {GENRES.filter(g => availableGenres.includes(g.value)).map(g => (
+                                <button
+                                    key={g.value}
+                                    onClick={() => handleGenreSelect(g.value)}
+                                    className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all border-2 ${
+                                        archiveGenre.includes(g.value)
+                                            ? 'bg-primary/10 border-primary text-primary' 
+                                            : 'bg-slate-900 border-slate-800 text-slate-500 hover:border-slate-700'
+                                    }`}
+                                >
+                                    <span className="truncate">{g.label}</span>
+                                    {archiveGenre.includes(g.value) && <div className="w-1.5 h-1.5 rounded-full bg-primary" />}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Stats or extra info could go here */}
+                    <div className="pt-8 border-t border-slate-800/30">
+                        <div className="flex items-center justify-between text-[10px] uppercase font-bold tracking-widest text-slate-600">
+                            <span>Total</span>
+                            <span>{totalPublicStories} Geschichten</span>
+                        </div>
+                    </div>
+                </div>,
+                document.getElementById('desktop-context-sidebar')!
+            )}
+
+            {/* Mobile Filter Bar (Hidden on Desktop) */}
+            <div className={`lg:hidden mb-4 sticky top-0 z-30 bg-background/80 backdrop-blur-md pb-2 -mx-3 px-3 sm:-mx-6 sm:px-6 transition-all duration-300 ${isScrolled ? 'border-b border-primary/20 shadow-sm' : 'border-transparent'}`}>
                 <div className="relative flex items-center h-10 bg-surface/50 border border-slate-800 rounded-2xl overflow-hidden transition-all duration-300">
                     
                     {filterLevel === 'main' && (
@@ -786,7 +862,7 @@ export default function StoryArchive() {
                         <BookOpen className="w-4 h-4 text-primary" />
                         {archiveGenre.length === 1 ? archiveGenre[0] : 'Entdeckungen'}
                     </h3>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-8 mb-12">
+                    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-x-4 gap-y-8 mb-12">
                         {stories.slice(1).map(story => (
                             <FlipStoryCard 
                                 key={story.id} 
@@ -800,7 +876,7 @@ export default function StoryArchive() {
                 </div>
             ) : archiveFilter === 'favorites' ? (
                 <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-<div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-8 mb-12">
+                    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-x-4 gap-y-8 mb-12">
                         {stories.map(story => (
                             <FlipStoryCard 
                                 key={story.id} 
@@ -813,7 +889,7 @@ export default function StoryArchive() {
                     </div>
                 </div>
             ) : (
-                <div className="space-y-3">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     {stories.map(story => (
                         <div
                             key={story.id}

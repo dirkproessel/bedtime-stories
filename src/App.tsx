@@ -167,151 +167,215 @@ function App() {
     );
   }
 
-  return (
-    <div className="min-h-screen bg-background flex flex-col w-full relative overflow-hidden">
-      {/* Global Brand Header */}
-      <header className="pt-2 px-3 sm:px-6 pb-1 max-w-2xl mx-auto w-full flex items-center justify-between">
-        <div className="flex items-center gap-3 sm:gap-5 text-left">
-            <div className="shrink-0 mt-1">
-              <img src="/logo.png" alt="Logo" className="w-18 h-18 sm:w-22 sm:h-22 object-contain" />
-            </div>
-            <div className="flex flex-col">
-              <h2 className="text-xl sm:text-2xl font-semibold text-text mb-0.5 font-serif tracking-tight leading-tight">Kurzgeschichten-Labor</h2>
-              <p className="text-[11px] tracking-widest uppercase text-text-muted opacity-80 font-mono">
-                Literatur auf Knopfdruck
-              </p>
-            </div>
-        </div>
+   return (
+     <div className="min-h-screen bg-background flex flex-col lg:flex-row w-full relative overflow-hidden">
+       {/* Sidebar Navigation (Desktop) / Bottom Nav (Mobile) */}
+       <nav className="fixed bottom-0 left-0 right-0 lg:static lg:w-64 lg:h-screen bg-surface/80 lg:bg-surface backdrop-blur-xl lg:backdrop-blur-none border-t lg:border-t-0 lg:border-r border-slate-800 safe-area-bottom z-[100] flex flex-col">
+         {/* Desktop Brand Logo */}
+         <div className="hidden lg:flex flex-col items-center gap-4 py-8 px-6 border-b border-slate-800/50">
+           <img src="/logo.png" alt="Logo" className="w-24 h-24 object-contain" />
+           <div className="text-center">
+             <h2 className="text-xl font-semibold text-text font-serif tracking-tight leading-tight">Kurzgeschichten-Labor</h2>
+             <p className="text-[9px] tracking-[0.2em] uppercase text-text-muted opacity-80 font-mono mt-1">
+               Literatur auf Knopfdruck
+             </p>
+           </div>
+         </div>
 
-        {/* Profile Avatar Button */}
-        <button 
-          onClick={() => {
-             setActiveView('profile');
-             if (useStore.getState().isReaderOpen) {
-                 useStore.getState().setReaderOpen(false);
-             }
-          }}
-          className="shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-surface border-2 border-slate-800 hover:border-slate-700 transition-colors shadow-sm overflow-hidden"
-        >
-          {user ? (
-            user.avatar_url ? (
-              <img 
-                src={user.avatar_url.replace('.jpg', '_thumb.jpg') + "?t=" + Date.now()} 
-                alt="Avatar" 
-                className="w-full h-full object-cover" 
-              />
-            ) : (
-              <span className="text-sm font-bold text-slate-300 uppercase">
-                {user.email.charAt(0)}
-              </span>
-            )
-          ) : (
-            <User className="w-5 h-5 text-slate-400" />
-          )}
-        </button>
-      </header>
+         {/* Nav Items Container */}
+         <div className="max-w-2xl lg:max-w-none mx-auto lg:mx-0 flex lg:flex-col items-center lg:items-stretch justify-around lg:justify-start py-1 lg:py-6 px-2 lg:px-4 gap-2 lg:flex-1">
+           {NAV_ITEMS.map(({ key, label, icon: Icon }) => {
+             const isActive = activeView === key;
+             
+             return (
+               <button
+                 key={key}
+                 onClick={() => {
+                   setActiveView(key);
+                   if (useStore.getState().isReaderOpen) {
+                     useStore.getState().setReaderOpen(false);
+                   }
+                 }}
+                 className={`flex flex-col lg:flex-row items-center gap-1 lg:gap-4 px-4 lg:px-6 py-1.5 lg:py-3.5 rounded-xl lg:rounded-2xl transition-all relative group ${isActive
+                   ? 'text-primary bg-primary/5 lg:bg-primary/10'
+                   : 'text-slate-100 hover:text-white hover:bg-white/5'
+                   }`}
+               >
+                 <div className={`transition-transform duration-300 ${key === 'create' ? '-rotate-90' : ''} group-hover:scale-110`}>
+                   <Icon className={`w-5 h-5 lg:w-6 lg:h-6 ${isActive ? 'stroke-[3]' : 'stroke-[2.5]'}`} />
+                 </div>
+                 <span className="text-[8px] lg:text-[11px] font-mono lg:font-inter lg:font-semibold uppercase lg:capitalize tracking-[0.25em] lg:tracking-normal font-medium">
+                   {label}
+                 </span>
+                 
+                 {/* Desktop Active Indicator */}
+                 {isActive && (
+                   <div className="hidden lg:block absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r-full shadow-[0_0_15px_rgba(34,197,94,0.5)]" />
+                 )}
+               </button>
+             );
+           })}
 
-      {/* Dynamic Page Title */}
-      <div className="px-3 sm:px-6 pb-1 max-w-2xl mx-auto w-full text-center">
-        <h1 className="text-sm sm:text-lg font-bold text-text-muted/60 font-serif italic">
-          {activeView === 'create' && 'Erstelle eine eigene Geschichte'}
-          {activeView === 'library' && 'Meine Entwürfe'}
-          {activeView === 'discover' && 'Entdecke neue Geschichten'}
-          {activeView === 'favorites' && (
-            <span className="flex items-center justify-center gap-2">
-              Meine <Heart className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-500 fill-current inline-block" /> Sammlung
-            </span>
-          )}
-          {activeView === 'profile' && 'Mein Profil'}
-          {activeView === 'admin' && 'Adminbereich'}
-          {activeView === 'login' && (localStorage.getItem('is_registering') === 'true' ? 'Konto erstellen' : 'Willkommen zurück')}
-        </h1>
-      </div>
-
-      {/* Reader Layer (z-40) */}
-      <ReaderLayer />
-
-      <Toaster 
-        position="top-center" 
-        toastOptions={{
-          duration: 3000,
-          style: {
-            background: 'rgba(23, 32, 35, 0.95)',
-            color: '#E2E8F0',
-            backdropFilter: 'blur(16px)',
-            WebkitBackdropFilter: 'blur(16px)',
-            border: '1px solid rgba(34, 197, 94, 0.2)',
-            borderRadius: '1.25rem',
-            fontSize: '14px',
-            fontWeight: '500',
-            padding: '12px 20px',
-            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-          },
-          success: {
-            iconTheme: {
-              primary: '#22C55E',
-              secondary: '#FFFFFF',
-            },
-          },
-          error: {
-            iconTheme: {
-              primary: '#EF4444',
-              secondary: '#FFFFFF',
-            },
-            style: {
-              border: '1px solid rgba(239, 68, 68, 0.2)',
-            }
-          },
-        }}
-      />
-      <main id="main-scroll-container" className="flex-1 overflow-y-auto pb-24">
-        {activeView === 'login' && <LoginScreen />}
-        {activeView === 'create' && <StoryCreator />}
-        {activeView === 'discover' && <StoryArchive key="discover" />}
-        {activeView === 'library' && <StoryArchive key="library" />}
-        {activeView === 'favorites' && <StoryArchive key="favorites" />}
-        {activeView === 'profile' && <AccountScreen />}
-        {activeView === 'admin' && <AdminDashboard />}
-      </main>
-
-      {/* persistent audio companion (z-60) */}
-      <AudioCompanion />
-
-      {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-surface/80 backdrop-blur-xl border-t border-slate-800 safe-area-bottom z-[100]">
-        <div className="max-w-2xl mx-auto flex items-center justify-around py-1 sm:py-1.5 px-2">
-          {NAV_ITEMS.map(({ key, label, icon: Icon }) => {
-            const isActive = activeView === key;
-            
-            return (
-              <button
-                key={key}
-                onClick={() => {
-                  setActiveView(key);
-                  if (useStore.getState().isReaderOpen) {
-                    useStore.getState().setReaderOpen(false);
-                  }
-                }}
-                className={`flex flex-col items-center gap-1 px-4 py-1.5 rounded-xl transition-all relative ${isActive
-                  ? 'text-primary'
-                  : 'text-slate-100 hover:text-white'
-                  }`}
+           {/* Desktop Admin/Profile Link Area */}
+           <div className="hidden lg:flex flex-col mt-auto pt-6 gap-2 border-t border-slate-800/50">
+              <button 
+                onClick={() => setActiveView('profile')}
+                className={`flex items-center gap-4 px-6 py-3.5 rounded-2xl transition-all ${activeView === 'profile' ? 'text-primary bg-primary/10' : 'text-slate-100 hover:bg-white/5'}`}
               >
-                <div className={`transition-transform duration-300 ${key === 'create' ? '-rotate-90' : ''}`}>
-                  <Icon className={`w-5 h-5 ${isActive ? 'stroke-[3]' : 'stroke-[2.5]'}`} />
+                <div className="w-6 h-6 rounded-full border border-slate-700 overflow-hidden flex items-center justify-center bg-surface">
+                   {user?.avatar_url ? (
+                     <img src={user.avatar_url} className="w-full h-full object-cover" />
+                   ) : <User className="w-4 h-4 text-slate-400" />}
                 </div>
-                <span className="text-[8px] font-mono uppercase tracking-[0.25em] font-medium">
-                  {label}
-                </span>
-
+                <span className="text-[11px] font-semibold">Mein Profil</span>
               </button>
-            );
-          })}
-        </div>
-      </nav>
+           </div>
+         </div>
+       </nav>
 
-    </div>
-  );
-}
+       <div className="flex-1 flex flex-col relative h-screen overflow-hidden">
+         {/* Global Brand Header (Mobile Only) */}
+         <header className="lg:hidden pt-2 px-3 sm:px-6 pb-1 max-w-2xl mx-auto w-full flex items-center justify-between">
+           <div className="flex items-center gap-3 sm:gap-5 text-left">
+               <div className="shrink-0 mt-1">
+                 <img src="/logo.png" alt="Logo" className="w-18 h-18 sm:w-22 sm:h-22 object-contain" />
+               </div>
+               <div className="flex flex-col">
+                 <h2 className="text-xl sm:text-2xl font-semibold text-text mb-0.5 font-serif tracking-tight leading-tight">Kurzgeschichten-Labor</h2>
+                 <p className="text-[11px] tracking-widest uppercase text-text-muted opacity-80 font-mono">
+                   Literatur auf Knopfdruck
+                 </p>
+               </div>
+           </div>
+  
+           {/* Profile Avatar Button (Mobile) */}
+           <button 
+             onClick={() => {
+                setActiveView('profile');
+                if (useStore.getState().isReaderOpen) {
+                    useStore.getState().setReaderOpen(false);
+                }
+             }}
+             className="shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-surface border-2 border-slate-800 hover:border-slate-700 transition-colors shadow-sm overflow-hidden"
+           >
+             {user ? (
+               user.avatar_url ? (
+                 <img 
+                   src={user.avatar_url.replace('.jpg', '_thumb.jpg') + "?t=" + Date.now()} 
+                   alt="Avatar" 
+                   className="w-full h-full object-cover" 
+                 />
+               ) : (
+                 <span className="text-sm font-bold text-slate-300 uppercase">
+                   {user.email.charAt(0)}
+                 </span>
+               )
+             ) : (
+               <User className="w-5 h-5 text-slate-400" />
+             )}
+           </button>
+         </header>
+
+         <div className="flex flex-1 overflow-hidden">
+           {/* Main Content Area */}
+           <main 
+             id="main-scroll-container" 
+             className="flex-1 overflow-y-auto pb-24 lg:pb-8 pt-4 lg:pt-8"
+           >
+             {/* Dynamic Page Title (Responsive adjusting spacing) */}
+             <div className="px-3 sm:px-6 mb-6 max-w-7xl mx-auto w-full">
+               <h1 className="text-lg lg:text-3xl font-bold text-text lg:text-white font-serif italic text-center lg:text-left opacity-60 lg:opacity-100">
+                 {activeView === 'create' && 'Erstelle eine eigene Geschichte'}
+                 {activeView === 'library' && 'Meine Entwürfe'}
+                 {activeView === 'discover' && 'Entdecke neue Geschichten'}
+                 {activeView === 'favorites' && (
+                   <span className="flex items-center justify-center lg:justify-start gap-2">
+                     Meine <Heart className="w-3.5 h-3.5 lg:w-6 lg:h-6 text-red-500 fill-current inline-block" /> Sammlung
+                   </span>
+                 )}
+                 {activeView === 'profile' && 'Mein Profil'}
+                 {activeView === 'admin' && 'Adminbereich'}
+                 {activeView === 'login' && (localStorage.getItem('is_registering') === 'true' ? 'Konto erstellen' : 'Willkommen zurück')}
+               </h1>
+             </div>
+
+             <div className="max-w-7xl mx-auto w-full px-3 sm:px-6">
+                {activeView === 'login' && <LoginScreen />}
+                {activeView === 'create' && <StoryCreator />}
+                {activeView === 'discover' && <StoryArchive key="discover" />}
+                {activeView === 'library' && <StoryArchive key="library" />}
+                {activeView === 'favorites' && <StoryArchive key="favorites" />}
+                {activeView === 'profile' && <AccountScreen />}
+                {activeView === 'admin' && <AdminDashboard />}
+             </div>
+           </main>
+
+           {/* Right Context Sidebar (Desktop Only) */}
+           <aside id="desktop-context-sidebar" className="hidden lg:flex w-80 h-full border-l border-slate-800/50 flex-col p-6 overflow-y-auto">
+              {/* Dynamic Content could be injected here or handled inside components via Portals/Layout state */}
+              <div className="flex flex-col gap-8">
+                 {activeView === 'create' && (
+                    <div className="flex flex-col gap-4">
+                       <h3 className="status-label text-primary">Editor Guide</h3>
+                       <p className="text-sm text-text-muted">Hier kannst du deine Geschichte verfeinern. Nutze rechts die KI-Tools zur Inspiration.</p>
+                    </div>
+                 )}
+                 {activeView === 'discover' && (
+                    <div className="flex flex-col gap-4">
+                       <h3 className="status-label text-primary">Filter & Suche</h3>
+                       <div id="sidebar-filters-portal" className="flex flex-col gap-4">
+                          {/* Portal for filters from StoryArchive */}
+                       </div>
+                    </div>
+                 )}
+                 {/* Persistent Audio Companion Placeholder for Sidebar if desired */}
+              </div>
+           </aside>
+         </div>
+       </div>
+
+       {/* Reader Layer (z-40) */}
+       <ReaderLayer />
+
+       <Toaster 
+         position="top-center" 
+         toastOptions={{
+           duration: 3000,
+           style: {
+             background: 'rgba(23, 32, 35, 0.95)',
+             color: '#E2E8F0',
+             backdropFilter: 'blur(16px)',
+             WebkitBackdropFilter: 'blur(16px)',
+             border: '1px solid rgba(34, 197, 94, 0.2)',
+             borderRadius: '1.25rem',
+             fontSize: '14px',
+             fontWeight: '500',
+             padding: '12px 20px',
+             boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+           },
+           success: {
+             iconTheme: {
+               primary: '#22C55E',
+               secondary: '#FFFFFF',
+             },
+           },
+           error: {
+             iconTheme: {
+               primary: '#EF4444',
+               secondary: '#FFFFFF',
+             },
+             style: {
+               border: '1px solid rgba(239, 68, 68, 0.2)',
+             }
+           },
+         }}
+       />
+
+       {/* persistent audio companion (z-60) */}
+       <AudioCompanion />
+
+     </div>
+   );
+ }
 
 export default App;
