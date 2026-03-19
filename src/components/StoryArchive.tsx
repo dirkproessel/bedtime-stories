@@ -278,10 +278,12 @@ function ManagementStoryCard({
                             <BookOpen className="w-4 h-4 text-slate-600" />
                             {story.word_count || 1427} Worte
                         </div>
-                        <div className="flex items-center gap-2 text-[12px] font-semibold text-slate-500">
-                            <Clock className="w-4 h-4 text-slate-600" />
-                            {formatDuration(story.duration_seconds)} Min ({voiceName(story.voice_key)})
-                        </div>
+                        {story.voice_key !== 'none' && (
+                            <div className="flex items-center gap-2 text-[12px] font-semibold text-slate-500">
+                                <Clock className="w-4 h-4 text-slate-600" />
+                                {formatDuration(story.duration_seconds)} Min ({voiceName(story.voice_key)})
+                            </div>
+                        )}
                     </div>
                     <div className="mt-1">
                         {story.is_public ? (
@@ -1247,199 +1249,168 @@ export default function StoryArchive() {
                         </button>
 
                         {activeToolboxStory && (
-                            <div className="max-h-[70vh] overflow-y-auto custom-scrollbar pr-2 pb-10 space-y-6">
+                            <div className="max-h-[70vh] overflow-y-auto custom-scrollbar pr-2 pb-10 flex flex-col gap-0.5">
                                 {/* Remix Labor */}
-                                <div className="bg-slate-900/50 border border-slate-800 rounded-3xl p-5 lg:p-6 shadow-xl shadow-black/20 overflow-hidden">
-                                    <div className="flex items-center gap-2 mb-4 px-2">
-                                        <RefreshCw className="w-4 h-4 text-primary" />
-                                        <span className="text-[11px] lg:text-xs uppercase tracking-[0.25em] text-slate-500 font-black">Remix Labor</span>
+                                <div className="text-[10px] uppercase text-slate-500 font-bold tracking-widest mt-1 mb-1.5 px-3">Remix Labor</div>
+                                
+                                <button 
+                                    onClick={() => { setShowRemixModal(activeToolboxStory.id); setRemixType('sequel'); setShowToolbox(null); }}
+                                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-800/50 transition-all group/btn"
+                                >
+                                    <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-primary/10 transition-colors group-hover/btn:bg-primary/20">
+                                        <Play className="w-4 h-4 text-primary fill-current" />
                                     </div>
-                                    <div className="grid grid-cols-1 gap-3">
-                                        <button 
-                                            onClick={() => { setShowRemixModal(activeToolboxStory.id); setRemixType('sequel'); setShowToolbox(null); }}
-                                            className="w-full flex items-center gap-4 p-4 lg:p-5 bg-surface border border-slate-800 rounded-2xl hover:border-primary/50 hover:bg-slate-800/50 transition-all group/btn"
-                                        >
-                                            <div className="w-10 h-10 lg:w-12 lg:h-12 bg-primary/10 rounded-xl flex items-center justify-center shrink-0 transition-colors group-hover/btn:bg-primary/20">
-                                                <Play className="w-5 h-5 lg:w-6 lg:h-6 text-primary fill-current" />
-                                            </div>
-                                            <div className="text-left flex-1 min-w-0">
-                                                <div className="text-sm lg:text-base font-black text-white">Fortsetzung schreiben</div>
-                                                <div className="text-[11px] lg:text-xs text-slate-500 mt-0.5 line-clamp-1 font-medium italic">Nächstes Kapitel basierend auf dem Vorherigen</div>
-                                            </div>
-                                        </button>
+                                    <div className="text-left flex-1 text-[13px] font-semibold text-slate-200">
+                                        Fortsetzung schreiben
+                                    </div>
+                                </button>
 
-                                        <button 
-                                            onClick={() => { setShowRemixModal(activeToolboxStory.id); setRemixType('improvement'); setShowToolbox(null); }}
-                                            className="w-full flex items-center gap-4 p-4 lg:p-5 bg-surface border border-slate-800 rounded-2xl hover:border-indigo-400/50 hover:bg-slate-800/50 transition-all group/btn"
-                                        >
-                                            <div className="w-10 h-10 lg:w-12 lg:h-12 bg-indigo-500/10 rounded-xl flex items-center justify-center shrink-0 transition-colors group-hover/btn:bg-indigo-500/20">
-                                                <RefreshCw className="w-5 h-5 lg:w-6 lg:h-6 text-indigo-400" />
-                                            </div>
-                                            <div className="text-left flex-1 min-w-0">
-                                                <div className="text-sm lg:text-base font-black text-white">Anpassen / Verbessern</div>
-                                                <div className="text-[11px] lg:text-xs text-slate-500 mt-0.5 line-clamp-1 font-medium italic">Handlung oder Stil gezielt verändern</div>
-                                            </div>
-                                        </button>
+                                <button 
+                                    onClick={() => { setShowRemixModal(activeToolboxStory.id); setRemixType('improvement'); setShowToolbox(null); }}
+                                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-800/50 transition-all group/btn"
+                                >
+                                    <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-indigo-500/10 transition-colors group-hover/btn:bg-indigo-500/20">
+                                        <RefreshCw className="w-4 h-4 text-indigo-400" />
                                     </div>
-                                </div>
+                                    <div className="text-left flex-1 text-[13px] font-semibold text-slate-200">
+                                        Anpassen / Verbessern
+                                    </div>
+                                </button>
 
                                 {/* Werkzeuge */}
-                                <div className="bg-slate-900/50 border border-slate-800 rounded-3xl p-5 lg:p-6 shadow-xl shadow-black/20">
-                                    <div className="flex items-center gap-2 mb-4 px-2">
-                                        <Wand2 className="w-4 h-4 text-indigo-400" />
-                                        <span className="text-[11px] lg:text-xs uppercase tracking-[0.25em] text-slate-500 font-black">Werkzeuge</span>
+                                <div className="text-[10px] uppercase text-slate-500 font-bold tracking-widest mt-5 mb-1.5 px-3">Werkzeuge</div>
+                                
+                                <button 
+                                    onClick={() => { setRevoiceStoryId(activeToolboxStory.id); setConfirmRevoice(false); setShowToolbox(null); }}
+                                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-800/50 transition-all group/btn"
+                                >
+                                    <div className="w-8 h-8 bg-emerald-500/10 rounded-lg flex items-center justify-center shrink-0 group-hover/btn:bg-emerald-500/20">
+                                        <Mic className="w-4 h-4 text-emerald-400" />
                                     </div>
-                                    <div className="grid grid-cols-1 gap-3">
-                                        <button 
-                                            onClick={() => { setRevoiceStoryId(activeToolboxStory.id); setConfirmRevoice(false); setShowToolbox(null); }}
-                                            className="w-full flex items-center gap-4 p-4 bg-surface border border-slate-800 rounded-2xl hover:border-emerald-400/50 hover:bg-slate-800/50 transition-all group/btn"
-                                        >
-                                            <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center shrink-0">
-                                                <Mic className="w-5 h-5 text-emerald-400" />
-                                            </div>
-                                            <div className="text-left flex-1 min-w-0">
-                                                <div className="text-sm font-black text-white">Neu vertonen</div>
-                                                <div className="text-[11px] text-slate-500 mt-0.5 font-medium italic line-clamp-1">Anderen Sprecher wählen</div>
-                                            </div>
-                                        </button>
+                                    <div className="text-left flex-1 text-[13px] font-semibold text-slate-200">
+                                        Neu vertonen
+                                    </div>
+                                </button>
 
-                                        <button 
-                                            onClick={() => { handleRegenerateImage(activeToolboxStory.id); setShowToolbox(null); }}
-                                            className="w-full flex items-center gap-4 p-4 bg-surface border border-slate-800 rounded-2xl hover:border-orange-400/50 hover:bg-slate-800/50 transition-all group/btn"
-                                        >
-                                            <div className="w-10 h-10 bg-orange-500/10 rounded-xl flex items-center justify-center shrink-0">
-                                                <ImageIcon className="w-5 h-5 text-orange-400" />
-                                            </div>
-                                            <div className="text-left flex-1 min-w-0">
-                                                <div className="text-sm font-black text-white">Bild neu generieren</div>
-                                                <div className="text-[11px] text-slate-500 mt-0.5 font-medium italic line-clamp-1">Neues Cover für diese Story</div>
-                                            </div>
-                                        </button>
+                                <button 
+                                    onClick={() => { handleRegenerateImage(activeToolboxStory.id); setShowToolbox(null); }}
+                                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-800/50 transition-all group/btn"
+                                >
+                                    <div className="w-8 h-8 bg-orange-500/10 rounded-lg flex items-center justify-center shrink-0 group-hover/btn:bg-orange-500/20">
+                                        <ImageIcon className="w-4 h-4 text-orange-400" />
                                     </div>
-                                </div>
+                                    <div className="text-left flex-1 text-[13px] font-semibold text-slate-200">
+                                        Bild neu generieren
+                                    </div>
+                                </button>
 
                                 {/* Sichtbarkeit & Versand */}
-                                <div className="bg-slate-900/50 border border-slate-800 rounded-3xl p-5 lg:p-6 shadow-xl shadow-black/20">
-                                    <div className="flex items-center gap-2 mb-4 px-2">
-                                        <Send className="w-4 h-4 text-emerald-400" />
-                                        <span className="text-[11px] lg:text-xs uppercase tracking-[0.25em] text-slate-500 font-black">Sichtbarkeit & Versand</span>
+                                <div className="text-[10px] uppercase text-slate-500 font-bold tracking-widest mt-5 mb-1.5 px-3">Sichtbarkeit & Versand</div>
+                                
+                                {archiveFilter === 'my' && activeToolboxStory.user_id === user?.id && (
+                                    <div className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-800/50 transition-all">
+                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${activeToolboxStory.is_public ? 'bg-primary/20 text-primary' : 'bg-slate-800 text-slate-500'}`}>
+                                            <Sparkles className="w-4 h-4" />
+                                        </div>
+                                        <div className="text-left flex-1 text-[13px] font-semibold text-slate-200">
+                                            Öffentlich in Bibliothek
+                                        </div>
+                                        <button 
+                                            onClick={async () => {
+                                                const targetId = activeToolboxStory.id;
+                                                setIsPublicLoading(targetId);
+                                                try {
+                                                    await toggleStoryVisibility(targetId, !activeToolboxStory.is_public);
+                                                    toast.success(activeToolboxStory.is_public ? 'Story privatisiert' : 'Story veröffentlicht!');
+                                                } finally {
+                                                    setIsPublicLoading(null);
+                                                }
+                                            }}
+                                            disabled={isPublicLoading === activeToolboxStory.id}
+                                            className={`relative w-10 h-5 rounded-full transition-all duration-300 flex items-center p-0.5 ${
+                                                activeToolboxStory.is_public ? 'bg-primary' : 'bg-slate-700'
+                                            }`}
+                                        >
+                                            <div className={`w-4 h-4 bg-white rounded-full transition-transform duration-300 transform ${
+                                                activeToolboxStory.is_public ? 'translate-x-5' : 'translate-x-0'
+                                            } flex items-center justify-center`}>
+                                                {isPublicLoading === activeToolboxStory.id && (
+                                                    <Loader2 className="w-2.5 h-2.5 animate-spin text-primary" />
+                                                )}
+                                            </div>
+                                        </button>
                                     </div>
-                                    <div className="space-y-4">
-                                        {/* Publish Toggle */}
-                                        {archiveFilter === 'my' && activeToolboxStory.user_id === user?.id && (
-                                            <div className="p-4 bg-surface border border-slate-800 rounded-2xl">
-                                                <div className="flex items-center justify-between">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${activeToolboxStory.is_public ? 'bg-primary/20 text-primary' : 'bg-slate-800 text-slate-500'}`}>
-                                                            <Sparkles className="w-5 h-5" />
-                                                        </div>
-                                                        <div>
-                                                            <div className="text-sm font-black text-white">Publikation</div>
-                                                            <div className="text-[11px] text-slate-500 italic font-medium">In der Bibliothek anzeigen</div>
-                                                        </div>
-                                                    </div>
-                                                    <button 
-                                                        onClick={async () => {
-                                                            const targetId = activeToolboxStory.id;
-                                                            setIsPublicLoading(targetId);
-                                                            try {
-                                                                await toggleStoryVisibility(targetId, !activeToolboxStory.is_public);
-                                                                toast.success(activeToolboxStory.is_public ? 'Story privatisiert' : 'Story veröffentlicht!');
-                                                            } finally {
-                                                                setIsPublicLoading(null);
-                                                            }
-                                                        }}
-                                                        disabled={isPublicLoading === activeToolboxStory.id}
-                                                        className={`relative w-12 h-6 rounded-full transition-all duration-500 flex items-center p-1 ${
-                                                            activeToolboxStory.is_public ? 'bg-primary' : 'bg-slate-700'
-                                                        }`}
-                                                    >
-                                                        <div className={`w-4 h-4 bg-white rounded-full transition-transform duration-500 transform ${
-                                                            activeToolboxStory.is_public ? 'translate-x-6' : 'translate-x-0'
-                                                        } flex items-center justify-center`}>
-                                                            {isPublicLoading === activeToolboxStory.id && (
-                                                                <Loader2 className="w-2.5 h-2.5 animate-spin text-primary" />
-                                                            )}
-                                                        </div>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        )}
+                                )}
 
-                                        {/* Spotify Toggle for Admin */}
-                                        {user?.is_admin && (
-                                            <div className="p-4 bg-surface border border-slate-800 rounded-2xl">
-                                                <div className="flex items-center justify-between">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${activeToolboxStory.is_on_spotify ? 'bg-emerald-500/20 text-emerald-500' : 'bg-slate-800 text-slate-500'}`}>
-                                                            <Play className="w-5 h-5 fill-current" />
-                                                        </div>
-                                                        <div>
-                                                            <div className="text-sm font-black text-white">Spotify</div>
-                                                            <div className="text-[11px] text-slate-500 italic font-medium">Auf Spotify verfügbar</div>
-                                                        </div>
-                                                    </div>
-                                                    <button 
-                                                        onClick={() => {
-                                                            handleSpotifyToggle(activeToolboxStory.id, !activeToolboxStory.is_on_spotify);
-                                                            setShowToolbox(null);
-                                                        }}
-                                                        className={`relative w-12 h-6 rounded-full transition-all duration-500 flex items-center p-1 ${
-                                                            activeToolboxStory.is_on_spotify ? 'bg-[#1DB954]' : 'bg-slate-700'
-                                                        }`}
-                                                    >
-                                                        <div className={`w-4 h-4 bg-white rounded-full transition-transform duration-500 transform ${
-                                                            activeToolboxStory.is_on_spotify ? 'translate-x-6' : 'translate-x-0'
-                                                        }`} />
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        )}
-
+                                {user?.is_admin && (
+                                    <div className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-800/50 transition-all">
+                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${activeToolboxStory.is_on_spotify ? 'bg-[#1DB954]/20 text-[#1DB954]' : 'bg-slate-800 text-slate-500'}`}>
+                                            <Play className="w-4 h-4 fill-current" />
+                                        </div>
+                                        <div className="text-left flex-1 text-[13px] font-semibold text-slate-200">
+                                            Auf Spotify
+                                        </div>
                                         <button 
                                             onClick={() => {
-                                                const shareUrl = `${window.location.origin}${window.location.pathname}#/Story/${activeToolboxStory.id}`;
-                                                const text = `Schau mal, ich habe eine neue Geschichte erstellt: *${activeToolboxStory.title}* 🌙✨\n\n${activeToolboxStory.description}\n\nHör sie dir hier an:\n${shareUrl}`;
-                                                window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+                                                handleSpotifyToggle(activeToolboxStory.id, !activeToolboxStory.is_on_spotify);
                                                 setShowToolbox(null);
                                             }}
-                                            className="w-full flex items-center gap-4 p-4 bg-surface border border-slate-800 rounded-2xl hover:border-green-400/50 hover:bg-slate-800/50 transition-all group/btn"
+                                            className={`relative w-10 h-5 rounded-full transition-all duration-300 flex items-center p-0.5 ${
+                                                activeToolboxStory.is_on_spotify ? 'bg-[#1DB954]' : 'bg-slate-700'
+                                            }`}
                                         >
-                                            <div className="w-10 h-10 bg-green-500/10 rounded-xl flex items-center justify-center shrink-0">
-                                                <MessageCircle className="w-5 h-5 text-green-500" />
-                                            </div>
-                                            <div className="text-left font-black text-sm text-white">Via WhatsApp teilen</div>
-                                        </button>
-
-                                        <button 
-                                            onClick={() => { setShowKindleModal(activeToolboxStory.id); setShowToolbox(null); }}
-                                            className="w-full flex items-center gap-4 p-4 bg-surface border border-slate-800 rounded-2xl hover:border-blue-400/50 hover:bg-slate-800/50 transition-all group/btn"
-                                        >
-                                            <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center shrink-0">
-                                                <Send className="w-5 h-5 text-blue-400" />
-                                            </div>
-                                            <div className="text-left font-black text-sm text-white">An Kindle senden</div>
+                                            <div className={`w-4 h-4 bg-white rounded-full transition-transform duration-300 transform ${
+                                                activeToolboxStory.is_on_spotify ? 'translate-x-5' : 'translate-x-0'
+                                            }`} />
                                         </button>
                                     </div>
-                                </div>
+                                )}
+
+                                <button 
+                                    onClick={() => {
+                                        const shareUrl = `${window.location.origin}${window.location.pathname}#/Story/${activeToolboxStory.id}`;
+                                        const text = `Schau mal, ich habe eine neue Geschichte erstellt: *${activeToolboxStory.title}* 🌙✨\n\n${activeToolboxStory.description}\n\nHör sie dir hier an:\n${shareUrl}`;
+                                        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+                                        setShowToolbox(null);
+                                    }}
+                                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-800/50 transition-all group/btn"
+                                >
+                                    <div className="w-8 h-8 bg-green-500/10 rounded-lg flex items-center justify-center shrink-0 group-hover/btn:bg-green-500/20">
+                                        <MessageCircle className="w-4 h-4 text-green-500" />
+                                    </div>
+                                    <div className="text-left flex-1 text-[13px] font-semibold text-slate-200">
+                                        Via WhatsApp teilen
+                                    </div>
+                                </button>
+
+                                <button 
+                                    onClick={() => { setShowKindleModal(activeToolboxStory.id); setShowToolbox(null); }}
+                                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-800/50 transition-all group/btn"
+                                >
+                                    <div className="w-8 h-8 bg-blue-500/10 rounded-lg flex items-center justify-center shrink-0 group-hover/btn:bg-blue-500/20">
+                                        <Send className="w-4 h-4 text-blue-400" />
+                                    </div>
+                                    <div className="text-left flex-1 text-[13px] font-semibold text-slate-200">
+                                        An Kindle senden
+                                    </div>
+                                </button>
 
                                 {/* Löschen */}
                                 {activeToolboxStory.user_id === user?.id && (
-                                    <div className="bg-red-900/50 border border-red-800 rounded-3xl p-5 lg:p-6 shadow-xl shadow-black/20">
-                                        <div className="flex items-center gap-2 mb-4 px-2">
-                                            <Trash2 className="w-4 h-4 text-red-400" />
-                                            <span className="text-[11px] lg:text-xs uppercase tracking-[0.25em] text-slate-500 font-black">Gefahrenzone</span>
-                                        </div>
+                                    <>
+                                        <div className="text-[10px] uppercase text-red-500/70 font-bold tracking-widest mt-5 mb-1.5 px-3">Gefahrenzone</div>
                                         <button 
                                             onClick={() => { handleDelete(activeToolboxStory.id, activeToolboxStory.title); setShowToolbox(null); }}
-                                            className="w-full flex items-center gap-4 p-4 bg-red-500/5 border border-red-500/20 rounded-2xl hover:bg-red-500/10 hover:border-red-500/40 transition-all group/btn"
+                                            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-red-500/10 transition-all group/btn"
                                         >
-                                            <div className="w-10 h-10 bg-red-500/10 rounded-xl flex items-center justify-center shrink-0 group-hover/btn:bg-red-500/20">
-                                                <Trash2 className="w-5 h-5 text-red-500" />
+                                            <div className="w-8 h-8 bg-red-400/10 rounded-lg flex items-center justify-center shrink-0 group-hover/btn:bg-red-400/20">
+                                                <Trash2 className="w-4 h-4 text-red-400" />
                                             </div>
-                                            <div className="text-left font-black text-sm text-red-500">Geschichte unwiderruflich löschen</div>
+                                            <div className="text-left flex-1 text-[13px] font-semibold text-red-400">
+                                                Geschichte löschen
+                                            </div>
                                         </button>
-                                    </div>
+                                    </>
                                 )}
                             </div>
                         )}
