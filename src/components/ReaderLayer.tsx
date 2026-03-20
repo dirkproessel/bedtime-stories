@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useStore } from '../store/useStore';
 import { 
-    fetchStory, getThumbUrl, type StoryDetail, exportStoryToKindle, 
-    getVoicePreviewUrl, regenerateStoryImage 
+    fetchStory, getImageUrl, type StoryDetail, exportStoryToKindle, 
+    getVoicePreviewUrl
 } from '../lib/api';
 import { 
     Moon, BookOpen, Send, Loader2, MessageCircle, Headphones, Heart, 
@@ -19,7 +19,8 @@ export default function ReaderLayer() {
         toggleFavorite, showAudioCompanion, setReaderOpen,
         revoiceStory, setGeneratorPrompt,
         setGeneratorGenre, setGeneratorAuthors, setGeneratorMinutes,
-        setGeneratorVoice, setGeneratorRemix, setActiveView
+        setGeneratorVoice, setGeneratorRemix, setActiveView,
+        regenerateStoryImage, stories
     } = useStore();
     const [story, setStory] = useState<StoryDetail | null>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -122,6 +123,16 @@ export default function ReaderLayer() {
                 .finally(() => setIsLoading(false));
         }
     }, [isReaderOpen, readerStoryId]);
+    
+    // Sync local story metadata (like updated_at) with the global store
+    useEffect(() => {
+        if (story && stories.length > 0) {
+            const storeStory = stories.find(s => s.id === story.id);
+            if (storeStory && storeStory.updated_at !== story.updated_at) {
+                setStory({ ...story, ...storeStory });
+            }
+        }
+    }, [stories, story]);
 
 
     const handleKindleExport = async () => {
@@ -189,7 +200,11 @@ export default function ReaderLayer() {
                         <div className="text-center mb-10">
                             {story.image_url ? (
                                 <div className="w-56 h-56 mx-auto rounded-3xl overflow-hidden mb-6 shadow-2xl border-4 border-surface">
-                                    <img src={getThumbUrl(story.id)} alt={story.title} className="w-full h-full object-cover" />
+                                    <img 
+                                        src={getImageUrl(story.id, story.updated_at)} 
+                                        alt={story.title} 
+                                        className="w-full h-full object-cover" 
+                                    />
                                 </div>
                             ) : (
                                 <div className="w-32 h-32 mx-auto rounded-3xl bg-accent/20 flex items-center justify-center mb-6 shadow-xl shadow-primary/10">

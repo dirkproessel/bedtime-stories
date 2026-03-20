@@ -1,5 +1,5 @@
 import { useStore } from '../store/useStore';
-import { getVoicePreviewUrl, exportStoryToKindle, getThumbUrl, getImageUrl, regenerateStoryImage } from '../lib/api';
+import { getVoicePreviewUrl, exportStoryToKindle, getThumbUrl, getImageUrl } from '../lib/api';
 import { Play, Trash2, Heart, BookOpen, Loader2, Mic, X, XCircle, Venus, Mars, Users, Pause, Send, Image as ImageIcon, RefreshCw, Sparkles, Settings2, MessageCircle, Search, ChevronLeft, ChevronRight, ArrowLeft, Wand2, User as UserIcon, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useEffect, useState, useRef } from 'react';
@@ -393,7 +393,7 @@ export default function StoryArchive() {
         deleteStory,
         loadMoreStories, hasMore, isLoading,
         archiveGenre, archiveSearch, setArchiveGenre, setArchiveSearch, toggleArchiveGenre,
-        revoiceStory, availableGenres
+        revoiceStory, availableGenres, regenerateStoryImage
     } = useStore();
     const [selectedVoice, setSelectedVoice] = useState('seraphina');
     const [confirmRevoice, setConfirmRevoice] = useState(false);
@@ -462,6 +462,28 @@ export default function StoryArchive() {
             console.error("Failed to load collections", err);
         }
     };
+
+    // Keep collection rows in sync with store updates (e.g. polling for new images)
+    useEffect(() => {
+        if (stories.length > 0) {
+            const syncCollection = (coll: any[], setter: (val: any[]) => void) => {
+                let changed = false;
+                const next = coll.map(c => {
+                    const match = stories.find(s => s.id === c.id);
+                    if (match && match.updated_at !== c.updated_at) {
+                        changed = true;
+                        return { ...c, ...match };
+                    }
+                    return c;
+                });
+                if (changed) setter(next);
+            };
+            syncCollection(fairytales, setFairytales);
+            syncCollection(adventure, setAdventure);
+            syncCollection(sleepStories, setSleepStories);
+            syncCollection(scifi, setScifi);
+        }
+    }, [stories]);
 
 
     // Effect to switch to "public" if "my" is empty on first load
@@ -967,7 +989,7 @@ export default function StoryArchive() {
                         </div>
 
                         {/* Desktop Sidebar Filters (Restored) */}
-                        <aside className="hidden lg:block w-72 shrink-0 h-fit sticky top-24 animate-in fade-in duration-700">
+                        <aside className="hidden lg:block w-72 shrink-0 h-fit sticky top-8">
                             <div className="bg-surface/50 border border-slate-800 rounded-[2rem] p-6 shadow-xl shadow-black/20">
                                 <div className="mb-8">
                                     <div className="flex items-center gap-2 mb-4 px-2">

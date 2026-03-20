@@ -16,6 +16,7 @@ import {
     adminDeleteStory,
     toggleStoryFavorite,
     revoiceStory as apiRevoiceStory,
+    regenerateStoryImage as apiRegenerateStoryImage,
 } from '../lib/api';
 
 interface AppState {
@@ -108,6 +109,7 @@ interface AppState {
     revoiceStory: (id: string, voiceKey: string, speechRate?: string) => Promise<void>;
     toggleFavorite: (id: string) => Promise<void>;
     deleteStory: (id: string) => Promise<void>;
+    regenerateStoryImage: (id: string) => Promise<void>;
 }
 
 let pollInterval: ReturnType<typeof setInterval> | null = null;
@@ -522,6 +524,20 @@ export const useStore = create<AppState>((set, get) => {
                 stories: state.stories.filter(s => s.id !== id),
                 totalMyStories: state.totalMyStories - 1
             }));
+        } catch (e: any) {
+            set({ error: e.message });
+            throw e;
+        }
+    },
+    regenerateStoryImage: async (id) => {
+        try {
+            await apiRegenerateStoryImage(id);
+            set((state) => ({
+                stories: state.stories.map((s) =>
+                    s.id === id ? { ...s, status: 'generating', progress: 'Bild wird neu generiert...', progress_pct: 0 } : s
+                ),
+            }));
+            get().pollStatus();
         } catch (e: any) {
             set({ error: e.message });
             throw e;
