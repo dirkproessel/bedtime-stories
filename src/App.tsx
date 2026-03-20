@@ -221,7 +221,12 @@ function App() {
            {/* Desktop Admin/Profile Link Area */}
            <div className="hidden lg:flex flex-col mt-auto pt-6 gap-2 border-t border-slate-800/50">
               <button 
-                onClick={() => setActiveView('profile')}
+                onClick={() => {
+                  setActiveView('profile');
+                  if (useStore.getState().isReaderOpen) {
+                    useStore.getState().setReaderOpen(false);
+                  }
+                }}
                 className={`flex items-center gap-4 px-6 py-3.5 rounded-2xl transition-all ${activeView === 'profile' ? 'text-primary bg-primary/10' : 'text-slate-100 hover:bg-white/5'}`}
               >
                 <div className="w-6 h-6 rounded-full border border-slate-700 overflow-hidden flex items-center justify-center bg-surface">
