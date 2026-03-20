@@ -157,7 +157,7 @@ export default function ReaderLayer() {
 
     return (
         <div 
-            className="fixed inset-0 z-[150] bg-background/95 backdrop-blur-md overflow-y-auto animate-in fade-in duration-300"
+            className="fixed inset-0 z-[80] bg-background/95 backdrop-blur-md overflow-y-auto animate-in fade-in duration-300"
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
         >
