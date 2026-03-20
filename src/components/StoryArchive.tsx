@@ -356,7 +356,6 @@ function ManagementStoryCard({
                     {/* 5-Stage Segmented Progress Bar */}
                     <div className="flex gap-1.5 h-1.5 w-full">
                         {[1, 2, 3, 4, 5].map((step) => {
-                            const steps = ['Planung', 'Texterstellung', 'Bilderstellung', 'Vertonung', 'Fertigstellung'];
                             const stepLabels = ['Planung', 'Texterstellung', 'Bilderstellung', 'Vertonung', 'Fertigstellung'];
                             
                             const getStepNumber = (p: string) => {
