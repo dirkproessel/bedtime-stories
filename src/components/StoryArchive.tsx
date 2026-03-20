@@ -935,7 +935,7 @@ export default function StoryArchive() {
                         </div>
 
                         {/* Desktop Sidebar Filters (Restored) */}
-                        <aside className="hidden lg:block w-72 shrink-0 h-fit sticky top-[112px] animate-in fade-in duration-700">
+                        <aside className="hidden lg:block w-72 shrink-0 h-fit sticky top-24 animate-in fade-in duration-700">
                             <div className="bg-surface/50 border border-slate-800 rounded-[2rem] p-6 shadow-xl shadow-black/20">
                                 <div className="mb-8">
                                     <div className="flex items-center gap-2 mb-4 px-2">

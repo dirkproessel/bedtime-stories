@@ -264,6 +264,10 @@ async def _run_revoice_pipeline(
     story_data = json.loads(text_path.read_text(encoding="utf-8"))
     real_title = story_data["title"]
     num_chapters = len(story_data["chapters"])
+    
+    # Recalculate word count from existing story.json
+    total_text = "\n".join([c.get("text", "") for c in story_data.get("chapters", [])])
+    word_count = len(total_text.split())
 
     # Point-based progress (same logic as _run_pipeline)
     # Vertonung: 10 * num_chapters
@@ -353,6 +357,8 @@ async def _run_revoice_pipeline(
             story_meta.duration_seconds = duration
             story_meta.voice_key = actual_voice
             story_meta.voice_name = actual_voice_name
+            story_meta.word_count = word_count
+            story_meta.chapter_count = num_chapters
             story_meta.status = "done"
             story_meta.progress = "Fertig!"
             story_meta.progress_pct = 100
