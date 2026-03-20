@@ -101,8 +101,8 @@ GENRE_INSTRUCTIONS = {
 
 
 # ── Text Chunking for Gemini TTS ──
-MIN_CHUNK_BYTES = 750
-MAX_CHUNK_BYTES = 1000
+MIN_CHUNK_BYTES = 500
+MAX_CHUNK_BYTES = 800
 
 def split_text_paragraphs(t: str, min_bytes=MIN_CHUNK_BYTES, max_bytes=MAX_CHUNK_BYTES):
     """Split text into paragraph-aware chunks for Gemini TTS."""
