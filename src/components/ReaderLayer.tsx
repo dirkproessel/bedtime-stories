@@ -260,7 +260,7 @@ export default function ReaderLayer() {
                         </div>
 
                         {story.description && (
-                            <div className="max-w-none text-xl font-serif italic text-slate-400 mb-12 border-l-2 border-slate-800 pl-6 leading-relaxed animate-in fade-in slide-in-from-left-4 duration-700">
+                            <div className="max-w-none text-lg sm:text-xl lg:text-lg font-serif italic text-slate-400 mb-12 border-l-2 border-slate-800 pl-6 leading-relaxed animate-in fade-in slide-in-from-left-4 duration-700">
                                 {story.description}
                             </div>
                         )}
