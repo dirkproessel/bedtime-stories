@@ -60,7 +60,7 @@ function HeroSection({ story, onPlay, onFavorite }: { story: any, onPlay: (id: s
     );
 }
 
-function CollectionRow({ title, stories, onPlay, onFavorite, onToolbox, onDelete, formatDuration }: { title: string, stories: any[], onPlay: (id: string) => void, onFavorite: (id: string) => void, onToolbox: (id: string) => void, onDelete: (id: string, title: string) => void, formatDuration: (seconds: number) => string }) {
+function CollectionRow({ title, stories, onPlay, onFavorite, onToolbox }: { title: string, stories: any[], onPlay: (id: string) => void, onFavorite: (id: string) => void, onToolbox: (id: string) => void }) {
     if (stories.length === 0) return null;
     const scrollRef = useRef<HTMLDivElement>(null);
     const [showLeft, setShowLeft] = useState(false);
@@ -96,8 +96,6 @@ function CollectionRow({ title, stories, onPlay, onFavorite, onToolbox, onDelete
                                 onPlay={onPlay} 
                                 onFavorite={onFavorite} 
                                 onToolbox={onToolbox}
-                                onDelete={onDelete}
-                                formatDuration={formatDuration}
                             />
                         </div>
                     ))}
@@ -127,7 +125,7 @@ function CollectionRow({ title, stories, onPlay, onFavorite, onToolbox, onDelete
     );
 }
 
-function FlipStoryCard({ story, onPlay, onFavorite, onToolbox, onDelete, formatDuration }: { story: any, onPlay: (id: string) => void, onFavorite: (id: string) => void, onToolbox: (id: string) => void, onDelete: (id: string, title: string) => void, formatDuration: (seconds: number) => string }) {
+function FlipStoryCard({ story, onPlay, onFavorite, onToolbox }: { story: any, onPlay: (id: string) => void, onFavorite: (id: string) => void, onToolbox: (id: string) => void }) {
     const [isFlipped, setIsFlipped] = useState(false);
     if (!story) return null;
 
@@ -895,10 +893,10 @@ export default function StoryArchive() {
                                 onFavorite={toggleFavorite} 
                             />
                             <div className="space-y-16">
-                                <CollectionRow title="Magische Märchen" stories={fairytales} onPlay={handlePlay} onFavorite={toggleFavorite} onToolbox={setShowToolbox} onDelete={handleDelete} formatDuration={formatDuration} />
-                                <CollectionRow title="Große Abenteuer" stories={adventure} onPlay={handlePlay} onFavorite={toggleFavorite} onToolbox={setShowToolbox} onDelete={handleDelete} formatDuration={formatDuration} />
-                                <CollectionRow title="Zum Einschlafen" stories={sleepStories} onPlay={handlePlay} onFavorite={toggleFavorite} onToolbox={setShowToolbox} onDelete={handleDelete} formatDuration={formatDuration} />
-                                <CollectionRow title="Science-Fiction" stories={scifi} onPlay={handlePlay} onFavorite={toggleFavorite} onToolbox={setShowToolbox} onDelete={handleDelete} formatDuration={formatDuration} />
+                                <CollectionRow title="Magische Märchen" stories={fairytales} onPlay={handlePlay} onFavorite={toggleFavorite} onToolbox={setShowToolbox} />
+                                <CollectionRow title="Große Abenteuer" stories={adventure} onPlay={handlePlay} onFavorite={toggleFavorite} onToolbox={setShowToolbox} />
+                                <CollectionRow title="Zum Einschlafen" stories={sleepStories} onPlay={handlePlay} onFavorite={toggleFavorite} onToolbox={setShowToolbox} />
+                                <CollectionRow title="Science-Fiction" stories={scifi} onPlay={handlePlay} onFavorite={toggleFavorite} onToolbox={setShowToolbox} />
                             </div>
                         </div>
                     ) : (archiveFilter === 'public' && (archiveSearch || archiveGenre.length > 0)) || archiveFilter === 'favorites' ? (
@@ -911,8 +909,6 @@ export default function StoryArchive() {
                                         onPlay={handlePlay} 
                                         onFavorite={toggleFavorite} 
                                         onToolbox={setShowToolbox}
-                                        onDelete={handleDelete}
-                                        formatDuration={formatDuration}
                                     />
                                 ))}
                             </div>
