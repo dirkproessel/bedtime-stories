@@ -413,14 +413,14 @@ async def generate_tts_chunk(
                         # Build prompt following Google's TTS Prompting Guide:
                         # Director's Notes + Sample Context + Transcript
                         voice_basis = VOICE_INSTRUCTIONS.get(voice_key, "")
-                        genre_tweak = GENRE_INSTRUCTIONS.get(genre, "") if genre else ""
+                        # genre_tweak = GENRE_INSTRUCTIONS.get(genre, "") if genre else ""
                         
                         prompt_parts = []
                         
                         # Instructions Block (Voice, Genre, Rate, and Continuity)
                         instr = "### AUDIO_INSTRUCTIONS\n"
                         if voice_basis: instr += f"STIMME_CHARAKTER: {voice_basis}\n"
-                        if genre_tweak: instr += f"ERZÄHL_STIL: {genre_tweak}\n"
+                        # if genre_tweak: instr += f"ERZÄHL_STIL: {genre_tweak}\n"
                         if rate: instr += f"SPEAKING_RATE: Sprich mit einer Geschwindigkeit von {rate} im Vergleich zum Standard.\n"
                         
                         instr += "CONTINUITY: Halte exakt dieselbe Stimme, Tonhöhe und Energie wie im vorangegangenen Kontext bei. Es darf keine hörbaren Sprünge zwischen den Aufnahmen geben."
