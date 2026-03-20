@@ -326,6 +326,7 @@ async def _run_revoice_pipeline(
             rate=speech_rate,
             genre=story_meta_for_genre.genre if story_meta_for_genre else None,
             on_progress=tts_progress_wrapper,
+            synopsis=story_data.get("synopsis"),
         )
 
         # Step 2: Finalisierung (10 points)
@@ -656,6 +657,7 @@ async def _run_pipeline(
             rate=speech_rate,
             genre=genre,
             on_progress=tts_progress_wrapper,
+            synopsis=story_data.get("synopsis"),
         )
 
         # Phase 5: Finalisierung (10 points)

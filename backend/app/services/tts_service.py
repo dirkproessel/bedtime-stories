@@ -430,7 +430,7 @@ async def generate_tts_chunk(
                         if chunk_previous_text:
                             import re
                             sentences = re.split(r'(?<=[.!?]) +', chunk_previous_text.strip())
-                            last_context = " ".join(sentences[-2:])
+                            last_context = " ".join(sentences[-4:])
                             prompt_parts.append(f"### AUDIO_CONTEXT_REFERENCE\n{last_context}")
                         
                         # Transcript
@@ -611,6 +611,7 @@ async def chapters_to_audio(
     rate: str = "0%",
     genre: str | None = None,
     on_progress: callable = None,
+    synopsis: str | None = None,
 ) -> list[Path]:
     """
     Convert all chapters to individual MP3 files.
@@ -634,6 +635,7 @@ async def chapters_to_audio(
 
     # Pre-compute previous_text for each chapter (deterministic, no API needed)
     chapter_contexts = [None] * len(chapters)
+    chapter_contexts[0] = synopsis
     for i in range(1, len(chapters)):
         chapter_contexts[i] = chapters[i - 1]["text"]
 
