@@ -32,6 +32,7 @@ export const GENRES = [
 
 
 const LENGTHS = [
+    { value: 3, label: 'Minimal', sub: '~3 Min' },
     { value: 10, label: 'Kurz', sub: '~10 Min' },
     { value: 15, label: 'Mittel', sub: '~15 Min' },
     { value: 20, label: 'Lang', sub: '~20 Min' },
@@ -369,7 +370,7 @@ export default function StoryCreator() {
                                 <div className="mb-1.5 flex items-center gap-2">
                                 <h3 className="text-xs uppercase font-bold tracking-wider text-slate-400">Dauer</h3>
                             </div>
-                            <div className="grid grid-cols-3 gap-2">
+                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
                                 {LENGTHS.map(l => (
                                     <button
                                         key={l.value}
