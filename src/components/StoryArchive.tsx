@@ -694,7 +694,7 @@ export default function StoryArchive() {
     }
 
     return (
-        <div className="px-3 py-4 sm:p-6 w-full mx-auto">
+        <div className="py-4 w-full mx-auto">
 
             {/* Mobile Filter Bar (Hidden on Desktop as we use sidebar there now) */}
             <div className={`lg:hidden mb-4 sticky top-0 z-30 bg-background/80 backdrop-blur-md pb-2 -mx-3 px-3 sm:-mx-6 sm:px-6 transition-all duration-300 ${isScrolled ? 'border-b border-primary/20 shadow-sm' : 'border-transparent'}`}>
