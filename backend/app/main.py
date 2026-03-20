@@ -327,27 +327,19 @@ async def _run_revoice_pipeline(
             genre=story_meta_for_genre.genre if story_meta_for_genre else None,
             on_progress=tts_progress_wrapper,
             synopsis=story_data.get("synopsis"),
+            title=story_data.get("title"),
         )
 
         # Step 2: Finalisierung (10 points)
         await on_progress("processing", "Finalisierung", points=10 * num_chapters, is_absolute_points=True)
-        title_tts_path = chunks_dir / "title.mp3"
-        await generate_tts_chunk(
-            text=story_data["title"],
-            output_path=title_tts_path,
-            voice_key=actual_voice,
-            rate=speech_rate,
-            is_title=True,
-            genre=story_meta_for_genre.genre if story_meta_for_genre else None,
-        )
-
+        
         final_audio_path = story_dir / "story.mp3"
         await merge_audio_files(
             audio_files=audio_files,
             output_path=final_audio_path,
             intro_path=settings.INTRO_MUSIC_PATH,
             outro_path=settings.OUTRO_MUSIC_PATH,
-            title_path=title_tts_path,
+            title_path=None, # Titel ist bereits im ersten Chunk enthalten
         )
 
         duration = await get_audio_duration(final_audio_path)
@@ -658,21 +650,19 @@ async def _run_pipeline(
             genre=genre,
             on_progress=tts_progress_wrapper,
             synopsis=story_data.get("synopsis"),
+            title=story_data.get("title"),
         )
 
         # Phase 5: Finalisierung (10 points)
         await on_progress("processing", "Finalisierung", points=total_points - 10, is_absolute_points=True)
         
-        title_tts_path = chunks_dir / "title.mp3"
-        await generate_tts_chunk(story_data["title"], title_tts_path, voice_key=actual_voice, rate=speech_rate, is_title=True, genre=genre)
-
         final_audio_path = story_dir / "story.mp3"
         await merge_audio_files(
             audio_files=audio_files,
             output_path=final_audio_path,
             intro_path=settings.INTRO_MUSIC_PATH,
             outro_path=settings.OUTRO_MUSIC_PATH,
-            title_path=title_tts_path,
+            title_path=None,  # Titel ist nun bereits im ersten Chunk von audio_files enthalten
         )
 
         duration = await get_audio_duration(final_audio_path)
