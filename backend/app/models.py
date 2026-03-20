@@ -129,6 +129,7 @@ class StoryUpdate(BaseModel):
     """Request to update story visibility/metadata."""
     is_public: Optional[bool] = None
     title: Optional[str] = None
+    chapters: Optional[list[dict]] = None
 
 # --- API Response Models ---
 

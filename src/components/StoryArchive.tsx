@@ -1,6 +1,6 @@
 import { useStore } from '../store/useStore';
 import { getVoicePreviewUrl, exportStoryToKindle, getThumbUrl, getImageUrl } from '../lib/api';
-import { Play, Trash2, Heart, BookOpen, Loader2, Mic, X, XCircle, Venus, Mars, Users, Pause, Send, Image as ImageIcon, RefreshCw, Sparkles, Settings2, MessageCircle, Search, ChevronLeft, ChevronRight, ArrowLeft, Wand2, User as UserIcon, Clock } from 'lucide-react';
+import { Play, Trash2, Heart, BookOpen, Loader2, Mic, X, XCircle, Venus, Mars, Users, Pause, Send, Image as ImageIcon, RefreshCw, Sparkles, Settings2, MessageCircle, Search, ChevronLeft, ChevronRight, ArrowLeft, Wand2, User as UserIcon, Clock, Edit2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useEffect, useState, useRef } from 'react';
 import ConfirmModal from './ConfirmModal';
@@ -393,7 +393,8 @@ export default function StoryArchive() {
         deleteStory,
         loadMoreStories, hasMore, isLoading,
         archiveGenre, archiveSearch, setArchiveGenre, setArchiveSearch, toggleArchiveGenre,
-        revoiceStory, availableGenres, regenerateStoryImage
+        revoiceStory, availableGenres, regenerateStoryImage,
+        updateStory
     } = useStore();
     const [selectedVoice, setSelectedVoice] = useState('seraphina');
     const [confirmRevoice, setConfirmRevoice] = useState(false);
@@ -409,6 +410,12 @@ export default function StoryArchive() {
     const [isRemixing, setIsRemixing] = useState(false);
     const [showToolbox, setShowToolbox] = useState<string | null>(null);
     const [deleteConfirm, setDeleteConfirm] = useState<{ id: string, title: string } | null>(null);
+    const [editingStoryId, setEditingStoryId] = useState<string | null>(null);
+    const [editTitle, setEditTitle] = useState('');
+    const [editChapters, setEditChapters] = useState<{ title: string; text: string }[]>([]);
+    const [originalChapters, setOriginalChapters] = useState<{ title: string; text: string }[]>([]);
+    const [isSavingEdit, setIsSavingEdit] = useState(false);
+    const [showEditConfirm, setShowEditConfirm] = useState(false);
     const audioRef = useRef<HTMLAudioElement>(null);
     const touchStartX = useRef<number | null>(null);
     const touchStartY = useRef<number | null>(null);
@@ -722,6 +729,53 @@ export default function StoryArchive() {
         setShowRemixModal(null);
         setActiveView('create');
         window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+    
+    const handleEditStart = async (id: string) => {
+        const story = stories.find(s => s.id === id);
+        if (!story) return;
+
+        try {
+            const { fetchStory } = await import('../lib/api');
+            const detail = await fetchStory(id);
+            setEditTitle(detail.title);
+            setEditChapters(detail.chapters);
+            setOriginalChapters(detail.chapters);
+            setEditingStoryId(id);
+            setShowToolbox(null);
+        } catch (error: any) {
+            toast.error('Fehler beim Laden der Details');
+        }
+    };
+
+    const handleSaveEdit = async () => {
+        if (!editingStoryId) return;
+        
+        const textChanged = JSON.stringify(originalChapters) !== JSON.stringify(editChapters);
+        
+        if (textChanged) {
+            setShowEditConfirm(true);
+        } else {
+            await executeSave(false);
+        }
+    };
+
+    const executeSave = async (textChanged: boolean) => {
+        if (!editingStoryId) return;
+        setIsSavingEdit(true);
+        try {
+            await updateStory(editingStoryId, {
+                title: editTitle,
+                ...(textChanged ? { chapters: editChapters } : {})
+            });
+            toast.success('Geschichte aktualisiert');
+            setEditingStoryId(null);
+            setShowEditConfirm(false);
+        } catch (error: any) {
+            toast.error(error.message || 'Fehler beim Speichern');
+        } finally {
+            setIsSavingEdit(false);
+        }
     };
 
 
@@ -1384,6 +1438,18 @@ export default function StoryArchive() {
                                         <div className="text-[10px] uppercase text-[#64748b] font-bold tracking-widest mt-3 mb-1 px-2">WERKZEUGE</div>
                                         
                                         <button 
+                                            onClick={() => { handleEditStart(activeToolboxStory.id); }}
+                                            className="w-full flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-white/5 transition-all outline-none"
+                                        >
+                                            <div className="w-8 h-8 bg-[#1e293b] rounded-[0.4rem] flex items-center justify-center shrink-0 text-[#a5b4fc]">
+                                                <Edit2 className="w-4 h-4" />
+                                            </div>
+                                            <div className="text-left text-[14px] text-[#e2e8f0]">
+                                                Text bearbeiten
+                                            </div>
+                                        </button>
+
+                                        <button 
                                             onClick={() => { setRevoiceStoryId(activeToolboxStory.id); setConfirmRevoice(false); setShowToolbox(null); }}
                                             className="w-full flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-white/5 transition-all outline-none"
                                         >
@@ -1526,6 +1592,96 @@ export default function StoryArchive() {
                     </div>
                 </div>
             )}
+            {/* Story Editor Modal */}
+            {editingStoryId && (
+                <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-background/80 backdrop-blur-md">
+                    <div className="bg-surface/90 backdrop-blur-2xl rounded-[2rem] w-full max-w-2xl max-h-[90vh] shadow-2xl border border-slate-800/50 overflow-hidden flex flex-col animate-in fade-in zoom-in duration-300">
+                        <div className="p-6 border-b border-slate-800 flex items-center justify-between shrink-0">
+                            <h2 className="text-xl font-bold text-text flex items-center gap-2">
+                                <Edit2 className="w-5 h-5 text-primary" />
+                                Geschichte bearbeiten
+                            </h2>
+                            <button
+                                onClick={() => setEditingStoryId(null)}
+                                className="p-2 text-slate-500 hover:text-slate-300 rounded-full hover:bg-slate-800 transition-all"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        
+                        <div className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar">
+                            <div>
+                                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-2 ml-1">
+                                    Titel
+                                </label>
+                                <input
+                                    type="text"
+                                    value={editTitle}
+                                    onChange={(e) => setEditTitle(e.target.value)}
+                                    className="w-full px-4 py-3 bg-background border-2 border-slate-800 rounded-xl focus:border-primary focus:ring-0 transition-all text-sm font-medium text-text placeholder:text-slate-600"
+                                    placeholder="Titel der Geschichte"
+                                />
+                            </div>
+
+                            <div className="space-y-4">
+                                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-2 ml-1">
+                                    Inhalt (Kapitel)
+                                </label>
+                                {editChapters.map((chapter, idx) => (
+                                    <div key={idx} className="space-y-2 p-4 bg-background/50 rounded-2xl border border-slate-800/50">
+                                        <input
+                                            type="text"
+                                            value={chapter.title}
+                                            onChange={(e) => {
+                                                const newChapters = [...editChapters];
+                                                newChapters[idx].title = e.target.value;
+                                                setEditChapters(newChapters);
+                                            }}
+                                            placeholder={`Kapitel ${idx + 1} Titel`}
+                                            className="w-full bg-transparent border-0 border-b border-slate-800 focus:border-primary focus:ring-0 transition-all text-sm font-bold text-slate-200 px-0 pb-1"
+                                        />
+                                        <textarea
+                                            value={chapter.text}
+                                            onChange={(e) => {
+                                                const newChapters = [...editChapters];
+                                                newChapters[idx].text = e.target.value;
+                                                setEditChapters(newChapters);
+                                            }}
+                                            rows={6}
+                                            className="w-full bg-transparent border-0 focus:ring-0 transition-all text-sm text-slate-400 px-0 resize-none leading-relaxed mt-2"
+                                            placeholder="Text des Kapitels..."
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="p-6 border-t border-slate-800 bg-surface/50 shrink-0">
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setEditingStoryId(null)}
+                                    className="flex-1 py-3 px-4 rounded-xl font-bold text-sm text-slate-400 hover:bg-slate-800 transition-all"
+                                >
+                                    Abbrechen
+                                </button>
+                                <button
+                                    onClick={handleSaveEdit}
+                                    disabled={isSavingEdit}
+                                    className="flex-[2] btn-primary py-3 rounded-xl font-bold text-sm shadow-lg shadow-primary/20 hover:bg-emerald-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                >
+                                    {isSavingEdit ? (
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                        <Send className="w-4 h-4" />
+                                    )}
+                                    Änderungen speichern
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <audio ref={audioRef} className="hidden" />
 
             <ConfirmModal 
@@ -1534,6 +1690,16 @@ export default function StoryArchive() {
                 message={`Möchtest du "${deleteConfirm?.title}" wirklich unwiderruflich löschen?`}
                 onConfirm={confirmDelete}
                 onClose={() => setDeleteConfirm(null)}
+            />
+
+            <ConfirmModal 
+                isOpen={showEditConfirm}
+                title="Vertonung löschen?"
+                message="Du hast den Text der Geschichte geändert. Die bestehende Audio-Vertonung muss daher gelöscht werden. Fortfahren?"
+                onConfirm={() => executeSave(true)}
+                onClose={() => setShowEditConfirm(false)}
+                confirmLabel="Ja, Text speichern & Audio löschen"
+                isDanger={true}
             />
         </div>
     );

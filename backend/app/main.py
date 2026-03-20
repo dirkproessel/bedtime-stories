@@ -1060,6 +1060,54 @@ async def update_story(
             raise HTTPException(status_code=403, detail="Keine Berechtigung.")
         meta.title = req.title
 
+    if req.chapters is not None:
+        # Only owner or admin can change text
+        if meta.user_id != current_user.id and not current_user.is_admin:
+            raise HTTPException(status_code=403, detail="Keine Berechtigung zum Bearbeiten des Textes.")
+        
+        story_dir = settings.AUDIO_OUTPUT_DIR / story_id
+        text_path = story_dir / "story.json"
+        
+        if not text_path.exists():
+            story_data = {"title": meta.title, "chapters": req.chapters}
+        else:
+            try:
+                story_data = json.loads(text_path.read_text(encoding="utf-8"))
+                story_data["chapters"] = req.chapters
+                if req.title:
+                    story_data["title"] = req.title
+            except Exception as e:
+                logger.error(f"Error reading story.json for update: {e}")
+                story_data = {"title": meta.title, "chapters": req.chapters}
+        
+        # Save updated text
+        story_dir.mkdir(parents=True, exist_ok=True)
+        text_path.write_text(json.dumps(story_data, ensure_ascii=False, indent=2), encoding="utf-8")
+        
+        # Invalidate audio: Delete MP3 and chunks
+        audio_path = story_dir / "story.mp3"
+        if audio_path.exists():
+            try:
+                audio_path.unlink()
+                logger.info(f"Deleted audio for story {story_id} due to text change.")
+            except Exception as e:
+                logger.error(f"Failed to delete audio file: {e}")
+
+        chunks_dir = story_dir / "chunks"
+        if chunks_dir.exists():
+            try:
+                import shutil
+                shutil.rmtree(chunks_dir)
+            except Exception as e:
+                logger.error(f"Failed to delete chunks directory: {e}")
+            
+        # Update metadata stats
+        total_text = "\n".join([c.get("text", "") for c in req.chapters])
+        meta.word_count = len(total_text.split())
+        meta.chapter_count = len(req.chapters)
+        meta.duration_seconds = 0
+        meta.updated_at = datetime.now(timezone.utc)
+
     store.add_story(meta)
     return meta
 

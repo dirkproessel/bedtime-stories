@@ -316,14 +316,18 @@ export async function revoiceStory(storyId: string, voiceKey: string, speechRate
 }
 
 export async function updateStoryVisibility(storyId: string, isPublic: boolean): Promise<StoryMeta> {
+    return patchStory(storyId, { is_public: isPublic });
+}
+
+export async function patchStory(storyId: string, data: Partial<StoryDetail>): Promise<StoryMeta> {
     const res = await fetch(`${API_BASE}/api/stories/${storyId}`, {
         method: 'PATCH',
         headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
-        body: JSON.stringify({ is_public: isPublic }),
+        body: JSON.stringify(data),
     });
     if (!res.ok) {
         const error = await res.json().catch(() => ({}));
-        throw new Error(error.detail || 'Sichtbarkeit konnte nicht geändert werden');
+        throw new Error(error.detail || 'Die Geschichte konnte nicht aktualisiert werden');
     }
     return res.json();
 }

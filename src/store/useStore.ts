@@ -110,6 +110,7 @@ interface AppState {
     toggleFavorite: (id: string) => Promise<void>;
     deleteStory: (id: string) => Promise<void>;
     regenerateStoryImage: (id: string) => Promise<void>;
+    updateStory: (id: string, data: any) => Promise<void>;
 }
 
 let pollInterval: ReturnType<typeof setInterval> | null = null;
@@ -541,6 +542,21 @@ export const useStore = create<AppState>((set, get) => {
         } catch (e: any) {
             set({ error: e.message });
             throw e;
+        }
+    },
+    updateStory: async (id: string, data: any) => {
+        set({ isLoading: true, error: null });
+        try {
+            const { patchStory } = await import('../lib/api');
+            const updated = await patchStory(id, data);
+            set((state) => ({
+                stories: state.stories.map((s) => s.id === id ? { ...s, ...updated } : s),
+            }));
+        } catch (e: any) {
+            set({ error: e.message });
+            throw e;
+        } finally {
+            set({ isLoading: false });
         }
     },
     };
