@@ -884,38 +884,38 @@ export default function StoryArchive() {
                 </div>
             ) : (
                 <>
-                    {/* Main Content Areas */}
-                    {archiveFilter === 'public' && !archiveSearch && archiveGenre.length === 0 ? (
-                        <div className="space-y-12 animate-in fade-in duration-700">
-                            <HeroSection 
-                                story={stories[0]} 
-                                onPlay={handlePlay} 
-                                onFavorite={toggleFavorite} 
-                            />
-                            <div className="space-y-16">
-                                <CollectionRow title="Magische Märchen" stories={fairytales} onPlay={handlePlay} onFavorite={toggleFavorite} onToolbox={setShowToolbox} />
-                                <CollectionRow title="Große Abenteuer" stories={adventure} onPlay={handlePlay} onFavorite={toggleFavorite} onToolbox={setShowToolbox} />
-                                <CollectionRow title="Zum Einschlafen" stories={sleepStories} onPlay={handlePlay} onFavorite={toggleFavorite} onToolbox={setShowToolbox} />
-                                <CollectionRow title="Science-Fiction" stories={scifi} onPlay={handlePlay} onFavorite={toggleFavorite} onToolbox={setShowToolbox} />
-                            </div>
-                        </div>
-                    ) : (archiveFilter === 'public' && (archiveSearch || archiveGenre.length > 0)) || archiveFilter === 'favorites' ? (
-                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-4 gap-y-8 mb-12">
-                                {stories.map(story => (
-                                    <FlipStoryCard 
-                                        key={story.id} 
-                                        story={story} 
+                    <div className="flex flex-col lg:flex-row gap-8 items-start">
+                        <div className="flex-1 w-full min-w-0">
+                            {/* Main Content Areas */}
+                            {archiveFilter === 'public' && !archiveSearch && archiveGenre.length === 0 ? (
+                                <div className="space-y-12 animate-in fade-in duration-700">
+                                    <HeroSection 
+                                        story={stories[0]} 
                                         onPlay={handlePlay} 
                                         onFavorite={toggleFavorite} 
-                                        onToolbox={setShowToolbox}
                                     />
-                                ))}
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="flex flex-col lg:flex-row gap-8 items-start">
-                            <div className="flex-1 w-full min-w-0">
+                                    <div className="space-y-16">
+                                        <CollectionRow title="Magische Märchen" stories={fairytales} onPlay={handlePlay} onFavorite={toggleFavorite} onToolbox={setShowToolbox} />
+                                        <CollectionRow title="Große Abenteuer" stories={adventure} onPlay={handlePlay} onFavorite={toggleFavorite} onToolbox={setShowToolbox} />
+                                        <CollectionRow title="Zum Einschlafen" stories={sleepStories} onPlay={handlePlay} onFavorite={toggleFavorite} onToolbox={setShowToolbox} />
+                                        <CollectionRow title="Science-Fiction" stories={scifi} onPlay={handlePlay} onFavorite={toggleFavorite} onToolbox={setShowToolbox} />
+                                    </div>
+                                </div>
+                            ) : (archiveFilter === 'public' && (archiveSearch || archiveGenre.length > 0)) || archiveFilter === 'favorites' ? (
+                                <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+                                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-x-4 gap-y-8 mb-12">
+                                        {stories.map(story => (
+                                            <FlipStoryCard 
+                                                key={story.id} 
+                                                story={story} 
+                                                onPlay={handlePlay} 
+                                                onFavorite={toggleFavorite} 
+                                                onToolbox={setShowToolbox}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+                            ) : (
                                 <div className="grid grid-cols-1 gap-6">
                                     {stories.map(story => (
                                         <ManagementStoryCard 
@@ -929,70 +929,74 @@ export default function StoryArchive() {
                                         />
                                     ))}
                                 </div>
-                            </div>
+                            )}
+                        </div>
 
-                            {/* Desktop Sidebar Filters (Restored) */}
-                            <aside className="hidden lg:block w-72 shrink-0 h-fit sticky top-24">
-                                <div className="bg-surface/50 border border-slate-800 rounded-[2rem] p-6 shadow-xl shadow-black/20">
-                                    <div className="mb-8">
-                                        <div className="flex items-center gap-2 mb-4 px-2">
-                                            <Search className="w-4 h-4 text-primary" />
-                                            <span className="text-xs uppercase tracking-[0.2em] text-slate-500 font-bold">Suchen</span>
-                                        </div>
-                                        <div className="relative group">
-                                            <input 
-                                                type="text"
-                                                value={searchValue}
-                                                onChange={(e) => setSearchValue(e.target.value)}
-                                                placeholder="Titel oder Thema..."
-                                                className="w-full pl-10 pr-4 py-3 bg-slate-900 border-2 border-slate-800 rounded-2xl text-sm focus:outline-none focus:border-primary transition-all placeholder:text-slate-700 font-medium"
-                                            />
-                                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-700 group-focus-within:text-primary transition-colors" />
-                                        </div>
+                        {/* Desktop Sidebar Filters (Restored) */}
+                        <aside className="hidden lg:block w-72 shrink-0 h-fit sticky top-[108px] mt-1">
+                            <div className="bg-surface/50 border border-slate-800 rounded-[2rem] p-6 shadow-xl shadow-black/20">
+                                <div className="mb-8">
+                                    <div className="flex items-center gap-2 mb-4 px-2">
+                                        <Search className="w-4 h-4 text-primary" />
+                                        <span className="text-xs uppercase tracking-[0.2em] text-slate-500 font-bold">Suchen</span>
                                     </div>
+                                    <div className="relative group">
+                                        <input 
+                                            type="text"
+                                            value={searchValue}
+                                            onChange={(e) => setSearchValue(e.target.value)}
+                                            placeholder="Titel oder Thema..."
+                                            className="w-full pl-10 pr-4 py-3 bg-slate-900 border-2 border-slate-800 rounded-2xl text-sm focus:outline-none focus:border-primary transition-all placeholder:text-slate-700 font-medium"
+                                        />
+                                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-700 group-focus-within:text-primary transition-colors" />
+                                    </div>
+                                </div>
 
-                                    <div>
-                                        <div className="flex items-center gap-2 mb-4 px-2">
-                                            <BookOpen className="w-4 h-4 text-primary" />
-                                            <span className="text-xs uppercase tracking-[0.2em] text-slate-500 font-bold">Genre Filter</span>
-                                        </div>
-                                        <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2 no-scrollbar">
+                                <div>
+                                    <div className="flex items-center gap-2 mb-4 px-2">
+                                        <BookOpen className="w-4 h-4 text-primary" />
+                                        <span className="text-xs uppercase tracking-[0.2em] text-slate-500 font-bold">Genre Filter</span>
+                                    </div>
+                                    <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2 no-scrollbar">
+                                        <button
+                                            onClick={() => handleGenreSelect(null)}
+                                            className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all border-2 ${
+                                                archiveGenre.length === 0
+                                                    ? 'bg-primary/10 border-primary text-primary' 
+                                                    : 'bg-slate-900 border-slate-800/50 text-slate-500 hover:border-slate-700'
+                                            }`}
+                                        >
+                                            <span>Alle</span>
+                                        </button>
+                                        {GENRES.filter(g => availableGenres.includes(g.value)).map(g => (
                                             <button
-                                                onClick={() => handleGenreSelect(null)}
+                                                key={g.value}
+                                                onClick={() => handleGenreSelect(g.value)}
                                                 className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all border-2 ${
-                                                    archiveGenre.length === 0
+                                                    archiveGenre.includes(g.value)
                                                         ? 'bg-primary/10 border-primary text-primary' 
                                                         : 'bg-slate-900 border-slate-800/50 text-slate-500 hover:border-slate-700'
                                                 }`}
                                             >
-                                                <span>Alle</span>
+                                                <span className="truncate">{g.label}</span>
                                             </button>
-                                            {GENRES.filter(g => availableGenres.includes(g.value)).map(g => (
-                                                <button
-                                                    key={g.value}
-                                                    onClick={() => handleGenreSelect(g.value)}
-                                                    className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all border-2 ${
-                                                        archiveGenre.includes(g.value)
-                                                            ? 'bg-primary/10 border-primary text-primary' 
-                                                            : 'bg-slate-900 border-slate-800/50 text-slate-500 hover:border-slate-700'
-                                                    }`}
-                                                >
-                                                    <span className="truncate">{g.label}</span>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    <div className="pt-8 mt-8 border-t border-slate-800/50">
-                                        <div className="flex items-center justify-between text-[10px] uppercase font-bold tracking-[0.2em] text-slate-600">
-                                            <span>Gesamt</span>
-                                            <span>{totalMyStories}</span>
-                                        </div>
+                                        ))}
                                     </div>
                                 </div>
-                            </aside>
-                        </div>
-                    )}
+
+                                <div className="pt-8 mt-8 border-t border-slate-800/50">
+                                    <div className="flex items-center justify-between text-[10px] uppercase font-bold tracking-[0.2em] text-slate-600">
+                                        <span>Gesamt</span>
+                                        <span>
+                                            {archiveFilter === 'my' ? totalMyStories : 
+                                             archiveFilter === 'public' ? totalPublicStories : 
+                                             totalStories}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </aside>
+                    </div>
 
                     {/* Sentinel for Infinite Scroll */}
                     <div ref={observerTarget} className="h-20 flex items-center justify-center">
