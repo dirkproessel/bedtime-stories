@@ -185,7 +185,7 @@ function App() {
          </div>
 
          {/* Nav Items Container */}
-         <div className="lg:max-w-none mx-auto lg:mx-0 flex lg:flex-col items-center lg:items-stretch justify-between lg:justify-start py-1 lg:py-6 px-6 lg:px-4 gap-2 lg:flex-1">
+         <div className="w-full lg:w-auto lg:max-w-none mx-auto lg:mx-0 flex lg:flex-col items-center lg:items-stretch justify-between lg:justify-start py-1 lg:py-6 px-2 lg:px-4 gap-2 lg:flex-1">
            {NAV_ITEMS.map(({ key, label, icon: Icon }) => {
              const isActive = activeView === key;
              
