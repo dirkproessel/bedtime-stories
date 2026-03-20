@@ -95,12 +95,18 @@ export default function ReaderLayer() {
         const deltaX = touchStartX.current - touchEndX;
         const deltaY = Math.abs(touchStartY.current - touchEndY);
 
-        // Detect swipe from right to left (at least 70px)
+        // Detect swipe from right to left (at least 70px) to OPEN
         // If it starts near the right edge (within 60px)
         const isFromRightEdge = touchStartX.current > window.innerWidth - 60;
         
         if (deltaX > 70 && deltaY < 50 && isFromRightEdge) {
             setShowToolbox(true);
+        }
+
+        // Detect swipe from left to right (at least 70px) to CLOSE
+        // Only if toolbox is open
+        if (showToolbox && deltaX < -70 && deltaY < 50) {
+            setShowToolbox(false);
         }
 
         touchStartX.current = null;
@@ -330,12 +336,14 @@ export default function ReaderLayer() {
             </div>
             {/* Toolbox Overlay */}
             {showToolbox && story && (
-                <div className="fixed inset-0 z-[120] flex items-end lg:items-center justify-center lg:justify-end bg-background/70 backdrop-blur-sm animate-in fade-in duration-500">
+                <div className="fixed inset-0 z-[120] flex items-stretch justify-end bg-background/70 animate-in fade-in duration-500">
+
                     <div 
                         className="fixed inset-0" 
                         onClick={() => setShowToolbox(false)}
                     />
-                    <div className="relative w-full max-w-[320px] h-full bg-[#12181f] border-t lg:border-t-0 lg:border-l border-slate-800/80 p-5 shadow-2xl animate-in slide-in-from-bottom lg:slide-in-from-right duration-300">
+                    <div className="relative w-full max-w-[320px] h-full bg-[#12181f] border-l border-slate-800/80 p-5 shadow-2xl animate-in slide-in-from-right duration-300">
+
                         <div className="flex flex-col mb-4 pr-6">
                             <h2 className="text-[14px] uppercase tracking-[0.2em] text-[#e2e8f0] font-bold">
                                 WERKZEUGKASTEN
@@ -399,36 +407,41 @@ export default function ReaderLayer() {
                                 </div>
                             </button>
 
-                            {/* Werkzeuge */}
-                            <div className="text-[10px] uppercase text-[#64748b] font-bold tracking-widest mt-4 mb-1 px-2">WERKZEUGE</div>
-                            
-                            <button 
-                                onClick={() => {
-                                    setShowRevoiceModal(true);
-                                    setShowToolbox(false);
-                                }}
-                                className="w-full flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-white/5 transition-all outline-none"
-                            >
-                                <div className="w-8 h-8 bg-[#064e3b] rounded-[0.4rem] flex items-center justify-center shrink-0 text-[#34d399]">
-                                    <Mic className="w-4 h-4" />
-                                </div>
-                                <div className="text-left text-[14px] text-[#e2e8f0]">
-                                    Neu vertonen
-                                </div>
-                            </button>
+                            {/* Werkzeuge - Owner Only */}
+                            {user?.id === story.user_id && (
+                                <>
+                                    <div className="text-[10px] uppercase text-[#64748b] font-bold tracking-widest mt-4 mb-1 px-2">WERKZEUGE</div>
+                                    
+                                    <button 
+                                        onClick={() => {
+                                            setShowRevoiceModal(true);
+                                            setShowToolbox(false);
+                                        }}
+                                        className="w-full flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-white/5 transition-all outline-none"
+                                    >
+                                        <div className="w-8 h-8 bg-[#064e3b] rounded-[0.4rem] flex items-center justify-center shrink-0 text-[#34d399]">
+                                            <Mic className="w-4 h-4" />
+                                        </div>
+                                        <div className="text-left text-[14px] text-[#e2e8f0]">
+                                            Neu vertonen
+                                        </div>
+                                    </button>
 
-                            <button 
-                                onClick={handleRegenerateImage}
-                                disabled={isRegenerating}
-                                className="w-full flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-white/5 transition-all outline-none"
-                            >
-                                <div className="w-8 h-8 bg-[#7c2d12] rounded-[0.4rem] flex items-center justify-center shrink-0 text-[#fb923c]">
-                                    {isRegenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImageIcon className="w-4 h-4" />}
-                                </div>
-                                <div className="text-left text-[14px] text-[#e2e8f0]">
-                                    Bild neu generieren
-                                </div>
-                            </button>
+                                    <button 
+                                        onClick={handleRegenerateImage}
+                                        disabled={isRegenerating}
+                                        className="w-full flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-white/5 transition-all outline-none"
+                                    >
+                                        <div className="w-8 h-8 bg-[#7c2d12] rounded-[0.4rem] flex items-center justify-center shrink-0 text-[#fb923c]">
+                                            {isRegenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImageIcon className="w-4 h-4" />}
+                                        </div>
+                                        <div className="text-left text-[14px] text-[#e2e8f0]">
+                                            Bild neu generieren
+                                        </div>
+                                    </button>
+                                </>
+                            )}
+
 
                             {/* Versand */}
                             <div className="text-[10px] uppercase text-[#64748b] font-bold tracking-widest mt-4 mb-1 px-2">VERSAND</div>

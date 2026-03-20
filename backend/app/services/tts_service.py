@@ -482,25 +482,57 @@ async def chapters_to_audio(
         return chunk_files, actual_voice
 
     else:
-        # Fallback for non-Gemini engines: process per chapter
-        audio_files = [output_dir / f"chapter_{i+1}.mp3" for i in range(len(chapters))]
-        total_all_chunks = len(chapters)
+        # Fallback for non-Gemini engines: process per chapter + title
+        audio_files = []
+        if title:
+            audio_files.append(output_dir / "title.mp3")
+        
+        audio_files.extend([output_dir / f"chapter_{i+1}.mp3" for i in range(len(chapters))])
+        
+        total_all_chunks = len(audio_files)
         completed_chunks = 0
         if on_progress:
-            await on_progress("tts", f"Vertone {len(chapters)} Kapitel...", {"completed": 0, "total": total_all_chunks})
+            msg = f"Vertone Titel und {len(chapters)} Kapitel..." if title else f"Vertone {len(chapters)} Kapitel..."
+            await on_progress("tts", msg, {"completed": 0, "total": total_all_chunks})
 
-        async def process_chapter(i: int, chapter: dict):
-            nonlocal actual_voice, completed_chunks
-            _, realized_voice = await generate_tts_chunk(chapter["text"], audio_files[i], voice_key, rate, genre=genre)
+        # Process title if exists
+        if title:
+            _, realized_voice = await generate_tts_chunk(
+                f"{title}. . . ", 
+                audio_files[0], 
+                voice_key, 
+                rate, 
+                is_title=True, 
+                genre=genre
+            )
             if realized_voice != voice_key: actual_voice = realized_voice
             completed_chunks += 1
             if on_progress:
-                await on_progress("tts_chunk_done", f"Kapitel {i+1} vertont", {"completed": completed_chunks, "total": total_all_chunks})
+                await on_progress("tts_chunk_done", "Titel vertont", {"completed": completed_chunks, "total": total_all_chunks})
 
-        is_premium = voice_key in GEMINI_VOICES or voice_key in OPENAI_VOICES
+        # Process chapters in parallel
+        async def process_chapter(chapter_idx: int):
+            nonlocal actual_voice, completed_chunks
+            # Index in audio_files is (chapter_idx + 1) if title exists
+            file_idx = chapter_idx + (1 if title else 0)
+            _, realized_voice = await generate_tts_chunk(
+                chapters[chapter_idx]["text"], 
+                audio_files[file_idx], 
+                voice_key, 
+                rate, 
+                genre=genre
+            )
+            if realized_voice != voice_key: actual_voice = realized_voice
+            completed_chunks += 1
+            if on_progress:
+                await on_progress("tts_chunk_done", f"Kapitel {chapter_idx+1} vertont", {"completed": completed_chunks, "total": total_all_chunks})
+
+        # OpenAI is considered premium for concurrency purposes
+        is_premium = voice_key in OPENAI_VOICES
         semaphore = asyncio.Semaphore(3 if is_premium else 10)
-        async def run_with_semaphore(i, ch):
-            async with semaphore: await process_chapter(i, ch)
+        async def run_with_semaphore(idx):
+            async with semaphore: await process_chapter(idx)
 
-        await asyncio.gather(*[run_with_semaphore(i, ch) for i, ch in enumerate(chapters)])
+        # Only process chapters here, title was handled above
+        await asyncio.gather(*[run_with_semaphore(i) for i in range(len(chapters))])
         return audio_files, actual_voice

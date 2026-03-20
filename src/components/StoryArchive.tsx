@@ -410,6 +410,9 @@ export default function StoryArchive() {
     const [showToolbox, setShowToolbox] = useState<string | null>(null);
     const [deleteConfirm, setDeleteConfirm] = useState<{ id: string, title: string } | null>(null);
     const audioRef = useRef<HTMLAudioElement>(null);
+    const touchStartX = useRef<number | null>(null);
+    const touchStartY = useRef<number | null>(null);
+
     
     // Discovery Collections
     const [fairytales, setFairytales] = useState<any[]>([]);
@@ -594,7 +597,31 @@ export default function StoryArchive() {
         }
     };
 
+    const handleTouchStart = (e: React.TouchEvent) => {
+        touchStartX.current = e.touches[0].clientX;
+        touchStartY.current = e.touches[0].clientY;
+    };
+
+    const handleTouchEnd = (e: React.TouchEvent) => {
+        if (touchStartX.current === null || touchStartY.current === null) return;
+        
+        const touchEndX = e.changedTouches[0].clientX;
+        const touchEndY = e.changedTouches[0].clientY;
+        const deltaX = touchStartX.current - touchEndX;
+        const deltaY = Math.abs(touchStartY.current - touchEndY);
+
+        // Detect swipe from left to right (at least 70px) to CLOSE
+        // Only if toolbox is open
+        if (showToolbox && deltaX < -70 && deltaY < 50) {
+            setShowToolbox(null);
+        }
+
+        touchStartX.current = null;
+        touchStartY.current = null;
+    };
+
     const handleKindleExport = async (id: string) => {
+
         if (!kindleEmail) {
             toast.error('Bitte Kindle E-Mail Adresse eingeben');
             return;
@@ -696,7 +723,12 @@ export default function StoryArchive() {
     }
 
     return (
-        <div className="py-4 w-full mx-auto">
+        <div 
+            className="py-4 w-full mx-auto"
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+        >
+
 
             {/* Mobile Filter Bar (Hidden on Desktop as we use sidebar there now) */}
             <div className={`lg:hidden mb-4 sticky top-0 z-30 bg-background/80 backdrop-blur-md pb-2 -mx-3 px-3 sm:-mx-6 sm:px-6 transition-all duration-300 ${isScrolled ? 'border-b border-primary/20 shadow-sm' : 'border-transparent'}`}>
@@ -1270,12 +1302,14 @@ export default function StoryArchive() {
 
             {/* Toolbox Overlay */}
             {showToolbox && (
-                <div className="fixed inset-0 z-[100] flex items-end lg:items-center justify-center lg:justify-end bg-background/70 backdrop-blur-sm animate-in fade-in duration-500">
+                <div className="fixed inset-0 z-[100] flex items-stretch justify-end bg-background/70 animate-in fade-in duration-500">
+
                     <div 
                         className="fixed inset-0" 
                         onClick={() => setShowToolbox(null)}
                     />
-                    <div className="relative w-full max-w-[320px] h-full bg-[#12181f] border-t lg:border-t-0 lg:border-l border-slate-800/80 p-5 shadow-2xl animate-in slide-in-from-bottom lg:slide-in-from-right duration-300">
+                    <div className="relative w-full max-w-[320px] h-full bg-[#12181f] border-l border-slate-800/80 p-5 shadow-2xl animate-in slide-in-from-right duration-300">
+
                         <div className="flex flex-col mb-4 pr-6">
                             <h2 className="text-[14px] uppercase tracking-[0.2em] text-[#e2e8f0] font-bold">
                                 WERKZEUGKASTEN
@@ -1322,32 +1356,37 @@ export default function StoryArchive() {
                                     </div>
                                 </button>
 
-                                {/* Werkzeuge */}
-                                <div className="text-[10px] uppercase text-[#64748b] font-bold tracking-widest mt-3 mb-1 px-2">WERKZEUGE</div>
-                                
-                                <button 
-                                    onClick={() => { setRevoiceStoryId(activeToolboxStory.id); setConfirmRevoice(false); setShowToolbox(null); }}
-                                    className="w-full flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-white/5 transition-all outline-none"
-                                >
-                                    <div className="w-8 h-8 bg-[#064e3b] rounded-[0.4rem] flex items-center justify-center shrink-0 text-[#34d399]">
-                                        <Mic className="w-4 h-4" />
-                                    </div>
-                                    <div className="text-left text-[14px] text-[#e2e8f0]">
-                                        Neu vertonen
-                                    </div>
-                                </button>
+                                {/* Werkzeuge - Owner Only */}
+                                {user?.id === activeToolboxStory.user_id && (
+                                    <>
+                                        <div className="text-[10px] uppercase text-[#64748b] font-bold tracking-widest mt-3 mb-1 px-2">WERKZEUGE</div>
+                                        
+                                        <button 
+                                            onClick={() => { setRevoiceStoryId(activeToolboxStory.id); setConfirmRevoice(false); setShowToolbox(null); }}
+                                            className="w-full flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-white/5 transition-all outline-none"
+                                        >
+                                            <div className="w-8 h-8 bg-[#064e3b] rounded-[0.4rem] flex items-center justify-center shrink-0 text-[#34d399]">
+                                                <Mic className="w-4 h-4" />
+                                            </div>
+                                            <div className="text-left text-[14px] text-[#e2e8f0]">
+                                                Neu vertonen
+                                            </div>
+                                        </button>
 
-                                <button 
-                                    onClick={() => { handleRegenerateImage(activeToolboxStory.id); setShowToolbox(null); }}
-                                    className="w-full flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-white/5 transition-all outline-none"
-                                >
-                                    <div className="w-8 h-8 bg-[#7c2d12] rounded-[0.4rem] flex items-center justify-center shrink-0 text-[#fb923c]">
-                                        <ImageIcon className="w-4 h-4" />
-                                    </div>
-                                    <div className="text-left text-[14px] text-[#e2e8f0]">
-                                        Bild neu generieren
-                                    </div>
-                                </button>
+                                        <button 
+                                            onClick={() => { handleRegenerateImage(activeToolboxStory.id); setShowToolbox(null); }}
+                                            className="w-full flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-white/5 transition-all outline-none"
+                                        >
+                                            <div className="w-8 h-8 bg-[#7c2d12] rounded-[0.4rem] flex items-center justify-center shrink-0 text-[#fb923c]">
+                                                <ImageIcon className="w-4 h-4" />
+                                            </div>
+                                            <div className="text-left text-[14px] text-[#e2e8f0]">
+                                                Bild neu generieren
+                                            </div>
+                                        </button>
+                                    </>
+                                )}
+
 
                                 {/* Sichtbarkeit & Versand */}
                                 <div className="text-[10px] uppercase text-[#64748b] font-bold tracking-widest mt-3 mb-1 px-2">SICHTBARKEIT & VERSAND</div>
