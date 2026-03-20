@@ -469,21 +469,33 @@ async def _run_pipeline(
     
     # We don't know the exact num_chapters until text is generated, 
     # so we assume 4 for a 20 min story (5 min/chapter) as a baseline for the denominator.
-    # target_minutes // 5 is used by _generate_multi_pass (min 2)
-    estimated_chapters = max(2, target_minutes // 5)
-    
     total_points = 5 # Planung
     total_points += 10 * estimated_chapters # Text
     total_points += 5 # Bild
     if voice_key != "none":
-        total_points += 10 * estimated_chapters # Vertonung
+        total_points += 20 * estimated_chapters # Vertonung
         total_points += 10 # Finalisierung
         
     completed_points = 0
     real_num_chapters = estimated_chapters # updated once text is back
+    image_task = None # Will be started as soon as synopsis is ready
+    image_url = None
+
+    async def background_image_gen(synopsis_for_image: str):
+        nonlocal image_url
+        try:
+            image_path = story_dir / "cover.png"
+            res = await generate_story_image(synopsis_for_image, image_path, genre=genre, style=style)
+            if res:
+                image_url = f"{settings.BASE_URL}/api/stories/{story_id}/image.png"
+                try:
+                    await _generate_thumbnail(image_path, story_dir / "cover_thumb.jpg")
+                except: pass
+        except Exception as e:
+            logger.error(f"Image gen failed: {e}")
 
     async def on_progress(status_type: str, message: str, points: int | None = None, is_absolute_points: bool = False, **kwargs):
-        nonlocal completed_points
+        nonlocal completed_points, image_task
         if points is not None:
             if is_absolute_points:
                 completed_points = points
@@ -496,10 +508,15 @@ async def _run_pipeline(
         # Map internal status to user-visible steps
         label = message
         if status_type == "generating_text": label = "Texterstellung"
-        elif status_type == "generating_image": label = "Bild generieren"
+        elif status_type == "generating_image" or status_type == "image": label = "Bilderstellung"
         elif status_type == "generating_audio" or status_type == "tts": label = "Vertonung"
         elif status_type == "processing": label = "Finalisierung"
         elif status_type == "planning": label = "Planung"
+        
+        # Start image generation as soon as synopsis is ready
+        if status_type == "outline_done" and "synopsis" in kwargs and not image_task:
+            logger.info(f"OUTLINE READY for {story_id}. Starting early image generation...")
+            image_task = asyncio.create_task(background_image_gen(kwargs["synopsis"]))
         
         _generation_status[story_id]["status"] = status_type
         _generation_status[story_id]["progress"] = label
@@ -569,29 +586,10 @@ async def _run_pipeline(
             store.add_story(curr)
         total_points = 5 + (10 * real_num_chapters) + 5
         if voice_key != "none":
-            total_points += (10 * real_num_chapters) + 10
+            total_points += (20 * real_num_chapters) + 10
         
         # Mark text as done (5 + 10 * chapters)
         await on_progress("generating_text", "Texterstellung", points=5 + (10 * real_num_chapters), is_absolute_points=True)
-
-        # Phase 3: Background image generation (5 points)
-        image_url = None
-        async def background_image_gen():
-            nonlocal image_url
-            try:
-                # We don't increment points here because it's background, 
-                # but we'll reserve the 5 points for when it finishes or we wait.
-                image_path = story_dir / "cover.png"
-                res = await generate_story_image(story_data.get("synopsis", ""), image_path, genre=genre, style=style)
-                if res:
-                    image_url = f"{settings.BASE_URL}/api/stories/{story_id}/image.png"
-                    try:
-                        await _generate_thumbnail(image_path, story_dir / "cover_thumb.jpg")
-                    except: pass
-            except Exception as e:
-                logger.error(f"Image gen failed: {e}")
-
-        image_task = asyncio.create_task(background_image_gen())
 
         # Save text
         text_path = story_dir / "story.json"
@@ -599,8 +597,9 @@ async def _run_pipeline(
 
         if voice_key == "none":
             # Phase 3: Wait for image
-            await on_progress("generating_image", "Bild generieren", points=5)
-            await image_task
+            await on_progress("image", "Bilderstellung", points=5)
+            if image_task:
+                await image_task
             await on_progress("done", "Fertig!", points=total_points, is_absolute_points=True)
             
             total_text = "\n".join([c["text"] for c in story_data["chapters"]])
@@ -616,17 +615,17 @@ async def _run_pipeline(
                 store.add_story(curr)
             return
 
-        # Phase 4: Vertonung (10 Points per Chapter)
+        # Phase 4: Vertonung (20 Points per Chapter)
         # First, ensure image points are recorded (we don't wait for it yet, but it's part of the count)
-        await on_progress("generating_image", "Bild generieren", points=5)
+        await on_progress("image", "Bilderstellung", points=5)
         
         # We need to update chapters_to_audio to use points
         async def tts_progress_wrapper(stype, msg, extra_data=None):
             if stype == "tts_chunk_done" and extra_data:
-                # Distribute 10*real_num_chapters points across all chunks
+                # Distribute 20*real_num_chapters points across all chunks
                 completed = extra_data["completed"]
                 total = extra_data["total"]
-                chunk_points = int((completed / max(total, 1)) * 10 * real_num_chapters)
+                chunk_points = int((completed / max(total, 1)) * 20 * real_num_chapters)
                 # Offset: planning(5) + text(10*chapters) + image(5) + audio progress
                 base = 5 + (10 * real_num_chapters) + 5
                 await on_progress("generating_audio", "Vertonung", points=base + chunk_points, is_absolute_points=True)
@@ -659,7 +658,8 @@ async def _run_pipeline(
         )
 
         duration = await get_audio_duration(final_audio_path)
-        await image_task
+        if image_task:
+            await image_task
 
         # Phase 6: Done
         await on_progress("done", "Fertig!", points=total_points, is_absolute_points=True)

@@ -119,4 +119,47 @@
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.2);
   }
+
+  /* Matrix Animation */
+  @keyframes matrix-bounce {
+    0%, 100% { transform: translateY(0); opacity: 1; filter: brightness(1.2); }
+    50% { transform: translateY(-3px); opacity: 0.8; filter: brightness(0.8); }
+  }
+
+  .matrix-text {
+    display: inline-block;
+    font-family: var(--font-mono);
+    color: var(--color-primary);
+    text-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
+    letter-spacing: 0.05em;
+    animation: matrix-bounce 0.15s infinite ease-in-out;
+  }
+
+  .matrix-char {
+    display: inline-block;
+    animation: matrix-bounce 0.2s infinite ease-in-out;
+  }
+
+  /* Generating Placeholder Image */
+  .generating-placeholder {
+    background: linear-gradient(135deg, #172023 0%, #0b1215 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .generating-placeholder::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(34, 197, 94, 0.05), transparent);
+    transform: translateX(-100%);
+    animation: shimmer 2s infinite;
+  }
+
+  @keyframes shimmer {
+    100% { transform: translateX(100%); }
+  }
 }

@@ -229,23 +229,33 @@ function ManagementStoryCard({
             <div className="flex gap-4 mb-4">
                 {/* Image Section */}
                 <div 
-                    className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden shrink-0 cursor-pointer border border-slate-700/50 shadow-sm"
-                    onClick={() => onPlay(story.id)}
+                    className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden shrink-0 cursor-pointer border border-slate-700/50 shadow-sm relative bg-slate-900 flex items-center justify-center"
+                    onClick={() => story.status === 'done' && onPlay(story.id)}
                 >
-                    <img 
-                        src={getThumbUrl(story.id, story.updated_at)} 
-                        alt={story.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
-                    />
+                    {story.status === 'generating' && !story.image_url ? (
+                        <div className="w-full h-full inset-0 absolute generating-placeholder flex items-center justify-center">
+                            <Loader2 className="w-8 h-8 text-primary animate-spin opacity-40" />
+                        </div>
+                    ) : (
+                        <img 
+                            src={getThumbUrl(story.id, story.updated_at)} 
+                            alt={story.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                        />
+                    )}
                 </div>
                 
                 {/* Information Section */}
                 <div className="flex-1 min-w-0 flex flex-col pt-1">
                     <h3 
-                        className="text-lg sm:text-xl font-bold text-white leading-tight mb-3 cursor-pointer hover:text-primary transition-colors pr-2 font-serif"
+                        className={`text-lg sm:text-xl font-bold leading-tight mb-3 cursor-pointer hover:text-primary transition-colors pr-2 font-serif ${
+                            story.status === 'generating' && story.title.includes('Schreibe Dein') ? 'matrix-text' : 'text-white'
+                        }`}
                         onClick={() => story.status === 'done' && onPlay(story.id)}
                     >
-                        {story.title}
+                        {story.status === 'generating' && story.title.includes('Schreibe Dein') 
+                            ? "Lorem ipsum dolor sit amet" 
+                            : story.title}
                     </h3>
                     
                     <div className="flex gap-6">
@@ -329,11 +339,53 @@ function ManagementStoryCard({
             </div>
 
             {story.status === 'generating' && (
-                <div className="absolute inset-x-0 bottom-0 h-1 bg-slate-800 overflow-hidden">
-                    <div 
-                        className="h-full bg-primary animate-pulse transition-all duration-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]" 
-                        style={{ width: `${story.progress_pct || 5}%` }}
-                    />
+                <div className="mt-4 pt-4 border-t border-slate-800/50 animate-in fade-in slide-in-from-bottom-2 duration-700">
+                    <div className="flex justify-between items-end mb-2.5">
+                        <div className="flex flex-col">
+                            <span className="text-[10px] uppercase font-bold text-slate-500 tracking-[0.2em] mb-0.5">Fortschritt</span>
+                            <span className="text-[13px] font-bold text-primary flex items-center gap-2">
+                                {story.progress || 'Generierung wird vorbereitet...'}
+                                {story.progress === 'Texterstellung' && <span className="text-[10px] text-primary/50 font-normal">Kapitelweise...</span>}
+                            </span>
+                        </div>
+                        <span className="text-sm font-mono font-bold text-primary/80">
+                            {story.progress_pct || 0}%
+                        </span>
+                    </div>
+
+                    {/* 5-Stage Segmented Progress Bar */}
+                    <div className="flex gap-1.5 h-1.5 w-full">
+                        {[1, 2, 3, 4, 5].map((step) => {
+                            const steps = ['Planung', 'Texterstellung', 'Bilderstellung', 'Vertonung', 'Fertigstellung'];
+                            const stepLabels = ['Planung', 'Texterstellung', 'Bilderstellung', 'Vertonung', 'Fertigstellung'];
+                            
+                            const getStepNumber = (p: string) => {
+                                if (!p || p.includes('vorbereitet')) return 1;
+                                if (p === 'Planung') return 1;
+                                if (p === 'Texterstellung') return 2;
+                                if (p === 'Bilderstellung' || p === 'Bild generieren') return 3;
+                                if (p === 'Vertonung') return 4;
+                                if (p === 'Finalisierung' || p === 'Fertigstellung' || p.includes('Fertig')) return 5;
+                                return 1;
+                            };
+
+                            const currentStep = getStepNumber(story.progress);
+                            const isStepActive = currentStep >= step;
+                            const isCurrent = currentStep === step;
+                            
+                            return (
+                                <div 
+                                    key={step}
+                                    title={stepLabels[step-1]}
+                                    className={`h-full flex-1 rounded-full transition-all duration-700 ${
+                                        isStepActive 
+                                        ? 'bg-primary shadow-[0_0_8px_rgba(34,197,94,0.3)]' 
+                                        : 'bg-slate-800'
+                                    } ${isCurrent ? 'animate-pulse' : ''}`}
+                                />
+                            );
+                        })}
+                    </div>
                 </div>
             )}
         </div>
