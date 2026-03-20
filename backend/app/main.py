@@ -112,12 +112,18 @@ async def _generate_thumbnail(source: Path, dest: Path, size: int = 400):
     """Create a small JPEG thumbnail from a full-size cover image."""
     import asyncio
     def _resize():
-        from PIL import Image
-        with Image.open(source) as img:
-            img = img.convert("RGB")
-            img.thumbnail((size, size), Image.LANCZOS)
-            img.save(dest, "JPEG", quality=80, optimize=True)
-    await asyncio.to_thread(_resize)
+        try:
+            from PIL import Image
+            with Image.open(source) as img:
+                img = img.convert("RGB")
+                img.thumbnail((size, size), Image.LANCZOS)
+                img.save(dest, "JPEG", quality=80, optimize=True)
+            return True
+        except Exception as e:
+            logger.error(f"Thumbnail generation failed: {e}")
+            return False
+            
+    return await asyncio.to_thread(_resize)
 
 
 # ──────────────────────────────────
@@ -488,10 +494,19 @@ async def _run_pipeline(
             image_path = story_dir / "cover.png"
             res = await generate_story_image(synopsis_for_image, image_path, genre=genre, style=style)
             if res:
-                image_url = f"{settings.BASE_URL}/api/stories/{story_id}/image.png"
+                image_url = f"/api/stories/{story_id}/image.png"
                 try:
                     await _generate_thumbnail(image_path, story_dir / "cover_thumb.jpg")
                 except: pass
+                
+                # UPDATE STORE IMMEDIATELY so polling sees the new image
+                curr = store.get_by_id(story_id)
+                if curr:
+                    curr.image_url = image_url
+                    curr.updated_at = datetime.now(timezone.utc)
+                    store.add_story(curr)
+                    # Trigger a progress update to notify frontend
+                    await on_progress("image_ready", "Bilderstellung", points=0)
         except Exception as e:
             logger.error(f"Image gen failed: {e}")
 
@@ -515,7 +530,7 @@ async def _run_pipeline(
         elif status_type == "planning": label = "Planung"
         
         # Start image generation as soon as synopsis is ready
-        if status_type == "outline_done" and "synopsis" in kwargs and not image_task:
+        if (status_type == "outline_done" or status_type == "generating_text") and "synopsis" in kwargs and not image_task:
             logger.info(f"OUTLINE READY for {story_id}. Starting early image generation...")
             image_task = asyncio.create_task(background_image_gen(kwargs["synopsis"]))
         
@@ -1103,7 +1118,7 @@ async def regenerate_story_image_api(
             logger.info(f"MANUAL REGEN: Calling generate_story_image for {story_id}")
             res = await generate_story_image(synopsis, image_path, genre=meta.genre, style=meta.style)
             if res:
-                image_url = f"{settings.BASE_URL}/api/stories/{story_id}/image.png"
+                image_url = f"/api/stories/{story_id}/image.png"
                 meta.image_url = image_url
                 meta.updated_at = datetime.now(timezone.utc)
                 # Update metadata in store
@@ -1148,11 +1163,18 @@ async def get_story_thumbnail(story_id: str):
     # Generate on demand if thumbnail doesn't exist yet but cover does
     if not thumb_path.exists() and cover_path.exists():
         try:
-            await _generate_thumbnail(cover_path, thumb_path)
-        except Exception:
-            pass
+            success = await _generate_thumbnail(cover_path, thumb_path)
+            if not success:
+                # FALLBACK: Serve full image as thumb if generation fails
+                logger.info(f"Serving cover.png as fallback for {story_id} because thumb gen failed")
+                return FileResponse(cover_path, media_type="image/png")
+        except Exception as e:
+            logger.warning(f"Reactive thumb gen error: {e}")
+            return FileResponse(cover_path, media_type="image/png")
     
     if not thumb_path.exists():
+        if cover_path.exists():
+            return FileResponse(cover_path, media_type="image/png")
         raise HTTPException(status_code=404, detail="Thumbnail not found")
     
     return FileResponse(thumb_path, media_type="image/jpeg")

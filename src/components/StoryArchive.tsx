@@ -242,7 +242,7 @@ function ManagementStoryCard({
                         </div>
                     ) : (
                         <img 
-                            src={getThumbUrl(story.id, story.updated_at)} 
+                            src={getThumbUrl(story.id, story.status === 'generating' ? `${story.updated_at}_${Date.now()}` : story.updated_at)} 
                             alt={story.title}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
                         />
@@ -349,55 +349,29 @@ function ManagementStoryCard({
                             <span className="text-[10px] uppercase font-bold text-slate-500 tracking-[0.2em] mb-0.5">Fortschritt</span>
                             <span className="text-[13px] font-bold text-primary flex items-center gap-2">
                                 {story.progress || 'Generierung wird vorbereitet...'}
-                                {story.progress === 'Texterstellung' && <span className="text-[10px] text-primary/50 font-normal">Kapitelweise...</span>}
                             </span>
                         </div>
                         <div className="flex items-center gap-4">
                             <button 
                                 onClick={(e) => { e.stopPropagation(); onDelete(story.id, story.title); }}
-                                className="text-[10px] font-bold text-red-500/50 hover:text-red-500 uppercase tracking-widest transition-colors flex items-center gap-1.5"
+                                className="text-[10px] font-extrabold text-red-500 hover:text-red-400 uppercase tracking-widest transition-all flex items-center gap-1.5 px-2 py-1 bg-red-500/10 rounded-md border border-red-500/20"
                                 title="Generierung abbrechen"
                             >
                                 <XCircle className="w-3.5 h-3.5" />
                                 Abbrechen
                             </button>
-                            <span className="text-sm font-bold text-primary/80 font-sans tracking-tight">
+                            <span className="text-[15px] font-medium text-primary/90 font-sans tracking-tight min-w-[36px] text-right">
                                 {story.progress_pct || 0}%
                             </span>
                         </div>
                     </div>
 
-                    {/* 5-Stage Segmented Progress Bar */}
-                    <div className="flex gap-1.5 h-1.5 w-full">
-                        {[1, 2, 3, 4, 5].map((step) => {
-                            const stepLabels = ['Planung', 'Texterstellung', 'Bilderstellung', 'Vertonung', 'Fertigstellung'];
-                            
-                            const getStepNumber = (p: string) => {
-                                if (!p || p.includes('vorbereitet')) return 1;
-                                if (p === 'Planung') return 1;
-                                if (p === 'Texterstellung') return 2;
-                                if (p === 'Bilderstellung' || p === 'Bild generieren') return 3;
-                                if (p === 'Vertonung') return 4;
-                                if (p === 'Finalisierung' || p === 'Fertigstellung' || p.includes('Fertig')) return 5;
-                                return 1;
-                            };
-
-                            const currentStep = getStepNumber(story.progress);
-                            const isStepActive = currentStep >= step;
-                            const isCurrent = currentStep === step;
-                            
-                            return (
-                                <div 
-                                    key={step}
-                                    title={stepLabels[step-1]}
-                                    className={`h-full flex-1 rounded-full transition-all duration-700 ${
-                                        isStepActive 
-                                        ? 'bg-primary shadow-[0_0_8px_rgba(34,197,94,0.3)]' 
-                                        : 'bg-slate-800'
-                                    } ${isCurrent ? 'animate-pulse' : ''}`}
-                                />
-                            );
-                        })}
+                    {/* Continuous Progress Bar */}
+                    <div className="h-1.5 w-full bg-slate-800/50 rounded-full overflow-hidden border border-white/5">
+                        <div 
+                            className="h-full bg-primary shadow-[0_0_10px_rgba(34,197,94,0.3)] transition-all duration-700 ease-out rounded-full"
+                            style={{ width: `${story.progress_pct || 0}%` }}
+                        />
                     </div>
                 </div>
             )}

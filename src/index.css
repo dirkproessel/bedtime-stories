@@ -120,23 +120,26 @@
     background: rgba(255, 255, 255, 0.2);
   }
 
-  /* Matrix Animation */
+  /* Matrix Animation (Slow & Subtle) */
   @keyframes matrix-bounce {
-    0%, 100% { transform: translateY(0); opacity: 1; filter: brightness(1.1); text-shadow: 0 0 10px rgba(34,197,94,0.4); }
-    50% { transform: translateY(-1.5px); opacity: 0.9; filter: brightness(0.9); text-shadow: 0 0 5px rgba(34,197,94,0.2); }
+    0%, 100% { 
+      transform: translateY(0); 
+      opacity: 0.95; 
+      text-shadow: 0 0 8px rgba(34,197,94,0.2); 
+    }
+    50% { 
+      transform: translateY(-0.8px); 
+      opacity: 0.85; 
+      text-shadow: 0 0 4px rgba(34,197,94,0.1); 
+    }
   }
 
   .matrix-text {
     display: inline-block;
     font-family: var(--font-serif);
     color: var(--color-primary);
-    letter-spacing: 0.02em;
-    animation: matrix-bounce 0.8s infinite ease-in-out;
-  }
-
-  .matrix-char {
-    display: inline-block;
-    animation: matrix-bounce 0.2s infinite ease-in-out;
+    opacity: 0.9;
+    animation: matrix-bounce 2.5s infinite ease-in-out;
   }
 
   /* Generating Placeholder Image */
