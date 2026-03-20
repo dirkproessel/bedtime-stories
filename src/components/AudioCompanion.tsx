@@ -88,11 +88,11 @@ export default function AudioCompanion() {
     };
 
     return (
-        <div className="fixed bottom-0 left-0 right-0 lg:left-64 z-[90] px-4 pb-4 lg:pb-8 pointer-events-none">
+        <div className="fixed bottom-0 left-0 right-0 lg:left-64 z-[150] px-4 pb-4 lg:pb-8 pointer-events-none">
             <audio ref={audioRef} />
             
             {story && (
-                <div className="max-w-md mx-auto bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl p-2 pr-4 flex items-center gap-3 relative overflow-hidden group">
+                <div className="max-w-md mx-auto bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl p-2 pr-4 flex items-center gap-3 relative overflow-hidden group pointer-events-auto">
                     {/* Background Glow */}
                     <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
                     
