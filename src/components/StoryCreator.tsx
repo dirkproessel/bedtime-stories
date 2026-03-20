@@ -29,16 +29,15 @@ export const GENRES = [
     { value: 'Dark Romance', label: 'Dark Romance', desc: 'Verboten, intensiv, Machtspiele' },
 ];
 
-
-
 const LENGTHS = [
-    { value: 3, label: 'Minimal', sub: '~3 Min' },
-    { value: 10, label: 'Kurz', sub: '~10 Min' },
-    { value: 15, label: 'Mittel', sub: '~15 Min' },
+    { value: 5, label: 'Kurz', sub: '~5 Min' },
+    { value: 10, label: 'Mittel', sub: '~10 Min' },
     { value: 20, label: 'Lang', sub: '~20 Min' },
 ];
 
-const BEST_OF_COUNT = 8;
+const MAX_GENRES_VISIBLE = 9;
+const MAX_AUTHORS_VISIBLE = 9;
+const MAX_PREMIUM_VOICES_VISIBLE = 6;
 
 // Sort items array so that popularIds come first (in order), rest follow in original order.
 function sortByPopularity<T>(items: T[], popularIds: string[], getKey: (item: T) => string): T[] {
@@ -59,8 +58,11 @@ export default function StoryCreator() {
         generatorAuthors: selectedAuthors, setGeneratorAuthors: setSelectedAuthors,
         generatorMinutes: targetMinutes, setGeneratorMinutes: setTargetMinutes,
         generatorVoice: voiceKey, setGeneratorVoice: setVoiceKey,
-        generatorParentId, generatorRemixType, generatorContext, setGeneratorRemix
+        generatorParentId, generatorRemixType, generatorContext, setGeneratorRemix,
+        isReaderOpen
     } = useStore();
+
+    const [isAudioEnabled, setIsAudioEnabled] = useState(false);
 
     const toggleAuthor = (id: string) => {
         setSelectedAuthors(
@@ -81,16 +83,30 @@ export default function StoryCreator() {
     useEffect(() => {
         fetchPopularity()
             .then(data => {
-                setSortedGenres(sortByPopularity(GENRES, data.genres, g => g.value));
-                setSortedAuthors(sortByPopularity(AUTHORS, data.authors, a => a.id));
-                if (data.voices?.length > 0) {
-                    setSortedVoices(sortByPopularity(voices, data.voices, v => v.key));
+                const popularGenreIds = data.genres || [];
+                const popularAuthorIds = data.authors || [];
+                const popularVoiceIds = data.voices || [];
+
+                setSortedGenres(sortByPopularity(GENRES, popularGenreIds, g => g.value));
+                
+                // Author sorting logic: Genre Match > Popularity
+                const baseSortedAuthors = sortByPopularity(AUTHORS, popularAuthorIds, a => a.id);
+                const genreRelevanceSorted = [...baseSortedAuthors].sort((a, b) => {
+                    const aMatches = genre && a.preferredGenres?.includes(genre) ? 1 : 0;
+                    const bMatches = genre && b.preferredGenres?.includes(genre) ? 1 : 0;
+                    if (aMatches !== bMatches) return bMatches - aMatches;
+                    return 0; // maintain popularity order within matches/non-matches
+                });
+                setSortedAuthors(genreRelevanceSorted);
+
+                if (popularVoiceIds.length > 0) {
+                    setSortedVoices(sortByPopularity(voices, popularVoiceIds, v => v.key));
                 } else {
                     setSortedVoices(voices);
                 }
             })
             .catch(() => { /* keep default order on failure */ });
-    }, [voices]);
+    }, [voices, genre]);
 
     // Input state
     // freeText moved to store
@@ -174,7 +190,7 @@ export default function StoryCreator() {
                 setGenre(currentGenre);
                 
                 // Ensure visibility if hidden in the "further" section
-                const isVisible = sortedGenres.slice(0, BEST_OF_COUNT).some(g => g.value === currentGenre);
+                const isVisible = sortedGenres.slice(0, MAX_GENRES_VISIBLE).some(g => g.value === currentGenre);
                 if (!isVisible) setShowAllGenres(true);
             }
 
@@ -186,7 +202,7 @@ export default function StoryCreator() {
                 setSelectedAuthors(activeAuthors);
                 
                 // Ensure visibility if hidden in the "further" section
-                const isVisible = sortedAuthors.slice(0, BEST_OF_COUNT).some(a => a.id === randomAuthorId);
+                const isVisible = sortedAuthors.slice(0, MAX_AUTHORS_VISIBLE).some(a => a.id === randomAuthorId);
                 if (!isVisible) setShowAllAuthors(true);
             }
 
@@ -305,7 +321,7 @@ export default function StoryCreator() {
                                 <h3 className="text-xs uppercase font-bold tracking-wider text-slate-400">Genre</h3>
                         </div>
                         <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
-                            {(showAllGenres ? sortedGenres : sortedGenres.slice(0, BEST_OF_COUNT)).map(g => (
+                            {(showAllGenres ? sortedGenres : sortedGenres.slice(0, MAX_GENRES_VISIBLE)).map(g => (
                                 <button
                                     key={g.value}
                                     onClick={() => setGenre(g.value)}
@@ -319,7 +335,7 @@ export default function StoryCreator() {
                                 </button>
                             ))}
                         </div>
-                        {!showAllGenres && sortedGenres.length > BEST_OF_COUNT && (
+                        {!showAllGenres && sortedGenres.length > MAX_GENRES_VISIBLE && (
                             <button
                                 onClick={() => setShowAllGenres(true)}
                                 className="mt-2 w-full py-2 rounded-xl border border-dashed border-slate-800 text-xs uppercase font-bold text-slate-500 hover:border-slate-600 hover:text-slate-400 transition-all flex items-center justify-center gap-1"
@@ -333,11 +349,10 @@ export default function StoryCreator() {
                     {/* Authors */}
                     <div>
                         <div className="mb-1.5 flex flex-col gap-0.5">
-                                <h3 className="text-xs uppercase font-bold tracking-wider text-slate-400">Stil</h3>
-                                <p className="text-[10px] text-slate-500 font-medium">Mixe bis zu 3 Autoren</p>
+                                <h3 className="text-xs uppercase font-bold tracking-wider text-slate-400">Stil (Mixe bis zu 3 Autoren)</h3>
                         </div>
                         <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
-                            {(showAllAuthors ? sortedAuthors : sortedAuthors.slice(0, BEST_OF_COUNT)).map(s => {
+                            {(showAllAuthors ? sortedAuthors : sortedAuthors.slice(0, MAX_AUTHORS_VISIBLE)).map(s => {
                                 const isSelected = selectedAuthors.includes(s.id);
                                 return (
                                     <button
@@ -360,7 +375,7 @@ export default function StoryCreator() {
                                 );
                             })}
                         </div>
-                        {!showAllAuthors && sortedAuthors.length > BEST_OF_COUNT && (
+                        {!showAllAuthors && sortedAuthors.length > MAX_AUTHORS_VISIBLE && (
                             <button
                                 onClick={() => setShowAllAuthors(true)}
                                 className="mt-2 w-full py-2 rounded-xl border border-dashed border-slate-800 text-xs font-bold text-slate-500 hover:border-slate-600 hover:text-slate-400 transition-all flex items-center justify-center gap-1"
@@ -393,127 +408,154 @@ export default function StoryCreator() {
                                 ))}
                             </div>
                         </div>
-
-                        <div>
-                                <div className="mb-1.5 flex items-center gap-2">
-                                <h3 className="text-xs uppercase font-bold tracking-wider text-slate-400">Erzähler</h3>
+                        {/* Vertonung Toggle */}
+                        <div className="flex items-center justify-between p-4 bg-slate-800/40 border-2 border-slate-700/50 rounded-2xl">
+                            <div className="flex items-center gap-3">
+                                <div className={`p-2 rounded-lg ${isAudioEnabled ? 'bg-primary/20 text-primary' : 'bg-slate-700/50 text-slate-500'}`}>
+                                    {isAudioEnabled ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
+                                </div>
+                                <div>
+                                    <h4 className="text-sm font-bold text-slate-200">Vertonung</h4>
+                                    <p className="text-xs text-slate-500">Geschichte als Audio generieren</p>
+                                </div>
                             </div>
-                            <div className="space-y-3">
-                                {/* Standard Voices */}
-                                <div className="space-y-3">
-                                     <div className="mb-1.5 flex items-center gap-2">
-                                        <h4 className="text-xs font-bold tracking-wider text-slate-500">Standard-Stimmen</h4>
+                            <button
+                                onClick={() => {
+                                    const next = !isAudioEnabled;
+                                    setIsAudioEnabled(next);
+                                    if (!next) setVoiceKey('none');
+                                    else if (voiceKey === 'none') setVoiceKey('marlene'); // Default to something if enabled
+                                }}
+                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${isAudioEnabled ? 'bg-primary' : 'bg-slate-700'}`}
+                            >
+                                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isAudioEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                            </button>
+                        </div>
+
+                        {isAudioEnabled && (
+                            <div className="space-y-5 animate-in slide-in-from-top-4 duration-300">
+                                <div>
+                                    <div className="mb-1.5 flex items-center gap-2">
+                                        <h3 className="text-xs uppercase font-bold tracking-wider text-slate-400">Erzähler</h3>
                                     </div>
-                                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
-                                    {voices
-                                        .filter(v => STANDARD_VOICE_KEYS.includes(v.key))
-                                        .sort((a, b) => STANDARD_VOICE_KEYS.indexOf(a.key) - STANDARD_VOICE_KEYS.indexOf(b.key))
-                                        .map(v => (
-                                        <div
-                                            key={v.key}
-                                            className={`p-3 rounded-xl transition-all border-2 cursor-pointer h-full min-h-[80px] flex items-center justify-between gap-3 ${voiceKey === v.key
-                                                ? 'border-primary bg-primary/10'
-                                                : 'border-slate-700/50 bg-slate-800/60 hover:border-slate-600'
-                                                }`}
-                                            onClick={() => setVoiceKey(v.key)}
-                                        >
-                                            <div className="flex-1 min-w-0 pr-1">
-                                                <div className="flex items-center gap-1.5 mb-0.5">
-                                                    <h4 className={`text-sm font-bold truncate tracking-tight ${voiceKey === v.key ? 'text-white' : 'text-slate-300'}`}>
-                                                        {v.key === 'none' ? 'Keine Stimme' : voiceName(v.key)}
-                                                    </h4>
-                                                    <div className={`${voiceKey === v.key ? 'text-white' : 'text-slate-600'}`}>
-                                                        {v.gender === 'female' ? <Venus className="w-3.5 h-3.5" /> :
-                                                            v.gender === 'male' ? <Mars className="w-3.5 h-3.5" /> : <Users className="w-3.5 h-3.5" />}
-                                                    </div>
-                                                </div>
-                                                <div className={`text-xs line-clamp-1 ${voiceKey === v.key ? 'text-white/80' : 'text-slate-500'}`}>
-                                                    {v.key === 'none' ? 'Nur Text generieren' : voiceDesc(v.key)}
-                                                </div>
+                                    <div className="space-y-3">
+                                        {/* Standard Voices */}
+                                        <div className="space-y-3">
+                                            <div className="mb-1.5 flex items-center gap-2">
+                                                <h4 className="text-xs font-bold tracking-wider text-slate-500">Standard-Stimmen</h4>
                                             </div>
-                                            {v.key !== 'none' && (
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); handlePreviewVoice(v.key); }}
-                                                    className={`w-8 h-8 rounded-full flex items-center justify-center transition-all shrink-0 ${previewVoice === v.key ? 'bg-primary text-white' : 'bg-slate-800 text-slate-500 border border-slate-700/50'}`}
+                                            <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
+                                            {voices
+                                                .filter(v => STANDARD_VOICE_KEYS.includes(v.key))
+                                                .sort((a, b) => STANDARD_VOICE_KEYS.indexOf(a.key) - STANDARD_VOICE_KEYS.indexOf(b.key))
+                                                .map(v => (
+                                                <div
+                                                    key={v.key}
+                                                    className={`p-3 rounded-xl transition-all border-2 cursor-pointer h-full min-h-[80px] flex items-center justify-between gap-3 ${voiceKey === v.key
+                                                        ? 'border-primary bg-primary/10'
+                                                        : 'border-slate-700/50 bg-slate-800/60 hover:border-slate-600'
+                                                        }`}
+                                                    onClick={() => setVoiceKey(v.key)}
                                                 >
-                                                    {previewVoice === v.key ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 ml-0.5" />}
+                                                    <div className="flex-1 min-w-0 pr-1">
+                                                        <div className="flex items-center gap-1.5 mb-0.5">
+                                                            <h4 className={`text-sm font-bold truncate tracking-tight ${voiceKey === v.key ? 'text-white' : 'text-slate-300'}`}>
+                                                                {voiceName(v.key)}
+                                                            </h4>
+                                                            <div className={`${voiceKey === v.key ? 'text-white' : 'text-slate-600'}`}>
+                                                                {v.gender === 'female' ? <Venus className="w-3.5 h-3.5" /> :
+                                                                    v.gender === 'male' ? <Mars className="w-3.5 h-3.5" /> : <Users className="w-3.5 h-3.5" />}
+                                                            </div>
+                                                        </div>
+                                                        <div className={`text-xs line-clamp-1 ${voiceKey === v.key ? 'text-white/80' : 'text-slate-500'}`}>
+                                                            {voiceDesc(v.key)}
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); handlePreviewVoice(v.key); }}
+                                                        className={`w-8 h-8 rounded-full flex items-center justify-center transition-all shrink-0 ${previewVoice === v.key ? 'bg-primary text-white' : 'bg-slate-800 text-slate-500 border border-slate-700/50'}`}
+                                                    >
+                                                        {previewVoice === v.key ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 ml-0.5" />}
+                                                    </button>
+                                                </div>
+                                            ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Premium Voices */}
+                                        <div className="space-y-3">
+                                            <div className="flex items-center gap-2 mb-1.5">
+                                                <h4 className="text-xs font-bold tracking-wider text-slate-500">Premium-Stimmen</h4>
+                                            </div>
+                                            <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
+                                                {sortedVoices
+                                                    .filter(v => !isStandardVoice(v.key))
+                                                    .slice(0, showAllVoices ? sortedVoices.length : MAX_PREMIUM_VOICES_VISIBLE)
+                                                    .map(v => (
+                                                    <div
+                                                        key={v.key}
+                                                        className={`p-3 rounded-xl transition-all border-2 cursor-pointer h-full min-h-[80px] flex items-center justify-between gap-3 ${voiceKey === v.key
+                                                            ? 'border-primary bg-primary/10'
+                                                            : 'border-slate-700/50 bg-slate-800/60 hover:border-slate-600'
+                                                            }`}
+                                                        onClick={() => setVoiceKey(v.key)}
+                                                    >
+                                                        <div className="flex-1 min-w-0 pr-1">
+                                                            <div className="flex items-center gap-1.5 mb-0.5">
+                                                                <h4 className={`text-sm font-bold truncate tracking-tight ${voiceKey === v.key ? 'text-white' : 'text-slate-300'}`}>
+                                                                    {voiceName(v.key)}
+                                                                </h4>
+                                                                <div className={`${voiceKey === v.key ? 'text-white' : 'text-slate-600'}`}>
+                                                                    {v.gender === 'female' ? <Venus className="w-3.5 h-3.5" /> :
+                                                                        v.gender === 'male' ? <Mars className="w-3.5 h-3.5" /> : <Users className="w-3.5 h-3.5" />}
+                                                                </div>
+                                                            </div>
+                                                            <div className={`text-xs line-clamp-1 ${voiceKey === v.key ? 'text-white/80' : 'text-slate-500'}`}>
+                                                                {voiceDesc(v.key)}
+                                                            </div>
+                                                        </div>
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); handlePreviewVoice(v.key); }}
+                                                            className={`w-7 h-7 rounded-full flex items-center justify-center transition-all shrink-0 ${previewVoice === v.key ? 'bg-primary text-white' : 'bg-slate-800 text-slate-500 border border-slate-700/50'}`}
+                                                        >
+                                                            {previewVoice === v.key ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3 ml-0.5" />}
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            {sortedVoices.filter(v => !isStandardVoice(v.key)).length > MAX_PREMIUM_VOICES_VISIBLE && (
+                                                <button 
+                                                    onClick={() => setShowAllVoices(!showAllVoices)}
+                                                    className="w-full flex items-center justify-center gap-2 p-2 rounded-xl border border-slate-800 text-xs font-bold text-slate-500 hover:text-slate-400 transition-all bg-slate-800/20"
+                                                >
+                                                    <span>{showAllVoices ? 'Weniger anzeigen' : `Alle Premiumstimmen (${sortedVoices.filter(v => !isStandardVoice(v.key)).length})`}</span>
+                                                    <ChevronDown className={`w-3 h-3 transition-transform ${showAllVoices ? 'rotate-180' : ''}`} />
                                                 </button>
                                             )}
                                         </div>
-                                    ))}
+                                    </div>
                                 </div>
                             </div>
-
-                                {/* Premium Voices */}
-                                <div className="space-y-3">
-                                    <div className="flex items-center gap-2 mb-1.5">
-                                        <h4 className="text-xs font-bold tracking-wider text-slate-500">Premium-Stimmen</h4>
-                                    </div>
-                                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
-                                        {sortedVoices
-                                            .filter(v => !isStandardVoice(v.key))
-                                            .slice(0, showAllVoices ? sortedVoices.length : 4)
-                                            .map(v => (
-                                            <div
-                                                key={v.key}
-                                                className={`p-3 rounded-xl transition-all border-2 cursor-pointer h-full min-h-[80px] flex items-center justify-between gap-3 ${voiceKey === v.key
-                                                    ? 'border-primary bg-primary/10'
-                                                    : 'border-slate-700/50 bg-slate-800/60 hover:border-slate-600'
-                                                    }`}
-                                                onClick={() => setVoiceKey(v.key)}
-                                            >
-                                                <div className="flex-1 min-w-0 pr-1">
-                                                    <div className="flex items-center gap-1.5 mb-0.5">
-                                                        <h4 className={`text-sm font-bold truncate tracking-tight ${voiceKey === v.key ? 'text-white' : 'text-slate-300'}`}>
-                                                            {voiceName(v.key)}
-                                                        </h4>
-                                                        <div className={`${voiceKey === v.key ? 'text-white' : 'text-slate-600'}`}>
-                                                            {v.gender === 'female' ? <Venus className="w-3.5 h-3.5" /> :
-                                                                v.gender === 'male' ? <Mars className="w-3.5 h-3.5" /> : <Users className="w-3.5 h-3.5" />}
-                                                        </div>
-                                                    </div>
-                                                    <div className={`text-xs line-clamp-1 ${voiceKey === v.key ? 'text-white/80' : 'text-slate-500'}`}>
-                                                        {voiceDesc(v.key)}
-                                                    </div>
-                                                </div>
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); handlePreviewVoice(v.key); }}
-                                                    className={`w-7 h-7 rounded-full flex items-center justify-center transition-all shrink-0 ${previewVoice === v.key ? 'bg-primary text-white' : 'bg-slate-800 text-slate-500 border border-slate-700/50'}`}
-                                                >
-                                                    {previewVoice === v.key ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3 ml-0.5" />}
-                                                </button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    {sortedVoices.filter(v => !isStandardVoice(v.key)).length > 4 && (
-                                        <button 
-                                            onClick={() => setShowAllVoices(!showAllVoices)}
-                                            className="w-full flex items-center justify-center gap-2 p-2 rounded-xl border border-slate-800 text-xs font-bold text-slate-500 hover:text-slate-400 transition-all bg-slate-800/20"
-                                        >
-                                            <span>{showAllVoices ? 'Weniger anzeigen' : `Alle Premiumstimmen (${sortedVoices.filter(v => !isStandardVoice(v.key)).length})`}</span>
-                                            <ChevronDown className={`w-3 h-3 transition-transform ${showAllVoices ? 'rotate-180' : ''}`} />
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
+                        )}
                     </div>
                 </div>
             </div>
 
             {/* Unified Floating Generate Button */}
-            <div className="fixed bottom-22 lg:bottom-12 left-0 right-0 flex justify-center z-[110] pointer-events-none px-4">
-                <div className="pointer-events-auto relative">
-                    <div className="absolute -inset-2 bg-background/40 backdrop-blur-xl rounded-full -z-10 border border-white/10 shadow-2xl" />
-                    <button
-                        onClick={handleGenerate}
-                        className="btn-primary px-10 py-4 lg:px-14 lg:py-5 text-lg lg:text-xl shadow-2xl hover:scale-105 active:scale-95 transition-all"
-                    >
-                        <Sparkles className="w-5 h-5 lg:w-7 lg:h-7 shrink-0" />
-                        Geschichte erstellen
-                    </button>
+            {!isReaderOpen && (
+                <div className="fixed bottom-22 lg:bottom-12 left-0 right-0 flex justify-center z-[110] pointer-events-none px-4">
+                    <div className="pointer-events-auto relative">
+                        <div className="absolute -inset-2 bg-background/40 backdrop-blur-xl rounded-full -z-10 border border-white/10 shadow-2xl" />
+                        <button
+                            onClick={handleGenerate}
+                            className="btn-primary px-10 py-4 lg:px-14 lg:py-5 text-lg lg:text-xl shadow-2xl hover:scale-105 active:scale-95 transition-all"
+                        >
+                            <Sparkles className="w-5 h-5 lg:w-7 lg:h-7 shrink-0" />
+                            Geschichte erstellen
+                        </button>
+                    </div>
                 </div>
-            </div>
+            )}
 
             <audio ref={audioRef} className="hidden" />
         </div>

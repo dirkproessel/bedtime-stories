@@ -88,7 +88,7 @@ export default function AudioCompanion() {
     };
 
     return (
-        <div className="fixed bottom-[84px] left-4 right-4 z-[90] animate-in slide-in-from-bottom duration-500">
+        <div className="fixed bottom-0 left-0 right-0 z-[160] px-4 pb-4 lg:pb-8 pointer-events-none">
             <audio ref={audioRef} />
             
             {story && (
