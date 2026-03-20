@@ -1,6 +1,6 @@
 import { useStore } from '../store/useStore';
 import { getVoicePreviewUrl, exportStoryToKindle, getThumbUrl, getImageUrl, regenerateStoryImage } from '../lib/api';
-import { Play, Trash2, Heart, BookOpen, Loader2, Mic, X, Venus, Mars, Users, Pause, Send, Image as ImageIcon, RefreshCw, Sparkles, Settings2, MessageCircle, Search, ChevronLeft, ChevronRight, ArrowLeft, Wand2, User as UserIcon, Clock } from 'lucide-react';
+import { Play, Trash2, Heart, BookOpen, Loader2, Mic, X, XCircle, Venus, Mars, Users, Pause, Send, Image as ImageIcon, RefreshCw, Sparkles, Settings2, MessageCircle, Search, ChevronLeft, ChevronRight, ArrowLeft, Wand2, User as UserIcon, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useEffect, useState, useRef } from 'react';
 import ConfirmModal from './ConfirmModal';
@@ -60,7 +60,7 @@ function HeroSection({ story, onPlay, onFavorite }: { story: any, onPlay: (id: s
     );
 }
 
-function CollectionRow({ title, stories, onPlay, onFavorite, onToolbox }: { title: string, stories: any[], onPlay: (id: string) => void, onFavorite: (id: string) => void, onToolbox: (id: string) => void }) {
+function CollectionRow({ title, stories, onPlay, onFavorite, onToolbox, onDelete, formatDuration }: { title: string, stories: any[], onPlay: (id: string) => void, onFavorite: (id: string) => void, onToolbox: (id: string) => void, onDelete: (id: string, title: string) => void, formatDuration: (seconds: number) => string }) {
     if (stories.length === 0) return null;
     const scrollRef = useRef<HTMLDivElement>(null);
     const [showLeft, setShowLeft] = useState(false);
@@ -96,6 +96,8 @@ function CollectionRow({ title, stories, onPlay, onFavorite, onToolbox }: { titl
                                 onPlay={onPlay} 
                                 onFavorite={onFavorite} 
                                 onToolbox={onToolbox}
+                                onDelete={onDelete}
+                                formatDuration={formatDuration}
                             />
                         </div>
                     ))}
@@ -125,7 +127,7 @@ function CollectionRow({ title, stories, onPlay, onFavorite, onToolbox }: { titl
     );
 }
 
-function FlipStoryCard({ story, onPlay, onFavorite, onToolbox }: { story: any, onPlay: (id: string) => void, onFavorite: (id: string) => void, onToolbox: (id: string) => void }) {
+function FlipStoryCard({ story, onPlay, onFavorite, onToolbox, onDelete, formatDuration }: { story: any, onPlay: (id: string) => void, onFavorite: (id: string) => void, onToolbox: (id: string) => void, onDelete: (id: string, title: string) => void, formatDuration: (seconds: number) => string }) {
     const [isFlipped, setIsFlipped] = useState(false);
     if (!story) return null;
 
@@ -213,12 +215,14 @@ function ManagementStoryCard({
     onPlay, 
     onFavorite, 
     onToolbox,
+    onDelete,
     formatDuration
 }: { 
     story: any, 
     onPlay: (id: string) => void, 
     onFavorite: (id: string) => void, 
     onToolbox: (id: string) => void,
+    onDelete: (id: string, title: string) => void,
     formatDuration: (seconds: number) => string
 }) {
     if (!story) return null;
@@ -348,9 +352,19 @@ function ManagementStoryCard({
                                 {story.progress === 'Texterstellung' && <span className="text-[10px] text-primary/50 font-normal">Kapitelweise...</span>}
                             </span>
                         </div>
-                        <span className="text-sm font-mono font-bold text-primary/80">
-                            {story.progress_pct || 0}%
-                        </span>
+                        <div className="flex items-center gap-4">
+                            <button 
+                                onClick={(e) => { e.stopPropagation(); onDelete(story.id, story.title); }}
+                                className="text-[10px] font-bold text-red-500/50 hover:text-red-500 uppercase tracking-widest transition-colors flex items-center gap-1.5"
+                                title="Generierung abbrechen"
+                            >
+                                <XCircle className="w-3.5 h-3.5" />
+                                Abbrechen
+                            </button>
+                            <span className="text-sm font-bold text-primary/80 font-sans tracking-tight">
+                                {story.progress_pct || 0}%
+                            </span>
+                        </div>
                     </div>
 
                     {/* 5-Stage Segmented Progress Bar */}
@@ -907,10 +921,10 @@ export default function StoryArchive() {
                                 onFavorite={toggleFavorite} 
                             />
                             <div className="space-y-16">
-                                <CollectionRow title="Magische Märchen" stories={fairytales} onPlay={handlePlay} onFavorite={toggleFavorite} onToolbox={setShowToolbox} />
-                                <CollectionRow title="Große Abenteuer" stories={adventure} onPlay={handlePlay} onFavorite={toggleFavorite} onToolbox={setShowToolbox} />
-                                <CollectionRow title="Zum Einschlafen" stories={sleepStories} onPlay={handlePlay} onFavorite={toggleFavorite} onToolbox={setShowToolbox} />
-                                <CollectionRow title="Science-Fiction" stories={scifi} onPlay={handlePlay} onFavorite={toggleFavorite} onToolbox={setShowToolbox} />
+                                <CollectionRow title="Magische Märchen" stories={fairytales} onPlay={handlePlay} onFavorite={toggleFavorite} onToolbox={setShowToolbox} onDelete={handleDelete} formatDuration={formatDuration} />
+                                <CollectionRow title="Große Abenteuer" stories={adventure} onPlay={handlePlay} onFavorite={toggleFavorite} onToolbox={setShowToolbox} onDelete={handleDelete} formatDuration={formatDuration} />
+                                <CollectionRow title="Zum Einschlafen" stories={sleepStories} onPlay={handlePlay} onFavorite={toggleFavorite} onToolbox={setShowToolbox} onDelete={handleDelete} formatDuration={formatDuration} />
+                                <CollectionRow title="Science-Fiction" stories={scifi} onPlay={handlePlay} onFavorite={toggleFavorite} onToolbox={setShowToolbox} onDelete={handleDelete} formatDuration={formatDuration} />
                             </div>
                         </div>
                     ) : (archiveFilter === 'public' && (archiveSearch || archiveGenre.length > 0)) || archiveFilter === 'favorites' ? (
@@ -923,6 +937,8 @@ export default function StoryArchive() {
                                         onPlay={handlePlay} 
                                         onFavorite={toggleFavorite} 
                                         onToolbox={setShowToolbox}
+                                        onDelete={handleDelete}
+                                        formatDuration={formatDuration}
                                     />
                                 ))}
                             </div>
@@ -938,6 +954,7 @@ export default function StoryArchive() {
                                             onPlay={handlePlay}
                                             onFavorite={toggleFavorite}
                                             onToolbox={setShowToolbox}
+                                            onDelete={handleDelete}
                                             formatDuration={formatDuration}
                                         />
                                     ))}

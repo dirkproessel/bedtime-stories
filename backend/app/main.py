@@ -469,6 +469,7 @@ async def _run_pipeline(
     
     # We don't know the exact num_chapters until text is generated, 
     # so we assume 4 for a 20 min story (5 min/chapter) as a baseline for the denominator.
+    estimated_chapters = max(2, target_minutes // 5)
     total_points = 5 # Planung
     total_points += 10 * estimated_chapters # Text
     total_points += 5 # Bild
