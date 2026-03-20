@@ -157,9 +157,7 @@ export default function ReaderLayer() {
 
     return (
         <div 
-            className="fixed inset-0 lg:left-64 z-[80] bg-background/95 backdrop-blur-md overflow-y-auto animate-in fade-in duration-300"
-            onTouchStart={handleTouchStart}
-            onTouchEnd={handleTouchEnd}
+            className="fixed inset-0 lg:left-64 z-[80] bg-background/95 backdrop-blur-md flex flex-col animate-in fade-in duration-300"
         >
             
             {/* Top Navigation Bar */}
@@ -189,7 +187,12 @@ export default function ReaderLayer() {
                 </div>
             </header>
 
-            <div className="p-4 sm:p-6 w-full max-w-2xl lg:max-w-4xl pb-32">
+            <div 
+                className="flex-1 overflow-y-auto"
+                onTouchStart={handleTouchStart}
+                onTouchEnd={handleTouchEnd}
+            >
+                <div className="p-4 sm:p-6 w-full max-w-2xl lg:max-w-4xl mx-auto pb-32">
                 {isLoading ? (
                     <div className="flex flex-col items-center justify-center py-20">
                         <div className="w-12 h-12 rounded-full border-4 border-[#F0FDF4] border-t-[#2D5A4C] animate-spin mb-4" />
@@ -224,11 +227,11 @@ export default function ReaderLayer() {
                                     </button>
                                 </div>
                             )}
-                            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-text font-serif leading-tight mb-4 px-4">{story.title}</h1>
+                            <h1 className="text-3xl sm:text-4xl lg:text-4xl font-bold text-text font-serif leading-tight mb-4">{story.title}</h1>
                             
                             <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 mt-6 text-[11px] font-bold text-slate-500 uppercase tracking-[0.15em]">
                                 {story.genre && (
-                                    <span className="text-primary bg-primary/10 border border-primary/20 px-3 py-1 rounded-lg">
+                                    <span className="text-primary pr-6 border-r border-slate-800 last:border-0 last:pr-0">
                                         {story.genre}
                                     </span>
                                 )}
@@ -256,7 +259,7 @@ export default function ReaderLayer() {
                             </div>
                         </div>
 
-                        <article className="prose prose-slate prose-invert max-w-none">
+                        <article className="prose prose-slate prose-invert max-w-none prose-base sm:prose-lg lg:prose-base">
                             <div className="space-y-6">
                                 {story.chapters && story.chapters.length > 0 ? (
                                     story.chapters.map((ch, idx) => (
@@ -297,6 +300,7 @@ export default function ReaderLayer() {
                     </>
                 ) : null}
             </div>
+        </div>
 
             {/* Kindle Modal (Simplified) */}
             {showKindleModal && (

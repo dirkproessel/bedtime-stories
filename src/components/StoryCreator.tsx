@@ -89,24 +89,29 @@ export default function StoryCreator() {
 
                 setSortedGenres(sortByPopularity(GENRES, popularGenreIds, g => g.value));
                 
-                // Author sorting logic: Genre Match > Popularity
+                // Author sorting logic: Selected > Genre Match > Popularity
                 const baseSortedAuthors = sortByPopularity(AUTHORS, popularAuthorIds, a => a.id);
                 const genreRelevanceSorted = [...baseSortedAuthors].sort((a, b) => {
+                    const aSelected = selectedAuthors.includes(a.id) ? 1 : 0;
+                    const bSelected = selectedAuthors.includes(b.id) ? 1 : 0;
+                    if (aSelected !== bSelected) return bSelected - aSelected;
+
                     const aMatches = genre && a.preferredGenres?.includes(genre) ? 1 : 0;
                     const bMatches = genre && b.preferredGenres?.includes(genre) ? 1 : 0;
                     if (aMatches !== bMatches) return bMatches - aMatches;
+                    
                     return 0; // maintain popularity order within matches/non-matches
                 });
                 setSortedAuthors(genreRelevanceSorted);
 
                 if (popularVoiceIds.length > 0) {
-                    setSortedVoices(sortByPopularity(voices, popularVoiceIds, v => v.key));
+                    setSortedVoices(voices.length > 0 ? sortByPopularity(voices, popularVoiceIds, v => v.key) : voices);
                 } else {
                     setSortedVoices(voices);
                 }
             })
             .catch(() => { /* keep default order on failure */ });
-    }, [voices, genre]);
+    }, [voices, genre, selectedAuthors]);
 
     // Input state
     // freeText moved to store
