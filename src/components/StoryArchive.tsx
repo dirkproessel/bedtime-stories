@@ -287,10 +287,12 @@ function ManagementStoryCard({
                 {/* Left Stats & Status */}
                 <div className="flex flex-col gap-1.5">
                     <div className="flex flex-col items-start gap-1.5">
-                        <div className="flex items-center gap-2 text-[12px] font-semibold text-slate-500">
-                            <BookOpen className="w-4 h-4 text-slate-600" />
-                            {story.word_count || 1427} Worte
-                        </div>
+                        {story.word_count > 0 && (
+                            <div className="flex items-center gap-2 text-[12px] font-semibold text-slate-500">
+                                <BookOpen className="w-4 h-4 text-slate-600" />
+                                {story.word_count} Worte
+                            </div>
+                        )}
                         {story.voice_key !== 'none' && (
                             <div className="flex items-center gap-2 text-[12px] font-semibold text-slate-500">
                                 <Clock className="w-4 h-4 text-slate-600" />
