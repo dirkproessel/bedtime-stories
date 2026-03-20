@@ -172,8 +172,8 @@ function App() {
        {/* Sidebar Navigation (Desktop) / Bottom Nav (Mobile) */}
        <nav className="fixed bottom-0 left-0 right-0 lg:static lg:w-64 lg:h-screen bg-surface/80 lg:bg-surface backdrop-blur-xl lg:backdrop-blur-none border-t lg:border-t-0 lg:border-r border-slate-800 safe-area-bottom z-[100] flex flex-col">
          {/* Desktop Brand Logo */}
-          <div className="hidden lg:flex flex-col items-center gap-2 pt-4 pb-8 px-6 border-b border-slate-800/50">
-          <div className="w-32 h-32 flex items-center justify-center">
+          <div className="hidden lg:flex flex-col items-center gap-0 pt-0 pb-4 px-6 border-b border-slate-800/50">
+          <div className="w-52 h-52 flex items-center justify-center">
             <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
           </div>
            <div className="text-center">
@@ -185,7 +185,7 @@ function App() {
          </div>
 
          {/* Nav Items Container */}
-         <div className="max-w-2xl lg:max-w-none mx-auto lg:mx-0 flex lg:flex-col items-center lg:items-stretch justify-around lg:justify-start py-1 lg:py-6 px-2 lg:px-4 gap-2 lg:flex-1">
+         <div className="lg:max-w-none mx-auto lg:mx-0 flex lg:flex-col items-center lg:items-stretch justify-between lg:justify-start py-1 lg:py-6 px-6 lg:px-4 gap-2 lg:flex-1">
            {NAV_ITEMS.map(({ key, label, icon: Icon }) => {
              const isActive = activeView === key;
              
