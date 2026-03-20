@@ -231,7 +231,7 @@ export default function ReaderLayer() {
                             
                             <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 mt-6 text-[11px] font-bold text-slate-500 uppercase tracking-[0.15em]">
                                 {story.genre && (
-                                    <span className="text-primary pr-6 border-r border-slate-800 last:border-0 last:pr-0">
+                                    <span className="pr-6 border-r border-slate-800 last:border-0 last:pr-0">
                                         {story.genre}
                                     </span>
                                 )}
@@ -258,6 +258,12 @@ export default function ReaderLayer() {
                                 )}
                             </div>
                         </div>
+
+                        {story.description && (
+                            <div className="max-w-none text-xl font-serif italic text-slate-400 mb-12 border-l-2 border-slate-800 pl-6 leading-relaxed animate-in fade-in slide-in-from-left-4 duration-700">
+                                {story.description}
+                            </div>
+                        )}
 
                         <article className="prose prose-slate prose-invert max-w-none prose-base sm:prose-lg lg:prose-base">
                             <div className="space-y-6">
