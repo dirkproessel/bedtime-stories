@@ -412,8 +412,8 @@ export default function StoryArchive() {
     const [deleteConfirm, setDeleteConfirm] = useState<{ id: string, title: string } | null>(null);
     const [editingStoryId, setEditingStoryId] = useState<string | null>(null);
     const [editTitle, setEditTitle] = useState('');
-    const [editChapters, setEditChapters] = useState<{ title: string; text: string }[]>([]);
-    const [originalChapters, setOriginalChapters] = useState<{ title: string; text: string }[]>([]);
+    const [editText, setEditText] = useState('');
+    const [originalText, setOriginalText] = useState('');
     const [isSavingEdit, setIsSavingEdit] = useState(false);
     const [showEditConfirm, setShowEditConfirm] = useState(false);
     const audioRef = useRef<HTMLAudioElement>(null);
@@ -738,9 +738,10 @@ export default function StoryArchive() {
         try {
             const { fetchStory } = await import('../lib/api');
             const detail = await fetchStory(id);
+            const text = detail.chapters.map((c: any) => c.text).join('\n\n');
             setEditTitle(detail.title);
-            setEditChapters(detail.chapters);
-            setOriginalChapters(detail.chapters);
+            setEditText(text);
+            setOriginalText(text);
             setEditingStoryId(id);
             setShowToolbox(null);
         } catch (error: any) {
@@ -751,7 +752,7 @@ export default function StoryArchive() {
     const handleSaveEdit = async () => {
         if (!editingStoryId) return;
         
-        const textChanged = JSON.stringify(originalChapters) !== JSON.stringify(editChapters);
+        const textChanged = originalText !== editText;
         
         if (textChanged) {
             setShowEditConfirm(true);
@@ -764,9 +765,16 @@ export default function StoryArchive() {
         if (!editingStoryId) return;
         setIsSavingEdit(true);
         try {
+            const newChapters = textChanged 
+                ? editText.split(/\n\n+/).filter(t => t.trim()).map((t, i) => ({
+                    title: `Kapitel ${i + 1}`,
+                    text: t.trim()
+                }))
+                : null;
+
             await updateStory(editingStoryId, {
                 title: editTitle,
-                ...(textChanged ? { chapters: editChapters } : {})
+                ...(textChanged ? { chapters: newChapters } : {})
             });
             toast.success('Geschichte aktualisiert');
             setEditingStoryId(null);
@@ -1625,34 +1633,20 @@ export default function StoryArchive() {
 
                             <div className="space-y-4">
                                 <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-2 ml-1">
-                                    Inhalt (Kapitel)
+                                    Inhalt
                                 </label>
-                                {editChapters.map((chapter, idx) => (
-                                    <div key={idx} className="space-y-2 p-4 bg-background/50 rounded-2xl border border-slate-800/50">
-                                        <input
-                                            type="text"
-                                            value={chapter.title}
-                                            onChange={(e) => {
-                                                const newChapters = [...editChapters];
-                                                newChapters[idx].title = e.target.value;
-                                                setEditChapters(newChapters);
-                                            }}
-                                            placeholder={`Kapitel ${idx + 1} Titel`}
-                                            className="w-full bg-transparent border-0 border-b border-slate-800 focus:border-primary focus:ring-0 transition-all text-sm font-bold text-slate-200 px-0 pb-1"
-                                        />
-                                        <textarea
-                                            value={chapter.text}
-                                            onChange={(e) => {
-                                                const newChapters = [...editChapters];
-                                                newChapters[idx].text = e.target.value;
-                                                setEditChapters(newChapters);
-                                            }}
-                                            rows={6}
-                                            className="w-full bg-transparent border-0 focus:ring-0 transition-all text-sm text-slate-400 px-0 resize-none leading-relaxed mt-2"
-                                            placeholder="Text des Kapitels..."
-                                        />
-                                    </div>
-                                ))}
+                                <div className="p-4 bg-background/50 rounded-2xl border border-slate-800/50">
+                                    <textarea
+                                        value={editText}
+                                        onChange={(e) => setEditText(e.target.value)}
+                                        rows={15}
+                                        className="w-full bg-transparent border-0 focus:ring-0 transition-all text-sm text-slate-400 px-0 resize-none leading-relaxed no-scrollbar"
+                                        placeholder="Text der Geschichte..."
+                                    />
+                                </div>
+                                <p className="text-[10px] text-slate-600 px-1 leading-relaxed">
+                                    Tipp: Benutze doppelte Zeilenumbrüche, um neue Kapitel zu markieren.
+                                </p>
                             </div>
                         </div>
 

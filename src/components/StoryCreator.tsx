@@ -332,8 +332,9 @@ export default function StoryCreator() {
 
                     {/* Authors */}
                     <div>
-                        <div className="mb-1.5 flex items-center gap-2">
+                        <div className="mb-1.5 flex flex-col gap-0.5">
                                 <h3 className="text-xs uppercase font-bold tracking-wider text-slate-400">Stil</h3>
+                                <p className="text-[10px] text-slate-500 font-medium">Mixe bis zu 3 Autoren</p>
                         </div>
                         <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
                             {(showAllAuthors ? sortedAuthors : sortedAuthors.slice(0, BEST_OF_COUNT)).map(s => {
@@ -342,11 +343,17 @@ export default function StoryCreator() {
                                     <button
                                         key={s.id}
                                         onClick={() => toggleAuthor(s.id)}
-                                        className={`relative p-3 rounded-xl text-left transition-all border-2 h-full flex flex-col min-h-[80px] ${isSelected
+                                        className={`relative p-3 rounded-xl text-left transition-all border-2 h-full flex flex-col min-h-[80px] group/author ${isSelected
                                             ? 'border-primary bg-primary/10'
                                             : 'border-slate-700/50 bg-slate-800/60 hover:border-slate-600 text-slate-300'
                                             }`}
                                     >
+                                        {isSelected && selectedAuthors.length > 1 && (
+                                            <div className="absolute -top-2 -right-1.5 px-2 py-0.5 bg-primary text-[9px] font-bold uppercase tracking-tight text-white rounded-lg shadow-lg border border-white/20 z-10 animate-in zoom-in-50 duration-200">
+                                                {selectedAuthors.indexOf(s.id) === 0 ? '1. Wortwahl' : 
+                                                 selectedAuthors.indexOf(s.id) === 1 ? '2. Atmosphäre' : '3. Erzählweise'}
+                                            </div>
+                                        )}
                                         <h4 className={`text-sm font-bold tracking-tight ${isSelected ? 'text-white' : 'text-slate-300'}`}>{s.name}</h4>
                                         <div className={`text-xs mt-0.5 ${isSelected ? 'text-white/80' : 'text-slate-500'}`}>{s.desc}</div>
                                     </button>
