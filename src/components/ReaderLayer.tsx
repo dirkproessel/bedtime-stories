@@ -188,10 +188,7 @@ export default function ReaderLayer() {
         const deltaY = Math.abs(touchStartY.current - touchEndY);
 
         // Detect swipe from right to left (at least 70px) to OPEN
-        // If it starts near the right edge (within 60px)
-        const isFromRightEdge = touchStartX.current > window.innerWidth - 60;
-        
-        if (deltaX > 70 && deltaY < 50 && isFromRightEdge) {
+        if (deltaX > 70 && deltaY < 50) {
             setShowToolbox(true);
         }
 
@@ -249,6 +246,8 @@ export default function ReaderLayer() {
     return (
         <div 
             className="fixed inset-0 lg:left-64 z-[80] bg-background/95 backdrop-blur-md flex flex-col animate-in fade-in duration-300"
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
         >
             
             {/* Top Navigation Bar */}
@@ -278,11 +277,7 @@ export default function ReaderLayer() {
                 </div>
             </header>
 
-            <div 
-                className="flex-1 overflow-y-auto"
-                onTouchStart={handleTouchStart}
-                onTouchEnd={handleTouchEnd}
-            >
+            <div className="flex-1 overflow-y-auto">
                 <div className="p-4 sm:p-6 w-full max-w-2xl lg:max-w-4xl mx-auto pb-32">
                 {isLoading ? (
                     <div className="flex flex-col items-center justify-center py-20">
