@@ -1,5 +1,5 @@
 import { useStore } from '../store/useStore';
-import { getVoicePreviewUrl, exportStoryToKindle, getThumbUrl, getImageUrl } from '../lib/api';
+import { getVoicePreviewUrl, exportStoryToKindle, getThumbUrl } from '../lib/api';
 import { Play, Trash2, Heart, BookOpen, Loader2, Mic, X, XCircle, Venus, Mars, Users, Pause, Send, Image as ImageIcon, RefreshCw, Sparkles, Settings2, MessageCircle, Search, ChevronLeft, ChevronRight, ArrowLeft, Wand2, User as UserIcon, Edit2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useEffect, useState, useRef } from 'react';
@@ -11,55 +11,16 @@ import { GENRES } from './StoryCreator';
 import { formatAuthorStyles } from '../lib/authors';
 import { formatDuration } from '../lib/utils';
 
-function HeroSection({ story, onPlay, onFavorite }: { story: any, onPlay: (id: string) => void, onFavorite: (id: string) => void }) {
-    if (!story) return null;
-    return (
-        <div className="relative w-full h-[320px] sm:h-[400px] lg:h-[500px] mb-8 rounded-[2.5rem] overflow-hidden group cursor-pointer border border-slate-800 shadow-2xl animate-in fade-in zoom-in-95 duration-500" onClick={() => onPlay(story.id)}>
-            <div className="absolute inset-0 overflow-hidden">
-                <img 
-                    src={getImageUrl(story.id, story.updated_at)} 
-                    alt={story.title} 
-                    className="w-full h-full object-cover grayscale-[10%] scale-110 group-hover:scale-[1.15] transition-transform duration-700" 
-                />
-            </div>
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
-            
-            <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-10">
-                <div className="flex items-center gap-2 mb-3">
-                    <span className="px-2 py-0.5 bg-primary/20 border border-primary/30 text-primary text-xs font-bold uppercase tracking-wider rounded-md backdrop-blur-md">
-                        storyja-Empfehlung
-                    </span>
-                </div>
-                <h2 className="text-3xl sm:text-4xl font-bold text-white mb-3 leading-tight drop-shadow-lg">
-                    {story.title}
-                </h2>
-                <p className="text-sm text-slate-300 line-clamp-2 max-w-lg mb-8 leading-relaxed italic drop-shadow-sm">
-                    {story.description}
-                </p>
-                
-                <div className="flex items-center gap-4">
-                    <button 
-                        onClick={(e) => { e.stopPropagation(); onPlay(story.id); }}
-                        className="btn-primary px-8 py-3 shadow-2xl shadow-primary/20 text-md"
-                    >
-                        <Play className="w-5 h-5 fill-current" />
-                        Jetzt hören
-                    </button>
-                    <button 
-                        onClick={(e) => { e.stopPropagation(); onFavorite(story.id); }}
-                        className={`w-12 h-12 rounded-2xl flex items-center justify-center border backdrop-blur-md transition-all active:scale-90 ${
-                            story.is_favorite 
-                            ? 'bg-red-500/10 border-red-500/50 text-red-500 shadow-lg shadow-red-500/10' 
-                            : 'bg-white/5 border-white/10 text-white hover:bg-white/10'
-                        }`}
-                    >
-                        <Heart className={`w-6 h-6 ${story.is_favorite ? 'fill-current' : ''}`} />
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-}
+const WORLDS = [
+    { id: 'witz', title: 'Witz & Wahnsinn', genres: ['Komödie', 'Satire'] },
+    { id: 'entdecker', title: 'Pfade der Entdecker & Sagen', genres: ['Abenteuer', 'Roadtrip', 'Historisch', 'Mythologie'] },
+    { id: 'gefuehle', title: 'Gefahren & Große Gefühle', genres: ['Drama'] },
+    { id: 'traeume', title: 'Insel der Träume & Magie', genres: ['Fantasy', 'Gute Nacht'] },
+    { id: 'fabelwesen', title: 'Reich der Fabelwesen & Märchen', genres: ['Märchen', 'Fabel'] },
+    { id: 'galaxien', title: 'Galaxien & Düstere Welten', genres: ['Science-Fiction', 'Dystopie'] },
+    { id: 'schatten', title: 'Schatten & Geheimnisse', genres: ['Thriller', 'Krimi', 'Grusel'] },
+    { id: 'romantik', title: 'Leidenschaft & Romantik', genres: ['Modern Romanze', 'Sinnliche Romanze', 'Erotik', 'Dark Romance'] }
+];
 
 function CollectionRow({ title, stories, onPlay, onFavorite, onToolbox }: { title: string, stories: any[], onPlay: (id: string) => void, onFavorite: (id: string) => void, onToolbox: (id: string) => void }) {
     if (stories.length === 0) return null;
@@ -423,11 +384,7 @@ export default function StoryArchive() {
 
     
     // Discovery Collections
-    const [fairytales, setFairytales] = useState<any[]>([]);
-    const [adventure, setAdventure] = useState<any[]>([]);
-    const [sleepStories, setSleepStories] = useState<any[]>([]);
-    const [scifi, setScifi] = useState<any[]>([]);
-    
+    const [worldsData, setWorldsData] = useState<Record<string, any[]>>({});    
     // Filter UI state
     const [isScrolled, setIsScrolled] = useState(false);
     const [filterLevel, setFilterLevel] = useState<'main' | 'search' | 'genre'>('main');
@@ -439,10 +396,7 @@ export default function StoryArchive() {
     const activeToolboxStory = showToolbox 
         ? [
             ...stories, 
-            ...fairytales, 
-            ...adventure, 
-            ...sleepStories, 
-            ...scifi
+            ...Object.values(worldsData).flat()
           ].find(s => s.id === showToolbox) 
         : null;
 
@@ -464,16 +418,20 @@ export default function StoryArchive() {
     const loadCollections = async () => {
         const { fetchStories } = await import('../lib/api');
         try {
-            const [ft, adv, sleep, sf] = await Promise.all([
-                fetchStories({ page: 1, pageSize: 8, filter: 'public', genre: ['Märchen'] }),
-                fetchStories({ page: 1, pageSize: 8, filter: 'public', genre: ['Abenteuer'] }),
-                fetchStories({ page: 1, pageSize: 8, filter: 'public', genre: ['Gute Nacht'] }),
-                fetchStories({ page: 1, pageSize: 8, filter: 'public', genre: ['Science-Fiction'] }),
-            ]);
-            setFairytales(ft.stories);
-            setAdventure(adv.stories);
-            setSleepStories(sleep.stories);
-            setScifi(sf.stories);
+            const promises = WORLDS.map(w => 
+                fetchStories({ page: 1, pageSize: 8, filter: 'public', genre: w.genres })
+                    .then(res => ({ id: w.id, stories: res.stories }))
+                    .catch(err => {
+                        console.error(`Failed to load world ${w.title}`, err);
+                        return { id: w.id, stories: [] };
+                    })
+            );
+            const results = await Promise.all(promises);
+            const newData = results.reduce((acc, curr) => {
+                acc[curr.id] = curr.stories;
+                return acc;
+            }, {} as Record<string, any[]>);
+            setWorldsData(newData);
         } catch (err) {
             console.error("Failed to load collections", err);
         }
@@ -482,22 +440,28 @@ export default function StoryArchive() {
     // Keep collection rows in sync with store updates (e.g. polling for new images)
     useEffect(() => {
         if (stories.length > 0) {
-            const syncCollection = (coll: any[], setter: (val: any[]) => void) => {
-                let changed = false;
-                const next = coll.map(c => {
-                    const match = stories.find(s => s.id === c.id);
-                    if (match && match.updated_at !== c.updated_at) {
-                        changed = true;
-                        return { ...c, ...match };
+            setWorldsData(prev => {
+                let anyChanged = false;
+                const next = { ...prev };
+                
+                Object.keys(next).forEach(worldId => {
+                    let worldChanged = false;
+                    const syncedStories = next[worldId].map(c => {
+                        const match = stories.find(s => s.id === c.id);
+                        if (match && match.updated_at !== c.updated_at) {
+                            worldChanged = true;
+                            anyChanged = true;
+                            return { ...c, ...match };
+                        }
+                        return c;
+                    });
+                    if (worldChanged) {
+                        next[worldId] = syncedStories;
                     }
-                    return c;
                 });
-                if (changed) setter(next);
-            };
-            syncCollection(fairytales, setFairytales);
-            syncCollection(adventure, setAdventure);
-            syncCollection(sleepStories, setSleepStories);
-            syncCollection(scifi, setScifi);
+                
+                return anyChanged ? next : prev;
+            });
         }
     }, [stories]);
 
@@ -1009,18 +973,17 @@ export default function StoryArchive() {
                         <div className="flex-1 w-full min-w-0">
                             {/* Main Content Areas */}
                             {archiveFilter === 'public' && !archiveSearch && archiveGenre.length === 0 ? (
-                                <div className="space-y-12 animate-in fade-in duration-700">
-                                    <HeroSection 
-                                        story={stories[0]} 
-                                        onPlay={handlePlay} 
-                                        onFavorite={toggleFavorite} 
-                                    />
-                                    <div className="space-y-16">
-                                        <CollectionRow title="Magische Märchen" stories={fairytales} onPlay={handlePlay} onFavorite={toggleFavorite} onToolbox={setShowToolbox} />
-                                        <CollectionRow title="Große Abenteuer" stories={adventure} onPlay={handlePlay} onFavorite={toggleFavorite} onToolbox={setShowToolbox} />
-                                        <CollectionRow title="Zum Einschlafen" stories={sleepStories} onPlay={handlePlay} onFavorite={toggleFavorite} onToolbox={setShowToolbox} />
-                                        <CollectionRow title="Science-Fiction" stories={scifi} onPlay={handlePlay} onFavorite={toggleFavorite} onToolbox={setShowToolbox} />
-                                    </div>
+                                <div className="space-y-16 animate-in fade-in duration-700">
+                                    {WORLDS.map(world => (
+                                        <CollectionRow 
+                                            key={world.id}
+                                            title={world.title} 
+                                            stories={worldsData[world.id] || []} 
+                                            onPlay={handlePlay} 
+                                            onFavorite={toggleFavorite} 
+                                            onToolbox={setShowToolbox} 
+                                        />
+                                    ))}
                                 </div>
                             ) : (archiveFilter === 'public' && (archiveSearch || archiveGenre.length > 0)) || archiveFilter === 'favorites' ? (
                                 <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
