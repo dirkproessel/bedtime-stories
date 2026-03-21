@@ -78,7 +78,7 @@ async def generate_story_image(synopsis: str, output_path: Path, genre: str = "R
             f"Style: {genre_hint}. {visual_description}. "
             f"Minimalist and modern aesthetic, matching the tone of {style}. "
             f"Focus on pure visual storytelling without any typography. "
-            f"Fullframe, borderless, edge-to-edge, no frame, no borders, no passepartout."
+            f"Seamless edge-to-edge full-bleed artwork. The composition must fill the entire canvas completely."
         )
 
         model_id = settings.GEMINI_IMAGE_MODEL
@@ -118,7 +118,7 @@ async def generate_story_image(synopsis: str, output_path: Path, genre: str = "R
             fallback_prompt = (
                 f"STRICT RULE: NO TEXT, NO WORDS, NO LETTERS, NO SIGNATURES. "
                 f"{visual_description}. Aesthetic artistic illustration, high quality, no text. "
-                f"Fullframe, borderless, edge-to-edge, no frame, no borders."
+                f"Seamless edge-to-edge full-bleed artwork. The composition must fill the entire canvas completely."
             )
             response = await call_nano_banana(fallback_prompt)
             image_bytes = get_image_bytes(response)
