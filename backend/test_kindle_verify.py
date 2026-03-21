@@ -48,7 +48,7 @@ async def verify_kindle_export():
     else:
         print("\nStep 2: Sending Email to Kindle...")
         try:
-            await send_to_kindle(epub_path, settings.KINDLE_EMAIL)
+            await send_to_kindle(epub_path, settings.KINDLE_EMAIL, test_story_data["title"])
             print("Email sent successfully!")
         except Exception as e:
             print(f"Email sending FAILED: {e}")
