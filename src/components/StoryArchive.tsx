@@ -1,6 +1,6 @@
 import { useStore } from '../store/useStore';
 import { getVoicePreviewUrl, exportStoryToKindle, getThumbUrl, getImageUrl } from '../lib/api';
-import { Play, Trash2, Heart, BookOpen, Loader2, Mic, X, XCircle, Venus, Mars, Users, Pause, Send, Image as ImageIcon, RefreshCw, Sparkles, Settings2, MessageCircle, Search, ChevronLeft, ChevronRight, ArrowLeft, Wand2, User as UserIcon, Clock, Edit2 } from 'lucide-react';
+import { Play, Trash2, Heart, BookOpen, Loader2, Mic, X, XCircle, Venus, Mars, Users, Pause, Send, Image as ImageIcon, RefreshCw, Sparkles, Settings2, MessageCircle, Search, ChevronLeft, ChevronRight, ArrowLeft, Wand2, User as UserIcon, Edit2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useEffect, useState, useRef } from 'react';
 import ConfirmModal from './ConfirmModal';
@@ -9,6 +9,7 @@ import ConfirmModal from './ConfirmModal';
 import { voiceName, voiceDesc } from '../lib/voices';
 import { GENRES } from './StoryCreator';
 import { formatAuthorStyles } from '../lib/authors';
+import { formatDuration } from '../lib/utils';
 
 function HeroSection({ story, onPlay, onFavorite }: { story: any, onPlay: (id: string) => void, onFavorite: (id: string) => void }) {
     if (!story) return null;
@@ -295,7 +296,7 @@ function ManagementStoryCard({
                         )}
                         {story.voice_key !== 'none' && (
                             <div className="flex items-center gap-2 text-[12px] font-semibold text-slate-500">
-                                <Clock className="w-4 h-4 text-slate-600" />
+                                <Mic className="w-4 h-4 text-slate-600" />
                                 {formatDuration(story.duration_seconds)} Min ({voiceName(story.voice_key)})
                             </div>
                         )}
@@ -572,12 +573,6 @@ export default function StoryArchive() {
     }, []);
 
 
-    const formatDuration = (seconds: number | null) => {
-        if (!seconds) return '—';
-        const m = Math.floor(seconds / 60);
-        const s = Math.floor(seconds % 60);
-        return `${m}:${s.toString().padStart(2, '0')}`;
-    };
 
 
     const handlePlay = (id: string) => {

@@ -7,11 +7,12 @@ import {
 import { 
     Moon, BookOpen, Send, Loader2, MessageCircle, Headphones, Heart, 
     Wand2, ArrowLeft, User, Play, RefreshCw, Mic, 
-    Image as ImageIcon, Sparkles, X, Pause
+    Image as ImageIcon, Feather, X, Pause
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { voiceName } from '../lib/voices';
 import { formatAuthorStyles } from '../lib/authors';
+import { formatDuration } from '../lib/utils';
 
 export default function ReaderLayer() {
     const { 
@@ -229,6 +230,12 @@ export default function ReaderLayer() {
                             )}
                             <h1 className="text-3xl sm:text-4xl lg:text-4xl font-bold text-text font-serif leading-tight mb-4">{story.title}</h1>
                             
+                            {story.user_email && (
+                                <div className="text-slate-500 text-sm font-medium italic mb-6">
+                                    Erstellt von {story.user_email}
+                                </div>
+                            )}
+
                             <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 mt-6 text-[11px] font-bold text-slate-500 uppercase tracking-[0.15em]">
                                 {story.genre && (
                                     <span className="pr-6 border-r border-slate-800 last:border-0 last:pr-0">
@@ -241,19 +248,14 @@ export default function ReaderLayer() {
                                 </span>
                                 {story.style && (
                                     <span className="flex items-center gap-1.5 border-r border-slate-800 pr-6 last:border-0 last:pr-0">
-                                        <Sparkles className="w-4 h-4 text-slate-600" />
+                                        <Feather className="w-4 h-4 text-slate-600" />
                                         {formatAuthorStyles(story.style)}
                                     </span>
                                 )}
                                 {story.voice_key !== 'none' && (
                                     <span className="flex items-center gap-1.5 border-r border-slate-800 pr-6 last:border-0 last:pr-0">
                                         <Mic className="w-4 h-4 text-slate-600" />
-                                        {voiceName(story.voice_key)}
-                                    </span>
-                                )}
-                                {story.user_email && user?.email !== story.user_email && (
-                                    <span className="flex items-center gap-1.5 w-full justify-center mt-2 text-slate-600 lowercase tracking-normal font-medium italic">
-                                        von {story.user_email}
+                                        {formatDuration(story.duration_seconds)} Min ({voiceName(story.voice_key)})
                                     </span>
                                 )}
                             </div>
