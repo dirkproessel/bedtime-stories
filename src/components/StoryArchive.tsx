@@ -371,6 +371,9 @@ export default function StoryArchive() {
     const [remixInstructions, setRemixInstructions] = useState('');
     const [isRemixing, setIsRemixing] = useState(false);
     const [showToolbox, setShowToolbox] = useState<string | null>(null);
+    const [showImageRegenModal, setShowImageRegenModal] = useState<string | null>(null);
+    const [imageHints, setImageHints] = useState('');
+    const [isRegenerating, setIsRegenerating] = useState(false);
     const [deleteConfirm, setDeleteConfirm] = useState<{ id: string, title: string } | null>(null);
     const [editingStoryId, setEditingStoryId] = useState<string | null>(null);
     const [editTitle, setEditTitle] = useState('');
@@ -635,12 +638,18 @@ export default function StoryArchive() {
         }
     };
 
-    const handleRegenerateImage = async (id: string) => {
+    const handleRegenerateImageSubmit = async () => {
+        if (!showImageRegenModal) return;
+        setIsRegenerating(true);
         try {
-            await regenerateStoryImage(id);
+            await regenerateStoryImage(showImageRegenModal, imageHints.trim() || undefined);
             toast.success('Bild-Regenerierung gestartet!');
+            setShowImageRegenModal(null);
+            setImageHints('');
         } catch (error: any) {
             toast.error(error.message || 'Fehler beim Starten');
+        } finally {
+            setIsRegenerating(false);
         }
     };
 
@@ -1436,7 +1445,7 @@ export default function StoryArchive() {
                                         </button>
 
                                         <button 
-                                            onClick={() => { handleRegenerateImage(activeToolboxStory.id); setShowToolbox(null); }}
+                                            onClick={() => { setShowImageRegenModal(activeToolboxStory.id); setShowToolbox(null); }}
                                             className="w-full flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-white/5 transition-all outline-none"
                                         >
                                             <div className="w-8 h-8 bg-[#7c2d12] rounded-[0.4rem] flex items-center justify-center shrink-0 text-[#fb923c]">
@@ -1566,6 +1575,55 @@ export default function StoryArchive() {
                     </div>
                 </div>
             )}
+
+            {/* Image Regeneration Modal */}
+            {showImageRegenModal && (
+                <div className="fixed inset-0 z-[130] flex items-center justify-center p-4 bg-background/80 backdrop-blur-md">
+                    <div className="bg-surface/90 backdrop-blur-2xl rounded-[2.5rem] w-full max-w-md shadow-2xl border border-slate-800/50 overflow-hidden animate-in fade-in zoom-in duration-300">
+                        <div className="p-6">
+                            <div className="flex items-center justify-between mb-6">
+                                <h2 className="text-xl font-bold text-text flex items-center gap-2">
+                                    <ImageIcon className="w-5 h-5 text-primary" />
+                                    Bild neu generieren
+                                </h2>
+                                <button
+                                    onClick={() => { setShowImageRegenModal(null); setImageHints(''); }}
+                                    className="p-2 text-slate-500 hover:text-slate-300 rounded-full hover:bg-slate-800"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+
+                            <p className="text-sm text-slate-400 mb-4">Möchtest du dem Bild eigene Hinweise mitgeben (optional)?</p>
+                            
+                            <textarea
+                                value={imageHints}
+                                onChange={(e) => setImageHints(e.target.value)}
+                                placeholder="Z.b. Ein roter Drache im Hintergrund..."
+                                className="w-full h-32 px-4 py-3 bg-background border-2 border-slate-800 rounded-xl mb-6 focus:border-primary transition-all outline-none text-text resize-none text-sm placeholder:text-slate-600"
+                            />
+
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => { setShowImageRegenModal(null); setImageHints(''); }}
+                                    className="flex-1 px-4 py-3 border-2 border-slate-800 rounded-xl font-bold text-slate-500 hover:bg-surface transition-all"
+                                >
+                                    Abbrechen
+                                </button>
+                                <button
+                                    onClick={handleRegenerateImageSubmit}
+                                    disabled={isRegenerating}
+                                    className="btn-primary flex-1 px-4 py-3 shadow-lg shadow-primary/20 flex items-center justify-center gap-2"
+                                >
+                                    {isRegenerating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                                    Starten
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Story Editor Modal */}
             {editingStoryId && (
                 <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-background/80 backdrop-blur-md">
