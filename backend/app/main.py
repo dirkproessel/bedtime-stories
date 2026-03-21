@@ -948,6 +948,12 @@ async def get_story(
     story = store.get_by_id(story_id, requesting_user_id=current_user.id if current_user else None)
     if not story:
         raise HTTPException(status_code=404, detail="Story not found")
+        
+    if story.user_id:
+        users_map = {u.id: (u.username or u.email) for u in store.get_all_users()}
+        story.user_email = users_map.get(story.user_id, "Anonym")
+    else:
+        story.user_email = "System"
     
     # Accessible by URL to everyone (per user request)
     # The requirement is to allow viewing via direct link even if not public/published.
