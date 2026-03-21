@@ -41,6 +41,7 @@ class Settings:
     SMTP_PORT: int = int(os.getenv("SMTP_PORT", "587"))
     SMTP_USER: str = os.getenv("SMTP_USER", "dirk.proessel@gmail.com")
     SMTP_PASSWORD: str = os.getenv("SMTP_PASSWORD", "")  # Needs App Password
+    SMTP_FROM: str = os.getenv("SMTP_FROM", "stories@storyja.com")
     KINDLE_EMAIL: str = os.getenv("KINDLE_EMAIL", "dirk.proessel.runthaler@kindle.com")
 
     # Central Model Configuration

@@ -75,7 +75,7 @@ async def send_to_kindle(epub_path: Path, kindle_email: str, story_title: str):
 
     msg = EmailMessage()
     msg['Subject'] = f"Story: {story_title}"
-    msg['From'] = settings.SMTP_USER
+    msg['From'] = settings.SMTP_FROM
     msg['To'] = kindle_email
     msg.set_content("Hier ist deine Geschichte aus dem Bedtime Story Labor.")
 
