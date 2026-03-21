@@ -436,7 +436,15 @@ export default function StoryArchive() {
     const [showLeftFade, setShowLeftFade] = useState(false);
     const [showRightFade, setShowRightFade] = useState(true);
 
-    const activeToolboxStory = showToolbox ? stories.find(s => s.id === showToolbox) : null;
+    const activeToolboxStory = showToolbox 
+        ? [
+            ...stories, 
+            ...fairytales, 
+            ...adventure, 
+            ...sleepStories, 
+            ...scifi
+          ].find(s => s.id === showToolbox) 
+        : null;
 
 
 
@@ -1482,7 +1490,7 @@ export default function StoryArchive() {
                                 {/* Sichtbarkeit & Versand */}
                                 <div className="text-[10px] uppercase text-[#64748b] font-bold tracking-widest mt-3 mb-1 px-2">SICHTBARKEIT & VERSAND</div>
                                 
-                                {archiveFilter === 'my' && activeToolboxStory.user_id === user?.id && (
+                                {activeToolboxStory.user_id === user?.id && (
                                     <div className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg hover:bg-white/5 transition-all">
                                         <div className="flex items-center gap-3">
                                             <div className="w-8 h-8 rounded-[0.4rem] flex items-center justify-center shrink-0 bg-[#1e293b] text-[#64748b]">

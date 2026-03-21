@@ -7,8 +7,9 @@ import {
 import { 
     Moon, BookOpen, Send, Loader2, MessageCircle, Headphones, Heart, 
     Wand2, ArrowLeft, User, Play, RefreshCw, Mic, 
-    Image as ImageIcon, Feather, X, Pause
+    Image as ImageIcon, Feather, X, Pause, Edit2, Sparkles, Trash2
 } from 'lucide-react';
+import ConfirmModal from './ConfirmModal';
 import toast from 'react-hot-toast';
 import { voiceName } from '../lib/voices';
 import { formatAuthorStyles } from '../lib/authors';
@@ -35,11 +36,94 @@ export default function ReaderLayer() {
     const [confirmRevoice, setConfirmRevoice] = useState(false);
     const [isRevoicing, setIsRevoicing] = useState(false);
 
+    const [editingStoryId, setEditingStoryId] = useState<string | null>(null);
+    const [editTitle, setEditTitle] = useState('');
+    const [editText, setEditText] = useState('');
+    const [originalText, setOriginalText] = useState('');
+    const [isSavingEdit, setIsSavingEdit] = useState(false);
+    const [showEditConfirm, setShowEditConfirm] = useState(false);
+    const [isPublicLoading, setIsPublicLoading] = useState<string | null>(null);
+    const [deleteConfirm, setDeleteConfirm] = useState<{ id: string, title: string } | null>(null);
+
     // Audio preview for re-voicing
     const [previewVoice, setPreviewVoice] = useState<string | null>(null);
     const audioRef = useRef<HTMLAudioElement>(null);
     const touchStartX = useRef<number | null>(null);
     const touchStartY = useRef<number | null>(null);
+
+    const handleEditStart = async (id: string) => {
+        if (!story) return;
+        try {
+            const detail = await fetchStory(id);
+            const text = detail.chapters.map((c: any) => c.text).join('\n\n');
+            setEditTitle(detail.title);
+            setEditText(text);
+            setOriginalText(text);
+            setEditingStoryId(id);
+            setShowToolbox(false);
+        } catch (error: any) {
+            toast.error('Fehler beim Laden der Details');
+        }
+    };
+
+    const handleSaveEdit = async () => {
+        if (!editingStoryId) return;
+        const textChanged = originalText !== editText;
+        if (textChanged) {
+            setShowEditConfirm(true);
+        } else {
+            await executeSave(false);
+        }
+    };
+
+    const executeSave = async (textChanged: boolean) => {
+        if (!editingStoryId) return;
+        setIsSavingEdit(true);
+        try {
+            const newChapters = textChanged 
+                ? editText.split(/\n\n+/).filter(t => t.trim()).map((t, i) => ({
+                    title: `Kapitel ${i + 1}`,
+                    text: t.trim()
+                }))
+                : null;
+            
+            const { updateStory } = useStore.getState();
+            await updateStory(editingStoryId, {
+                title: editTitle,
+                ...(textChanged ? { chapters: newChapters } : {})
+            });
+            toast.success('Geschichte aktualisiert');
+            // Update local story
+            if (story && story.id === editingStoryId) {
+                setStory({
+                    ...story,
+                    title: editTitle,
+                    ...(textChanged ? { chapters: newChapters || [] } : {})
+                });
+            }
+            setEditingStoryId(null);
+            setShowEditConfirm(false);
+        } catch (error: any) {
+            toast.error(error.message || 'Fehler beim Speichern');
+        } finally {
+            setIsSavingEdit(false);
+        }
+    };
+
+    const confirmDelete = async () => {
+        if (!deleteConfirm) return;
+        const { id } = deleteConfirm;
+        try {
+            const { deleteStory } = useStore.getState();
+            await deleteStory(id);
+            toast.success('Geschichte gelöscht');
+            setReaderOpen(false);
+        } catch {
+            toast.error('Fehler beim Löschen');
+        } finally {
+            setDeleteConfirm(null);
+        }
+    };
 
     const handleRegenerateImage = async () => {
         if (!readerStoryId) return;
@@ -437,8 +521,20 @@ export default function ReaderLayer() {
                             {/* Werkzeuge - Owner Only */}
                             {user?.id === story.user_id && (
                                 <>
-                                    <div className="text-[10px] uppercase text-[#64748b] font-bold tracking-widest mt-4 mb-1 px-2">WERKZEUGE</div>
+                                    <div className="text-[10px] uppercase text-[#64748b] font-bold tracking-widest mt-3 mb-1 px-2">WERKZEUGE</div>
                                     
+                                    <button 
+                                        onClick={() => { handleEditStart(story.id); }}
+                                        className="w-full flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-white/5 transition-all outline-none"
+                                    >
+                                        <div className="w-8 h-8 bg-[#1e293b] rounded-[0.4rem] flex items-center justify-center shrink-0 text-[#a5b4fc]">
+                                            <Edit2 className="w-4 h-4" />
+                                        </div>
+                                        <div className="text-left text-[14px] text-[#e2e8f0]">
+                                            Text bearbeiten
+                                        </div>
+                                    </button>
+
                                     <button 
                                         onClick={() => {
                                             setShowRevoiceModal(true);
@@ -470,13 +566,79 @@ export default function ReaderLayer() {
                             )}
 
 
-                            {/* Versand */}
-                            <div className="text-[10px] uppercase text-[#64748b] font-bold tracking-widest mt-4 mb-1 px-2">VERSAND</div>
+                            {/* Sichtbarkeit & Versand */}
+                            <div className="text-[10px] uppercase text-[#64748b] font-bold tracking-widest mt-3 mb-1 px-2">SICHTBARKEIT & VERSAND</div>
                             
+                            {story.user_id === user?.id && (
+                                <div className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg hover:bg-white/5 transition-all">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded-[0.4rem] flex items-center justify-center shrink-0 bg-[#1e293b] text-[#64748b]">
+                                            <Sparkles className="w-4 h-4" />
+                                        </div>
+                                        <div className="text-left text-[14px] text-[#e2e8f0]">
+                                            Veröffentlichen
+                                        </div>
+                                    </div>
+                                    <button 
+                                        onClick={async () => {
+                                            setIsPublicLoading(story.id);
+                                            try {
+                                                const { toggleStoryVisibility } = useStore.getState();
+                                                await toggleStoryVisibility(story.id, !story.is_public);
+                                                setStory({...story, is_public: !story.is_public});
+                                                toast.success(story.is_public ? 'Story privatisiert' : 'Story veröffentlicht!');
+                                            } finally {
+                                                setIsPublicLoading(null);
+                                            }
+                                        }}
+                                        disabled={isPublicLoading === story.id}
+                                        className={`relative w-[34px] h-[20px] rounded-full transition-all duration-300 flex items-center p-0.5 shrink-0 ${
+                                            story.is_public ? 'bg-[#51618a]' : 'bg-[#1e293b]'
+                                        }`}
+                                    >
+                                        <div className={`w-[16px] h-[16px] bg-white rounded-full transition-transform duration-300 transform ${
+                                            story.is_public ? 'translate-x-[14px]' : 'translate-x-0'
+                                        } flex items-center justify-center`}>
+                                            {isPublicLoading === story.id && (
+                                                <Loader2 className="w-2.5 h-2.5 animate-spin text-primary" />
+                                            )}
+                                        </div>
+                                    </button>
+                                </div>
+                            )}
+
+                            {user?.is_admin && (
+                                <div className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg hover:bg-white/5 transition-all">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded-[0.4rem] flex items-center justify-center shrink-0 bg-[#1e293b] text-[#64748b]">
+                                            <Play className="w-4 h-4 fill-current ml-0.5" />
+                                        </div>
+                                        <div className="text-left text-[14px] text-[#e2e8f0]">
+                                            Spotify Podcast
+                                        </div>
+                                    </div>
+                                    <button 
+                                        onClick={async () => {
+                                            const { updateStorySpotify } = useStore.getState();
+                                            await updateStorySpotify(story.id, !story.is_on_spotify);
+                                            setStory({...story, is_on_spotify: !story.is_on_spotify});
+                                            toast.success(!story.is_on_spotify ? 'Zu Spotify hinzugefügt' : 'Von Spotify entfernt');
+                                        }}
+                                        className={`relative w-[34px] h-[20px] rounded-full transition-all duration-300 flex items-center p-0.5 shrink-0 ${
+                                            story.is_on_spotify ? 'bg-[#51618a]' : 'bg-[#1e293b]'
+                                        }`}
+                                    >
+                                        <div className={`w-[16px] h-[16px] bg-white rounded-full transition-transform duration-300 transform ${
+                                            story.is_on_spotify ? 'translate-x-[14px]' : 'translate-x-0'
+                                        }`} />
+                                    </button>
+                                </div>
+                            )}
+
                             <button 
                                 onClick={() => {
                                     const shareUrl = `${window.location.origin}${window.location.pathname}#/Story/${story.id}`;
-                                    const text = `Schau mal: *${story.title}* 🌙✨\n\n${shareUrl}`;
+                                    const text = `Schau mal, ich habe eine neue Geschichte erstellt: *${story.title}* 🌙✨\n\n${story.description}\n\nHör sie dir hier an:\n${shareUrl}`;
                                     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
                                     setShowToolbox(false);
                                 }}
@@ -486,7 +648,7 @@ export default function ReaderLayer() {
                                     <MessageCircle className="w-4 h-4" />
                                 </div>
                                 <div className="text-left text-[14px] text-[#e2e8f0]">
-                                    WhatsApp teilen
+                                    Via WhatsApp teilen
                                 </div>
                             </button>
 
@@ -498,9 +660,27 @@ export default function ReaderLayer() {
                                     <Send className="w-4 h-4 ml-0.5 mt-0.5" />
                                 </div>
                                 <div className="text-left text-[14px] text-[#e2e8f0]">
-                                    Kindle Export
+                                    An Kindle senden
                                 </div>
                             </button>
+
+                            {/* Löschen */}
+                            {story.user_id === user?.id && (
+                                <>
+                                    <div className="mt-3"></div>
+                                    <button 
+                                        onClick={() => { setDeleteConfirm({id: story.id, title: story.title}); setShowToolbox(false); }}
+                                        className="w-full flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-white/5 transition-all outline-none group/delete"
+                                    >
+                                        <div className="w-8 h-8 bg-transparent rounded-[0.4rem] flex items-center justify-center shrink-0 text-[#64748b] group-hover/delete:bg-red-500/10 group-hover/delete:text-red-500 transition-colors">
+                                            <Trash2 className="w-4 h-4" />
+                                        </div>
+                                        <div className="text-left text-[14px] text-[#64748b] group-hover/delete:text-red-400 transition-colors">
+                                            Geschichte löschen
+                                        </div>
+                                    </button>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -608,7 +788,101 @@ export default function ReaderLayer() {
                 </div>
             )}
 
+            {/* Story Editor Modal */}
+            {editingStoryId && (
+                <div className="fixed inset-0 z-[140] flex items-center justify-center p-4 bg-background/80 backdrop-blur-md">
+                    <div className="bg-surface/90 backdrop-blur-2xl rounded-[2rem] w-full max-w-2xl max-h-[90vh] shadow-2xl border border-slate-800/50 overflow-hidden flex flex-col animate-in fade-in zoom-in duration-300">
+                        <div className="p-6 border-b border-slate-800 flex items-center justify-between shrink-0">
+                            <h2 className="text-xl font-bold text-text flex items-center gap-2">
+                                <Edit2 className="w-5 h-5 text-primary" />
+                                Geschichte bearbeiten
+                            </h2>
+                            <button
+                                onClick={() => setEditingStoryId(null)}
+                                className="p-2 text-slate-500 hover:text-slate-300 rounded-full hover:bg-slate-800 transition-all"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        
+                        <div className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar">
+                            <div>
+                                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-2 ml-1">
+                                    Titel
+                                </label>
+                                <input
+                                    type="text"
+                                    value={editTitle}
+                                    onChange={(e) => setEditTitle(e.target.value)}
+                                    className="w-full px-4 py-3 bg-background border-2 border-slate-800 rounded-xl focus:border-primary focus:ring-0 transition-all text-sm font-medium text-text placeholder:text-slate-600"
+                                    placeholder="Titel der Geschichte"
+                                />
+                            </div>
+
+                            <div className="space-y-4">
+                                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-2 ml-1">
+                                    Inhalt
+                                </label>
+                                <div className="p-4 bg-background/50 rounded-2xl border border-slate-800/50">
+                                    <textarea
+                                        value={editText}
+                                        onChange={(e) => setEditText(e.target.value)}
+                                        rows={15}
+                                        className="w-full bg-transparent border-0 focus:ring-0 transition-all text-sm text-slate-400 px-0 resize-none leading-relaxed no-scrollbar"
+                                        placeholder="Text der Geschichte..."
+                                    />
+                                </div>
+                                <p className="text-[10px] text-slate-600 px-1 leading-relaxed">
+                                    Tipp: Benutze doppelte Zeilenumbrüche, um neue Kapitel zu markieren.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="p-6 border-t border-slate-800 bg-surface/50 shrink-0">
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setEditingStoryId(null)}
+                                    className="flex-1 py-3 px-4 rounded-xl font-bold text-sm text-slate-400 hover:bg-slate-800 transition-all"
+                                >
+                                    Abbrechen
+                                </button>
+                                <button
+                                    onClick={handleSaveEdit}
+                                    disabled={isSavingEdit}
+                                    className="flex-[2] btn-primary py-3 rounded-xl font-bold text-sm shadow-lg shadow-primary/20 hover:bg-emerald-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                >
+                                    {isSavingEdit ? (
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                        <Send className="w-4 h-4" />
+                                    )}
+                                    Änderungen speichern
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <audio ref={audioRef} className="hidden" />
+
+            <ConfirmModal 
+                isOpen={!!deleteConfirm}
+                title="Geschichte löschen"
+                message={`Möchtest du "${deleteConfirm?.title}" wirklich unwiderruflich löschen?`}
+                onConfirm={confirmDelete}
+                onClose={() => setDeleteConfirm(null)}
+            />
+
+            <ConfirmModal 
+                isOpen={showEditConfirm}
+                title="Vertonung löschen?"
+                message="Du hast den Text der Geschichte geändert. Die bestehende Audio-Vertonung muss daher gelöscht werden. Fortfahren?"
+                onConfirm={() => executeSave(true)}
+                onClose={() => setShowEditConfirm(false)}
+                confirmLabel="Ja, Text speichern & Audio löschen"
+                isDanger={true}
+            />
         </div>
     );
 }
