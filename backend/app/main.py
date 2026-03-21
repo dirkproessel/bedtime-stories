@@ -236,7 +236,7 @@ async def start_revoice(
         "title": meta.title,
     }
 
-    # Run revoice in background
+        # Run revoice in background
     asyncio.create_task(
         _run_revoice_pipeline(
             story_id=story_id,
@@ -246,6 +246,9 @@ async def start_revoice(
     )
 
     return {"id": story_id, "status": "revoicing"}
+
+class RegenerateImageRequest(BaseModel):
+    image_hints: str | None = None
 
 
 async def _run_revoice_pipeline(
@@ -1145,6 +1148,7 @@ async def delete_story(
 @app.post("/api/stories/{story_id}/regenerate-image")
 async def regenerate_story_image_api(
     story_id: str,
+    req: RegenerateImageRequest | None = None,
     current_user: User = Depends(get_current_active_user)
 ):
     meta = store.get_by_id(story_id)
@@ -1168,7 +1172,9 @@ async def regenerate_story_image_api(
         async def background_task():
             image_path = story_dir / "cover.png"
             logger.info(f"MANUAL REGEN: Calling generate_story_image for {story_id}")
-            res = await generate_story_image(synopsis, image_path, genre=meta.genre, style=meta.style)
+            
+            hints = req.image_hints if req else None
+            res = await generate_story_image(synopsis, image_path, genre=meta.genre, style=meta.style, image_hints=hints)
             if res:
                 image_url = f"/api/stories/{story_id}/image.png"
                 meta.image_url = image_url

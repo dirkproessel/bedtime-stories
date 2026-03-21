@@ -36,6 +36,10 @@ export default function ReaderLayer() {
     const [confirmRevoice, setConfirmRevoice] = useState(false);
     const [isRevoicing, setIsRevoicing] = useState(false);
 
+    // Image Regeneration Modal
+    const [showImageRegenModal, setShowImageRegenModal] = useState(false);
+    const [imageHints, setImageHints] = useState('');
+
     const [editingStoryId, setEditingStoryId] = useState<string | null>(null);
     const [editTitle, setEditTitle] = useState('');
     const [editText, setEditText] = useState('');
@@ -129,8 +133,10 @@ export default function ReaderLayer() {
         if (!readerStoryId) return;
         setIsRegenerating(true);
         try {
-            await regenerateStoryImage(readerStoryId);
+            await regenerateStoryImage(readerStoryId, imageHints.trim() || undefined);
             toast.success('Bild-Regenerierung gestartet!');
+            setShowImageRegenModal(false);
+            setImageHints('');
         } catch (error: any) {
             toast.error(error.message || 'Fehler beim Starten');
         } finally {
@@ -551,7 +557,10 @@ export default function ReaderLayer() {
                                     </button>
 
                                     <button 
-                                        onClick={handleRegenerateImage}
+                                        onClick={() => {
+                                            setShowImageRegenModal(true);
+                                            setShowToolbox(false);
+                                        }}
                                         disabled={isRegenerating}
                                         className="w-full flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-white/5 transition-all outline-none"
                                     >
@@ -783,6 +792,54 @@ export default function ReaderLayer() {
                                     </div>
                                 </div>
                             )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Image Regeneration Modal */}
+            {showImageRegenModal && story && (
+                <div className="fixed inset-0 z-[130] flex items-center justify-center p-4 bg-background/80 backdrop-blur-md">
+                    <div className="bg-surface/90 backdrop-blur-2xl rounded-[2.5rem] w-full max-w-md shadow-2xl border border-slate-800/50 overflow-hidden animate-in fade-in zoom-in duration-300">
+                        <div className="p-6">
+                            <div className="flex items-center justify-between mb-6">
+                                <h2 className="text-xl font-bold text-text flex items-center gap-2">
+                                    <ImageIcon className="w-5 h-5 text-primary" />
+                                    Bild neu generieren
+                                </h2>
+                                <button
+                                    onClick={() => { setShowImageRegenModal(false); setImageHints(''); }}
+                                    className="p-2 text-slate-500 hover:text-slate-300 rounded-full hover:bg-slate-800"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+
+                            <p className="text-sm text-slate-400 mb-4">Möchtest du dem Bild eigene Hinweise mitgeben (optional)?</p>
+                            
+                            <textarea
+                                value={imageHints}
+                                onChange={(e) => setImageHints(e.target.value)}
+                                placeholder="Z.b. Ein roter Drache im Hintergrund..."
+                                className="w-full h-32 px-4 py-3 bg-background border-2 border-slate-800 rounded-xl mb-6 focus:border-primary transition-all outline-none text-text resize-none text-sm placeholder:text-slate-600"
+                            />
+
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => { setShowImageRegenModal(false); setImageHints(''); }}
+                                    className="flex-1 px-4 py-3 border-2 border-slate-800 rounded-xl font-bold text-slate-500 hover:bg-surface transition-all"
+                                >
+                                    Abbrechen
+                                </button>
+                                <button
+                                    onClick={handleRegenerateImage}
+                                    disabled={isRegenerating}
+                                    className="btn-primary flex-1 px-4 py-3 shadow-lg shadow-primary/20 flex items-center justify-center gap-2"
+                                >
+                                    {isRegenerating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                                    Starten
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -7,7 +7,7 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-async def get_visual_prompt(client: genai.Client, synopsis: str, genre: str, style: str) -> str:
+async def get_visual_prompt(client: genai.Client, synopsis: str, genre: str, style: str, image_hints: str | None = None) -> str:
     """
     Use Gemini to transform a German synopsis into a visually descriptive English image prompt.
     """
@@ -20,6 +20,7 @@ async def get_visual_prompt(client: genai.Client, synopsis: str, genre: str, sty
 
     GENRE: {genre}
     STYLE HINTS: {style}
+    {f"USER SPECIFIC HINTS: {image_hints} (Incorporate these hints into the visual description if they are provided, but maintain the overall style and rules.)" if image_hints else ""}
 
     RULES for the output:
     1. Output ONLY the English visual description. No introductory text.
@@ -42,7 +43,7 @@ async def get_visual_prompt(client: genai.Client, synopsis: str, genre: str, sty
         # Fallback to something that includes context if possible
         return f"A high-quality, atmospheric artistic illustration in the {genre} genre, reflecting the mood of {style}."
 
-async def generate_story_image(synopsis: str, output_path: Path, genre: str = "Realismus", style: str = "Douglas Adams"):
+async def generate_story_image(synopsis: str, output_path: Path, genre: str = "Realismus", style: str = "Douglas Adams", image_hints: str | None = None):
     """
     Generate a square cover image for the story using Google's Imagen.
     Uses Gemini to optimize the prompt for the best visual results.
@@ -57,7 +58,7 @@ async def generate_story_image(synopsis: str, output_path: Path, genre: str = "R
         client = genai.Client(api_key=settings.GEMINI_API_KEY)
         
         # Step 1: Use LLM to generate a safe, visual English prompt
-        visual_description = await get_visual_prompt(client, synopsis, genre, style)
+        visual_description = await get_visual_prompt(client, synopsis, genre, style, image_hints)
         
         style_hints = {
             "Sci-Fi": "Futuristic, cinematic concept art, neon accents, detailed textures",
@@ -76,7 +77,8 @@ async def generate_story_image(synopsis: str, output_path: Path, genre: str = "R
             f"STRICT RULE: NO TEXT, NO WORDS, NO LETTERS, NO SIGNATURES, NO TITLES, NO WATERMARKS. "
             f"Style: {genre_hint}. {visual_description}. "
             f"Minimalist and modern aesthetic, matching the tone of {style}. "
-            f"Focus on pure visual storytelling without any typography."
+            f"Focus on pure visual storytelling without any typography. "
+            f"Fullframe, borderless, edge-to-edge, no frame, no borders, no passepartout."
         )
 
         model_id = settings.GEMINI_IMAGE_MODEL
@@ -115,7 +117,8 @@ async def generate_story_image(synopsis: str, output_path: Path, genre: str = "R
             
             fallback_prompt = (
                 f"STRICT RULE: NO TEXT, NO WORDS, NO LETTERS, NO SIGNATURES. "
-                f"{visual_description}. Aesthetic artistic illustration, high quality, no text."
+                f"{visual_description}. Aesthetic artistic illustration, high quality, no text. "
+                f"Fullframe, borderless, edge-to-edge, no frame, no borders."
             )
             response = await call_nano_banana(fallback_prompt)
             image_bytes = get_image_bytes(response)

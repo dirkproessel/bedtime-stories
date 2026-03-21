@@ -332,10 +332,11 @@ export async function patchStory(storyId: string, data: Partial<StoryDetail>): P
     return res.json();
 }
 
-export async function regenerateStoryImage(storyId: string): Promise<any> {
+export async function regenerateStoryImage(storyId: string, imageHints?: string): Promise<any> {
     const res = await fetch(`${API_BASE}/api/stories/${storyId}/regenerate-image`, {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image_hints: imageHints }),
     });
     if (!res.ok) {
         const error = await res.json().catch(() => ({}));

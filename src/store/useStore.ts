@@ -109,7 +109,7 @@ interface AppState {
     revoiceStory: (id: string, voiceKey: string, speechRate?: string) => Promise<void>;
     toggleFavorite: (id: string) => Promise<void>;
     deleteStory: (id: string) => Promise<void>;
-    regenerateStoryImage: (id: string) => Promise<void>;
+    regenerateStoryImage: (id: string, imageHints?: string) => Promise<void>;
     updateStory: (id: string, data: any) => Promise<void>;
 }
 
@@ -530,9 +530,9 @@ export const useStore = create<AppState>((set, get) => {
             throw e;
         }
     },
-    regenerateStoryImage: async (id) => {
+    regenerateStoryImage: async (id, imageHints) => {
         try {
-            await apiRegenerateStoryImage(id);
+            await apiRegenerateStoryImage(id, imageHints);
             set((state) => ({
                 stories: state.stories.map((s) =>
                     s.id === id ? { ...s, status: 'generating', progress: 'Bild wird neu generiert...', progress_pct: 0 } : s
