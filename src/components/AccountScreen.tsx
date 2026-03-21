@@ -156,7 +156,7 @@ export default function AccountScreen() {
                 </div>
                 
                 <p className="text-xs text-slate-500 leading-relaxed italic">
-                    Wichtig: Füge "{user.email}" in deinem Amazon-Konto als genehmigte E-Mail hinzu.
+                    Wichtig: Füge <a href="https://www.amazon.de/hz/mycd/myx#/home/settings/pdoc" target="_blank" rel="noopener noreferrer" className="text-orange-400 hover:underline">"stories@storyja.com"</a> in deinem Amazon-Konto als genehmigte E-Mail hinzu.
                 </p>
             </div>
 
