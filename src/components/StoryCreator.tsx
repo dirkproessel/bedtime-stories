@@ -35,9 +35,9 @@ const LENGTHS = [
     { value: 20, label: 'Lang', sub: '~20 Min' },
 ];
 
-const MAX_GENRES_VISIBLE = 9;
-const MAX_AUTHORS_VISIBLE = 9;
-const MAX_PREMIUM_VOICES_VISIBLE = 6;
+const MAX_GENRES_VISIBLE = 8;
+const MAX_AUTHORS_VISIBLE = 8;
+const MAX_PREMIUM_VOICES_VISIBLE = 8;
 
 // Sort items array so that popularIds come first (in order), rest follow in original order.
 function sortByPopularity<T>(items: T[], popularIds: string[], getKey: (item: T) => string): T[] {
@@ -250,7 +250,7 @@ export default function StoryCreator() {
     };
 
     return (
-        <div className="pb-32 lg:pb-8">
+        <div className="pb-48 lg:pb-24">
             {/* Single column layout – same flow as mobile, just wider tiles */}
             <div className="space-y-5">
                 
@@ -325,7 +325,7 @@ export default function StoryCreator() {
                         <div className="mb-1.5 flex items-center gap-2">
                                 <h3 className="text-xs uppercase font-bold tracking-wider text-slate-400">Genre</h3>
                         </div>
-                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
                             {(showAllGenres ? sortedGenres : sortedGenres.slice(0, MAX_GENRES_VISIBLE)).map(g => (
                                 <button
                                     key={g.value}
@@ -356,7 +356,7 @@ export default function StoryCreator() {
                         <div className="mb-1.5 flex flex-col gap-0.5">
                                 <h3 className="text-xs uppercase font-bold tracking-wider text-slate-400">Stil (Mixe bis zu 3 Autoren)</h3>
                         </div>
-                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
                             {(showAllAuthors ? sortedAuthors : sortedAuthors.slice(0, MAX_AUTHORS_VISIBLE)).map(s => {
                                 const isSelected = selectedAuthors.includes(s.id);
                                 return (
@@ -397,7 +397,7 @@ export default function StoryCreator() {
                                 <div className="mb-1.5 flex items-center gap-2">
                                 <h3 className="text-xs uppercase font-bold tracking-wider text-slate-400">Dauer</h3>
                             </div>
-                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+                            <div className="grid grid-cols-3 gap-2">
                                 {LENGTHS.map(l => (
                                     <button
                                         key={l.value}
@@ -449,21 +449,22 @@ export default function StoryCreator() {
                                             <div className="mb-1.5 flex items-center gap-2">
                                                 <h4 className="text-xs font-bold tracking-wider text-slate-500">Standard-Stimmen</h4>
                                             </div>
-                                            <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
+                                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
                                             {voices
                                                 .filter(v => STANDARD_VOICE_KEYS.includes(v.key))
+                                                .filter(v => !isAudioEnabled || v.key !== 'none')
                                                 .sort((a, b) => STANDARD_VOICE_KEYS.indexOf(a.key) - STANDARD_VOICE_KEYS.indexOf(b.key))
                                                 .map(v => (
                                                 <div
                                                     key={v.key}
-                                                    className={`p-3 rounded-xl transition-all border-2 cursor-pointer h-full min-h-[80px] flex items-center justify-between gap-3 ${voiceKey === v.key
+                                                    className={`p-3 rounded-xl transition-all border-2 cursor-pointer h-full min-h-[96px] flex flex-col justify-between gap-1 ${voiceKey === v.key
                                                         ? 'border-primary bg-primary/10'
                                                         : 'border-slate-700/50 bg-slate-800/60 hover:border-slate-600'
                                                         }`}
                                                     onClick={() => setVoiceKey(v.key)}
                                                 >
-                                                    <div className="flex-1 min-w-0 pr-1">
-                                                        <div className="flex items-center gap-1.5 mb-0.5">
+                                                    <div className="flex items-center justify-between w-full">
+                                                        <div className="flex items-center gap-1.5 min-w-0">
                                                             <h4 className={`text-sm font-bold truncate tracking-tight ${voiceKey === v.key ? 'text-white' : 'text-slate-300'}`}>
                                                                 {voiceName(v.key)}
                                                             </h4>
@@ -472,16 +473,16 @@ export default function StoryCreator() {
                                                                     v.gender === 'male' ? <Mars className="w-3.5 h-3.5" /> : <Users className="w-3.5 h-3.5" />}
                                                             </div>
                                                         </div>
-                                                        <div className={`text-xs line-clamp-1 ${voiceKey === v.key ? 'text-white/80' : 'text-slate-500'}`}>
-                                                            {voiceDesc(v.key)}
-                                                        </div>
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); handlePreviewVoice(v.key); }}
+                                                            className={`w-7 h-7 rounded-full flex items-center justify-center transition-all shrink-0 ${previewVoice === v.key ? 'bg-primary text-white' : 'bg-slate-800 text-slate-500 border border-slate-700/50'}`}
+                                                        >
+                                                            {previewVoice === v.key ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 ml-0.5" />}
+                                                        </button>
                                                     </div>
-                                                    <button
-                                                        onClick={(e) => { e.stopPropagation(); handlePreviewVoice(v.key); }}
-                                                        className={`w-8 h-8 rounded-full flex items-center justify-center transition-all shrink-0 ${previewVoice === v.key ? 'bg-primary text-white' : 'bg-slate-800 text-slate-500 border border-slate-700/50'}`}
-                                                    >
-                                                        {previewVoice === v.key ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 ml-0.5" />}
-                                                    </button>
+                                                    <div className={`text-xs line-clamp-2 leading-tight ${voiceKey === v.key ? 'text-white/80' : 'text-slate-500'}`}>
+                                                        {voiceDesc(v.key)}
+                                                    </div>
                                                 </div>
                                             ))}
                                             </div>
@@ -492,21 +493,21 @@ export default function StoryCreator() {
                                             <div className="flex items-center gap-2 mb-1.5">
                                                 <h4 className="text-xs font-bold tracking-wider text-slate-500">Premium-Stimmen</h4>
                                             </div>
-                                            <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
+                                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
                                                 {sortedVoices
                                                     .filter(v => !isStandardVoice(v.key))
                                                     .slice(0, showAllVoices ? sortedVoices.length : MAX_PREMIUM_VOICES_VISIBLE)
                                                     .map(v => (
                                                     <div
                                                         key={v.key}
-                                                        className={`p-3 rounded-xl transition-all border-2 cursor-pointer h-full min-h-[80px] flex items-center justify-between gap-3 ${voiceKey === v.key
+                                                        className={`p-3 rounded-xl transition-all border-2 cursor-pointer h-full min-h-[96px] flex flex-col justify-between gap-1 ${voiceKey === v.key
                                                             ? 'border-primary bg-primary/10'
                                                             : 'border-slate-700/50 bg-slate-800/60 hover:border-slate-600'
                                                             }`}
                                                         onClick={() => setVoiceKey(v.key)}
                                                     >
-                                                        <div className="flex-1 min-w-0 pr-1">
-                                                            <div className="flex items-center gap-1.5 mb-0.5">
+                                                        <div className="flex items-center justify-between w-full">
+                                                            <div className="flex items-center gap-1.5 min-w-0">
                                                                 <h4 className={`text-sm font-bold truncate tracking-tight ${voiceKey === v.key ? 'text-white' : 'text-slate-300'}`}>
                                                                     {voiceName(v.key)}
                                                                 </h4>
@@ -515,16 +516,16 @@ export default function StoryCreator() {
                                                                         v.gender === 'male' ? <Mars className="w-3.5 h-3.5" /> : <Users className="w-3.5 h-3.5" />}
                                                                 </div>
                                                             </div>
-                                                            <div className={`text-xs line-clamp-1 ${voiceKey === v.key ? 'text-white/80' : 'text-slate-500'}`}>
-                                                                {voiceDesc(v.key)}
-                                                            </div>
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); handlePreviewVoice(v.key); }}
+                                                                className={`w-7 h-7 rounded-full flex items-center justify-center transition-all shrink-0 ${previewVoice === v.key ? 'bg-primary text-white' : 'bg-slate-800 text-slate-500 border border-slate-700/50'}`}
+                                                            >
+                                                                {previewVoice === v.key ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3 ml-0.5" />}
+                                                            </button>
                                                         </div>
-                                                        <button
-                                                            onClick={(e) => { e.stopPropagation(); handlePreviewVoice(v.key); }}
-                                                            className={`w-7 h-7 rounded-full flex items-center justify-center transition-all shrink-0 ${previewVoice === v.key ? 'bg-primary text-white' : 'bg-slate-800 text-slate-500 border border-slate-700/50'}`}
-                                                        >
-                                                            {previewVoice === v.key ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3 ml-0.5" />}
-                                                        </button>
+                                                        <div className={`text-xs line-clamp-2 leading-tight ${voiceKey === v.key ? 'text-white/80' : 'text-slate-500'}`}>
+                                                            {voiceDesc(v.key)}
+                                                        </div>
                                                     </div>
                                                 ))}
                                             </div>
