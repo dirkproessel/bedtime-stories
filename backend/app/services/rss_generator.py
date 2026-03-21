@@ -62,11 +62,16 @@ def generate_rss_feed(
         
         # Add episode-specific image if available
         # Note: Feedgen requires setting the image directly via the iTunes extension at the item level
-        if story.get("image_url"):
-            fe.podcast.itunes_image(story["image_url"])
+        img_url = story.get("image_url")
+        if img_url:
+            if img_url.startswith("/"):
+                # Always ensure base_url does not end with a slash to avoid double slashes,
+                # assuming img_url starts with a slash.
+                img_url = f"{base_url.rstrip('/')}{img_url}"
+            fe.podcast.itunes_image(img_url)
         else:
             # Fallback to general podcast cover
-            fe.podcast.itunes_image(f"{base_url}/api/podcast-cover.png")
+            fe.podcast.itunes_image(f"{base_url.rstrip('/')}/api/podcast-cover.png")
 
         fe.podcast.itunes_duration(
             _seconds_to_hms(story.get("duration_seconds", 0))
