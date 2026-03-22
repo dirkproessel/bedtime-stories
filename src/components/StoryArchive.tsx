@@ -451,7 +451,7 @@ export default function StoryArchive() {
                     let worldChanged = false;
                     const syncedStories = next[worldId].map(c => {
                         const match = stories.find(s => s.id === c.id);
-                        if (match && match.updated_at !== c.updated_at) {
+                        if (match && (match.updated_at !== c.updated_at || match.is_favorite !== c.is_favorite)) {
                             worldChanged = true;
                             anyChanged = true;
                             return { ...c, ...match };

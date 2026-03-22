@@ -216,7 +216,7 @@ export default function ReaderLayer() {
     useEffect(() => {
         if (story && stories.length > 0) {
             const storeStory = stories.find(s => s.id === story.id);
-            if (storeStory && storeStory.updated_at !== story.updated_at) {
+            if (storeStory && (storeStory.updated_at !== story.updated_at || storeStory.is_favorite !== story.is_favorite)) {
                 setStory({ ...story, ...storeStory });
             }
         }
