@@ -1243,8 +1243,11 @@ class SpotifyToggleRequest(BaseModel):
 
 
 @app.post("/api/stories/{story_id}/spotify")
-async def toggle_spotify(story_id: str, body: SpotifyToggleRequest):
-    """Toggle whether a story is included in the Spotify RSS feed."""
+async def toggle_spotify(story_id: str, body: SpotifyToggleRequest, current_user: User = Depends(get_current_active_user)):
+    """Toggle whether a story is included in the Spotify RSS feed. Restricted to admins."""
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Not authorized")
+        
     if not store.update_spotify_status(story_id, body.enabled):
         raise HTTPException(status_code=404, detail="Story not found")
     
@@ -1285,7 +1288,6 @@ async def get_user_avatar_thumb(user_id: str):
 
 
 @app.get("/api/feed.xml")
-@app.get("/api/feed-labor.xml")
 async def get_rss_feed():
     """Serve the global podcast RSS feed (all public/spotify stories)."""
     # Only include stories that have is_on_spotify=True
@@ -1293,7 +1295,13 @@ async def get_rss_feed():
     
     logger.info(f"Generating global RSS feed with {len(stories)} stories.")
     
-    image_url = f"{settings.BASE_URL}/api/podcast-cover.png"
+    # Get version for cache busting based on file modification time
+    cover_path = Path(__file__).parent / "static" / "podcast-cover.png"
+    version = "1.0"
+    if cover_path.exists():
+        version = str(int(cover_path.stat().st_mtime))
+        
+    image_url = f"{settings.BASE_URL}/api/podcast-cover.png?v={version}"
     email = "dirk@proessel.de"
     
     try:
@@ -1309,30 +1317,7 @@ async def get_rss_feed():
         raise HTTPException(status_code=500, detail="Error generating RSS feed")
 
 
-@app.get("/api/feed/{user_id}.xml")
-async def get_personal_rss_feed(user_id: str):
-    """Serve a personalized podcast RSS feed for a specific user."""
-    # Only include stories for this user that have is_on_spotify=True
-    stories = store.get_all(only_spotify=True, user_id=user_id)
-    
-    logger.info(f"Generating personal RSS feed for user {user_id} with {len(stories)} stories.")
-    
-    # We might want a different title or image for personal feeds in the future
-    image_url = f"{settings.BASE_URL}/api/podcast-cover.png"
-    email = "dirk@proessel.de"
-    
-    try:
-        xml_content = generate_rss_feed(
-            stories,
-            settings.BASE_URL,
-            title=f"Bedtime Stories (Privat)",
-            image_url=image_url,
-            email=email,
-        )
-        return Response(content=xml_content, media_type="application/xml")
-    except Exception as e:
-        logger.error(f"Personal RSS Feed error: {e}")
-        raise HTTPException(status_code=500, detail="Error generating personal RSS feed")
+
 
 
 # ──────────────────────────────────

@@ -41,7 +41,7 @@ export default function AccountScreen() {
         }
     };
 
-    const rssUrl = `${window.location.protocol}//${window.location.host.replace(':5173', ':8000')}/api/feed/${user?.id}.xml`;
+    const rssUrl = `${window.location.protocol}//${window.location.host.replace(':5173', ':8000')}/api/feed.xml`;
     const copyToClipboard = () => {
         navigator.clipboard.writeText(rssUrl);
         toast.success('RSS-Link kopiert!');

@@ -12,6 +12,7 @@ def generate_rss_feed(
     base_url: str,
     image_url: str | None = None,
     email: str | None = None,
+    title: str = "Kurzgeschichten-Labor",
 ) -> str:
     """
     Generate a podcast-compatible RSS feed XML.
@@ -27,7 +28,7 @@ def generate_rss_feed(
     fg.load_extension("podcast")
 
     # Feed metadata
-    fg.title("Kurzgeschichten-Labor")
+    fg.title(title)
     fg.link(href=base_url, rel="alternate")
     desc = "Storyja.com – Literatur auf Knopfdruck. Wir verwandeln deine Ideen in Sekunden in individuell generierte Kurzgeschichten. Von messerscharfer Satire bis zum tiefgründigen Drama: Erlebe im Kurzgeschichten-Labor, wie KI die Kunst des Erzählens neu definiert."
     fg.description(desc)
