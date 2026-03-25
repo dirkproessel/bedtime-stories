@@ -5,6 +5,7 @@ from sqlmodel import Session, select
 from datetime import timedelta
 import uuid
 import html
+import urllib.parse
 
 from app.database import get_session
 from app.models import User, UserCreate, UserResponse, Token, PasswordUpdate, KindleEmailUpdate, UsernameUpdate
@@ -287,8 +288,14 @@ async def alexa_authorize_post(
     # Create the authorization code
     code = create_alexa_auth_code(user.id)
     
-    # Redirect back to Amazon/Alexa with the code
-    redirect_url = f"{redirect_uri}?code={code}&state={state}"
+    # Robustly build redirect URL (handling existing query params)
+    parts = list(urllib.parse.urlparse(redirect_uri))
+    query_params = dict(urllib.parse.parse_qsl(parts[4]))
+    query_params.update({"code": code, "state": state})
+    parts[4] = urllib.parse.urlencode(query_params)
+    redirect_url = urllib.parse.urlunparse(parts)
+    
+    logger.info(f"ALEXA AUTH SUCCESS: Redirecting user {user.email} back to Alexa at {redirect_url}")
     return RedirectResponse(url=redirect_url, status_code=303)
 
 @router.post("/alexa/token")
@@ -320,6 +327,7 @@ async def alexa_token(
 
     # In a full implementation, you'd verify client_id and client_secret here
     # For now, we trust the Authorization Code which is short-lived and signed.
+    logger.info(f"ALEXA TOKEN REQUEST: grant_type={grant_type}, code={code[:10] if code else 'None'}")
     
     if grant_type == "authorization_code":
         user_id = verify_alexa_auth_code(code)
