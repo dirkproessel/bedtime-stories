@@ -138,7 +138,7 @@ async def alexa_webhook(request: Request, session: Session = Depends(get_session
     # 1. Handle AudioPlayer & System events (Must return empty response, NO SPEECH)
     if req_type.startswith("AudioPlayer.") or req_type == "System.ExceptionEncountered":
         logger.info(f"Handling background Alexa event: {req_type}")
-        return {}
+        return {"version": "1.0", "response": {}}
 
     # 2. Handle LaunchRequest
     if req_type == "LaunchRequest":
