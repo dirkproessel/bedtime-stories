@@ -115,24 +115,32 @@ def alexa_elicit_slot(text: str, slot_to_elicit: str, intent_name: str, slots: d
 async def alexa_webhook(request: Request, session: Session = Depends(get_session)):
     data = await request.json()
     logger.info(f"ALEXA REQUEST: {json.dumps(data)}")
-    req_type = data.get("request", {}).get("type")
+    req_type = data.get("request", {}).get("type", "")
+    # Robust User ID Extraction (Session vs Context)
     alexa_user_id = data.get("session", {}).get("user", {}).get("userId")
+    if not alexa_user_id:
+        alexa_user_id = data.get("context", {}).get("System", {}).get("user", {}).get("userId")
     
+    if not alexa_user_id and req_type not in ["AudioPlayer.PlaybackStarted", "AudioPlayer.PlaybackFinished"]:
+        logger.error("No Alexa UserID found in request")
+        return {}
+
     # Extract Access Token (for Phase 2 Account Linking)
     access_token = data.get("session", {}).get("user", {}).get("accessToken")
     
     # Get the internal user
     try:
-        if access_token:
-            # TODO: Validate JWT for Phase 2
-            # user = get_user_from_token(access_token)
-            user = get_or_create_alexa_user(alexa_user_id, session)
-        else:
-            user = get_or_create_alexa_user(alexa_user_id, session)
+        user = get_or_create_alexa_user(alexa_user_id, session)
     except Exception as e:
-        logger.error(f"Alexa Auth Error: {e}")
+        logger.error(f"Alexa Auth Error: {e} | UserID: {alexa_user_id}")
         return alexa_response("Entschuldigung, ich konnte dein Profil nicht laden.")
 
+    # 1. Handle AudioPlayer & System events (Must return empty response, NO SPEECH)
+    if req_type.startswith("AudioPlayer.") or req_type == "System.ExceptionEncountered":
+        logger.info(f"Handling background Alexa event: {req_type}")
+        return {}
+
+    # 2. Handle LaunchRequest
     if req_type == "LaunchRequest":
         return alexa_response(
             "Willkommen bei Storyja. Möchtest du eine Geschichte erstellen oder deine letzte Geschichte abspielen?",
@@ -275,12 +283,15 @@ async def send_alexa_notification(alexa_user_id: str, title: str):
                 "https://api.amazon.com/auth/o2/token",
                 data={
                     "grant_type": "client_credentials",
-                    "client_id": settings.ALEXA_CLIENT_ID,
-                    "client_secret": settings.ALEXA_CLIENT_SECRET,
+                    "client_id": settings.ALEXA_CLIENT_ID.strip(),
+                    "client_secret": settings.ALEXA_CLIENT_SECRET.strip(),
                     "scope": "alexa::proactive_events"
                 }
             )
-            resp.raise_for_status()
+            if resp.status_code != 200:
+                logger.error(f"LWA Token Error: {resp.status_code} - {resp.text}")
+                resp.raise_for_status()
+            
             access_token = resp.json()["access_token"]
 
             # 2. Send Proactive Event
