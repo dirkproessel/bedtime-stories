@@ -11,7 +11,7 @@ from app.database import get_session
 from app.models import User, StoryMeta, StoryRequest
 from app.config import settings
 from app.services.store import store
-from app.auth_utils import get_password_hash, SECRET_KEY, ALGORITHM
+from app.auth_utils import get_password_hash, SECRET_KEY, ALGORITHM, get_current_active_user
 
 logger = logging.getLogger(__name__)
 
