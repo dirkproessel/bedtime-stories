@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useStore } from '../store/useStore';
 import { LogOut, Download, Mail, Check, Loader2, Radio, Copy, User, Shield, Camera } from 'lucide-react';
-import { updateKindleEmail, updateUsername, uploadProfilePicture } from '../lib/api';
+import { updateKindleEmail, updateUsername, uploadProfilePicture, unlinkAlexa } from '../lib/api';
 import toast from 'react-hot-toast';
 import ProfilePictureUpload from './ProfilePictureUpload';
 
@@ -55,6 +55,17 @@ export default function AccountScreen() {
             toast.success('Profilbild aktualisiert!');
         } catch (e: any) {
             toast.error(e.message || 'Fehler beim Hochladen');
+        }
+    };
+
+    const handleUnlinkAlexa = async () => {
+        if (!window.confirm('Möchtest du die Verbindung zu Alexa wirklich trennen?')) return;
+        try {
+            await unlinkAlexa();
+            useStore.setState({ user: { ...user!, alexa_user_id: undefined } });
+            toast.success('Verknüpfung aufgehoben');
+        } catch (e: any) {
+            toast.error(e.message || 'Fehler beim Trennen');
         }
     };
 
@@ -188,8 +199,16 @@ export default function AccountScreen() {
                         Mit Alexa verbinden
                     </button>
                 ) : (
-                    <div className="flex items-center justify-between text-[10px] text-slate-500 font-mono">
-                         <span className="opacity-50">ID: {user.alexa_user_id.substring(0, 12)}...{user.alexa_user_id.slice(-8)}</span>
+                    <div className="flex flex-col gap-3">
+                        <div className="flex items-center justify-between text-[10px] text-slate-500 font-mono bg-slate-900/50 p-2 rounded-lg border border-slate-800">
+                             <span className="opacity-50">ID: {user.alexa_user_id.substring(0, 12)}...{user.alexa_user_id.slice(-8)}</span>
+                        </div>
+                        <button
+                            onClick={handleUnlinkAlexa}
+                            className="w-full py-2 bg-slate-800/50 hover:bg-red-500/10 text-slate-400 hover:text-red-400 text-[11px] font-medium rounded-xl transition-all border border-slate-700 hover:border-red-500/20"
+                        >
+                            Verknüpfung aufheben
+                        </button>
                     </div>
                 )}
             </div>

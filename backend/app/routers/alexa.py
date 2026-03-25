@@ -60,6 +60,7 @@ def get_or_create_alexa_user(alexa_user_id: str, session: Session, access_token:
     if alexa_user_id:
         user = session.exec(select(User).where(User.alexa_user_id == alexa_user_id)).first()
         if user:
+            logger.info(f"ALEXA RESOLVE: Found Linked User {user.email} (ID: {user.id})")
             return user
 
     # 3. Handle Guests (Phase 1 logic)
@@ -102,12 +103,11 @@ def migrate_guest_stories(alexa_user_id: str, target_user_id: str, session: Sess
         session.add(story)
         count += 1
     
-    # Deactivate the guest user
-    guest_user.is_active = False
-    guest_user.email = f"migrated_{guest_user.id}_{guest_user.email}" # Clear original email to avoid conflicts
-    session.add(guest_user)
+    # Delete the guest user instead of just deactivating (as requested by user)
+    session.delete(guest_user)
+    session.commit()
     
-    logger.info(f"Migrated {count} stories from Guest {guest_user.id} to User {target_user_id}")
+    logger.info(f"MIGRATED {count} stories from guest {guest_user.id} to {target_user_id}. Guest user deleted.")
 
 # ──────────────────────────────────
 # Alexa Response Helpers
@@ -407,3 +407,17 @@ async def send_alexa_notification(alexa_user_id: str, title: str):
                 
     except Exception as e:
         logger.error(f"Failed to send Alexa notification: {e}")
+
+@router.post("/unlink")
+async def alexa_unlink(
+    current_user: User = Depends(get_current_active_user),
+    session: Session = Depends(get_session)
+):
+    """Manually clear the Alexa User ID from the profile."""
+    if current_user.alexa_user_id:
+        logger.info(f"ALEXA UNLINK: Manually clearing Alexa ID for {current_user.email}")
+        current_user.alexa_user_id = None
+        session.add(current_user)
+        session.commit()
+        return {"status": "success", "message": "Alexa Verknüpfung aufgehoben."}
+    return {"status": "success", "message": "Keine Verknüpfung vorhanden."}

@@ -163,6 +163,18 @@ export async function uploadProfilePicture(file: Blob): Promise<User> {
     return res.json();
 }
 
+export async function unlinkAlexa(): Promise<void> {
+    const res = await fetch(`${API_BASE}/api/alexa/unlink`, {
+        method: 'POST',
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+    });
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.detail || 'Failed to unlink Alexa');
+    }
+}
+
 // --- Content Endpoints ---
 
 // Voices
