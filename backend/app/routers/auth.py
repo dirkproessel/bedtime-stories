@@ -312,6 +312,8 @@ async def alexa_token(
     
     # Support HTTP Basic Auth (Recommended by Alexa Console)
     auth_header = request.headers.get("Authorization")
+    logger.info(f"ALEXA TOKEN REQUEST: grant_type={grant_type}, code={code[:8] if code else 'None'}, AuthHeader={'Present' if auth_header else 'None'}")
+    
     if auth_header and auth_header.startswith("Basic "):
         try:
             import base64
@@ -321,31 +323,33 @@ async def alexa_token(
                 h_client_id, h_client_secret = decoded_creds.split(":", 1)
                 client_id = h_client_id
                 client_secret = h_client_secret
-                logger.info(f"Using Basic Auth for Alexa Token. ClientID: {client_id}")
+                logger.info(f"ALEXA TOKEN: Decoded ClientID from Basic Auth: {client_id}")
         except Exception as e:
-            logger.warning(f"Failed to decode Basic Auth header in alexa_token: {e}")
+            logger.error(f"ALEXA TOKEN: Failed to decode Basic Auth: {e}")
 
-    # In a full implementation, you'd verify client_id and client_secret here
-    # For now, we trust the Authorization Code which is short-lived and signed.
-    logger.info(f"ALEXA TOKEN REQUEST: grant_type={grant_type}, code={code[:10] if code else 'None'}")
-    
+    logger.info(f"ALEXA TOKEN FINAL: ClientID={client_id}")
+
     if grant_type == "authorization_code":
         user_id = verify_alexa_auth_code(code)
         if not user_id:
+            logger.warning(f"ALEXA TOKEN: Invalid code {code[:8] if code else 'None'}")
             raise HTTPException(status_code=400, detail="Ungültiger Authorization Code")
         
         user = session.get(User, user_id)
         if not user:
+            logger.warning(f"ALEXA TOKEN: User {user_id} not found")
             raise HTTPException(status_code=404, detail="Nutzer nicht gefunden")
             
-        # Create a long-lived token (e.g., 30 days) for Alexa
-        token_expires = timedelta(days=30)
-        access_token = create_access_token(data={"sub": user.id}, expires_delta=token_expires)
+        # Create a long-lived token for Alexa
+        token_expires = timedelta(days=365) # Long lived
+        access_token = create_access_token(data={"sub": str(user.id), "scope": "alexa"}, expires_delta=token_expires)
         
+        logger.info(f"ALEXA TOKEN SUCCESS: Issued token for {user.email}")
         return {
             "access_token": access_token,
-            "token_type": "bearer",
-            "expires_in": 3600 * 24 * 30  # 30 days in seconds
+            "token_type": "Bearer",
+            "expires_in": 3600,
+            "refresh_token": "dummy_refresh_token"
         }
 
     raise HTTPException(status_code=400, detail="Nicht unterstützter Grant Type")
