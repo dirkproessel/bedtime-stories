@@ -103,28 +103,8 @@ from app.routers import auth, alexa
 app.include_router(auth.router)
 app.include_router(alexa.router)
 
-# In-memory store for generation status & story metadata
-_generation_status: dict[str, dict] = {}
-
 from app.services.store import store
-
-
-async def _generate_thumbnail(source: Path, dest: Path, size: int = 400):
-    """Create a small JPEG thumbnail from a full-size cover image."""
-    import asyncio
-    def _resize():
-        try:
-            from PIL import Image
-            with Image.open(source) as img:
-                img = img.convert("RGB")
-                img.thumbnail((size, size), Image.LANCZOS)
-                img.save(dest, "JPEG", quality=80, optimize=True)
-            return True
-        except Exception as e:
-            logger.error(f"Thumbnail generation failed: {e}")
-            return False
-            
-    return await asyncio.to_thread(_resize)
+from app.services.story_service import story_service
 
 
 # ──────────────────────────────────
@@ -163,12 +143,6 @@ async def start_generation(req: StoryRequest, current_user: User = Depends(get_c
     """Start async story generation. Returns story ID to poll status."""
     story_id = str(uuid.uuid4())[:8]
 
-    _generation_status[story_id] = {
-        "status": "starting",
-        "progress": "Starte Generierung...",
-        "title": None,
-    }
-
     # Fetch parent story context if it's a remix/sequel
     parent_meta = None
     parent_text = None
@@ -184,7 +158,7 @@ async def start_generation(req: StoryRequest, current_user: User = Depends(get_c
 
     # Run generation in background
     asyncio.create_task(
-        _run_pipeline(
+        story_service.run_pipeline(
             story_id=story_id,
             prompt=req.system_prompt or req.prompt,
             genre=req.genre,
@@ -231,15 +205,9 @@ async def start_revoice(
     meta.progress_pct = 0
     store.add_story(meta)
 
-    _generation_status[story_id] = {
-        "status": "starting",
-        "progress": "Starte Neuvertonung...",
-        "title": meta.title,
-    }
-
-        # Run revoice in background
+    # Run revoice in background
     asyncio.create_task(
-        _run_revoice_pipeline(
+        story_service.run_revoice_pipeline(
             story_id=story_id,
             voice_key=req.voice_key,
             speech_rate=req.speech_rate,
@@ -252,144 +220,18 @@ class RegenerateImageRequest(BaseModel):
     image_hints: str | None = None
 
 
-async def _run_revoice_pipeline(
-    story_id: str,
-    voice_key: str,
-    speech_rate: str,
-):
-    """Revoice pipeline: load text → TTS → merge → save."""
-    story_dir = settings.AUDIO_OUTPUT_DIR / story_id
-    text_path = story_dir / "story.json"
-    
-    if not text_path.exists():
-        logger.error(f"Cannot revoice: {text_path} missing")
-        return
-
-    story_data = json.loads(text_path.read_text(encoding="utf-8"))
-    real_title = story_data["title"]
-    num_chapters = len(story_data["chapters"])
-    
-    # Recalculate word count from existing story.json
-    total_text = "\n".join([c.get("text", "") for c in story_data.get("chapters", [])])
-    word_count = len(total_text.split())
-
-    # Point-based progress (same logic as _run_pipeline)
-    # Vertonung: 10 * num_chapters
-    # Finalisierung: 10
-    total_points = (10 * num_chapters) + 10
-    completed_points = 0
-
-    async def on_progress(status_type: str, message: str, points: int | None = None, is_absolute_points: bool = False):
-        nonlocal completed_points
-        if points is not None:
-            if is_absolute_points:
-                completed_points = points
-            else:
-                completed_points += points
-        
-        pct = int((completed_points / total_points) * 100)
-        pct = min(pct, 99)
-
-        # Map internal status to user-visible steps (same as _run_pipeline)
-        label = message
-        if status_type == "generating_audio" or status_type == "tts": label = "Vertonung"
-        elif status_type == "processing": label = "Finalisierung"
-
-        _generation_status[story_id]["status"] = status_type
-        _generation_status[story_id]["progress"] = label
-        _generation_status[story_id]["progress_pct"] = pct
-        
-        curr = store.get_by_id(story_id)
-        if curr:
-            curr.status = "generating" if status_type != "done" and status_type != "error" else status_type
-            curr.progress = label
-            curr.progress_pct = pct
-            store.add_story(curr)
-
-    async def tts_progress_wrapper(stype, msg, extra_data=None):
-        if stype == "tts_chunk_done" and extra_data:
-            # Distribute 10*num_chapters points across all chunks
-            completed = extra_data["completed"]
-            total = extra_data["total"]
-            chunk_points = int((completed / max(total, 1)) * 10 * num_chapters)
-            await on_progress("generating_audio", "Vertonung", points=chunk_points, is_absolute_points=True)
-        else:
-            await on_progress("generating_audio", "Vertonung")
-
-    try:
-        # Step 1: TTS (10 * num_chapters points)
-        await on_progress("generating_audio", "Vertonung")
-        chunks_dir = story_dir / "chunks"
-        # Clear old chunks
-        import shutil
-        if chunks_dir.exists():
-            shutil.rmtree(chunks_dir)
-        chunks_dir.mkdir(parents=True, exist_ok=True)
-
-        story_meta_for_genre = store.get_by_id(story_id)
-        audio_files, actual_voice = await chapters_to_audio(
-            chapters=story_data["chapters"],
-            output_dir=chunks_dir,
-            voice_key=voice_key,
-            rate=speech_rate,
-            genre=story_meta_for_genre.genre if story_meta_for_genre else None,
-            on_progress=tts_progress_wrapper,
-            synopsis=story_data.get("synopsis"),
-            title=story_data.get("title"),
-        )
-
-        # Step 2: Finalisierung (10 points)
-        await on_progress("processing", "Finalisierung", points=10 * num_chapters, is_absolute_points=True)
-        
-        final_audio_path = story_dir / "story.mp3"
-        await merge_audio_files(
-            audio_files=audio_files,
-            output_path=final_audio_path,
-            intro_path=settings.INTRO_MUSIC_PATH,
-            outro_path=settings.OUTRO_MUSIC_PATH,
-            title_path=None, # Titel ist bereits im ersten Chunk enthalten
-        )
-
-        duration = await get_audio_duration(final_audio_path)
-
-        # Update metadata
-        all_voices = get_available_voices()
-        actual_voice_name = next((v["name"] for v in all_voices if v["key"] == actual_voice), "Unbekannt")
-
-        story_meta = store.get_by_id(story_id)
-        if story_meta:
-            story_meta.duration_seconds = duration
-            story_meta.voice_key = actual_voice
-            story_meta.voice_name = actual_voice_name
-            story_meta.word_count = word_count
-            story_meta.chapter_count = num_chapters
-            story_meta.status = "done"
-            story_meta.progress = "Fertig!"
-            story_meta.progress_pct = 100
-            store.add_story(story_meta)
-
-    except Exception as e:
-        logger.error(f"Revoice error for {story_id}: {e}", exc_info=True)
-        await on_progress("error", f"Neuvertonung fehlgeschlagen: {e}")
-
-
 @app.post("/api/stories/generate-free")
 async def start_free_generation(req: FreeTextRequest, current_user: User = Depends(get_current_active_user)):
     """Start generation from free text prompt."""
     story_id = str(uuid.uuid4())[:8]
 
-    _generation_status[story_id] = {
-        "status": "starting",
-        "progress": "Starte Generierung...",
-        "title": None,
-    }
-
+    # Run generation in background
     asyncio.create_task(
-        _run_pipeline(
+        story_service.run_pipeline(
             story_id=story_id,
             prompt=req.text,
             genre="Realismus",
-            style="Douglas Adams",
+            style="adams",
             characters=None,
             target_minutes=req.target_minutes,
             voice_key=req.voice_key,
@@ -409,315 +251,6 @@ async def api_generate_hook(req: HookRequest):
     hook = await generate_story_hook(req.genre, req.author_id, user_input=req.user_input)
     return HookResponse(hook_text=hook)
 
-async def _run_pipeline(
-    story_id: str,
-    prompt: str,
-    genre: str,
-    style: str,
-    characters: list[str] | None,
-    target_minutes: int,
-    voice_key: str,
-    speech_rate: str,
-    original_prompt: str | None = None,
-    user_id: str | None = None,
-    parent_id: str | None = None,
-    remix_type: str | None = None,
-    further_instructions: str | None = None,
-    parent_meta: StoryMeta | None = None,
-    parent_text: dict | None = None,
-    alexa_user_id: str | None = None,
-):
-    """Full pipeline: text → TTS → merge → save."""
-    logger.info(f"!!! STARTING PIPELINE for story {story_id} (Remix: {remix_type}) !!!")
-    logger.info(f"Prompt: {prompt[:50]}...")
-    logger.info(f"Voice Key received: '{voice_key}'")
-    
-    story_dir = settings.AUDIO_OUTPUT_DIR / story_id
-    story_dir.mkdir(parents=True, exist_ok=True)
-
-    # Resolve voice name
-    voice_name = "Unbekannt"
-    all_voices = get_available_voices()
-    for v in all_voices:
-        if v["key"] == voice_key:
-            voice_name = v["name"]
-            break
-
-    # Clean up prompt for display: remove system prefixes if present
-    clean_prompt = original_prompt or prompt
-    if "Kurzgeschichte im Genre" in clean_prompt and "Idee:" in clean_prompt:
-        clean_prompt = clean_prompt.split("Idee:", 1)[-1].strip()
-    
-    # Initial record creation
-    author_display = get_author_names(style)
-    story_meta = StoryMeta(
-        id=story_id,
-        title=f"Schreibe Dein {author_display}-Epos ({target_minutes} Min)...",
-        description=f"{(original_prompt or prompt)[:100]}...",
-        prompt=clean_prompt,
-        genre=genre,
-        style=style,
-        voice_key=voice_key,
-        voice_name=voice_name,
-        duration_seconds=0,
-        chapter_count=0,
-        is_on_spotify=False,
-        status="generating",
-        progress="Starte Generierung...",
-        created_at=datetime.now(timezone.utc),
-        user_id=user_id,
-        parent_id=parent_id,
-    )
-    store.add_story(story_meta)
-
-    # Point-based progress system
-    # Planung: 5
-    # Text: 10 * num_chapters
-    # Bild: 5 (if enabled)
-    # Vertonung: 10 * num_chapters (if enabled)
-    # Finalisierung: 10 (if enabled)
-    
-    # We don't know the exact num_chapters until text is generated, 
-    # so we assume 4 for a 20 min story (5 min/chapter) as a baseline for the denominator.
-    estimated_chapters = max(2, target_minutes // 5)
-    total_points = 5 # Planung
-    total_points += 10 * estimated_chapters # Text
-    total_points += 5 # Bild
-    if voice_key != "none":
-        total_points += 20 * estimated_chapters # Vertonung
-        total_points += 10 # Finalisierung
-        
-    completed_points = 0
-    real_num_chapters = estimated_chapters # updated once text is back
-    image_task = None # Will be started as soon as synopsis is ready
-    image_url = None
-
-    async def background_image_gen(synopsis_for_image: str):
-        nonlocal image_url
-        try:
-            image_path = story_dir / "cover.png"
-            res = await generate_story_image(synopsis_for_image, image_path, genre=genre, style=style)
-            if res:
-                image_url = f"/api/stories/{story_id}/image.png"
-                try:
-                    await _generate_thumbnail(image_path, story_dir / "cover_thumb.jpg")
-                except: pass
-                
-                # UPDATE STORE IMMEDIATELY so polling sees the new image
-                curr = store.get_by_id(story_id)
-                if curr:
-                    curr.image_url = image_url
-                    curr.updated_at = datetime.now(timezone.utc)
-                    store.add_story(curr)
-                    # Trigger a progress update to notify frontend
-                    await on_progress("image_ready", "Bilderstellung", points=0)
-        except Exception as e:
-            logger.error(f"Image gen failed: {e}")
-
-    async def on_progress(status_type: str, message: str, points: int | None = None, is_absolute_points: bool = False, **kwargs):
-        nonlocal completed_points, image_task
-        if points is not None:
-            if is_absolute_points:
-                completed_points = points
-            else:
-                completed_points += points
-        
-        pct = int((completed_points / total_points) * 100)
-        pct = min(pct, 99) # Keep at 99 until truly done
-
-        # Map internal status to user-visible steps
-        label = message
-        if status_type == "generating_text": label = "Texterstellung"
-        elif status_type == "generating_image" or status_type == "image": label = "Bilderstellung"
-        elif status_type == "generating_audio" or status_type == "tts": label = "Vertonung"
-        elif status_type == "processing": label = "Finalisierung"
-        elif status_type == "planning": label = "Planung"
-        
-        # Start image generation as soon as synopsis is ready
-        if (status_type == "outline_done" or status_type == "generating_text") and "synopsis" in kwargs and not image_task:
-            logger.info(f"OUTLINE READY for {story_id}. Starting early image generation...")
-            image_task = asyncio.create_task(background_image_gen(kwargs["synopsis"]))
-        
-        _generation_status[story_id]["status"] = status_type
-        _generation_status[story_id]["progress"] = label
-        _generation_status[story_id]["progress_pct"] = pct
-        
-        if "title" in kwargs:
-            _generation_status[story_id]["title"] = kwargs["title"]
-        if "synopsis" in kwargs:
-            _generation_status[story_id]["synopsis"] = kwargs["synopsis"]
-
-        # Also update persistent store
-        curr = store.get_by_id(story_id)
-        if curr:
-            curr.status = "generating" if status_type != "done" and status_type != "error" else status_type
-            curr.progress = label
-            curr.progress_pct = pct
-            
-            if "title" in kwargs:
-                curr.title = kwargs["title"]
-            if "synopsis" in kwargs:
-                curr.description = kwargs["synopsis"]
-                
-            curr.updated_at = datetime.now(timezone.utc)
-            store.add_story(curr)
-
-    try:
-        start_time_total = time.time()
-        
-        # Phase 1: Planung (5 Points)
-        await on_progress("planning", "Planung", points=5, is_absolute_points=True)
-
-        # Phase 2: Text Generation
-        completed_text_chapters = 0
-        async def text_progress_wrapper(stype, msg, pct=None, **kwargs):
-            nonlocal completed_text_chapters
-            if stype == "text_chapter_done":
-                completed_text_chapters += 1
-                # Increment points: baseline 5 + (10 * chapters done)
-                await on_progress("generating_text", "Texterstellung", points=5 + (10 * completed_text_chapters), is_absolute_points=True, **kwargs)
-            elif stype == "outline_done":
-                # Report planning done + provide real title/synopsis
-                await on_progress("generating_text", "Texterstellung", points=5, is_absolute_points=True, **kwargs)
-            else:
-                await on_progress("generating_text", "Texterstellung", **kwargs)
-
-        story_data = await generate_full_story(
-            prompt=prompt,
-            genre=genre,
-            style=style,
-            characters=characters,
-            target_minutes=target_minutes,
-            on_progress=text_progress_wrapper,
-            remix_type=remix_type,
-            further_instructions=further_instructions,
-            parent_text=parent_text,
-        )
-        
-        real_title = story_data["title"]
-        _generation_status[story_id]["real_title"] = real_title
-        real_num_chapters = len(story_data["chapters"])
-        
-        # Save real title and synopsis to database immediately
-        curr = store.get_by_id(story_id)
-        if curr:
-            curr.title = real_title
-            curr.description = story_data.get("synopsis", curr.description)
-            store.add_story(curr)
-        total_points = 5 + (10 * real_num_chapters) + 5
-        if voice_key != "none":
-            total_points += (20 * real_num_chapters) + 10
-        
-        # Mark text as done (5 + 10 * chapters)
-        await on_progress("generating_text", "Texterstellung", points=5 + (10 * real_num_chapters), is_absolute_points=True)
-
-        # Save text
-        text_path = story_dir / "story.json"
-        text_path.write_text(json.dumps(story_data, ensure_ascii=False, indent=2), encoding="utf-8")
-
-        if voice_key == "none":
-            # Phase 3: Wait for image
-            await on_progress("image", "Bilderstellung", points=5)
-            if image_task:
-                await image_task
-            await on_progress("done", "Fertig!", points=total_points, is_absolute_points=True)
-            
-            total_text = "\n".join([c["text"] for c in story_data["chapters"]])
-            curr = store.get_by_id(story_id)
-            if curr:
-                curr.title = real_title
-                curr.status = "done"
-                curr.progress = "Fertig!"
-                curr.progress_pct = 100
-                curr.image_url = image_url
-                curr.word_count = len(total_text.split())
-                curr.chapter_count = real_num_chapters
-                store.add_story(curr)
-            return
-
-        # Phase 4: Vertonung (20 Points per Chapter)
-        # First, ensure image points are recorded (we don't wait for it yet, but it's part of the count)
-        await on_progress("image", "Bilderstellung", points=5)
-        
-        # We need to update chapters_to_audio to use points
-        async def tts_progress_wrapper(stype, msg, extra_data=None):
-            if stype == "tts_chunk_done" and extra_data:
-                # Distribute 20*real_num_chapters points across all chunks
-                completed = extra_data["completed"]
-                total = extra_data["total"]
-                chunk_points = int((completed / max(total, 1)) * 20 * real_num_chapters)
-                # Offset: planning(5) + text(10*chapters) + image(5) + audio progress
-                base = 5 + (10 * real_num_chapters) + 5
-                await on_progress("generating_audio", "Vertonung", points=base + chunk_points, is_absolute_points=True)
-            else:
-                await on_progress("generating_audio", "Vertonung")
-
-        chunks_dir = story_dir / "chunks"
-        audio_files, actual_voice = await chapters_to_audio(
-            chapters=story_data["chapters"],
-            output_dir=chunks_dir,
-            voice_key=voice_key,
-            rate=speech_rate,
-            genre=genre,
-            on_progress=tts_progress_wrapper,
-            synopsis=story_data.get("synopsis"),
-            title=story_data.get("title"),
-        )
-
-        # Phase 5: Finalisierung (10 points)
-        await on_progress("processing", "Finalisierung", points=total_points - 10, is_absolute_points=True)
-        
-        final_audio_path = story_dir / "story.mp3"
-        await merge_audio_files(
-            audio_files=audio_files,
-            output_path=final_audio_path,
-            intro_path=settings.INTRO_MUSIC_PATH,
-            outro_path=settings.OUTRO_MUSIC_PATH,
-            title_path=None,  # Titel ist nun bereits im ersten Chunk von audio_files enthalten
-        )
-
-        duration = await get_audio_duration(final_audio_path)
-        if image_task:
-            await image_task
-
-        # Phase 6: Done
-        await on_progress("done", "Fertig!", points=total_points, is_absolute_points=True)
-
-        total_text = "\n".join([c["text"] for c in story_data["chapters"]])
-        story_meta = store.get_by_id(story_id)
-        if story_meta:
-            story_meta.title = real_title
-            story_meta.description = story_data.get("synopsis", story_meta.description)
-            story_meta.duration_seconds = duration
-            story_meta.chapter_count = real_num_chapters
-            story_meta.word_count = len(total_text.split())
-            story_meta.image_url = image_url
-            story_meta.status = "done"
-            story_meta.progress = "Fertig!"
-            story_meta.progress_pct = 100
-            store.add_story(story_meta)
-
-            # Trigger Alexa Notification if generated via Alexa
-            if alexa_user_id:
-                from app.routers.alexa import send_alexa_notification
-                asyncio.create_task(send_alexa_notification(alexa_user_id, real_title))
-
-            
-        logger.info(f"BENCHMARK [{story_id}]: Total Pipeline Finished in {time.time() - start_time_total:.2f} seconds")
-
-    except Exception as e:
-        _generation_status[story_id]["status"] = "error"
-        _generation_status[story_id]["progress"] = f"Fehler: {str(e)}"
-        
-        curr = store.get_by_id(story_id)
-        if curr:
-            curr.status = "error"
-            curr.progress = f"Fehler: {str(e)}"
-            store.add_story(curr)
-            
-        logger.error(f"Generation error for {story_id}: {e}", exc_info=True)
-
-
 # ──────────────────────────────────
 # Status (Polling)
 # ──────────────────────────────────
@@ -725,7 +258,7 @@ async def _run_pipeline(
 @app.get("/api/status/{story_id}")
 async def get_status(story_id: str):
     """Get current generation status."""
-    status = _generation_status.get(story_id)
+    status = story_service.get_status(story_id)
     if not status:
         raise HTTPException(status_code=404, detail="Story not found")
     return {

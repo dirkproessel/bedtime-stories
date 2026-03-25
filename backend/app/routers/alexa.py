@@ -147,26 +147,24 @@ async def alexa_webhook(request: Request, session: Session = Depends(get_session
                 )
 
             # Start Generation Pipeline
-            from app.main import _run_pipeline
-            import asyncio
-            
             story_id = str(uuid.uuid4())[:8]
             
             # Map genre to backend genre if needed
-            backend_genre = genre
-            if "nach" in genre.lower(): backend_genre = "Gute Nacht"
-            elif "kom" in genre.lower(): backend_genre = "Komödie"
+            backend_genre = genre or "Abenteuer"
+            if "nach" in backend_genre.lower(): backend_genre = "Gute Nacht"
+            elif "kom" in backend_genre.lower(): backend_genre = "Komödie"
             
-            # Use Best-Match Author (simple mapping for now)
-            style = "Douglas Adams" # Default
-            if "krimi" in genre.lower(): style = "Sebastian Fitzek"
-            elif "nach" in genre.lower(): style = "Astrid Lindgren"
+            # Style Mapping
+            style = "adams"
+            if "krimi" in backend_genre.lower(): style = "fitzek"
+            elif "nach" in backend_genre.lower(): style = "lindgren"
 
-            # Execute pipeline in background
+            # Execute pipeline in background via StoryService
+            from app.services.story_service import story_service
             asyncio.create_task(
-                _run_pipeline(
+                story_service.run_pipeline(
                     story_id=story_id,
-                    prompt=f"Idee: {idea}",
+                    prompt=f"Kurzgeschichte über {idea}",
                     genre=backend_genre,
                     style=style,
                     characters=None,
@@ -174,13 +172,14 @@ async def alexa_webhook(request: Request, session: Session = Depends(get_session
                     voice_key="seraphina",
                     speech_rate="0%",
                     original_prompt=idea,
-                    user_id=user.id
+                    user_id=user.id,
+                    alexa_user_id=alexa_user_id
                 )
             )
 
             return alexa_response(
                 f"Abgemacht! Ich erstelle dir eine {backend_genre} Geschichte über {idea}. "
-                "Das dauert etwa zwei bis drei Minuten. Ich lasse deine Alexa leuchten, sobald ich fertig bin. "
+                "Das dauert etwa zwei Minuten. Ich lasse deine Alexa leuchten, sobald ich fertig bin. "
                 "Bis gleich!",
                 should_end_session=True
             )
