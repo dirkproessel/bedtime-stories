@@ -5,7 +5,7 @@ import logging
 import uuid
 import json
 import httpx
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from app.database import get_session
 from app.models import User, StoryMeta, StoryRequest
@@ -288,7 +288,7 @@ async def send_alexa_notification(alexa_user_id: str, title: str):
             event_payload = {
                 "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
                 "referenceId": str(uuid.uuid4()),
-                "expiryTime": (datetime.now(timezone.utc).replace(microsecond=0)).isoformat().replace("+00:00", "Z"),
+                "expiryTime": (datetime.now(timezone.utc) + timedelta(hours=24)).isoformat().replace("+00:00", "Z"),
                 "event": {
                     "name": "AMAZON.MediaContent.Available",
                     "payload": {
@@ -302,6 +302,12 @@ async def send_alexa_notification(alexa_user_id: str, title: str):
                         }
                     }
                 },
+                "localizedAttributes": [
+                    {
+                        "locale": "de-DE",
+                        "title": "Deine Geschichte ist bereit!"
+                    }
+                ],
                 "relevantAudience": {
                     "type": "Unicast",
                     "payload": {
