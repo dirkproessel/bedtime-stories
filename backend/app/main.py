@@ -105,7 +105,8 @@ app.include_router(auth.router)
 app.include_router(alexa.router)
 
 # Mount Static Files (for Legal Docs / Images)
-app.mount("/api/static", StaticFiles(directory="app/static"), name="static")
+STATIC_DIR = Path(__file__).parent / "static"
+app.mount("/api/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 from app.services.store import store
 from app.services.story_service import story_service
