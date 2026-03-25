@@ -4,6 +4,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlmodel import Session, select
 from datetime import timedelta
 import uuid
+import html
 
 from app.database import get_session
 from app.models import User, UserCreate, UserResponse, Token, PasswordUpdate, KindleEmailUpdate, UsernameUpdate
@@ -234,6 +235,10 @@ async def alexa_authorize(
     scope: str | None = None
 ):
     """Serve the login page for Alexa Account Linking."""
+    q_client_id = html.escape(client_id)
+    q_redirect_uri = html.escape(redirect_uri)
+    q_state = html.escape(state)
+    
     return f"""
     <html>
         <head>
@@ -253,9 +258,9 @@ async def alexa_authorize(
                 <div class="logo">Storyja</div>
                 <p>Logge dich ein, um dein Storyja-Konto mit Alexa zu verbinden.</p>
                 <form action="/api/auth/alexa/authorize" method="post">
-                    <input type="hidden" name="client_id" value="{client_id}">
-                    <input type="hidden" name="redirect_uri" value="{redirect_uri}">
-                    <input type="hidden" name="state" value="{state}">
+                    <input type="hidden" name="client_id" value="{q_client_id}">
+                    <input type="hidden" name="redirect_uri" value="{q_redirect_uri}">
+                    <input type="hidden" name="state" value="{q_state}">
                     <input type="email" name="email" placeholder="E-Mail" required>
                     <input type="password" name="password" placeholder="Passwort" required>
                     <button type="submit">Einloggen & Verknüpfen</button>
@@ -288,15 +293,33 @@ async def alexa_authorize_post(
 
 @router.post("/alexa/token")
 async def alexa_token(
+    request: Request,
     grant_type: str = Form(...),
     code: str | None = Form(None),
     refresh_token: str | None = Form(None),
-    client_id: str = Form(...),
-    client_secret: str = Form(...),
+    client_id: str | None = Form(None),
+    client_secret: str | None = Form(None),
     session: Session = Depends(get_session)
 ):
     """Exchange the auth code for a long-lived access token."""
+    
+    # Support HTTP Basic Auth (Recommended by Alexa Console)
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Basic "):
+        try:
+            import base64
+            encoded_creds = auth_header.split(" ")[1]
+            decoded_creds = base64.b64decode(encoded_creds).decode("utf-8")
+            if ":" in decoded_creds:
+                h_client_id, h_client_secret = decoded_creds.split(":", 1)
+                client_id = h_client_id
+                client_secret = h_client_secret
+                logger.info(f"Using Basic Auth for Alexa Token. ClientID: {client_id}")
+        except Exception as e:
+            logger.warning(f"Failed to decode Basic Auth header in alexa_token: {e}")
+
     # In a full implementation, you'd verify client_id and client_secret here
+    # For now, we trust the Authorization Code which is short-lived and signed.
     
     if grant_type == "authorization_code":
         user_id = verify_alexa_auth_code(code)
