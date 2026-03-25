@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Request, Depends, HTTPException
 from sqlmodel import Session, select
+import asyncio
 import logging
 import uuid
 import json
@@ -101,6 +102,7 @@ def alexa_elicit_slot(text: str, slot_to_elicit: str, intent_name: str, slots: d
 @router.post("/webhook")
 async def alexa_webhook(request: Request, session: Session = Depends(get_session)):
     data = await request.json()
+    logger.info(f"ALEXA REQUEST: {json.dumps(data)}")
     req_type = data.get("request", {}).get("type")
     alexa_user_id = data.get("session", {}).get("user", {}).get("userId")
     
