@@ -5,13 +5,13 @@ import logging
 import uuid
 import json
 import httpx
-from datetime import datetime, timezone, timedelta
+from jose import jwt, JWTError
 
 from app.database import get_session
 from app.models import User, StoryMeta, StoryRequest
 from app.config import settings
 from app.services.store import store
-from app.auth_utils import get_password_hash
+from app.auth_utils import get_password_hash, SECRET_KEY, ALGORITHM
 
 logger = logging.getLogger(__name__)
 
@@ -21,23 +21,48 @@ router = APIRouter(prefix="/api/alexa", tags=["alexa"])
 # Alexa User Mapping
 # ──────────────────────────────────
 
-def get_or_create_alexa_user(alexa_user_id: str, session: Session) -> User:
-    """Map an Alexa userId to a Storyja User (Guest or Admin Fallback)."""
+def get_or_create_alexa_user(alexa_user_id: str, session: Session, access_token: str | None = None) -> User:
+    """Map an Alexa userId to a Storyja User (Linked, Guest, or Admin Fallback)."""
     
-    # 1. Check for Admin Fallback if configured and no other link exists
-    if settings.ALEXA_DEFAULT_USER_ID:
-        # If the skill is private, we can just return the Admin
-        admin = session.exec(select(User).where(User.id == settings.ALEXA_DEFAULT_USER_ID)).first()
-        if admin:
-            return admin
+    # 1. Handle Account Linking (Access Token present)
+    if access_token:
+        try:
+            payload = jwt.decode(access_token, SECRET_KEY, algorithms=[ALGORITHM])
+            user_id = payload.get("sub")
+            if user_id:
+                linked_user = session.get(User, user_id)
+                if linked_user:
+                    # Is this a new link? (First time using Alexa after Linking)
+                    if linked_user.alexa_user_id != alexa_user_id:
+                        logger.info(f"Linking User {linked_user.email} to Alexa {alexa_user_id}")
+                        
+                        # Store link
+                        linked_user.alexa_user_id = alexa_user_id
+                        session.add(linked_user)
+                        
+                        # Migrate Guest Stories (if any exist for this Alexa ID)
+                        migrate_guest_stories(alexa_user_id, linked_user.id, session)
+                        
+                        session.commit()
+                        session.refresh(linked_user)
+                    
+                    return linked_user
+        except JWTError:
+            logger.warning("Invalid Alexa Access Token - Fallback to guest")
 
-    # 2. Check for existing Alexa Guest User
+    # 2. Check for previously linked account (by index)
+    if alexa_user_id:
+        user = session.exec(select(User).where(User.alexa_user_id == alexa_user_id)).first()
+        if user:
+            return user
+
+    # 3. Handle Guests (Phase 1 logic)
     guest_email = f"alexa_{alexa_user_id[-20:]}@storyja.guest".lower()
-    existing_user = session.exec(select(User).where(User.email == guest_email)).first()
-    if existing_user:
-        return existing_user
+    existing_guest = session.exec(select(User).where(User.email == guest_email)).first()
+    if existing_guest:
+        return existing_guest
 
-    # 3. Create new Guest User if allowed
+    # Create new Guest User
     if not settings.ALEXA_ALLOW_GUESTS:
         raise HTTPException(status_code=403, detail="Guests not allowed")
 
@@ -45,7 +70,7 @@ def get_or_create_alexa_user(alexa_user_id: str, session: Session) -> User:
         id=str(uuid.uuid4())[:8],
         email=guest_email,
         username=f"Alexa Guest {alexa_user_id[-4:]}",
-        hashed_password=get_password_hash(str(uuid.uuid4())), # Random pass
+        hashed_password=get_password_hash(str(uuid.uuid4())),
         is_active=True,
         is_admin=False
     )
@@ -54,6 +79,29 @@ def get_or_create_alexa_user(alexa_user_id: str, session: Session) -> User:
     session.refresh(new_user)
     logger.info(f"Created new Alexa Guest User: {new_user.username}")
     return new_user
+
+def migrate_guest_stories(alexa_user_id: str, target_user_id: str, session: Session):
+    """Move all stories from the anonymous Alexa guest account to the real user account."""
+    guest_email = f"alexa_{alexa_user_id[-20:]}@storyja.guest".lower()
+    guest_user = session.exec(select(User).where(User.email == guest_email)).first()
+    
+    if not guest_user:
+        return # No guest history to migrate
+    
+    # Update all stories belonging to the guest
+    stories = session.exec(select(StoryMeta).where(StoryMeta.user_id == guest_user.id)).all()
+    count = 0
+    for story in stories:
+        story.user_id = target_user_id
+        session.add(story)
+        count += 1
+    
+    # Deactivate the guest user
+    guest_user.is_active = False
+    guest_user.email = f"migrated_{guest_user.id}_{guest_user.email}" # Clear original email to avoid conflicts
+    session.add(guest_user)
+    
+    logger.info(f"Migrated {count} stories from Guest {guest_user.id} to User {target_user_id}")
 
 # ──────────────────────────────────
 # Alexa Response Helpers
@@ -130,7 +178,7 @@ async def alexa_webhook(request: Request, session: Session = Depends(get_session
     
     # Get the internal user
     try:
-        user = get_or_create_alexa_user(alexa_user_id, session)
+        user = get_or_create_alexa_user(alexa_user_id, session, access_token=access_token)
     except Exception as e:
         logger.error(f"Alexa Auth Error: {e} | UserID: {alexa_user_id}")
         return alexa_response("Entschuldigung, ich konnte dein Profil nicht laden.")

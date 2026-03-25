@@ -32,6 +32,22 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
+def create_alexa_auth_code(user_id: str):
+    """Create a short-lived authorization code for Alexa Account Linking."""
+    expire = datetime.now(timezone.utc) + timedelta(minutes=5)
+    to_encode = {"sub": user_id, "exp": expire, "grant_type": "authorization_code"}
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+def verify_alexa_auth_code(code: str) -> str | None:
+    """Verify the authorization code and return the user_id."""
+    try:
+        payload = jwt.decode(code, SECRET_KEY, algorithms=[ALGORITHM])
+        if payload.get("grant_type") != "authorization_code":
+            return None
+        return payload.get("sub")
+    except JWTError:
+        return None
+
 def get_current_user(token: str = Depends(oauth2_scheme), session: Session = Depends(get_session)) -> User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
