@@ -8,6 +8,8 @@ load_dotenv(dotenv_path=env_path)
 
 class Settings:
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
+    GEMINI_TEXT_MODEL: str = os.getenv("GEMINI_TEXT_MODEL", "gemini-2.0-flash")
+    GEMINI_IMAGE_MODEL: str = os.getenv("GEMINI_IMAGE_MODEL", "imagen-3.0-generate-001")
     # Detect old/new admin credentials with explicit logging
     _env_admin_email = os.getenv("ADMIN_EMAIL") or os.getenv("POCKETBASE_ADMIN_EMAIL")
     _env_admin_pass = os.getenv("ADMIN_PASSWORD") or os.getenv("POCKETBASE_ADMIN_PASSWORD")
