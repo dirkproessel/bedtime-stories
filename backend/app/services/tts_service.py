@@ -337,16 +337,16 @@ async def generate_tts_chunk(
                         instr = "### AUDIO_INSTRUCTIONS\n"
                         if voice_basis: instr += f"STIMME_CHARAKTER: {voice_basis}\n"
                         if rate: instr += f"SPEAKING_RATE: Sprich mit einer Geschwindigkeit von {rate} im Vergleich zum Standard.\n"
-                        instr += "CONTINUITY: Halte exakt dieselbe Stimme, Tonhöhe und Energie wie im vorangegangenen Kontext bei. Es darf keine hörbaren Sprünge zwischen den Aufnahmen geben."
+                        instr += "CONTINUITY: Benutze den folgenden Kontext (AUDIO_CONTEXT_REFERENCE) NUR als Referenz für Stimme, Tonhöhe und Energie. Sprich den Kontext NICHT aus. Erzeuge Audio NUR für den TRANSCRIPT-Teil."
                         prompt_parts.append(instr)
                         
                         if chunk_previous_text:
                             import re
                             sentences = re.split(r'(?<=[.!?]) +', chunk_previous_text.strip())
                             last_context = " ".join(sentences[-4:])
-                            prompt_parts.append(f"### AUDIO_CONTEXT_REFERENCE\n{last_context}")
+                            prompt_parts.append(f"### AUDIO_CONTEXT_REFERENCE (DO NOT SPEAK THIS)\n{last_context}")
                         
-                        prompt_parts.append(f"### TRANSCRIPT\n{chunk}")
+                        prompt_parts.append(f"### TRANSCRIPT (SPEAK ONLY THIS)\n{chunk}")
                         full_contents = "\n\n".join(prompt_parts)
                         
                         await rate_limiter.wait_for_capacity("tts")
