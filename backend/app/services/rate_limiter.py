@@ -16,7 +16,7 @@ class RateLimiter:
     def __init__(self):
         # Default limits
         self.limits = {
-            "tts": 100,
+            "tts": 500,
             "text": 10000,
             "image": 70
         }
@@ -29,6 +29,7 @@ class RateLimiter:
         # In-memory daily cache
         self._today = ""
         self._daily_counts = {} # service_name -> count
+        self._exhausted_services = set() # service_name -> True (resets daily)
         self._load_usage()
 
     def _load_usage(self):
@@ -37,6 +38,7 @@ class RateLimiter:
                 data = json.loads(self.usage_file.read_text(encoding="utf-8"))
                 self._today = data.get("date", "")
                 self._daily_counts = data.get("counts", {})
+                self._exhausted_services = set(data.get("exhausted", []))
         except Exception as e:
             logger.error(f"Failed to load API usage: {e}")
 
@@ -45,7 +47,8 @@ class RateLimiter:
             self.usage_file.parent.mkdir(parents=True, exist_ok=True)
             self.usage_file.write_text(json.dumps({
                 "date": self._today,
-                "counts": self._daily_counts
+                "counts": self._daily_counts,
+                "exhausted": list(self._exhausted_services)
             }), encoding="utf-8")
         except Exception as e:
             logger.error(f"Failed to save API usage: {e}")
@@ -55,22 +58,26 @@ class RateLimiter:
         if self._today != today_str:
             self._today = today_str
             self._daily_counts = {}
+            self._exhausted_services = set()
             self._save_usage()
 
     def has_daily_quota(self, service: str = "tts") -> bool:
-        """Returns True if we still have daily quota left for the service."""
+        """Returns True if service is not marked as exhausted today."""
         self._check_and_reset_daily()
-        limit = self.limits.get(service, 100)
-        count = self._daily_counts.get(service, 0)
-        
-        # Leave a tiny buffer
-        if count >= (limit - 1):
-            logger.warning(f"Rate Limiter: Daily quota for {service} exhausted ({count}/{limit}).")
+        if service in self._exhausted_services:
             return False
         return True
 
+    def mark_service_exhausted(self, service: str = "tts"):
+        """Explicitly marks a service as exhausted (e.g. after receiving a 429)."""
+        self._check_and_reset_daily()
+        if service not in self._exhausted_services:
+            logger.warning(f"Rate Limiter: Service {service} marked as EXHAUSTED for the day.")
+            self._exhausted_services.add(service)
+            self._save_usage()
+
     def increment_daily_quota(self, service: str = "tts"):
-        """Records a request against the daily quota for a specific service."""
+        """Records a request for stats, but does not block."""
         self._check_and_reset_daily()
         self._daily_counts[service] = self._daily_counts.get(service, 0) + 1
         self._save_usage()

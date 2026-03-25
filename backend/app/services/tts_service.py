@@ -231,7 +231,7 @@ async def generate_tts_chunk(
         engine = "openai"
     elif voice_key in GEMINI_VOICES:
         if not rate_limiter.has_daily_quota("tts"):
-            logger.warning(f"Rate Limiter: Daily Gemini quota reached. Immediately falling back to Edge TTS for voice {voice_key}.")
+            logger.warning(f"Rate Limiter: Daily Gemini quota reached (marked as exhausted). Falling back to Edge TTS for voice {voice_key}.")
             voice_config = EDGE_VOICES.get(DEFAULT_VOICE, EDGE_VOICES["seraphina"])
             engine = "edge"
         else:
@@ -391,7 +391,22 @@ async def generate_tts_chunk(
                     last_chunk_text = chunk
                     if on_chunk_progress: await on_chunk_progress(i + 1, len(text_chunks))
             except Exception as e:
-                if any(err in str(e) for err in ["429", "TIMEOUT", "500", "INTERNAL"]):
+                err_msg = str(e).upper()
+                # Catch Quota/Rate Limit errors specifically
+                if any(err in err_msg for err in ["429", "QUOTA", "LIMIT"]):
+                    # Differentiate between RPM and RPD if possible
+                    is_daily = any(x in err_msg for x in ["DAY", "DAILY"])
+                    is_minute = any(x in err_msg for x in ["MINUTE", "RPM"])
+                    
+                    if is_daily or (not is_minute):
+                        logger.warning(f"Gemini TTS Daily Quota exceeded (API error): {e}. Marking service as exhausted.")
+                        rate_limiter.mark_service_exhausted("tts")
+                    else:
+                        logger.warning(f"Gemini TTS Minute Rate Limit exceeded (API error): {e}. Falling back for this request.")
+                    
+                    return await generate_tts_chunk(text, output_path, voice_key="seraphina", rate=rate, is_title=is_title)
+                
+                if any(err in err_msg for err in ["TIMEOUT", "500", "INTERNAL"]):
                     return await generate_tts_chunk(text, output_path, voice_key="seraphina", rate=rate, is_title=is_title)
                 raise e
 
