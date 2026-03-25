@@ -160,6 +160,40 @@ export default function AccountScreen() {
                 </p>
             </div>
 
+            {/* Alexa Integration Section */}
+            <div className={`w-full glass-panel rounded-3xl p-6 space-y-4 border-2 ${user.alexa_user_id ? 'border-sky-500/30' : 'border-transparent'}`}>
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-sky-500/10 flex items-center justify-center flex-shrink-0">
+                        <svg className="w-6 h-6 text-sky-400" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 22C6.486 22 2 17.514 2 12S6.486 2 12 2s10 4.486 10 10-4.486 10-10 10zm-1.096-15.01c-.503.045-1.002.196-1.428.514-.426.318-.769.756-.991 1.259l-.01.023c-.22.5.244.757.514.514l.023-.01c.218-.184.473-.298.741-.328.268-.03.541.026.786.166.245.14.437.362.548.63.111.268.136.565.07.848-.066.283-.223.535-.443.72-.22.185-.494.288-.778.295-.284.007-.56-.084-.784-.258-.224-.174-.378-.423-.438-.707-.06-.284-.02-.578.113-.836.133-.258.358-.456.63-.563l.023-.008c.5-.22.244-.757-.514-.514l-.01.004c-.5.21-.861.642-1.02 1.15-.159.508-.103 1.054.156 1.52.259.466.69.782 1.2 1.22l.023.018c.27.243.27.757 0 .514l-.023-.018c-.466-.416-.96-.861-1.22-1.12-.26-.259-.413-.59-.441-.951s.053-.717.228-1.022.441-.539.752-.656.657-.107.97-.025.592.261.782.51.272.545.243.839-.144.568-.344.782c-.2.214-.473.344-.766.368-.293.024-.583-.058-.813-.231-.23-.173-.378-.426-.417-.714-.039-.288.026-.58.181-.818.155-.238.4-.396.685-.436l.023-.003c.5-.07.244-.757-.514-.514l-.01.015zM12 4c-4.418 0-8 3.582-8 8s3.582 8 8 8 8-3.582 8-8-3.582-8-8-8zm0 14c-3.309 0-6-2.691-6-6s2.691-6 6-6 6 2.691 6 6-2.691 6-6 6z"/>
+                        </svg>
+                    </div>
+                    <div className="flex-1">
+                        <h3 className="font-bold text-white text-sm">Amazon Alexa</h3>
+                        <p className="text-xs text-slate-400">
+                            {user.alexa_user_id ? 'Konto erfolgreich verknüpft' : 'Geschichten per Sprache anhören'}
+                        </p>
+                    </div>
+                    {user.alexa_user_id && <Check className="w-5 h-5 text-sky-400" />}
+                </div>
+
+                {!user.alexa_user_id ? (
+                    <button
+                        onClick={() => {
+                            // Initiation URL for Account Linking from Website
+                            window.location.href = `https://layla.amazon.com/api/skill/link/M2RQHI40GLJAK9`;
+                        }}
+                        className="w-full py-2.5 bg-sky-500 hover:bg-sky-400 text-sky-950 font-bold rounded-xl transition-all shadow-lg shadow-sky-500/20"
+                    >
+                        Mit Alexa verbinden
+                    </button>
+                ) : (
+                    <div className="flex items-center justify-between text-[10px] text-slate-500 font-mono">
+                         <span className="opacity-50">ID: {user.alexa_user_id.substring(0, 12)}...{user.alexa_user_id.slice(-8)}</span>
+                    </div>
+                )}
+            </div>
+
             {/* RSS Feed Section */}
             {user?.is_admin && (
                 <div className="w-full glass-panel rounded-3xl p-6 space-y-4">

@@ -24,6 +24,7 @@ export interface User {
     avatar_url?: string;
     created_at: string;
     story_count?: number;
+    alexa_user_id?: string;
 }
 
 export interface VoiceProfile {
