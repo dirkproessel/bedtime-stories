@@ -150,8 +150,7 @@ async def alexa_webhook(request: Request, session: Session = Depends(get_session
                                     "slots": slots
                                 }
                             }
-                        ],
-                        "shouldEndSession": False
+                        ]
                     }
                 }
 
