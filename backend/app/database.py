@@ -62,13 +62,16 @@ def ensure_migrations():
         user_needed = [
             ("username", "TEXT"),
             ("kindle_email", "TEXT"),
-            ("avatar_url", "TEXT")
+            ("avatar_url", "TEXT"),
+            ("alexa_user_id", "TEXT")
         ]
         
         for col_name, col_type in user_needed:
             if col_name.lower() not in [c.lower() for c in user_columns]:
                 print(f"Migration: Adding {col_name} to user...")
                 cur.execute(f"ALTER TABLE user ADD COLUMN {col_name} {col_type}")
+                if col_name == "alexa_user_id":
+                    cur.execute("CREATE UNIQUE INDEX IF NOT EXISTS ix_user_alexa_user_id ON user (alexa_user_id)")
                 conn.commit()
 
         if "created_at" not in [c.lower() for c in user_columns]:
