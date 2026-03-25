@@ -338,9 +338,12 @@ async def send_alexa_notification(alexa_user_id: str, title: str):
                 "Authorization": f"Bearer {access_token}"
             }
             
-            # Try Europe first (assuming user is in Germany/Europe)
-            api_url = "https://api.eu.amazonalexa.com/v1/proactiveEvents/stages/development" 
-            # In production, this would be /v1/proactiveEvents
+            # Alexa Notification Endpoint (Region: Europe)
+            base_api_url = "https://api.eu.amazonalexa.com/v1/proactiveEvents"
+            if settings.ALEXA_SKILL_STAGE == "development":
+                api_url = f"{base_api_url}/stages/development"
+            else:
+                api_url = base_api_url
             
             event_resp = await client.post(api_url, json=event_payload, headers=headers)
             if event_resp.status_code != 202:

@@ -49,6 +49,7 @@ log_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname
 logging.getLogger().addHandler(log_handler)
 
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse, Response
 from pydantic import BaseModel
@@ -102,6 +103,9 @@ app.add_middleware(
 from app.routers import auth, alexa
 app.include_router(auth.router)
 app.include_router(alexa.router)
+
+# Mount Static Files (for Legal Docs / Images)
+app.mount("/api/static", StaticFiles(directory="app/static"), name="static")
 
 from app.services.store import store
 from app.services.story_service import story_service

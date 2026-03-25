@@ -52,6 +52,7 @@ class Settings:
     ALEXA_CLIENT_SECRET: str = os.getenv("ALEXA_CLIENT_SECRET", "")
     ALEXA_DEFAULT_USER_ID: str = os.getenv("ALEXA_DEFAULT_USER_ID", "") # Fallback Admin ID
     ALEXA_ALLOW_GUESTS: bool = os.getenv("ALEXA_ALLOW_GUESTS", "true").lower() == "true"
+    ALEXA_SKILL_STAGE: str = os.getenv("ALEXA_SKILL_STAGE", "development") # 'development' or 'live'
 
     def __init__(self):
         self.AUDIO_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
