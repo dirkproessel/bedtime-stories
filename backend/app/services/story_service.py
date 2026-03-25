@@ -126,19 +126,26 @@ class StoryService:
 
         async def on_progress(status_type: str, message: str, points: int | None = None, is_absolute_points: bool = False, **kwargs):
             nonlocal completed_points, image_task
+            logger.info(f"PIPELINE PROGRESS [{story_id}]: {status_type} - {message} (Points: {points})")
             if points is not None:
                 if is_absolute_points: completed_points = points
                 else: completed_points += points
             
-            pct = min(int((completed_points / total_points) * 100), 99)
+            # Use total_points defensively to avoid zero division
+            safe_total = max(total_points, 1)
+            pct = min(int((completed_points / safe_total) * 100), 99)
+            
             label = message
             if status_type == "generating_text": label = "Texterstellung"
             elif status_type in ["generating_image", "image"]: label = "Bilderstellung"
             elif status_type in ["generating_audio", "tts"]: label = "Vertonung"
             elif status_type == "processing": label = "Finalisierung"
             
-            if (status_type in ["outline_done", "generating_text"]) and "synopsis" in kwargs and not image_task:
-                image_task = asyncio.create_task(background_image_gen(kwargs["synopsis"]))
+            # Extract synopsis for image generation if we find it
+            synopsis_val = kwargs.get("synopsis")
+            if (status_type in ["outline_done", "generating_text"]) and synopsis_val and not image_task:
+                logger.info(f"PIPELINE [{story_id}]: Starting background image generation task.")
+                image_task = asyncio.create_task(background_image_gen(synopsis_val))
             
             _generation_status[story_id].update({
                 "status": status_type,
@@ -147,17 +154,23 @@ class StoryService:
                 **kwargs
             })
 
-            curr = store.get_by_id(story_id)
-            if curr:
-                curr.status = "generating" if status_type not in ["done", "error"] else status_type
-                curr.progress = label
-                curr.progress_pct = pct
-                if "title" in kwargs: curr.title = kwargs["title"]
-                if "synopsis" in kwargs: curr.description = kwargs["synopsis"]
-                store.add_story(curr)
+            try:
+                curr = store.get_by_id(story_id)
+                if curr:
+                    curr.status = "generating" if status_type not in ["done", "error"] else status_type
+                    curr.progress = label
+                    curr.progress_pct = pct
+                    if "title" in kwargs: curr.title = kwargs.get("title")
+                    if "synopsis" in kwargs: curr.description = kwargs.get("synopsis")
+                    store.add_story(curr)
+                else:
+                    logger.warning(f"PIPELINE [{story_id}]: Story object not found in store for progress update!")
+            except Exception as e:
+                logger.error(f"PIPELINE [{story_id}]: Failed to update progress in store: {e}")
 
         try:
             start_time_total = time.time()
+            logger.info(f"PIPELINE [{story_id}]: Pipeline execution started.")
             await on_progress("planning", "Planung", points=5, is_absolute_points=True)
 
             # Phase 2: Text

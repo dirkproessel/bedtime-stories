@@ -400,6 +400,7 @@ async def _api_request_with_retry(func, *args, on_progress=None, max_retries=3, 
     for i in range(max_retries):
         try:
             # We use to_thread because the genai SDK might be blocking
+            logger.info(f"API_REQUEST: Calling {func.__name__ if hasattr(func, '__name__') else str(func)}")
             return await asyncio.to_thread(func, *args, **kwargs)
         except Exception as e:
             from google.genai import errors
@@ -618,6 +619,7 @@ Antworte NUR im JSON-Format:
 }}"""
 
     try:
+        logger.info(f"GEN_MULTI_PASS: Requesting outline from Gemini (Style: {style}, Genre: {genre}, Prompt: {prompt[:50]}...)")
         if not rate_limiter.has_daily_quota("text"):
             raise RuntimeError("Das Tageslimit für KI-Generierungen ist heute leider erreicht.")
             
