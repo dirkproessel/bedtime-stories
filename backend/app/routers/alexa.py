@@ -59,6 +59,18 @@ def get_or_create_alexa_user(alexa_user_id: str, session: Session) -> User:
 # Alexa Response Helpers
 # ──────────────────────────────────
 
+def get_canonical_slot_value(slot_data: dict) -> str | None:
+    """Extract the canonical Name from Alexa Entity Resolution if available."""
+    if not slot_data:
+        return None
+    resolutions = slot_data.get("resolutions", {}).get("resolutionsPerAuthority", [])
+    for res in resolutions:
+        if res.get("status", {}).get("code") == "ER_SUCCESS_MATCH":
+            values = res.get("values", [])
+            if values:
+                return values[0].get("value", {}).get("name")
+    return slot_data.get("value")
+
 def alexa_response(text: str, should_end_session: bool = False, directives: list = None):
     return {
         "version": "1.0",
@@ -157,15 +169,25 @@ async def alexa_webhook(request: Request, session: Session = Depends(get_session
             # Start Generation Pipeline
             story_id = str(uuid.uuid4())[:8]
             
-            # Map genre to backend genre if needed
-            backend_genre = genre or "Abenteuer"
-            if "nach" in backend_genre.lower(): backend_genre = "Gute Nacht"
-            elif "kom" in backend_genre.lower(): backend_genre = "Komödie"
+            # Better Genre Mapping
+            raw_genre = get_canonical_slot_value(slots.get("genre"))
+            backend_genre = raw_genre or "Abenteuer"
             
-            # Style Mapping
+            # Fuzzy fallback / Normalization
+            bg_lower = backend_genre.lower()
+            if "nach" in bg_lower or "schlaf" in bg_lower: backend_genre = "Gute Nacht"
+            elif "lustig" in bg_lower or "kom" in bg_lower: backend_genre = "Komödie"
+            elif "krimi" in bg_lower or "spann" in bg_lower or "detekt" in bg_lower: backend_genre = "Krimi"
+            elif "grusel" in bg_lower or "horror" in bg_lower: backend_genre = "Grusel"
+            elif "abenteu" in bg_lower: backend_genre = "Abenteuer"
+            elif "märchen" in bg_lower or "fabel" in bg_lower: backend_genre = "Märchen"
+
+            # Style Mapping (Author)
             style = "adams"
-            if "krimi" in backend_genre.lower(): style = "fitzek"
-            elif "nach" in backend_genre.lower(): style = "lindgren"
+            if "Krimi" in backend_genre: style = "fitzek"
+            elif "Gute Nacht" in backend_genre: style = "lindgren"
+            elif "Grusel" in backend_genre: style = "king"
+            elif "Komödie" in backend_genre: style = "jaud"
 
             # Execute pipeline in background via StoryService
             from app.services.story_service import story_service
