@@ -34,7 +34,7 @@ def get_or_create_alexa_user(alexa_user_id: str, session: Session, access_token:
                 if linked_user:
                     # Is this a new link? (First time using Alexa after Linking)
                     if linked_user.alexa_user_id != alexa_user_id:
-                        logger.info(f"Linking User {linked_user.email} to Alexa {alexa_user_id}")
+                        logger.info(f"MIGRATION: Linking User {linked_user.email} (ID: {linked_user.id}) to Alexa {alexa_user_id}")
                         
                         # Store link
                         linked_user.alexa_user_id = alexa_user_id
@@ -45,10 +45,16 @@ def get_or_create_alexa_user(alexa_user_id: str, session: Session, access_token:
                         
                         session.commit()
                         session.refresh(linked_user)
+                    else:
+                        logger.info(f"ALEXA RESOLVE: User {linked_user.email} already linked.")
                     
                     return linked_user
-        except JWTError:
-            logger.warning("Invalid Alexa Access Token - Fallback to guest")
+            else:
+                logger.warning("ALEXA RESOLVE: No user_id (sub) found in token payload")
+        except JWTError as e:
+            logger.warning(f"ALEXA RESOLVE: Invalid Access Token: {e}")
+        except Exception as e:
+            logger.error(f"ALEXA RESOLVE: Error in token-based resolution: {e}")
 
     # 2. Check for previously linked account (by index)
     if alexa_user_id:

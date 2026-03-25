@@ -180,8 +180,8 @@ export default function AccountScreen() {
                 {!user.alexa_user_id ? (
                     <button
                         onClick={() => {
-                            // Initiation URL for Account Linking from Website
-                            window.open(`https://layla.amazon.com/api/skill/link/M2RQHI40GLJAK9`, '_blank');
+                            // Initiation URL for Account Linking from Website (Europe/Pitangui)
+                            window.open(`https://pitangui.amazon.com/api/skill/link/M2RQHI40GLJAK9`, '_blank');
                         }}
                         className="w-full py-2.5 bg-sky-500 hover:bg-sky-400 text-sky-950 font-bold rounded-xl transition-all shadow-lg shadow-sky-500/20"
                     >
