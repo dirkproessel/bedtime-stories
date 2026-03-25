@@ -9,9 +9,10 @@ from pathlib import Path
 from app.config import settings
 from app.models import StoryMeta, User
 from app.services.store import store
-from app.services.tts_service import get_available_voices, chapters_to_audio, get_audio_duration
-from app.services.story_generator import generate_full_story, generate_story_image, get_author_names
-from app.services.audio_processor import merge_audio_files
+from app.services.tts_service import get_available_voices, chapters_to_audio
+from app.services.story_generator import generate_full_story, get_author_names
+from app.services.image_generator import generate_story_image
+from app.services.audio_processor import merge_audio_files, get_audio_duration
 
 logger = logging.getLogger(__name__)
 
