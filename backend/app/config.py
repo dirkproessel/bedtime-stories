@@ -44,11 +44,11 @@ class Settings:
     SMTP_FROM: str = os.getenv("SMTP_FROM", "stories@storyja.com")
     KINDLE_EMAIL: str = os.getenv("KINDLE_EMAIL", "dirk.proessel.runthaler@kindle.com")
 
-    # Central Model Configuration
-    # GEMINI 3.0 FLASH (LATEST PREVIEW)
-    GEMINI_TEXT_MODEL: str = "models/gemini-3-flash-preview"
-    # GEMINI 2.5 FLASH IMAGE (NANO BANANA)
-    GEMINI_IMAGE_MODEL: str = "gemini-2.5-flash-image"
+    # Alexa Settings
+    ALEXA_CLIENT_ID: str = os.getenv("ALEXA_CLIENT_ID", "")
+    ALEXA_CLIENT_SECRET: str = os.getenv("ALEXA_CLIENT_SECRET", "")
+    ALEXA_DEFAULT_USER_ID: str = os.getenv("ALEXA_DEFAULT_USER_ID", "") # Fallback Admin ID
+    ALEXA_ALLOW_GUESTS: bool = os.getenv("ALEXA_ALLOW_GUESTS", "true").lower() == "true"
 
     def __init__(self):
         self.AUDIO_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)

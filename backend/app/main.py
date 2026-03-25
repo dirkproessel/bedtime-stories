@@ -99,8 +99,9 @@ app.add_middleware(
 )
 
 # Register Authentication Router
-from app.routers import auth
+from app.routers import auth, alexa
 app.include_router(auth.router)
+app.include_router(alexa.router)
 
 # In-memory store for generation status & story metadata
 _generation_status: dict[str, dict] = {}
@@ -424,6 +425,7 @@ async def _run_pipeline(
     further_instructions: str | None = None,
     parent_meta: StoryMeta | None = None,
     parent_text: dict | None = None,
+    alexa_user_id: str | None = None,
 ):
     """Full pipeline: text → TTS → merge → save."""
     logger.info(f"!!! STARTING PIPELINE for story {story_id} (Remix: {remix_type}) !!!")
@@ -694,6 +696,11 @@ async def _run_pipeline(
             story_meta.progress = "Fertig!"
             story_meta.progress_pct = 100
             store.add_story(story_meta)
+
+            # Trigger Alexa Notification if generated via Alexa
+            if alexa_user_id:
+                from app.routers.alexa import send_alexa_notification
+                asyncio.create_task(send_alexa_notification(alexa_user_id, real_title))
 
             
         logger.info(f"BENCHMARK [{story_id}]: Total Pipeline Finished in {time.time() - start_time_total:.2f} seconds")
