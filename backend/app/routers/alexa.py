@@ -123,8 +123,7 @@ async def alexa_webhook(request: Request, session: Session = Depends(get_session
 
     if req_type == "LaunchRequest":
         return alexa_response(
-            "Willkommen bei Storyja, deiner Geschichtenschmiede. Beschreibe mir kurz die Idee für deine Geschichte? "
-            "Magst du zum Beispiel etwas über einen mutigen Astronauten oder eine sprechende Katze hören?",
+            "Willkommen bei Storyja. Möchtest du eine Geschichte erstellen oder deine letzte Geschichte abspielen?",
             should_end_session=False
         )
 
@@ -136,17 +135,25 @@ async def alexa_webhook(request: Request, session: Session = Depends(get_session
             idea = slots.get("idea", {}).get("value")
             genre = slots.get("genre", {}).get("value")
 
-            if not idea:
-                return alexa_elicit_slot(
-                    "Alles klar. Worüber soll die Geschichte handeln? Beschreibe deine Idee kurz.",
-                    "idea", "GenerateStoryIntent", slots
-                )
-            
-            if not genre:
-                return alexa_elicit_slot(
-                    "Und was für ein Typ Geschichte soll es werden? Zum Beispiel eine Gute Nacht Geschichte, eine Komödie oder ein Krimi?",
-                    "genre", "GenerateStoryIntent", slots
-                )
+            # Check dialog state - if not complete, delegate back to Alexa
+            dialog_state = data.get("request", {}).get("dialogState")
+            if dialog_state != "COMPLETED" and (not idea or not genre):
+                return {
+                    "version": "1.0",
+                    "response": {
+                        "directives": [
+                            {
+                                "type": "Dialog.Delegate",
+                                "updatedIntent": {
+                                    "name": "GenerateStoryIntent",
+                                    "confirmationStatus": "NONE",
+                                    "slots": slots
+                                }
+                            }
+                        ],
+                        "shouldEndSession": False
+                    }
+                }
 
             # Start Generation Pipeline
             story_id = str(uuid.uuid4())[:8]
