@@ -480,21 +480,32 @@ async def chapters_to_audio(
             await on_progress("tts", f"Vertone Geschichte in {total_all_chunks} optimierten Chunks...", {"completed": 0, "total": total_all_chunks})
 
         completed_chunks = 0
-        last_context = synopsis
-        for i, chunk in enumerate(all_chunks):
+        
+        async def process_gemini_chunk(i: int):
+            nonlocal actual_voice, completed_chunks
+            chunk = all_chunks[i]
+            # Continuity: use synopsis for first chunk, previous chunk text for others
+            prev = synopsis if i == 0 else all_chunks[i-1]
+            
             _, realized_voice = await generate_tts_chunk(
                 chunk,
                 chunk_files[i],
                 voice_key,
                 rate,
                 genre=genre,
-                previous_text=last_context,
+                previous_text=prev,
             )
             if realized_voice != voice_key: actual_voice = realized_voice
-            last_context = chunk
             completed_chunks += 1
             if on_progress:
                 await on_progress("tts_chunk_done", f"Chunk {i+1} fertig", {"completed": completed_chunks, "total": total_all_chunks})
+
+        # Throttle to 2 parallel chunks as per user requirement (safe for 10 RPM)
+        semaphore = asyncio.Semaphore(2)
+        async def run_with_semaphore(idx):
+            async with semaphore: await process_gemini_chunk(idx)
+
+        await asyncio.gather(*[run_with_semaphore(i) for i in range(total_all_chunks)])
         
         return chunk_files, actual_voice
 
@@ -544,9 +555,8 @@ async def chapters_to_audio(
             if on_progress:
                 await on_progress("tts_chunk_done", f"Kapitel {chapter_idx+1} vertont", {"completed": completed_chunks, "total": total_all_chunks})
 
-        # OpenAI is considered premium for concurrency purposes
-        is_premium = voice_key in OPENAI_VOICES
-        semaphore = asyncio.Semaphore(3 if is_premium else 10)
+        # Use a conservative semaphore of 2 for all engines (safe for RPM and stability)
+        semaphore = asyncio.Semaphore(2)
         async def run_with_semaphore(idx):
             async with semaphore: await process_chapter(idx)
 
