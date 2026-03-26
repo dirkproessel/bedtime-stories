@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import ConfirmModal from './ConfirmModal';
 import toast from 'react-hot-toast';
-import { voiceDesc, voiceName, isStandardVoice } from '../lib/voices';
+import { voiceName, isStandardVoice } from '../lib/voices';
 import { formatAuthorStyles } from '../lib/authors';
 import { formatDuration } from '../lib/utils';
 
