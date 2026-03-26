@@ -8,7 +8,7 @@ import html
 import urllib.parse
 
 from app.database import get_session
-from app.models import User, UserCreate, UserResponse, Token, PasswordUpdate, KindleEmailUpdate, UsernameUpdate
+from app.models import User, UserCreate, UserResponse, Token, PasswordUpdate, KindleEmailUpdate, UsernameUpdate, VoiceNameUpdate
 from app.auth_utils import (
     verify_password, get_password_hash, create_access_token, 
     ACCESS_TOKEN_EXPIRE_MINUTES, get_current_active_user,
@@ -249,24 +249,21 @@ async def create_voice_clone(
         raise HTTPException(status_code=400, detail="Bitte lade eine Audiodatei hoch (MP3, WAV, M4A)")
 
     try:
-        from fish_audio_sdk import Session as FishSession, CreateModelRequest
+        from fishaudio import FishAudio
         import asyncio
         
         content = await file.read()
-        fish = FishSession(apikey=settings.FISH_API_KEY)
+        fish = FishAudio(api_key=settings.FISH_API_KEY)
         
         # Create the model on Fish Audio
         # We use the username or email as the title
         title = f"Voice for {current_user.username or current_user.email}"
         
         def call_fish():
-            return fish.create_model(
-                CreateModelRequest(
-                    voices=[content],
-                    title=title,
-                    visibility="private",
-                    type="tts"
-                )
+            return fish.voices.create(
+                title=title,
+                voices=[content],
+                visibility="private",
             )
         
         # Run the blocking SDK call in a separate thread
