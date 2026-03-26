@@ -278,10 +278,20 @@ async def generate_tts_chunk(
             try:
                 # Use the 'db_engine' imported from app.database
                 with Session(db_engine) as db_session:
-                    user_with_voice = db_session.exec(select(User).where(User.custom_voice_id == voice_key)).first()
+                    # Clean the key for safety
+                    vk_clean = str(voice_key).strip().lower()
+                    user_with_voice = db_session.exec(select(User).where(User.custom_voice_id == vk_clean)).first()
+                    
+                    if not user_with_voice:
+                        # Try case-insensitive just in case
+                        user_with_voice = db_session.exec(select(User).where(User.custom_voice_id == voice_key)).first()
+                    
                     if user_with_voice:
                         engine = "fish"
-                        voice_config = {"id": voice_key}
+                        voice_config = {"id": user_with_voice.custom_voice_id}
+                        logger.info(f"TTS: Found custom Fish voice {voice_config['id']} for user {user_with_voice.email}")
+                    else:
+                        logger.debug(f"TTS: Key {voice_key} looks like UUID but no user found with this custom_voice_id.")
             except Exception as e:
                 logger.error(f"Error checking dynamic voice ID: {e}")
 
@@ -296,10 +306,14 @@ async def generate_tts_chunk(
                 voice_config = GEMINI_VOICES[voice_key]
                 engine = "gemini"
         else:
+            # Check if it was supposed to be a Fish voice but we couldn't find it in DB
+            if len(voice_key) >= 30:
+                logger.warning(f"TTS: Voice key {voice_key} looks like a UUID but was not found in static FISH_VOICES or User DB. Falling back to {DEFAULT_VOICE}.")
+            
             voice_config = EDGE_VOICES.get(voice_key, EDGE_VOICES[DEFAULT_VOICE])
             engine = "edge"
 
-    logger.info(f"TTS: Generating audio with {engine} voice {voice_config['id']} -> {output_path}")
+    logger.info(f"TTS: [Engine: {engine}] Voice: {voice_config.get('id', 'N/A')} (Key: {voice_key}) -> {output_path}")
 
     # Cleanup text: remove markdown formatting
     clean_text = text.replace("*", "").replace("_", "").replace("#", "")
