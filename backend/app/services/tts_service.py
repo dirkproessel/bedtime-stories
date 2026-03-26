@@ -523,7 +523,8 @@ async def generate_voice_preview(
     import hashlib
     preview_text = "Hallo! Willkommen im Labor für Kurzgeschichten. Lass uns gemeinsam in ein neues Abenteuer starten."
     # Include voice_key and a version prefix to force regeneration of cached fallbacks
-    text_hash = hashlib.md5(f"v2:{preview_text}:{voice_key}".encode()).hexdigest()[:8]
+    print(f"Generating preview for voice {voice_key}...")
+    text_hash = hashlib.md5(f"v3:{preview_text}:{voice_key}".encode()).hexdigest()[:8]
     hash_marker = output_path.parent / f".{output_path.stem}.hash"
 
     if output_path.exists() and output_path.stat().st_size > 1000:

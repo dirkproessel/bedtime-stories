@@ -128,14 +128,15 @@ async def preview_voice(voice_key: str):
     preview_dir = settings.AUDIO_OUTPUT_DIR / "previews"
     preview_dir.mkdir(parents=True, exist_ok=True)
     preview_path = preview_dir / f"{voice_key}.mp3"
-
-    # Regenerate if missing or empty (0 bytes)
-    if not preview_path.exists() or preview_path.stat().st_size == 0:
-        try:
-            await generate_voice_preview(voice_key, preview_path)
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"TTS Error: {e}")
-
+    
+    try:
+        await generate_voice_preview(voice_key, preview_path)
+    except Exception as e:
+        print(f"Preview generation failed: {e}")
+        # Return fallback if exists, or error
+        if not preview_path.exists():
+            raise HTTPException(status_code=500, detail=str(e))
+            
     return FileResponse(preview_path, media_type="audio/mpeg")
 
 
