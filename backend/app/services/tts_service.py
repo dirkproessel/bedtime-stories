@@ -55,6 +55,12 @@ GEMINI_VOICES = {
 }
 
 
+# Fish Audio voices (New)
+FISH_VOICES = {
+    "dirk": {"id": "e9013b9646b64fa19b902a52237fd1cf", "name": "Dirk (Cloned)", "gender": "male"}, 
+}
+
+
 # 1a. Voice Basis-Regieanweisungen (User-Defined)
 VOICE_INSTRUCTIONS = {
     "aoede": "„Du bist eine Frau mit einer hellen, klaren und einladenden Stimme. Deine Ausstrahlung ist freundlich und neugierig.“",
@@ -197,6 +203,15 @@ def get_available_voices() -> list[dict]:
             "engine": "gemini",
         })
 
+    # Fish Audio Voices
+    for key, v in FISH_VOICES.items():
+        voices.append({
+            "key": key,
+            "name": v["name"],
+            "gender": v["gender"],
+            "engine": "fish",
+        })
+
     # Virtual Voices (like 'none')
     voices.append({
         "key": "none",
@@ -229,6 +244,9 @@ async def generate_tts_chunk(
     if voice_key in OPENAI_VOICES:
         voice_config = OPENAI_VOICES[voice_key]
         engine = "openai"
+    elif voice_key in FISH_VOICES:
+        voice_config = FISH_VOICES[voice_key]
+        engine = "fish"
     elif voice_key in GEMINI_VOICES:
         if not rate_limiter.has_daily_quota("tts"):
             logger.warning(f"Rate Limiter: Daily Gemini quota reached (marked as exhausted). Falling back to Edge TTS for voice {voice_key}.")
@@ -415,6 +433,29 @@ async def generate_tts_chunk(
                 subprocess.run(cmd, input=bytes(data), capture_output=True, check=True)
 
             await asyncio.to_thread(_export_mp3, all_pcm_data, output_path)
+            return output_path, voice_key
+
+        elif engine == "fish":
+            if not settings.FISH_API_KEY:
+                raise ValueError("Fish Audio API Key is missing.")
+            
+            from fish_audio_sdk import Session, TTSRequest
+            
+            # Note: We use a simple session-based request here.
+            # For 1000 words, we might want to split into sentences internally
+            # if the API has a strict single-request limit.
+            
+            with open(output_path, "wb") as f:
+                session = Session(apikey=settings.FISH_API_KEY)
+                # We use the sync-ish wrapper or direct byte output for simplicity in this chunk-based service
+                # The tts_service already handles chunking at a higher level (per chapter).
+                for chunk in session.tts(TTSRequest(
+                    text=clean_text,
+                    reference_id=voice_config["id"],
+                    format="mp3"
+                )):
+                    f.write(chunk)
+            
             return output_path, voice_key
 
     except Exception as e:
