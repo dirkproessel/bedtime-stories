@@ -168,6 +168,17 @@ def update_username(
     session.add(current_user)
     session.commit()
     return {"status": "success", "message": "Benutzername geändert."}
+ 
+@router.put("/me/voice-name")
+def update_voice_name(
+    data: VoiceNameUpdate,
+    current_user: User = Depends(get_current_active_user),
+    session: Session = Depends(get_session)
+):
+    current_user.custom_voice_name = data.voice_name
+    session.add(current_user)
+    session.commit()
+    return {"status": "success", "message": "Stimmen-Name geändert."}
 
 
 @router.put("/me/avatar", response_model=UserResponse)

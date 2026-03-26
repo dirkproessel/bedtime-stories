@@ -149,6 +149,16 @@ export async function updateUsername(username: string): Promise<any> {
     return res.json();
 }
 
+export async function updateVoiceName(voice_name: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/api/auth/me/voice-name`, {
+        method: 'PUT',
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ voice_name }),
+    });
+    if (!res.ok) throw new Error('Aktualisierung fehlgeschlagen');
+    return res.json();
+}
+
 export async function uploadProfilePicture(file: Blob): Promise<User> {
     const formData = new FormData();
     formData.append('file', file, 'avatar.jpg');

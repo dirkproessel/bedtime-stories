@@ -98,6 +98,9 @@ class KindleEmailUpdate(BaseModel):
 class UsernameUpdate(BaseModel):
     username: str
 
+class VoiceNameUpdate(BaseModel):
+    voice_name: str
+
 class StoryRequest(BaseModel):
     """Request to generate a new story."""
     prompt: str  # The raw user idea

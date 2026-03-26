@@ -58,9 +58,9 @@ GEMINI_VOICES = {
 }
 
 
-# Fish Audio voices (New)
+# Fish Audio (Cloned Voices)
 FISH_VOICES = {
-    "dirk": {"id": "e9013b9646b64fa19b902a52237fd1cf", "name": "Dirk (Cloned)", "gender": "male"}, 
+    # Custom User Voices are added dynamically below
 }
 
 

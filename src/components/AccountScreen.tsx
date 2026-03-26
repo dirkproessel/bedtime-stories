@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useStore } from '../store/useStore';
-import { updateKindleEmail, updateUsername, uploadProfilePicture, unlinkAlexa, cloneVoice } from '../lib/api';
+import { updateKindleEmail, updateUsername, uploadProfilePicture, unlinkAlexa, cloneVoice, updateVoiceName } from '../lib/api';
 import { LogOut, Download, Mail, Check, Loader2, Radio, Copy, User, Shield, Camera, Mic, Music } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ProfilePictureUpload from './ProfilePictureUpload';
@@ -11,6 +11,8 @@ export default function AccountScreen() {
     const [username, setUsername] = useState(user?.username || user?.email || '');
     const [isSavingKindle, setIsSavingKindle] = useState(false);
     const [isSavingUsername, setIsSavingUsername] = useState(false);
+    const [customVoiceName, setCustomVoiceName] = useState(user?.custom_voice_name || '');
+    const [isSavingVoiceName, setIsSavingVoiceName] = useState(false);
     const [showAvatarUpload, setShowAvatarUpload] = useState(false);
     const [isCloning, setIsCloning] = useState(false);
 
@@ -80,6 +82,20 @@ export default function AccountScreen() {
             toast.error(e.message || 'Fehler beim Klonen', { id: toastId });
         } finally {
             setIsCloning(false);
+        }
+    };
+
+    const handleSaveVoiceName = async () => {
+        if (!customVoiceName || customVoiceName === user?.custom_voice_name) return;
+        setIsSavingVoiceName(true);
+        try {
+            await updateVoiceName(customVoiceName);
+            toast.success('Stimmen-Name gespeichert!');
+            useStore.setState({ user: { ...user!, custom_voice_name: customVoiceName } });
+        } catch (e: any) {
+            toast.error(e.message || 'Fehler beim Speichern');
+        } finally {
+            setIsSavingVoiceName(false);
         }
     };
 
@@ -184,7 +200,22 @@ export default function AccountScreen() {
                                 <span className="text-xs text-emerald-500 font-bold uppercase">Aktiv</span>
                                 <span className="text-[10px] text-slate-500 font-mono">ID: {user.custom_voice_id.substring(0,8)}...</span>
                             </div>
-                            <p className="text-sm text-white font-medium mt-1">{user.custom_voice_name || 'Deine Stimme'}</p>
+                            <div className="flex gap-2 mt-2">
+                                <input
+                                    type="text"
+                                    value={customVoiceName}
+                                    onChange={(e) => setCustomVoiceName(e.target.value)}
+                                    placeholder="Name deiner Stimme"
+                                    className="flex-1 px-3 py-1.5 bg-white/10 border border-white/10 rounded-lg focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/50 outline-none transition-all text-sm text-white placeholder:text-slate-600"
+                                />
+                                <button
+                                    onClick={handleSaveVoiceName}
+                                    disabled={isSavingVoiceName || !customVoiceName || customVoiceName === user?.custom_voice_name}
+                                    className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-white font-medium rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+                                >
+                                    {isSavingVoiceName ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                                </button>
+                            </div>
                         </div>
                         
                         <label className="block w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-center text-xs font-bold rounded-xl transition-all cursor-pointer border border-slate-700">
