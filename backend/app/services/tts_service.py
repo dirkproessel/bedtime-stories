@@ -6,6 +6,7 @@ Generates MP3 chunks per chapter.
 import edge_tts
 import random
 import asyncio
+from pathlib import Path
 from app.config import settings
 from app.services.rate_limiter import rate_limiter
 from sqlmodel import Session, select
