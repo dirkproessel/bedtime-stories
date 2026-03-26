@@ -63,7 +63,9 @@ def ensure_migrations():
             ("username", "TEXT"),
             ("kindle_email", "TEXT"),
             ("avatar_url", "TEXT"),
-            ("alexa_user_id", "TEXT")
+            ("alexa_user_id", "TEXT"),
+            ("custom_voice_id", "TEXT"),
+            ("custom_voice_name", "TEXT")
         ]
         
         for col_name, col_type in user_needed:

@@ -221,6 +221,60 @@ async def update_avatar(
         
     except Exception as e:
         logger.error(f"Failed to process avatar for {current_user.id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Fehler bei der Bildverarbeitung")
+
+@router.post("/me/voice-clone", response_model=UserResponse)
+async def create_voice_clone(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_active_user),
+    session: Session = Depends(get_session)
+):
+    """Clone user voice via Fish Audio API."""
+    if not settings.FISH_API_KEY:
+        raise HTTPException(status_code=500, detail="Fish Audio API Key nicht konfiguriert")
+
+    # Validate audio type
+    if not (file.content_type.startswith("audio/") or file.filename.endswith(('.mp3', '.wav', '.m4a'))):
+        raise HTTPException(status_code=400, detail="Bitte lade eine Audiodatei hoch (MP3, WAV, M4A)")
+
+    try:
+        from fish_audio_sdk import Session as FishSession, CreateModelRequest
+        import asyncio
+        
+        content = await file.read()
+        fish = FishSession(apikey=settings.FISH_API_KEY)
+        
+        # Create the model on Fish Audio
+        # We use the username or email as the title
+        title = f"Voice for {current_user.username or current_user.email}"
+        
+        def call_fish():
+            return fish.create_model(
+                CreateModelRequest(
+                    voices=[content],
+                    title=title,
+                    visibility="private",
+                    type="tts"
+                )
+            )
+        
+        # Run the blocking SDK call in a separate thread
+        model = await asyncio.to_thread(call_fish)
+        
+        # Update user in DB
+        current_user.custom_voice_id = model.id
+        current_user.custom_voice_name = title
+        
+        session.add(current_user)
+        session.commit()
+        session.refresh(current_user)
+        
+        logger.info(f"Successfully created voice clone {model.id} for user {current_user.email}")
+        return current_user
+        
+    except Exception as e:
+        logger.error(f"Voice Cloning Error for {current_user.id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Fehler beim Stimmen-Klonen: {str(e)}")
 
 # ──────────────────────────────────
 # Alexa Account Linking (OAuth2)

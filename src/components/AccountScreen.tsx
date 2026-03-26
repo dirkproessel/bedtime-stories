@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useStore } from '../store/useStore';
-import { LogOut, Download, Mail, Check, Loader2, Radio, Copy, User, Shield, Camera } from 'lucide-react';
-import { updateKindleEmail, updateUsername, uploadProfilePicture, unlinkAlexa } from '../lib/api';
+import { updateKindleEmail, updateUsername, uploadProfilePicture, unlinkAlexa, cloneVoice } from '../lib/api';
+import { LogOut, Download, Mail, Check, Loader2, Radio, Copy, User, Shield, Camera, Mic, Music } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ProfilePictureUpload from './ProfilePictureUpload';
 
@@ -12,6 +12,7 @@ export default function AccountScreen() {
     const [isSavingKindle, setIsSavingKindle] = useState(false);
     const [isSavingUsername, setIsSavingUsername] = useState(false);
     const [showAvatarUpload, setShowAvatarUpload] = useState(false);
+    const [isCloning, setIsCloning] = useState(false);
 
     const handleSaveKindle = async () => {
         if (kindleEmail === user?.kindle_email) return;
@@ -55,6 +56,30 @@ export default function AccountScreen() {
             toast.success('Profilbild aktualisiert!');
         } catch (e: any) {
             toast.error(e.message || 'Fehler beim Hochladen');
+        }
+    };
+
+    const handleVoiceUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        // Check file size (max 10MB)
+        if (file.size > 10 * 1024 * 1024) {
+            toast.error('Datei ist zu groß (max. 10MB)');
+            return;
+        }
+
+        setIsCloning(true);
+        const toastId = toast.loading('Stimme wird geklont... dies kann einen Moment dauern.');
+        
+        try {
+            const updatedUser = await cloneVoice(file);
+            useStore.setState({ user: updatedUser });
+            toast.success('Stimme erfolgreich geklont!', { id: toastId });
+        } catch (e: any) {
+            toast.error(e.message || 'Fehler beim Klonen', { id: toastId });
+        } finally {
+            setIsCloning(false);
         }
     };
 
@@ -135,6 +160,68 @@ export default function AccountScreen() {
                         </div>
                     </div>
                 </div>
+            </div>
+
+            {/* Voice Cloning Section */}
+            <div className="w-full glass-panel rounded-3xl p-6 space-y-4 border border-emerald-500/20">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
+                        <Mic className="w-5 h-5 text-emerald-400" />
+                    </div>
+                    <div className="flex-1">
+                        <h3 className="font-bold text-white text-sm">Stimmen-Klon (AI)</h3>
+                        <p className="text-xs text-slate-400">
+                            {user.custom_voice_id ? 'Eigene Stimme aktiv' : 'Lerne die KI deine Stimme'}
+                        </p>
+                    </div>
+                    {user.custom_voice_id && <Music className="w-4 h-4 text-emerald-400 animate-pulse" />}
+                </div>
+
+                {user.custom_voice_id ? (
+                    <div className="space-y-3">
+                        <div className="p-3 bg-emerald-500/5 border border-emerald-500/10 rounded-xl">
+                            <div className="flex items-center justify-between">
+                                <span className="text-xs text-emerald-500 font-bold uppercase">Aktiv</span>
+                                <span className="text-[10px] text-slate-500 font-mono">ID: {user.custom_voice_id.substring(0,8)}...</span>
+                            </div>
+                            <p className="text-sm text-white font-medium mt-1">{user.custom_voice_name || 'Deine Stimme'}</p>
+                        </div>
+                        
+                        <label className="block w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-center text-xs font-bold rounded-xl transition-all cursor-pointer border border-slate-700">
+                            Neu klonen (Überschreiben)
+                            <input 
+                                type="file" 
+                                accept="audio/*" 
+                                onChange={handleVoiceUpload} 
+                                className="hidden" 
+                                disabled={isCloning}
+                            />
+                        </label>
+                    </div>
+                ) : (
+                    <div className="space-y-4">
+                        <p className="text-xs text-slate-400 leading-relaxed">
+                            Lade eine saubere Sprachaufnahme (MP3/WAV, ca. 30-60 Sek.) hoch, um Deine personalisierte Vorlese-Stimme zu erstellen.
+                        </p>
+                        <label className={`block w-full py-3 ${isCloning ? 'bg-slate-800' : 'bg-emerald-500 hover:bg-emerald-400'} text-white text-center font-bold rounded-xl transition-all cursor-pointer shadow-lg shadow-emerald-500/20`}>
+                            {isCloning ? (
+                                <span className="flex items-center justify-center gap-2">
+                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                    Klone Stimme...
+                                </span>
+                            ) : (
+                                "Stimme jetzt klonen"
+                            )}
+                            <input 
+                                type="file" 
+                                accept="audio/*" 
+                                onChange={handleVoiceUpload} 
+                                className="hidden" 
+                                disabled={isCloning}
+                            />
+                        </label>
+                    </div>
+                )}
             </div>
 
             {/* Kindle Integration Section */}

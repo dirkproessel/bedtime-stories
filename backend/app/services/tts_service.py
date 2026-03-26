@@ -6,9 +6,11 @@ Generates MP3 chunks per chapter.
 import edge_tts
 import random
 import asyncio
-from pathlib import Path
 from app.config import settings
 from app.services.rate_limiter import rate_limiter
+from sqlmodel import Session, select
+from app.database import engine as db_engine
+from app.models import User
 
 # Available Edge TTS German voices (Simplified)
 EDGE_VOICES = {
@@ -203,7 +205,7 @@ def get_available_voices() -> list[dict]:
             "engine": "gemini",
         })
 
-    # Fish Audio Voices
+    # Fish Audio Voices (Static)
     for key, v in FISH_VOICES.items():
         voices.append({
             "key": key,
@@ -211,6 +213,24 @@ def get_available_voices() -> list[dict]:
             "gender": v["gender"],
             "engine": "fish",
         })
+
+    # Fish Audio Voices (Dynamic from User DB)
+    try:
+        with Session(db_engine) as db_session:
+            db_users = db_session.exec(select(User).where(User.custom_voice_id != None)).all()
+            for u in db_users:
+                # Avoid duplicates if already in static list
+                if any(v["key"] == u.custom_voice_id for v in voices):
+                    continue
+                voices.append({
+                    "key": u.custom_voice_id,
+                    "name": u.custom_voice_name or f"Stimme von {u.username or u.email}",
+                    "gender": "neutral",
+                    "engine": "fish",
+                })
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Error fetching dynamic voices: {e}")
 
     # Virtual Voices (like 'none')
     voices.append({
@@ -247,17 +267,36 @@ async def generate_tts_chunk(
     elif voice_key in FISH_VOICES:
         voice_config = FISH_VOICES[voice_key]
         engine = "fish"
-    elif voice_key in GEMINI_VOICES:
-        if not rate_limiter.has_daily_quota("tts"):
-            logger.warning(f"Rate Limiter: Daily Gemini quota reached (marked as exhausted). Falling back to Edge TTS for voice {voice_key}.")
-            voice_config = EDGE_VOICES.get(DEFAULT_VOICE, EDGE_VOICES["seraphina"])
-            engine = "edge"
-        else:
-            voice_config = GEMINI_VOICES[voice_key]
-            engine = "gemini"
     else:
-        voice_config = EDGE_VOICES.get(voice_key, EDGE_VOICES[DEFAULT_VOICE])
-        engine = "edge"
+        # Check if it's a dynamic Fish voice ID
+        engine = "edge" # Fallback
+        voice_config = None
+        
+        # Look up in DB if the key looks like a Fish UUID (32 chars)
+        if len(voice_key) >= 30:
+            try:
+                # Use the 'db_engine' imported from app.database
+                with Session(db_engine) as db_session:
+                    user_with_voice = db_session.exec(select(User).where(User.custom_voice_id == voice_key)).first()
+                    if user_with_voice:
+                        engine = "fish"
+                        voice_config = {"id": voice_key}
+            except Exception as e:
+                logger.error(f"Error checking dynamic voice ID: {e}")
+
+    # Final engine check if not found yet
+    if voice_config is None:
+        if voice_key in GEMINI_VOICES:
+            if not rate_limiter.has_daily_quota("tts"):
+                logger.warning(f"Rate Limiter: Daily Gemini quota reached (marked as exhausted). Falling back to Edge TTS for voice {voice_key}.")
+                voice_config = EDGE_VOICES.get(DEFAULT_VOICE, EDGE_VOICES["seraphina"])
+                engine = "edge"
+            else:
+                voice_config = GEMINI_VOICES[voice_key]
+                engine = "gemini"
+        else:
+            voice_config = EDGE_VOICES.get(voice_key, EDGE_VOICES[DEFAULT_VOICE])
+            engine = "edge"
 
     logger.info(f"TTS: Generating audio with {engine} voice {voice_config['id']} -> {output_path}")
 

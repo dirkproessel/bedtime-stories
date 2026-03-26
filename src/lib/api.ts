@@ -25,6 +25,8 @@ export interface User {
     created_at: string;
     story_count?: number;
     alexa_user_id?: string;
+    custom_voice_id?: string;
+    custom_voice_name?: string;
 }
 
 export interface VoiceProfile {
@@ -159,6 +161,22 @@ export async function uploadProfilePicture(file: Blob): Promise<User> {
     if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.detail || 'Fehler beim Hochladen des Profilbilds');
+    }
+    return res.json();
+}
+
+export async function cloneVoice(file: File): Promise<User> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const res = await fetch(`${API_BASE}/api/auth/me/voice-clone`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: formData,
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Fehler beim Stimmen-Klonen');
     }
     return res.json();
 }

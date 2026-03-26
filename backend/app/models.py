@@ -20,6 +20,8 @@ class User(SQLModel, table=True):
     kindle_email: Optional[str] = Field(default=None)
     avatar_url: Optional[str] = Field(default=None)
     alexa_user_id: Optional[str] = Field(default=None, unique=True, index=True)
+    custom_voice_id: Optional[str] = Field(default=None)
+    custom_voice_name: Optional[str] = Field(default=None)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class UserFavorite(SQLModel, table=True):
@@ -83,6 +85,8 @@ class UserResponse(BaseModel):
     created_at: datetime
     story_count: int = 0
     alexa_user_id: Optional[str] = None
+    custom_voice_id: Optional[str] = None
+    custom_voice_name: Optional[str] = None
 
 class PasswordUpdate(BaseModel):
     current_password: str
