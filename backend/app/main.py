@@ -514,7 +514,30 @@ async def get_story(
         
     try:
         data = json.loads(text_path.read_text(encoding="utf-8"))
-        return {**story.model_dump(), "chapters": data.get("chapters", [])}
+        chapters = data.get("chapters", [])
+        
+        # On-demand metadata fix for existing stories
+        needs_save = False
+        if story.word_count is None or story.word_count == 0:
+            story.word_count = len("\n".join([c.get("text", "") for c in chapters]).split())
+            needs_save = True
+        if story.chapter_count is None or story.chapter_count == 0:
+            story.chapter_count = len(chapters)
+            needs_save = True
+        if story.status == "generating" and (len(chapters) > 0 or story.voice_key == "none"):
+            # Check if it also has an mp3 if voice is needed
+            audio_path = settings.AUDIO_OUTPUT_DIR / story_id / "story.mp3"
+            if audio_path.exists() or story.voice_key == "none":
+                story.status = "done"
+                story.progress = "Fertig!"
+                story.progress_pct = 100
+                needs_save = True
+        
+        if needs_save:
+            logger.info(f"Fixed metadata on-demand for story {story_id}")
+            store.add_story(story)
+
+        return {**story.model_dump(), "chapters": chapters}
     except Exception as e:
         logger.error(f"Failed to read story details for {story_id}: {e}")
         return {**story.model_dump(), "chapters": []}

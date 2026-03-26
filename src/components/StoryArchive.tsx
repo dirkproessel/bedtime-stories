@@ -249,16 +249,16 @@ function ManagementStoryCard({
                 {/* Left Stats & Status */}
                 <div className="flex flex-col gap-1.5">
                     <div className="flex flex-col items-start gap-1.5">
-                        {story.word_count > 0 && (
+                        {((story.word_count !== undefined && story.word_count !== null) || story.status === 'done') && (
                             <div className="flex items-center gap-2 text-[12px] font-semibold text-slate-500">
                                 <BookOpen className="w-4 h-4 text-slate-600" />
-                                {story.word_count} Worte
+                                {story.word_count || 0} Worte
                             </div>
                         )}
                         {story.voice_key !== 'none' && (
                             <div className="flex items-center gap-2 text-[12px] font-semibold text-slate-500">
                                 <Mic className="w-4 h-4 text-slate-600" />
-                                {formatDuration(story.duration_seconds)} Min ({voiceName(story.voice_key)})
+                                {formatDuration(story.duration_seconds)} Min ({story.voice_name || voiceName(story.voice_key)})
                             </div>
                         )}
                     </div>
@@ -1146,7 +1146,7 @@ export default function StoryArchive() {
                                                     </div>
                                                     <div>
                                                         <div className={`text-xs font-bold ${selectedVoice === v.key ? 'text-text' : 'text-slate-400'}`}>
-                                                            {voiceName(v.key)}
+                                                            {v.name}
                                                         </div>
                                                         <div className={`text-xs ${selectedVoice === v.key ? 'text-primary' : 'text-slate-600'}`}>
                                                             {voiceDesc(v.key)}

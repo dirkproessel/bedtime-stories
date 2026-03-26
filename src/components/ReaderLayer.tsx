@@ -329,7 +329,7 @@ export default function ReaderLayer() {
                                 )}
                                 <span className="flex items-center gap-1.5 border-r border-slate-800 pr-6 last:border-0 last:pr-0">
                                     <BookOpen className="w-4 h-4 text-slate-600" />
-                                    {story.word_count ? `${story.word_count} Worte` : 'Buch'}
+                                    {story.word_count || (story.chapters?.reduce((acc, c) => acc + (c.text?.split(/\s+/).length || 0), 0)) || 0} Worte
                                 </span>
                                 {story.style && (
                                     <span className="flex items-center gap-1.5 border-r border-slate-800 pr-6 last:border-0 last:pr-0">
@@ -340,7 +340,7 @@ export default function ReaderLayer() {
                                 {story.voice_key !== 'none' && (
                                     <span className="flex items-center gap-1.5 border-r border-slate-800 pr-6 last:border-0 last:pr-0">
                                         <Mic className="w-4 h-4 text-slate-600" />
-                                        {formatDuration(story.duration_seconds)} Min ({voiceName(story.voice_key)})
+                                        {formatDuration(story.duration_seconds)} Min ({story.voice_name || voiceName(story.voice_key)})
                                     </span>
                                 )}
                             </div>
@@ -728,7 +728,7 @@ export default function ReaderLayer() {
                                                     </div>
                                                     <div>
                                                         <div className={`text-xs font-bold ${selectedVoice === v.key ? 'text-text' : 'text-slate-400'}`}>
-                                                            {voiceName(v.key)}
+                                                            {v.name}
                                                         </div>
                                                     </div>
                                                 </div>

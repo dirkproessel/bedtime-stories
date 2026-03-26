@@ -209,12 +209,23 @@ class StoryService:
             text_path = story_dir / "story.json"
             text_path.write_text(json.dumps(story_data, ensure_ascii=False, indent=2), encoding="utf-8")
 
+            # Phase 4: Audio
             if voice_key == "none":
                 if image_task: await image_task
+                
+                curr = store.get_by_id(story_id)
+                if curr:
+                    curr.duration_seconds = 0
+                    curr.chapter_count = real_num_chapters
+                    curr.word_count = len("\n".join([c["text"] for c in story_data["chapters"]]).split())
+                    curr.status = "done"
+                    curr.progress = "Fertig!"
+                    curr.progress_pct = 100
+                    store.add_story(curr)
+                
                 await on_progress("done", "Fertig!", points=total_points, is_absolute_points=True)
                 return
 
-            # Phase 4: Audio
             await on_progress("image", "Bilderstellung", points=5)
             
             async def tts_progress_wrapper(stype, msg, extra_data=None):
@@ -244,8 +255,6 @@ class StoryService:
             duration = await get_audio_duration(final_audio_path)
             if image_task: await image_task
 
-            await on_progress("done", "Fertig!", points=total_points, is_absolute_points=True)
-
             curr = store.get_by_id(story_id)
             if curr:
                 curr.duration_seconds = duration
@@ -255,6 +264,8 @@ class StoryService:
                 curr.progress = "Fertig!"
                 curr.progress_pct = 100
                 store.add_story(curr)
+
+            await on_progress("done", "Fertig!", points=total_points, is_absolute_points=True)
 
             # Trigger Alexa Notification
             if alexa_user_id:
