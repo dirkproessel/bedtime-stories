@@ -728,7 +728,7 @@ export default function ReaderLayer() {
                                                     </div>
                                                     <div>
                                                         <div className={`text-xs font-bold ${selectedVoice === v.key ? 'text-text' : 'text-slate-400'}`}>
-                                                            {v.name}
+                                                            {v.key === user?.custom_voice_id && user?.custom_voice_name ? user.custom_voice_name : voiceName(v.key)}
                                                         </div>
                                                     </div>
                                                 </div>

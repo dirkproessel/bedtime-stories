@@ -494,18 +494,18 @@ async def generate_tts_chunk(
             if not settings.FISH_API_KEY:
                 raise ValueError("Fish Audio API Key is missing.")
             
-            # Use FishSession (imported as Session from fish_audio_sdk at top level)
-            with open(output_path, "wb") as f:
-                session = FishSession(apikey=settings.FISH_API_KEY)
-                # We use the sync-ish wrapper or direct byte output for simplicity in this chunk-based service
-                # The tts_service already handles chunking at a higher level (per chapter).
-                for chunk in session.tts(TTSRequest(
-                    text=clean_text,
-                    reference_id=voice_config["id"],
-                    format="mp3"
-                )):
-                    f.write(chunk)
+            # Fish Audio SDK is synchronous, so we run it in a thread to avoid blocking the event loop
+            def _generate_fish():
+                with open(output_path, "wb") as f:
+                    session = FishSession(apikey=settings.FISH_API_KEY)
+                    for chunk in session.tts(TTSRequest(
+                        text=clean_text,
+                        reference_id=voice_config["id"],
+                        format="mp3"
+                    )):
+                        f.write(chunk)
             
+            await asyncio.to_thread(_generate_fish)
             return output_path, voice_key
 
     except Exception as e:
@@ -522,8 +522,8 @@ async def generate_voice_preview(
     """Generate a short preview clip for a voice."""
     import hashlib
     preview_text = "Hallo! Willkommen im Labor für Kurzgeschichten. Lass uns gemeinsam in ein neues Abenteuer starten."
-    # Include voice_key in hash to force regeneration if the voice profile has changed or was previously a fallback
-    text_hash = hashlib.md5(f"{preview_text}:{voice_key}".encode()).hexdigest()[:8]
+    # Include voice_key and a version prefix to force regeneration of cached fallbacks
+    text_hash = hashlib.md5(f"v2:{preview_text}:{voice_key}".encode()).hexdigest()[:8]
     hash_marker = output_path.parent / f".{output_path.stem}.hash"
 
     if output_path.exists() and output_path.stat().st_size > 1000:

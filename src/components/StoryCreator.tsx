@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { getVoicePreviewUrl, generateHook, fetchPopularity } from '../lib/api';
 import { Sparkles, Mic, MicOff, Play, Pause, Venus, Mars, Users, Loader2, ChevronDown, RefreshCw, Dices } from 'lucide-react';
-import { voiceDesc, STANDARD_VOICE_KEYS, isStandardVoice } from '../lib/voices';
+import { voiceDesc, STANDARD_VOICE_KEYS, isStandardVoice, VOICE_META, voiceName } from '../lib/voices';
 import { AUTHORS } from '../lib/authors';
 import toast from 'react-hot-toast';
 
@@ -466,7 +466,7 @@ export default function StoryCreator() {
                                                     <div className="flex items-center justify-between w-full">
                                                         <div className="flex items-center gap-1.5 min-w-0">
                                                             <h4 className={`text-sm font-bold truncate tracking-tight ${voiceKey === v.key ? 'text-white' : 'text-slate-300'}`}>
-                                                                {v.name}
+                                                                {v.key === user?.custom_voice_id && user?.custom_voice_name ? user.custom_voice_name : voiceName(v.key)}
                                                             </h4>
                                                             <div className={`${voiceKey === v.key ? 'text-white' : 'text-slate-600'}`}>
                                                                 {v.gender === 'female' ? <Venus className="w-3.5 h-3.5" /> :
@@ -509,7 +509,7 @@ export default function StoryCreator() {
                                                         <div className="flex items-center justify-between w-full">
                                                             <div className="flex items-center gap-1.5 min-w-0">
                                                                 <h4 className={`text-sm font-bold truncate tracking-tight ${voiceKey === v.key ? 'text-white' : 'text-slate-300'}`}>
-                                                                    {v.name}
+                                                                    {v.key === user?.custom_voice_id && user?.custom_voice_name ? user.custom_voice_name : voiceName(v.key)}
                                                                 </h4>
                                                                 <div className={`${voiceKey === v.key ? 'text-white' : 'text-slate-600'}`}>
                                                                     {v.gender === 'female' ? <Venus className="w-3.5 h-3.5" /> :
