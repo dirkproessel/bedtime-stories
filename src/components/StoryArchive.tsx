@@ -6,7 +6,7 @@ import { useEffect, useState, useRef } from 'react';
 import ConfirmModal from './ConfirmModal';
 
 
-import { voiceName, voiceDesc, isStandardVoice } from '../lib/voices';
+import { voiceName, voiceDesc } from '../lib/voices';
 import { GENRES } from './StoryCreator';
 import { formatAuthorStyles } from '../lib/authors';
 import { formatDuration } from '../lib/utils';
@@ -258,7 +258,7 @@ function ManagementStoryCard({
                         {story.voice_key !== 'none' && (
                             <div className="flex items-center gap-2 text-[12px] font-semibold text-slate-500">
                                 <Mic className="w-4 h-4 text-slate-600" />
-                                {formatDuration(story.duration_seconds)} Min ({isStandardVoice(story.voice_key) ? voiceName(story.voice_key) : (story.voice_name || voiceName(story.voice_key))})
+                                 {formatDuration(story.duration_seconds)} Min ({voiceName(story.voice_key) !== story.voice_key ? voiceName(story.voice_key) : (story.voice_name || story.voice_key)})
                             </div>
                         )}
                     </div>

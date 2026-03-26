@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import ConfirmModal from './ConfirmModal';
 import toast from 'react-hot-toast';
-import { voiceName, isStandardVoice } from '../lib/voices';
+import { voiceName } from '../lib/voices';
 import { formatAuthorStyles } from '../lib/authors';
 import { formatDuration } from '../lib/utils';
 
@@ -728,7 +728,7 @@ export default function ReaderLayer() {
                                                     </div>
                                                     <div>
                                                         <div className={`text-xs font-bold ${selectedVoice === v.key ? 'text-text' : 'text-slate-400'}`}>
-                                                            {isStandardVoice(v.key) ? voiceName(v.key) : v.name}
+                                                            {voiceName(v.key) !== v.key ? voiceName(v.key) : v.name}
                                                         </div>
                                                     </div>
                                                 </div>
