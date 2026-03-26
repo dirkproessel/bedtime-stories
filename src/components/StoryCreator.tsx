@@ -1,8 +1,8 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useStore } from '../store/useStore';
-import { getVoicePreviewUrl, generateHook, fetchPopularity } from '../lib/api';
+import { getVoicePreviewUrl, generateHook, fetchPopularity, type PopularityData } from '../lib/api';
 import { Sparkles, Mic, MicOff, Play, Pause, Venus, Mars, Users, Loader2, ChevronDown, RefreshCw, Dices } from 'lucide-react';
-import { voiceDesc, STANDARD_VOICE_KEYS, isStandardVoice, VOICE_META, voiceName } from '../lib/voices';
+import { voiceDesc, STANDARD_VOICE_KEYS, isStandardVoice, voiceName } from '../lib/voices';
 import { AUTHORS } from '../lib/authors';
 import toast from 'react-hot-toast';
 
@@ -73,45 +73,37 @@ export default function StoryCreator() {
     };
 
     // Popularity-sorted lists
-    const [sortedGenres, setSortedGenres] = useState(GENRES);
-    const [sortedAuthors, setSortedAuthors] = useState(AUTHORS);
-    const [sortedVoices, setSortedVoices] = useState(voices);
+    const [popularity, setPopularity] = useState<PopularityData | null>(null);
     const [showAllGenres, setShowAllGenres] = useState(false);
     const [showAllAuthors, setShowAllAuthors] = useState(false);
     const [showAllVoices, setShowAllVoices] = useState(false);
 
     useEffect(() => {
-        fetchPopularity()
-            .then(data => {
-                const popularGenreIds = data.genres || [];
-                const popularAuthorIds = data.authors || [];
-                const popularVoiceIds = data.voices || [];
+        fetchPopularity().then(setPopularity).catch(() => {});
+    }, []);
 
-                setSortedGenres(sortByPopularity(GENRES, popularGenreIds, g => g.value));
-                
-                // Author sorting logic: Selected > Genre Match > Popularity
-                const baseSortedAuthors = sortByPopularity(AUTHORS, popularAuthorIds, a => a.id);
-                const genreRelevanceSorted = [...baseSortedAuthors].sort((a, b) => {
-                    const aSelected = selectedAuthors.includes(a.id) ? 1 : 0;
-                    const bSelected = selectedAuthors.includes(b.id) ? 1 : 0;
-                    if (aSelected !== bSelected) return bSelected - aSelected;
+    const sortedGenres = useMemo(() => {
+        return sortByPopularity(GENRES, popularity?.genres || [], g => g.value);
+    }, [popularity]);
 
-                    const aMatches = genre && a.preferredGenres?.includes(genre) ? 1 : 0;
-                    const bMatches = genre && b.preferredGenres?.includes(genre) ? 1 : 0;
-                    if (aMatches !== bMatches) return bMatches - aMatches;
-                    
-                    return 0; // maintain popularity order within matches/non-matches
-                });
-                setSortedAuthors(genreRelevanceSorted);
+    const sortedAuthors = useMemo(() => {
+        const baseSortedAuthors = sortByPopularity(AUTHORS, popularity?.authors || [], a => a.id);
+        return [...baseSortedAuthors].sort((a, b) => {
+            const aSelected = selectedAuthors.includes(a.id) ? 1 : 0;
+            const bSelected = selectedAuthors.includes(b.id) ? 1 : 0;
+            if (aSelected !== bSelected) return bSelected - aSelected;
 
-                if (popularVoiceIds.length > 0) {
-                    setSortedVoices(voices.length > 0 ? sortByPopularity(voices, popularVoiceIds, v => v.key) : voices);
-                } else {
-                    setSortedVoices(voices);
-                }
-            })
-            .catch(() => { /* keep default order on failure */ });
-    }, [voices, genre, selectedAuthors]);
+            const aMatches = genre && a.preferredGenres?.includes(genre) ? 1 : 0;
+            const bMatches = genre && b.preferredGenres?.includes(genre) ? 1 : 0;
+            if (aMatches !== bMatches) return bMatches - aMatches;
+            
+            return 0;
+        });
+    }, [popularity, selectedAuthors, genre]);
+
+    const sortedVoices = useMemo(() => {
+        return sortByPopularity(voices, popularity?.voices || [], v => v.key);
+    }, [voices, popularity]);
 
     // Input state
     // freeText moved to store
