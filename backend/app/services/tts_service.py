@@ -12,6 +12,7 @@ from app.services.rate_limiter import rate_limiter
 from sqlmodel import Session, select
 from app.database import engine as db_engine
 from app.models import User
+from fish_audio_sdk import Session as FishSession, TTSRequest
 
 # Available Edge TTS German voices (Simplified)
 EDGE_VOICES = {
@@ -493,14 +494,9 @@ async def generate_tts_chunk(
             if not settings.FISH_API_KEY:
                 raise ValueError("Fish Audio API Key is missing.")
             
-            from fish_audio_sdk import Session, TTSRequest
-            
-            # Note: We use a simple session-based request here.
-            # For 1000 words, we might want to split into sentences internally
-            # if the API has a strict single-request limit.
-            
+            # Use FishSession (imported as Session from fish_audio_sdk at top level)
             with open(output_path, "wb") as f:
-                session = Session(apikey=settings.FISH_API_KEY)
+                session = FishSession(apikey=settings.FISH_API_KEY)
                 # We use the sync-ish wrapper or direct byte output for simplicity in this chunk-based service
                 # The tts_service already handles chunking at a higher level (per chapter).
                 for chunk in session.tts(TTSRequest(
@@ -526,7 +522,8 @@ async def generate_voice_preview(
     """Generate a short preview clip for a voice."""
     import hashlib
     preview_text = "Hallo! Willkommen im Labor für Kurzgeschichten. Lass uns gemeinsam in ein neues Abenteuer starten."
-    text_hash = hashlib.md5(preview_text.encode()).hexdigest()[:8]
+    # Include voice_key in hash to force regeneration if the voice profile has changed or was previously a fallback
+    text_hash = hashlib.md5(f"{preview_text}:{voice_key}".encode()).hexdigest()[:8]
     hash_marker = output_path.parent / f".{output_path.stem}.hash"
 
     if output_path.exists() and output_path.stat().st_size > 1000:
