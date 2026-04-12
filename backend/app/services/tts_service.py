@@ -169,78 +169,57 @@ DEFAULT_VOICE = "seraphina"
 
 
 def get_available_voices(user_id: str | None = None) -> list[dict]:
-    """Return list of available voice profiles."""
+    """Return list of available voice profiles from the database."""
     voices = []
     
-    # Edge Voices
-    for key, v in EDGE_VOICES.items():
-        voices.append({
-            "key": key,
-            "name": v["name"],
-            "gender": v["gender"],
-            "engine": "edge",
-        })
-        
-    # Google Voices (Temporarily Disabled)
-    # for key, v in GOOGLE_VOICES.items():
-    #     voices.append({
-    #         "key": key,
-    #         "name": v["name"],
-    #         "gender": v["gender"],
-    #         "engine": "google",
-    #     })
-
-    # OpenAI Voices
-    for key, v in OPENAI_VOICES.items():
-        voices.append({
-            "key": key,
-            "name": v["name"],
-            "gender": v["gender"],
-            "engine": "openai",
-        })
-
-    # Gemini Voices
-    for key, v in GEMINI_VOICES.items():
-        voices.append({
-            "key": key,
-            "name": v["name"],
-            "gender": v["gender"],
-            "engine": "gemini",
-        })
-
-    # Fish Audio Voices (Static)
-    for key, v in FISH_VOICES.items():
-        voices.append({
-            "key": key,
-            "name": v["name"],
-            "gender": v["gender"],
-            "engine": "fish",
-        })
-
-    # Fish Audio Voices (Dynamic from UserVoice DB)
     try:
-        from app.models import UserVoice
+        from app.models import UserVoice, SystemVoice
+        from sqlmodel import or_
+        
         with Session(db_engine) as db_session:
-            # Get public voices + this user's private voices
-            query = select(UserVoice).where(UserVoice.is_public == True)
-            if user_id:
-                from sqlmodel import or_
-                query = select(UserVoice).where(or_(UserVoice.is_public == True, UserVoice.user_id == user_id))
+            # 1. System Voices (only active ones)
+            sys_query = select(SystemVoice).where(SystemVoice.is_active == True)
+            sys_voices = db_session.exec(sys_query).all()
             
-            db_voices = db_session.exec(query).all()
+            for v in sys_voices:
+                voices.append({
+                    "key": v.id,
+                    "name": v.name,
+                    "gender": v.gender,
+                    "engine": v.engine,
+                })
+            
+            # 2. Cloned Voices (public or owned by user)
+            clones_query = select(UserVoice).where(UserVoice.is_public == True)
+            if user_id:
+                clones_query = select(UserVoice).where(or_(UserVoice.is_public == True, UserVoice.user_id == user_id))
+            
+            db_voices = db_session.exec(clones_query).all()
             for v_obj in db_voices:
-                # Avoid duplicates if already in static list
-                if any(v["key"] == v_obj.id for v in voices):
+                # Avoid duplicates
+                if any(vox["key"] == v_obj.id for vox in voices):
                     continue
                 voices.append({
-                    "key": v_obj.id, # We use the UserVoice.id as the key
+                    "key": v_obj.id,
                     "name": v_obj.name,
-                    "gender": v_obj.gender if hasattr(v_obj, "gender") and v_obj.gender else "neutral",
+                    "gender": v_obj.gender or "neutral",
                     "engine": "fish",
                 })
+                
+        if not voices:
+            # Table might be empty during first startup/seeding
+            raise Exception("No voices found in DB, using fallback")
+
     except Exception as e:
         import logging
-        logging.getLogger(__name__).error(f"Error fetching dynamic voices: {e}")
+        logging.getLogger(__name__).warning(f"Using hardcoded voice fallback: {e}")
+        # Fallback to hardcoded lists if DB fails or is empty
+        for key, v in EDGE_VOICES.items():
+            voices.append({"key": key, "name": v["name"], "gender": v["gender"], "engine": "edge"})
+        for key, v in GEMINI_VOICES.items():
+            voices.append({"key": key, "name": v["name"], "gender": v["gender"], "engine": "gemini"})
+        for key, v in FISH_VOICES.items():
+            voices.append({"key": key, "name": v["name"], "gender": v["gender"], "engine": "fish"})
 
     # Virtual Voices (like 'none')
     voices.append({

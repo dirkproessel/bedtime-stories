@@ -14,10 +14,13 @@ import {
     adminDeleteUser,
     adminUpdateUser,
     adminDeleteStory,
+    adminListVoices,
+    adminToggleVoice,
     toggleStoryFavorite,
     revoiceStory as apiRevoiceStory,
     regenerateStoryImage as apiRegenerateStoryImage,
 } from '../lib/api';
+import { type UserVoice, type SystemVoice } from '../lib/api';
 
 interface AppState {
     // Auth
@@ -67,6 +70,10 @@ interface AppState {
     deleteAdminUser: (id: string) => Promise<void>;
     updateAdminUser: (id: string, data: { is_admin?: boolean, is_active?: boolean }) => Promise<void>;
     deleteAdminStory: (id: string) => Promise<void>;
+    adminClonedVoices: UserVoice[];
+    adminSystemVoices: SystemVoice[];
+    loadAdminVoices: () => Promise<void>;
+    toggleAdminVoice: (type: 'system' | 'clone', id: string) => Promise<void>;
     selectedStoryId: string | null;
     setSelectedStoryId: (id: string | null) => void;
     toggleStoryVisibility: (id: string, isPublic: boolean) => Promise<void>;
@@ -144,6 +151,8 @@ export const useStore = create<AppState>((set, get) => {
     setArchiveSearch: (search) => set({ archiveSearch: search }),
     activeView: 'create',
     adminUsers: [],
+    adminClonedVoices: [],
+    adminSystemVoices: [],
     selectedStoryId: null,
     isLoading: false,
     error: null,
@@ -500,6 +509,38 @@ export const useStore = create<AppState>((set, get) => {
             await adminDeleteStory(id);
             set(state => ({
                 stories: state.stories.filter(s => s.id !== id)
+            }));
+        } catch (e: any) {
+            set({ error: e.message });
+            throw e;
+        }
+    },
+
+    loadAdminVoices: async () => {
+        set({ isLoading: true });
+        try {
+            const data = await adminListVoices();
+            set({ 
+                adminClonedVoices: data.clones, 
+                adminSystemVoices: data.system 
+            });
+        } catch (e: any) {
+            set({ error: e.message });
+        } finally {
+            set({ isLoading: false });
+        }
+    },
+
+    toggleAdminVoice: async (type, id) => {
+        try {
+            const newState = await adminToggleVoice(type, id);
+            set(state => ({
+                adminClonedVoices: state.adminClonedVoices.map(v => 
+                    (type === 'clone' && v.id === id) ? { ...v, is_public: newState } : v
+                ),
+                adminSystemVoices: state.adminSystemVoices.map(v => 
+                    (type === 'system' && v.id === id) ? { ...v, is_active: newState } : v
+                )
             }));
         } catch (e: any) {
             set({ error: e.message });

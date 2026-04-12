@@ -24,6 +24,16 @@ export interface UserVoice {
     gender?: string;
     description?: string;
     created_at: string;
+    user_name?: string; // For admin view
+}
+
+export interface SystemVoice {
+    id: string;
+    name: string;
+    engine: string;
+    gender: string;
+    is_active: boolean;
+    fish_voice_id?: string;
 }
 
 export interface User {
@@ -490,4 +500,20 @@ export async function adminDeleteStory(storyId: string): Promise<void> {
         const error = await res.json().catch(() => ({}));
         throw new Error(error.detail || 'Geschichte konnte nicht gelöscht werden');
     }
+}
+
+export async function adminListVoices(): Promise<{ clones: UserVoice[], system: SystemVoice[] }> {
+    const res = await fetch(`${API_BASE}/api/admin/voices`, { headers: getAuthHeaders() });
+    if (!res.ok) throw new Error('Fehler beim Laden der Stimmen');
+    return res.json();
+}
+
+export async function adminToggleVoice(type: string, id: string): Promise<boolean> {
+    const res = await fetch(`${API_BASE}/api/admin/voices/${type}/${id}/toggle`, {
+        method: 'POST',
+        headers: getAuthHeaders()
+    });
+    if (!res.ok) throw new Error('Fehler beim Ändern des Stimmen-Status');
+    const data = await res.json();
+    return data.new_state;
 }

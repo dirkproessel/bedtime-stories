@@ -37,6 +37,16 @@ class UserVoice(SQLModel, table=True):
     description: Optional[str] = Field(default=None)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+class SystemVoice(SQLModel, table=True):
+    """System-wide predefined voices (Edge, Gemini, etc)."""
+    id: str = Field(primary_key=True)
+    name: str
+    engine: str  # "edge", "gemini", "fish", "openai"
+    gender: str  # "male", "female", "neutral"
+    is_active: bool = Field(default=True)
+    fish_voice_id: Optional[str] = Field(default=None)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
 class UserFavorite(SQLModel, table=True):
     """Many-to-many relationship for favorites."""
     user_id: str = Field(foreign_key="user.id", primary_key=True)
@@ -108,6 +118,8 @@ class UserVoiceResponse(BaseModel):
     fish_voice_id: str
     name: str
     is_public: bool
+    gender: Optional[str] = None
+    description: Optional[str] = None
     created_at: datetime
 
 class PasswordUpdate(BaseModel):

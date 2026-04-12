@@ -414,6 +414,44 @@ async def admin_list_users(current_user: User = Depends(get_current_active_user)
         
     return response_users
 
+@app.get("/api/admin/voices")
+async def admin_list_voices(current_user: User = Depends(get_current_active_user)):
+    """List all voices for management (Admin only)."""
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Nur Admins dürfen Stimmen verwalten.")
+    
+    data = store.get_admin_voices()
+    
+    # Map users to clones
+    users_map = {u.id: (u.username or u.email) for u in store.get_all_users()}
+    
+    result_clones = []
+    for v in data["clones"]:
+        v_dict = v.model_dump()
+        v_dict["user_name"] = users_map.get(v.user_id, "Unknown")
+        result_clones.append(v_dict)
+        
+    return {
+        "clones": result_clones,
+        "system": data["system"]
+    }
+
+@app.post("/api/admin/voices/{voice_type}/{voice_id}/toggle")
+async def admin_toggle_voice(
+    voice_type: str, 
+    voice_id: str, 
+    current_user: User = Depends(get_current_active_user)
+):
+    """Toggle visibility/active state of a voice (Admin only)."""
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Nur Admins dürfen Stimmen verwalten.")
+    
+    new_state = store.toggle_voice_active(voice_type, voice_id)
+    if new_state is None:
+        raise HTTPException(status_code=404, detail="Stimme nicht gefunden.")
+    
+    return {"new_state": new_state}
+
 
 @app.delete("/api/admin/users/{user_id}")
 async def admin_delete_user(user_id: str, current_user: User = Depends(get_current_active_user)):

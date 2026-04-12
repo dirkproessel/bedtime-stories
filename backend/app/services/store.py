@@ -3,7 +3,7 @@ import json
 import logging
 from pathlib import Path
 from sqlmodel import Session, select, delete
-from app.models import StoryMeta, User, UserFavorite, StoryMetaResponse
+from app.models import StoryMeta, User, UserFavorite, StoryMetaResponse, UserVoice, SystemVoice
 from app.database import engine, create_db_and_tables
 from app.config import settings
 from app.auth_utils import get_password_hash
@@ -34,6 +34,8 @@ class StoryStore:
         create_db_and_tables()
         # Seed admin with is_admin=True but don't force ID syncs or ownership transfers
         self._seed_admin()
+        # Seed system voices
+        self._seed_system_voices()
         # All automatic repairs and migrations are disabled to respect manual user fixes.
 
     def _repair_ownership_mistake(self):
@@ -90,6 +92,32 @@ class StoryStore:
                 logger.info(f"Admin user {email} seeded with stable ID and Kindle settings!")
             except Exception as e:
                 logger.error(f"Failed to seed admin user: {e}")
+
+    def _seed_system_voices(self):
+        """Seed system voices from tts_service constants if table is empty."""
+        with Session(engine) as session:
+            existing = session.exec(select(SystemVoice)).first()
+            if existing: return
+            
+            from app.services.tts_service import EDGE_VOICES, GEMINI_VOICES, FISH_VOICES
+            
+            # Map of engine names
+            items = []
+            
+            for k, v in EDGE_VOICES.items():
+                items.append(SystemVoice(id=k, name=v['name'], engine="edge", gender=v['gender']))
+            
+            for k, v in GEMINI_VOICES.items():
+                items.append(SystemVoice(id=k, name=v['name'], engine="gemini", gender=v['gender']))
+                
+            for k, v in FISH_VOICES.items():
+                items.append(SystemVoice(id=k, name=v['name'], engine="fish", gender=v['gender'], fish_voice_id=v['id']))
+
+            for itm in items:
+                session.add(itm)
+            
+            session.commit()
+            logger.info(f"Seeded {len(items)} system voices into database.")
 
     def _repair_unassigned_stories(self):
         """DEPRECATED: Manual control preferred."""
@@ -148,6 +176,35 @@ class StoryStore:
         """Get all users for admin lookup."""
         with Session(engine) as session:
             return list(session.exec(select(User)).all())
+
+    def get_admin_voices(self):
+        """Get all voices (clones and system) for admin management."""
+        with Session(engine) as session:
+            clones = session.exec(select(UserVoice)).all()
+            system = session.exec(select(SystemVoice)).all()
+            return {
+                "clones": clones,
+                "system": system
+            }
+
+    def toggle_voice_active(self, voice_type: str, voice_id: str):
+        """Toggle is_active for system voice or is_public for UserVoice (Admin override)."""
+        with Session(engine) as session:
+            if voice_type == "system":
+                voice = session.get(SystemVoice, voice_id)
+                if voice:
+                    voice.is_active = not voice.is_active
+                    session.add(voice)
+                    session.commit()
+                    return voice.is_active
+            else:
+                voice = session.get(UserVoice, voice_id)
+                if voice:
+                    voice.is_public = not voice.is_public
+                    session.add(voice)
+                    session.commit()
+                    return voice.is_public
+            return None
 
     def get_by_id(self, story_id: str, requesting_user_id: str | None = None) -> StoryMetaResponse | None:
         """Get a specific story by ID."""

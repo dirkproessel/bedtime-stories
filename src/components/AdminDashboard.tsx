@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useStore } from '../store/useStore';
-import { Users, BookOpen, ChevronLeft } from 'lucide-react';
+import { Users, BookOpen, ChevronLeft, Mic } from 'lucide-react';
 import AdminUserManagement from './AdminUserManagement';
 import AdminStoryManagement from './AdminStoryManagement';
+import AdminVoiceManagement from './AdminVoiceManagement';
 
 export default function AdminDashboard() {
     const { setActiveView } = useStore();
-    const [subView, setSubView] = useState<'users' | 'stories'>('users');
+    const [subView, setSubView] = useState<'users' | 'stories' | 'voices'>('users');
     const [filterUserId, setFilterUserId] = useState<string | null>(null);
 
     const handleShowUserStories = (userId: string) => {
@@ -44,7 +45,7 @@ export default function AdminDashboard() {
                     }`}
                 >
                     <Users className="w-4 h-4" />
-                    Benutzerverwaltung
+                    Benutzer
                 </button>
                 <button
                     onClick={() => setSubView('stories')}
@@ -55,7 +56,18 @@ export default function AdminDashboard() {
                     }`}
                 >
                     <BookOpen className="w-4 h-4" />
-                    Alle Geschichten
+                    Geschichten
+                </button>
+                <button
+                    onClick={() => setSubView('voices')}
+                    className={`flex items-center gap-2 px-6 py-2.5 rounded-xl transition-all font-medium text-sm ${
+                        subView === 'voices' 
+                        ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' 
+                        : 'text-slate-400 hover:text-white hover:bg-white/5'
+                    }`}
+                >
+                    <Mic className="w-4 h-4" />
+                    Stimmen
                 </button>
             </div>
 
@@ -63,11 +75,13 @@ export default function AdminDashboard() {
             <div className="w-full">
                 {subView === 'users' ? (
                     <AdminUserManagement onShowStories={handleShowUserStories} />
-                ) : (
+                ) : subView === 'stories' ? (
                     <AdminStoryManagement 
                         filterUserId={filterUserId} 
                         onClearFilter={() => setFilterUserId(null)} 
                     />
+                ) : (
+                    <AdminVoiceManagement />
                 )}
             </div>
         </div>
