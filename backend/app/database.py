@@ -82,6 +82,22 @@ def ensure_migrations():
             cur.execute(f"ALTER TABLE user ADD COLUMN created_at DATETIME DEFAULT '{now_iso}'")
             conn.commit()
             
+        print("Migration: Migrating legacy custom_voice_id to uservoice table...")
+        import uuid
+        cur.execute("SELECT id, custom_voice_id, custom_voice_name, created_at FROM user WHERE custom_voice_id IS NOT NULL")
+        users_with_voice = cur.fetchall()
+        for u_id, c_id, c_name, u_created in users_with_voice:
+            # Check if this voice is already in uservoice table
+            cur.execute("SELECT id FROM uservoice WHERE user_id = ? AND fish_voice_id = ?", (u_id, c_id))
+            if not cur.fetchone():
+                v_id = str(uuid.uuid4())
+                v_name = c_name if c_name else "My Voice"
+                cur.execute("INSERT INTO uservoice (id, user_id, fish_voice_id, name, is_public, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+                            (v_id, u_id, c_id, v_name, False, u_created))
+        conn.commit()
+
+        # We keep custom_voice_id on user table for easy fallback for now.
+        
     except Exception as e:
         print(f"Migration error: {e}")
     finally:

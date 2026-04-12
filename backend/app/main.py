@@ -117,9 +117,9 @@ from app.services.story_service import story_service
 # ──────────────────────────────────
 
 @app.get("/api/voices", response_model=list[VoiceProfile])
-async def list_voices():
+async def list_voices(current_user: User | None = Depends(get_optional_user)):
     """List all available voice profiles."""
-    return get_available_voices()
+    return get_available_voices(user_id=current_user.id if current_user else None)
 
 
 @app.get("/api/voices/{voice_key}/preview")

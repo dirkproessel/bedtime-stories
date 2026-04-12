@@ -15,6 +15,15 @@ function getAuthHeaders(): HeadersInit {
     return {};
 }
 
+export interface UserVoice {
+    id: string;
+    user_id: string;
+    fish_voice_id: string;
+    name: string;
+    is_public: boolean;
+    created_at: string;
+}
+
 export interface User {
     id: string;
     email: string;
@@ -25,8 +34,9 @@ export interface User {
     created_at: string;
     story_count?: number;
     alexa_user_id?: string;
-    custom_voice_id?: string;
-    custom_voice_name?: string;
+    custom_voice_id?: string; // Legacy
+    custom_voice_name?: string; // Legacy
+    custom_voices?: UserVoice[];
 }
 
 export interface VoiceProfile {
@@ -156,6 +166,31 @@ export async function updateVoiceName(voice_name: string): Promise<any> {
         body: JSON.stringify({ voice_name }),
     });
     if (!res.ok) throw new Error('Aktualisierung fehlgeschlagen');
+    return res.json();
+}
+
+export async function updateCustomVoice(voiceId: string, data: { name?: string, is_public?: boolean }): Promise<User> {
+    const res = await fetch(`${API_BASE}/api/auth/me/voices/${voiceId}`, {
+        method: 'PUT',
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.detail || 'Aktualisierung fehlgeschlagen');
+    }
+    return res.json();
+}
+
+export async function deleteCustomVoice(voiceId: string): Promise<User> {
+    const res = await fetch(`${API_BASE}/api/auth/me/voices/${voiceId}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+    });
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.detail || 'Löschen fehlgeschlagen');
+    }
     return res.json();
 }
 

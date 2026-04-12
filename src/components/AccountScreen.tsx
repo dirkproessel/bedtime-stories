@@ -1,9 +1,84 @@
 import { useState } from 'react';
 import { useStore } from '../store/useStore';
-import { updateKindleEmail, updateUsername, uploadProfilePicture, unlinkAlexa, cloneVoice, updateVoiceName } from '../lib/api';
-import { LogOut, Download, Mail, Check, Loader2, Radio, Copy, User, Shield, Camera, Mic, Music } from 'lucide-react';
+import { updateKindleEmail, updateUsername, uploadProfilePicture, unlinkAlexa, cloneVoice, updateVoiceName, updateCustomVoice, deleteCustomVoice } from '../lib/api';
+import { LogOut, Download, Mail, Check, Loader2, Radio, Copy, User, Shield, Camera, Mic, Music, Trash2, Globe, Lock } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ProfilePictureUpload from './ProfilePictureUpload';
+
+function VoiceCloneItem({ voice, onUpdate }: { voice: any, onUpdate: (user: any) => void }) {
+    const [name, setName] = useState(voice.name);
+    const [isSaving, setIsSaving] = useState(false);
+    
+    const handleSave = async () => {
+        setIsSaving(true);
+        try {
+            const updatedUser = await updateCustomVoice(voice.id, { name });
+            onUpdate(updatedUser);
+            toast.success('Name gespeichert');
+        } catch(e: any) {
+            toast.error(e.message);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleTogglePublic = async () => {
+        setIsSaving(true);
+        try {
+            const updatedUser = await updateCustomVoice(voice.id, { is_public: !voice.is_public });
+            onUpdate(updatedUser);
+            toast.success(!voice.is_public ? 'Stimme ist nun öffentlich' : 'Stimme ist nun privat');
+        } catch(e: any) {
+            toast.error(e.message);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleDelete = async () => {
+        if (!confirm('Stimme wirklich löschen?')) return;
+        try {
+            const updatedUser = await deleteCustomVoice(voice.id);
+            onUpdate(updatedUser);
+            toast.success('Stimme gelöscht');
+        } catch(e: any) {
+            toast.error(e.message);
+        }
+    };
+
+    return (
+        <div className="p-3 bg-white/5 border border-white/10 rounded-xl space-y-2 relative group">
+            <div className="flex items-center justify-between">
+               <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">ID: {voice.id.substring(0,8)}</span>
+               <div className="flex items-center gap-2">
+                   <button onClick={handleTogglePublic} title={voice.is_public ? "Öffentlich (für alle sichtbar)" : "Privat (nur für dich)"} className="p-1 hover:bg-white/10 rounded transition-colors duration-200">
+                       {voice.is_public ? <Globe className="w-4 h-4 text-emerald-400" /> : <Lock className="w-4 h-4 text-slate-400" />}
+                   </button>
+                   <button onClick={handleDelete} className="p-1 hover:bg-red-500/20 text-red-400 rounded transition-colors duration-200" title="Stimme löschen">
+                       <Trash2 className="w-4 h-4" />
+                   </button>
+               </div>
+            </div>
+            <div className="flex gap-2 relative">
+                <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="flex-1 px-3 py-1.5 bg-black/20 border border-white/5 rounded-lg focus:ring-1 focus:ring-emerald-500/50 outline-none text-sm text-white"
+                />
+                {(name !== voice.name) && (
+                    <button
+                        onClick={handleSave}
+                        disabled={isSaving}
+                        className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-white rounded-lg flex items-center justify-center disabled:opacity-50 transition-colors"
+                    >
+                        {isSaving ? <Loader2 className="w-4 h-4 animate-spin"/> : <Check className="w-4 h-4"/>}
+                    </button>
+                )}
+            </div>
+        </div>
+    );
+}
 
 export default function AccountScreen() {
     const { user, logout } = useStore();
@@ -11,8 +86,6 @@ export default function AccountScreen() {
     const [username, setUsername] = useState(user?.username || user?.email || '');
     const [isSavingKindle, setIsSavingKindle] = useState(false);
     const [isSavingUsername, setIsSavingUsername] = useState(false);
-    const [customVoiceName, setCustomVoiceName] = useState(user?.custom_voice_name || '');
-    const [isSavingVoiceName, setIsSavingVoiceName] = useState(false);
     const [showAvatarUpload, setShowAvatarUpload] = useState(false);
     const [isCloning, setIsCloning] = useState(false);
 
@@ -82,20 +155,6 @@ export default function AccountScreen() {
             toast.error(e.message || 'Fehler beim Klonen', { id: toastId });
         } finally {
             setIsCloning(false);
-        }
-    };
-
-    const handleSaveVoiceName = async () => {
-        if (!customVoiceName || customVoiceName === user?.custom_voice_name) return;
-        setIsSavingVoiceName(true);
-        try {
-            await updateVoiceName(customVoiceName);
-            toast.success('Stimmen-Name gespeichert!');
-            useStore.setState({ user: { ...user!, custom_voice_name: customVoiceName } });
-        } catch (e: any) {
-            toast.error(e.message || 'Fehler beim Speichern');
-        } finally {
-            setIsSavingVoiceName(false);
         }
     };
 
@@ -185,74 +244,62 @@ export default function AccountScreen() {
                         <Mic className="w-5 h-5 text-emerald-400" />
                     </div>
                     <div className="flex-1">
-                        <h3 className="font-bold text-white text-sm">Stimmen-Klon (AI)</h3>
+                        <h3 className="font-bold text-white text-sm">Stimmen-Klone (AI)</h3>
                         <p className="text-xs text-slate-400">
-                            {user.custom_voice_id ? 'Eigene Stimme aktiv' : 'Lerne die KI deine Stimme'}
+                            {user.custom_voices && user.custom_voices.length > 0 ? `${user.custom_voices.length} von 5 Stimmen aktiv` : 'Lerne die KI deine Stimme'}
                         </p>
                     </div>
-                    {user.custom_voice_id && <Music className="w-4 h-4 text-emerald-400 animate-pulse" />}
+                    {user.custom_voices && user.custom_voices.length > 0 && <Music className="w-4 h-4 text-emerald-400 animate-pulse" />}
                 </div>
 
-                {user.custom_voice_id ? (
-                    <div className="space-y-3">
-                        <div className="p-3 bg-emerald-500/5 border border-emerald-500/10 rounded-xl">
-                            <div className="flex items-center justify-between">
-                                <span className="text-xs text-emerald-500 font-bold uppercase">Aktiv</span>
-                                <span className="text-[10px] text-slate-500 font-mono">ID: {user.custom_voice_id.substring(0,8)}...</span>
-                            </div>
-                            <div className="flex gap-2 mt-2">
-                                <input
-                                    type="text"
-                                    value={customVoiceName}
-                                    onChange={(e) => setCustomVoiceName(e.target.value)}
-                                    placeholder="Name deiner Stimme"
-                                    className="flex-1 px-3 py-1.5 bg-white/10 border border-white/10 rounded-lg focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/50 outline-none transition-all text-sm text-white placeholder:text-slate-600"
+                <div className="space-y-3">
+                    {user.custom_voices && user.custom_voices.length > 0 ? (
+                        <div className="space-y-3">
+                            {user.custom_voices.map(voice => (
+                                <VoiceCloneItem 
+                                    key={voice.id} 
+                                    voice={voice} 
+                                    onUpdate={(updatedUser) => useStore.setState({ user: updatedUser })}
                                 />
-                                <button
-                                    onClick={handleSaveVoiceName}
-                                    disabled={isSavingVoiceName || !customVoiceName || customVoiceName === user?.custom_voice_name}
-                                    className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-white font-medium rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
-                                >
-                                    {isSavingVoiceName ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <label className="block w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-center text-xs font-bold rounded-xl transition-all cursor-pointer border border-slate-700">
-                            Neu klonen (Überschreiben)
-                            <input 
-                                type="file" 
-                                accept="audio/*" 
-                                onChange={handleVoiceUpload} 
-                                className="hidden" 
-                                disabled={isCloning}
-                            />
-                        </label>
-                    </div>
-                ) : (
-                    <div className="space-y-4">
-                        <p className="text-xs text-slate-400 leading-relaxed">
-                            Lade eine saubere Sprachaufnahme (MP3/WAV, ca. 30-60 Sek.) hoch, um Deine personalisierte Vorlese-Stimme zu erstellen.
-                        </p>
-                        <label className={`block w-full py-3 ${isCloning ? 'bg-slate-800' : 'bg-emerald-500 hover:bg-emerald-400'} text-white text-center font-bold rounded-xl transition-all cursor-pointer shadow-lg shadow-emerald-500/20`}>
-                            {isCloning ? (
-                                <span className="flex items-center justify-center gap-2">
-                                    <Loader2 className="w-5 h-5 animate-spin" />
-                                    Klone Stimme...
-                                </span>
-                            ) : (
-                                "Stimme jetzt klonen"
+                            ))}
+                            {(user.custom_voices.length < 5) && (
+                                <label className="block w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-center text-xs font-bold rounded-xl transition-all cursor-pointer border border-slate-700">
+                                    Weitere Stimme klonen
+                                    <input 
+                                        type="file" 
+                                        accept="audio/*" 
+                                        onChange={handleVoiceUpload} 
+                                        className="hidden" 
+                                        disabled={isCloning}
+                                    />
+                                </label>
                             )}
-                            <input 
-                                type="file" 
-                                accept="audio/*" 
-                                onChange={handleVoiceUpload} 
-                                className="hidden" 
-                                disabled={isCloning}
-                            />
-                        </label>
-                    </div>
-                )}
+                        </div>
+                    ) : (
+                        <div className="space-y-4">
+                            <p className="text-xs text-slate-400 leading-relaxed">
+                                Lade eine saubere Sprachaufnahme (MP3/WAV, ca. 30-60 Sek.) hoch, um Deine personalisierte Vorlese-Stimme zu erstellen. Du kannst bis zu 5 Stimmen anlegen.
+                            </p>
+                            <label className={`block w-full py-3 ${isCloning ? 'bg-slate-800' : 'bg-emerald-500 hover:bg-emerald-400'} text-white text-center font-bold rounded-xl transition-all cursor-pointer shadow-lg shadow-emerald-500/20`}>
+                                {isCloning ? (
+                                    <span className="flex items-center justify-center gap-2">
+                                        <Loader2 className="w-5 h-5 animate-spin" />
+                                        Klone Stimme...
+                                    </span>
+                                ) : (
+                                    "Erste Stimme jetzt klonen"
+                                )}
+                                <input 
+                                    type="file" 
+                                    accept="audio/*" 
+                                    onChange={handleVoiceUpload} 
+                                    className="hidden" 
+                                    disabled={isCloning}
+                                />
+                            </label>
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Kindle Integration Section */}

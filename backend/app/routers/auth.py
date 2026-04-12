@@ -255,6 +255,10 @@ async def create_voice_clone(
         content = await file.read()
         fish = FishAudio(api_key=settings.FISH_API_KEY)
         
+        # Check max voices limit
+        if len(current_user.custom_voices) >= 5:
+            raise HTTPException(status_code=400, detail="Maximal 5 Stimmen-Klone erlaubt.")
+
         # Create the model on Fish Audio
         # We use the username or email as the title
         title = f"Voice for {current_user.username or current_user.email}"
@@ -269,11 +273,17 @@ async def create_voice_clone(
         # Run the blocking SDK call in a separate thread
         model = await asyncio.to_thread(call_fish)
         
-        # Update user in DB
-        current_user.custom_voice_id = model.id
-        current_user.custom_voice_name = title
+        # Create UserVoice in DB
+        from app.models import UserVoice
+        new_voice = UserVoice(
+            id=str(uuid.uuid4()),
+            user_id=current_user.id,
+            fish_voice_id=model.id,
+            name=title,
+            is_public=False
+        )
         
-        session.add(current_user)
+        session.add(new_voice)
         session.commit()
         session.refresh(current_user)
         
@@ -283,6 +293,50 @@ async def create_voice_clone(
     except Exception as e:
         logger.error(f"Voice Cloning Error for {current_user.id}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Fehler beim Stimmen-Klonen: {str(e)}")
+
+@router.delete("/me/voices/{voice_id}", response_model=UserResponse)
+def delete_custom_voice(
+    voice_id: str,
+    current_user: User = Depends(get_current_active_user),
+    session: Session = Depends(get_session)
+):
+    from app.models import UserVoice
+    voice = session.get(UserVoice, voice_id)
+    if not voice or voice.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Stimme nicht gefunden")
+        
+    session.delete(voice)
+    session.commit()
+    session.refresh(current_user)
+    return current_user
+
+from pydantic import BaseModel
+class UpdateVoiceRequest(BaseModel):
+    name: str | None = None
+    is_public: bool | None = None
+
+@router.put("/me/voices/{voice_id}", response_model=UserResponse)
+def update_custom_voice(
+    voice_id: str,
+    data: UpdateVoiceRequest,
+    current_user: User = Depends(get_current_active_user),
+    session: Session = Depends(get_session)
+):
+    from app.models import UserVoice
+    voice = session.get(UserVoice, voice_id)
+    if not voice or voice.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Stimme nicht gefunden")
+        
+    if data.name is not None:
+        voice.name = data.name
+    if data.is_public is not None:
+        voice.is_public = data.is_public
+        
+    session.add(voice)
+    session.commit()
+    session.refresh(current_user)
+    return current_user
+
 
 # ──────────────────────────────────
 # Alexa Account Linking (OAuth2)

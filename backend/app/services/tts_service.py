@@ -168,7 +168,7 @@ def split_text_paragraphs(t: str, min_bytes=MIN_CHUNK_BYTES, max_bytes=MAX_CHUNK
 DEFAULT_VOICE = "seraphina"
 
 
-def get_available_voices() -> list[dict]:
+def get_available_voices(user_id: str | None = None) -> list[dict]:
     """Return list of available voice profiles."""
     voices = []
     
@@ -217,17 +217,24 @@ def get_available_voices() -> list[dict]:
             "engine": "fish",
         })
 
-    # Fish Audio Voices (Dynamic from User DB)
+    # Fish Audio Voices (Dynamic from UserVoice DB)
     try:
+        from app.models import UserVoice
         with Session(db_engine) as db_session:
-            db_users = db_session.exec(select(User).where(User.custom_voice_id != None)).all()
-            for u in db_users:
+            # Get public voices + this user's private voices
+            query = select(UserVoice).where(UserVoice.is_public == True)
+            if user_id:
+                from sqlmodel import or_
+                query = select(UserVoice).where(or_(UserVoice.is_public == True, UserVoice.user_id == user_id))
+            
+            db_voices = db_session.exec(query).all()
+            for v_obj in db_voices:
                 # Avoid duplicates if already in static list
-                if any(v["key"] == u.custom_voice_id for v in voices):
+                if any(v["key"] == v_obj.id for v in voices):
                     continue
                 voices.append({
-                    "key": u.custom_voice_id,
-                    "name": u.custom_voice_name or f"Stimme von {u.username or u.email}",
+                    "key": v_obj.id, # We use the UserVoice.id as the key
+                    "name": v_obj.name,
                     "gender": "neutral",
                     "engine": "fish",
                 })
@@ -275,25 +282,29 @@ async def generate_tts_chunk(
         engine = "edge" # Fallback
         voice_config = None
         
-        # Look up in DB if the key looks like a Fish UUID (32 chars)
+        # Look up in DB if the key looks like a UUID (32+ chars)
         if len(voice_key) >= 30:
             try:
-                # Use the 'db_engine' imported from app.database
+                from app.models import UserVoice
                 with Session(db_engine) as db_session:
-                    # Clean the key for safety
                     vk_clean = str(voice_key).strip().lower()
-                    user_with_voice = db_session.exec(select(User).where(User.custom_voice_id == vk_clean)).first()
+                    # It could be UserVoice.id or legacy fish_voice_id directly 
+                    voice_obj = db_session.get(UserVoice, vk_clean) # Try primary key first
                     
-                    if not user_with_voice:
-                        # Try case-insensitive just in case
-                        user_with_voice = db_session.exec(select(User).where(User.custom_voice_id == voice_key)).first()
-                    
-                    if user_with_voice:
+                    if not voice_obj:
+                        # Fallback try checking fish_voice_id or case-insensitive
+                        voice_obj = db_session.exec(select(UserVoice).where(UserVoice.fish_voice_id == vk_clean)).first()
+                    if not voice_obj:
+                        voice_obj = db_session.exec(select(UserVoice).where(UserVoice.fish_voice_id == voice_key)).first()
+                    if not voice_obj:
+                        voice_obj = db_session.exec(select(UserVoice).where(UserVoice.id == voice_key)).first()
+                        
+                    if voice_obj:
                         engine = "fish"
-                        voice_config = {"id": user_with_voice.custom_voice_id}
-                        logger.info(f"TTS: Found custom Fish voice {voice_config['id']} for user {user_with_voice.email}")
+                        voice_config = {"id": voice_obj.fish_voice_id}
+                        logger.info(f"TTS: Found custom Fish voice {voice_config['id']} for user {voice_obj.user_id}")
                     else:
-                        logger.debug(f"TTS: Key {voice_key} looks like UUID but no user found with this custom_voice_id.")
+                        logger.debug(f"TTS: Key {voice_key} looks like UUID but no UserVoice found.")
             except Exception as e:
                 logger.error(f"Error checking dynamic voice ID: {e}")
 

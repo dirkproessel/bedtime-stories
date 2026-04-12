@@ -23,6 +23,17 @@ class User(SQLModel, table=True):
     custom_voice_id: Optional[str] = Field(default=None)
     custom_voice_name: Optional[str] = Field(default=None)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    
+    custom_voices: list["UserVoice"] = Relationship()
+
+class UserVoice(SQLModel, table=True):
+    """Custom cloned voices for a user."""
+    id: str = Field(primary_key=True)
+    user_id: str = Field(foreign_key="user.id", index=True)
+    fish_voice_id: str = Field(index=True)
+    name: str = Field(default="My Voice")
+    is_public: bool = Field(default=False)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class UserFavorite(SQLModel, table=True):
     """Many-to-many relationship for favorites."""
@@ -85,8 +96,17 @@ class UserResponse(BaseModel):
     created_at: datetime
     story_count: int = 0
     alexa_user_id: Optional[str] = None
-    custom_voice_id: Optional[str] = None
-    custom_voice_name: Optional[str] = None
+    custom_voice_id: Optional[str] = None # Deprecated, keep for backward compat
+    custom_voice_name: Optional[str] = None # Deprecated, keep for backward compat
+    custom_voices: list["UserVoiceResponse"] = []
+
+class UserVoiceResponse(BaseModel):
+    id: str
+    user_id: str
+    fish_voice_id: str
+    name: str
+    is_public: bool
+    created_at: datetime
 
 class PasswordUpdate(BaseModel):
     current_password: str
