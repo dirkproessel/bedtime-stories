@@ -161,6 +161,7 @@ export default function AccountScreen() {
         try {
             const updatedUser = await cloneVoice(file);
             useStore.setState({ user: updatedUser });
+            await useStore.getState().loadVoices(); // Refresh global voice list
             toast.success('Stimme erfolgreich geklont!', { id: toastId });
         } catch (e: any) {
             toast.error(e.message || 'Fehler beim Klonen', { id: toastId });

@@ -32,6 +32,7 @@ export interface SystemVoice {
     name: string;
     engine: string;
     gender: string;
+    description?: string;
     is_active: boolean;
     fish_voice_id?: string;
 }

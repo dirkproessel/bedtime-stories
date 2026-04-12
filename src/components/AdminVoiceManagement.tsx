@@ -74,6 +74,11 @@ export default function AdminVoiceManagement() {
                                     <div className="text-xs text-slate-500 font-mono truncate max-w-[150px]">
                                         ID: {voice.id}
                                     </div>
+                                    {voice.description && (
+                                        <div className="text-[10px] text-blue-400/70 italic mt-0.5 max-w-[200px] truncate">
+                                            {voice.description}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
@@ -134,6 +139,11 @@ export default function AdminVoiceManagement() {
                                         <div className="text-[10px] text-amber-500/70 font-mono flex items-center gap-1">
                                             <span className="text-slate-600">FISH:</span> {voice.fish_voice_id}
                                         </div>
+                                        {voice.description && (
+                                            <div className="text-[10px] text-emerald-400/80 italic mt-0.5 max-w-[250px] truncate">
+                                                ★ {voice.description}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>
