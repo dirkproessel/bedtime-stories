@@ -316,11 +316,28 @@ async def create_voice_clone(
             # 2. Analyze with Gemini
             if settings.GEMINI_API_KEY and preview_path.exists():
                 logger.info(f"Starting Gemini analysis for voice {new_voice.id}...")
-                import google.generativeai as genai
-                genai.configure(api_key=settings.GEMINI_API_KEY)
+                from google import genai
+                import time
+                client = genai.Client(api_key=settings.GEMINI_API_KEY)
                 
                 def analyze_audio():
-                    uploaded = genai.upload_file(path=str(preview_path), display_name=preview_path.stem)
+                    # 1. Upload the file
+                    logger.info(f"Uploading preview to Gemini: {preview_path}")
+                    audio_file = client.files.upload(file=str(preview_path))
+                    
+                    # 2. Wait for processing (optional but safer for audio)
+                    # For very small files this is usually instant
+                    # Note: Using polling for state
+                    max_polls = 5
+                    for i in range(max_polls):
+                        if audio_file.state == 'ACTIVE':
+                            break
+                        if audio_file.state == 'FAILED':
+                            raise Exception(f"Gemini file processing failed: {audio_file.error}")
+                        logger.info(f"Waiting for Gemini file processing (Attempt {i+1})...")
+                        time.sleep(2)
+                        audio_file = client.files.get(name=audio_file.name)
+                    
                     prompt = '''
                     Hör dir diese kurze Sprachaufnahme an.
                     Analysiere die Stimme und antworte **ausschließlich** im folgenden JSON Format ohne Markdown-Blöcke:
@@ -329,9 +346,19 @@ async def create_voice_clone(
                         "description": "Maximal 2 bis 3 kurze, knackige Worte zum Klang der Stimme (z.B. 'Warm & sanft')"
                     }
                     '''
-                    model_genai = genai.GenerativeModel("gemini-1.5-flash")
-                    res = model_genai.generate_content([uploaded, prompt])
-                    genai.delete_file(uploaded.name)
+                    
+                    logger.info("Generating content description with Gemini...")
+                    res = client.models.generate_content(
+                        model='gemini-1.5-flash',
+                        contents=[prompt, audio_file]
+                    )
+                    
+                    # Clean up
+                    try:
+                        client.files.delete(name=audio_file.name)
+                    except:
+                        pass
+                        
                     return res.text
                 
                 res_text = await asyncio.to_thread(analyze_audio)
