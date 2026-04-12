@@ -516,7 +516,7 @@ export default function StoryCreator() {
                                                             </button>
                                                         </div>
                                                         <div className={`text-xs line-clamp-2 leading-tight ${voiceKey === v.key ? 'text-white/80' : 'text-slate-500'}`}>
-                                                            {voiceDesc(v.key)}
+                                                            {v.description || voiceDesc(v.key)}
                                                         </div>
                                                     </div>
                                                 ))}
