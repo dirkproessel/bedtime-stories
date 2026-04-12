@@ -113,8 +113,26 @@ def ensure_migrations():
                     print(f"Migration: Adding {col_name} to uservoice...")
                     cur.execute(f"ALTER TABLE uservoice ADD COLUMN {col_name} {col_type}")
                     conn.commit()
+            
+            # --- Check if columns exist in systemvoice table ---
+            cur.execute("PRAGMA table_info(systemvoice)")
+            sys_columns = [row[1] for row in cur.fetchall()]
+            
+            sys_needed = [
+                ("description", "TEXT"),
+                ("is_active", "BOOLEAN DEFAULT 1"),
+                ("fish_voice_id", "TEXT"),
+                ("created_at", "DATETIME")
+            ]
+            
+            for col_name, col_type in sys_needed:
+                if col_name.lower() not in [c.lower() for c in sys_columns]:
+                    print(f"Migration: Adding {col_name} to systemvoice...")
+                    cur.execute(f"ALTER TABLE systemvoice ADD COLUMN {col_name} {col_type}")
+                    conn.commit()
+                    
         except Exception as e:
-            print(f"Migration uservoice warning: {e}")
+            print(f"Migration voice/systemvoice warning: {e}")
         
     except Exception as e:
         print(f"Migration error: {e}")
