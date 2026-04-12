@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useStore } from '../store/useStore';
 import { updateKindleEmail, updateUsername, uploadProfilePicture, unlinkAlexa, cloneVoice, updateCustomVoice, deleteCustomVoice } from '../lib/api';
-import { LogOut, Download, Mail, Check, Loader2, Radio, Copy, User, Shield, Camera, Mic, Music, Trash2, Globe, Lock } from 'lucide-react';
+import { LogOut, Download, Mail, Check, Loader2, Radio, Copy, User, Shield, Camera, Mic, Music, Trash2, Globe, Lock, Venus, Mars, Users } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ProfilePictureUpload from './ProfilePictureUpload';
 
@@ -59,21 +59,32 @@ function VoiceCloneItem({ voice, onUpdate }: { voice: any, onUpdate: (user: any)
                    </button>
                </div>
             </div>
-            <div className="flex gap-2 relative">
-                <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="flex-1 px-3 py-1.5 bg-black/20 border border-white/5 rounded-lg focus:ring-1 focus:ring-emerald-500/50 outline-none text-sm text-white"
-                />
-                {(name !== voice.name) && (
-                    <button
-                        onClick={handleSave}
-                        disabled={isSaving}
-                        className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-white rounded-lg flex items-center justify-center disabled:opacity-50 transition-colors"
-                    >
-                        {isSaving ? <Loader2 className="w-4 h-4 animate-spin"/> : <Check className="w-4 h-4"/>}
-                    </button>
+            <div className="flex flex-col gap-1 relative">
+                <div className="flex gap-2">
+                    <input
+                        type="text"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className="flex-1 px-3 py-1.5 bg-black/20 border border-white/5 rounded-lg focus:ring-1 focus:ring-emerald-500/50 outline-none text-sm text-white"
+                    />
+                    {(name !== voice.name) && (
+                        <button
+                            onClick={handleSave}
+                            disabled={isSaving}
+                            className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-white rounded-lg flex items-center justify-center disabled:opacity-50 transition-colors"
+                        >
+                            {isSaving ? <Loader2 className="w-4 h-4 animate-spin"/> : <Check className="w-4 h-4"/>}
+                        </button>
+                    )}
+                </div>
+                {(voice.gender || voice.description) && (
+                    <div className="text-[10px] text-slate-500 italic px-1 flex gap-1.5 items-center">
+                        {voice.gender === 'female' ? <Venus className="w-3.5 h-3.5 text-pink-500/50" /> :
+                         voice.gender === 'male' ? <Mars className="w-3.5 h-3.5 text-blue-500/50" /> : 
+                         voice.gender === 'neutral' ? <Users className="w-3.5 h-3.5 text-slate-500/50" /> : null}
+                        {(voice.gender && voice.description) && <span className="text-slate-700">&bull;</span>}
+                        {voice.description && <span>{voice.description}</span>}
+                    </div>
                 )}
             </div>
         </div>

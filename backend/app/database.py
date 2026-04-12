@@ -98,6 +98,24 @@ def ensure_migrations():
 
         # We keep custom_voice_id on user table for easy fallback for now.
         
+        # Check if columns exist in uservoice table
+        try:
+            cur.execute("PRAGMA table_info(uservoice)")
+            voice_columns = [row[1] for row in cur.fetchall()]
+            
+            voice_needed = [
+                ("gender", "TEXT"),
+                ("description", "TEXT")
+            ]
+            
+            for col_name, col_type in voice_needed:
+                if col_name.lower() not in [c.lower() for c in voice_columns]:
+                    print(f"Migration: Adding {col_name} to uservoice...")
+                    cur.execute(f"ALTER TABLE uservoice ADD COLUMN {col_name} {col_type}")
+                    conn.commit()
+        except Exception as e:
+            print(f"Migration uservoice warning: {e}")
+        
     except Exception as e:
         print(f"Migration error: {e}")
     finally:

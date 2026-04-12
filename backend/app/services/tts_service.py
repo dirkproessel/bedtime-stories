@@ -235,7 +235,7 @@ def get_available_voices(user_id: str | None = None) -> list[dict]:
                 voices.append({
                     "key": v_obj.id, # We use the UserVoice.id as the key
                     "name": v_obj.name,
-                    "gender": "neutral",
+                    "gender": v_obj.gender if hasattr(v_obj, "gender") and v_obj.gender else "neutral",
                     "engine": "fish",
                 })
     except Exception as e:

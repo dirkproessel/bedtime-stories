@@ -21,6 +21,8 @@ export interface UserVoice {
     fish_voice_id: string;
     name: string;
     is_public: boolean;
+    gender?: string;
+    description?: string;
     created_at: string;
 }
 

@@ -285,6 +285,51 @@ async def create_voice_clone(
         
         session.add(new_voice)
         session.commit()
+        
+        # 1. Generate Voice Preview
+        from app.services.tts_service import generate_voice_preview
+        from pathlib import Path
+        import json
+        
+        preview_dir = settings.AUDIO_OUTPUT_DIR / "previews"
+        preview_dir.mkdir(parents=True, exist_ok=True)
+        preview_path = preview_dir / f"{new_voice.id}.mp3"
+        
+        try:
+            await generate_voice_preview(new_voice.id, preview_path)
+            
+            # 2. Analyze with Gemini
+            if settings.GEMINI_API_KEY and preview_path.exists():
+                import google.generativeai as genai
+                genai.configure(api_key=settings.GEMINI_API_KEY)
+                
+                def analyze_audio():
+                    uploaded = genai.upload_file(path=str(preview_path), display_name=preview_path.stem)
+                    prompt = '''
+                    Hör dir diese kurze Sprachaufnahme an.
+                    Analysiere die Stimme und antworte **ausschließlich** im folgenden JSON Format ohne Markdown-Blöcke:
+                    {
+                        "gender": "Schreibe exakt 'male', 'female' oder 'neutral'",
+                        "description": "Maximal 2 bis 3 kurze, knackige Worte zum Klang der Stimme (z.B. 'Warm & sanft')"
+                    }
+                    '''
+                    model = genai.GenerativeModel("gemini-1.5-flash")
+                    res = model.generate_content([uploaded, prompt])
+                    genai.delete_file(uploaded.name)
+                    return res.text
+                
+                res_text = await asyncio.to_thread(analyze_audio)
+                clean_text = res_text.replace("```json", "").replace("```", "").strip()
+                data = json.loads(clean_text)
+                
+                new_voice.gender = data.get("gender")
+                new_voice.description = data.get("description")
+                session.add(new_voice)
+                session.commit()
+                logger.info(f"Gemini voice analysis succeeded: {data}")
+                
+        except Exception as preview_err:
+            logger.warning(f"Failed to generate or analyze voice preview for {new_voice.id}: {preview_err}")
         session.refresh(current_user)
         
         logger.info(f"Successfully created voice clone {model.id} for user {current_user.email}")

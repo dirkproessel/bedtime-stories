@@ -33,6 +33,8 @@ class UserVoice(SQLModel, table=True):
     fish_voice_id: str = Field(index=True)
     name: str = Field(default="My Voice")
     is_public: bool = Field(default=False)
+    gender: Optional[str] = Field(default=None)
+    description: Optional[str] = Field(default=None)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class UserFavorite(SQLModel, table=True):
