@@ -61,7 +61,7 @@ GEMINI_VOICES = {
 
 # Fish Audio (Cloned Voices)
 FISH_VOICES = {
-    # Custom User Voices are added dynamically below
+    "jenny": {"id": "cb55f2fc1a144c74b70ea7fdeb6b9f95", "name": "Jenny", "gender": "female"},
 }
 
 
@@ -83,6 +83,7 @@ VOICE_INSTRUCTIONS = {
     "laomedeia": "„Deine Stimme ist neugierig, aktiv und präsent. Du klingst stets wach und interessiert an der Geschichte.“",
     "despina": "„Du hast eine kultivierte, elegante und gehobene Stimme. Deine Ausstrahlung ist aristokratisch und fließend.“",
     "umbriel": "„Deine Stimme ist locker, unkompliziert und flexibel. Du klingst wie jemand, der eine Geschichte ganz entspannt nebenbei erzählt.“",
+    "jenny": "„Du bist eine Frau mit einer freundlichen und entspannten Stimme. Du klingst herzlich und gelassen.“",
 }
 
 # 1b. Genre Tweaks (User-Defined)
