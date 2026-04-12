@@ -63,7 +63,7 @@ class StoryService:
         story_dir.mkdir(parents=True, exist_ok=True)
 
         voice_name = "Unbekannt"
-        all_voices = get_available_voices()
+        all_voices = get_available_voices(user_id=user_id)
         for v in all_voices:
             if v["key"] == voice_key:
                 voice_name = v["name"]
@@ -362,12 +362,12 @@ class StoryService:
             await merge_audio_files(audio_files, final_audio_path, settings.INTRO_MUSIC_PATH, settings.OUTRO_MUSIC_PATH)
 
             duration = await get_audio_duration(final_audio_path)
-            all_voices = get_available_voices()
+            curr = store.get_by_id(story_id)
+            all_voices = get_available_voices(user_id=curr.user_id if curr else None)
             actual_voice_name = next((v["name"] for v in all_voices if v["key"] == actual_voice), "Unbekannt")
 
             await on_progress("done", "Fertig!", points=total_points, is_absolute_points=True)
 
-            curr = store.get_by_id(story_id)
             if curr:
                 curr.duration_seconds = duration
                 curr.voice_key = actual_voice
