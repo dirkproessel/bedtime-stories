@@ -347,9 +347,9 @@ async def create_voice_clone(
                     }
                     '''
                     
-                    logger.info("Generating content description with Gemini...")
+                    logger.info("Generating content description with Gemini using gemini-2.0-flash...")
                     res = client.models.generate_content(
-                        model='gemini-1.5-flash',
+                        model='gemini-2.0-flash',
                         contents=[prompt, audio_file]
                     )
                     
