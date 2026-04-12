@@ -185,6 +185,7 @@ class VoiceProfile(BaseModel):
     name: str
     gender: str
     engine: str
+    description: str | None = None
     accent: str | None = "DE"
     style: str | None = "Standard"
 
