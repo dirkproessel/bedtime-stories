@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useStore } from '../store/useStore';
-import { updateKindleEmail, updateUsername, uploadProfilePicture, unlinkAlexa, cloneVoice, updateVoiceName, updateCustomVoice, deleteCustomVoice } from '../lib/api';
+import { updateKindleEmail, updateUsername, uploadProfilePicture, unlinkAlexa, cloneVoice, updateCustomVoice, deleteCustomVoice } from '../lib/api';
 import { LogOut, Download, Mail, Check, Loader2, Radio, Copy, User, Shield, Camera, Mic, Music, Trash2, Globe, Lock } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ProfilePictureUpload from './ProfilePictureUpload';

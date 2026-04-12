@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useStore } from '../store/useStore';
 import { 
-    fetchStory, getImageUrl, getThumbUrl, type StoryDetail, exportStoryToKindle, 
+    fetchStory, getThumbUrl, type StoryDetail, exportStoryToKindle, 
     getVoicePreviewUrl
 } from '../lib/api';
 import { 
