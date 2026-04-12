@@ -752,7 +752,7 @@ async def regenerate_story_image_api(
                 store.add_story(meta)
                 # Thumbnail
                 try:
-                    await _generate_thumbnail(image_path, story_dir / "cover_thumb.jpg")
+                    await story_service._generate_thumbnail(image_path, story_dir / "cover_thumb.jpg")
                 except Exception as te:
                     logger.warning(f"Manual thumbnail generation failed for {story_id}: {te}")
                 logger.info(f"Manual image regeneration successful for {story_id}")
@@ -790,7 +790,7 @@ async def get_story_thumbnail(story_id: str):
     # Generate on demand if thumbnail doesn't exist yet but cover does
     if not thumb_path.exists() and cover_path.exists():
         try:
-            success = await _generate_thumbnail(cover_path, thumb_path)
+            success = await story_service._generate_thumbnail(cover_path, thumb_path)
             if not success:
                 # FALLBACK: Serve full image as thumb if generation fails
                 logger.info(f"Serving cover.png as fallback for {story_id} because thumb gen failed")

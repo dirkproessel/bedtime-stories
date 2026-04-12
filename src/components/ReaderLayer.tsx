@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useStore } from '../store/useStore';
 import { 
-    fetchStory, getImageUrl, type StoryDetail, exportStoryToKindle, 
+    fetchStory, getImageUrl, getThumbUrl, type StoryDetail, exportStoryToKindle, 
     getVoicePreviewUrl
 } from '../lib/api';
 import { 
@@ -290,7 +290,7 @@ export default function ReaderLayer() {
                             {story.image_url ? (
                                 <div className="w-56 h-56 mx-auto rounded-3xl overflow-hidden mb-6 shadow-2xl border-4 border-surface">
                                     <img 
-                                        src={getImageUrl(story.id, story.updated_at)} 
+                                        src={getThumbUrl(story.id, story.updated_at)} 
                                         alt={story.title} 
                                         className="w-full h-full object-cover" 
                                     />
