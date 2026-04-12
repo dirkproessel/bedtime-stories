@@ -16,8 +16,8 @@ from fish_audio_sdk import Session as FishSession, TTSRequest
 
 # Available Edge TTS German voices (Simplified)
 EDGE_VOICES = {
-    "seraphina": {"id": "de-DE-SeraphinaMultilingualNeural", "name": "Seraphina", "gender": "female"},
-    "florian": {"id": "de-DE-FlorianMultilingualNeural", "name": "Florian", "gender": "male"},
+    "seraphina": {"id": "de-DE-SeraphinaMultilingualNeural", "name": "Seraphina", "gender": "female", "description": "Warm & melodisch"},
+    "florian": {"id": "de-DE-FlorianMultilingualNeural", "name": "Florian", "gender": "male", "description": "Klar & natürlich"},
 }
 
 # Google Cloud TTS Neural2 voices (Temporarily Disabled)
@@ -39,29 +39,29 @@ OPENAI_VOICES = {
 # Gemini TTS voices
 GEMINI_VOICES = {
     # --- Standard / Top 8 ---
-    "aoede":      {"id": "Aoede",      "name": "Aoede",      "gender": "female"},   # Breezy, klar
-    "kore":       {"id": "Kore",       "name": "Kore",        "gender": "female"},   # Firm, energetisch
-    "sulafat":    {"id": "Sulafat",    "name": "Sulafat",     "gender": "female"},   # Warm, überzeugend
-    "gacrux":     {"id": "Gacrux",     "name": "Gacrux",      "gender": "male"},     # Smooth, tief-resonant
-    "charon":     {"id": "Charon",     "name": "Charon",      "gender": "male"},     # Informative, smooth
-    "fenrir":     {"id": "Fenrir",     "name": "Fenrir",      "gender": "male"},     # Excitable, warm
-    "orus":       {"id": "Orus",       "name": "Orus",        "gender": "male"},     # Firm, klar
-    "zephyr":     {"id": "Zephyr",     "name": "Zephyr",      "gender": "neutral"},  # Bright, frisch
+    "aoede":      {"id": "Aoede",      "name": "Aoede",      "gender": "female",  "description": "Leicht & klar"},
+    "kore":       {"id": "Kore",       "name": "Kore",        "gender": "female",  "description": "Fest & energetisch"},
+    "sulafat":    {"id": "Sulafat",    "name": "Sulafat",     "gender": "female",  "description": "Warm & überzeugend"},
+    "gacrux":     {"id": "Gacrux",     "name": "Gacrux",      "gender": "male",    "description": "Tief & resonant"},
+    "charon":     {"id": "Charon",     "name": "Charon",      "gender": "male",    "description": "Smooth & sachlich"},
+    "fenrir":     {"id": "Fenrir",     "name": "Fenrir",      "gender": "male",    "description": "Warm & lebendig"},
+    "orus":       {"id": "Orus",       "name": "Orus",        "gender": "male",    "description": "Fest & klar"},
+    "zephyr":     {"id": "Zephyr",     "name": "Zephyr",      "gender": "neutral", "description": "Hell & frisch"},
     # --- Weitere 8 (Show More) ---
-    "enceladus":  {"id": "Enceladus",  "name": "Enceladus",   "gender": "male"},     # Breathy, sanft
-    "puck":       {"id": "Puck",       "name": "Puck",        "gender": "male"},     # Upbeat, lebendig
-    "schedar":    {"id": "Schedar",    "name": "Schedar",     "gender": "male"},     # Even, entspannt
-    "iapetus":    {"id": "Iapetus",    "name": "Iapetus",     "gender": "male"},     # Clear, Everyman
-    "algenib":    {"id": "Algenib",    "name": "Algenib",     "gender": "female"},   # Gravelly, charakterstark
-    "laomedeia":  {"id": "Laomedeia", "name": "Laomedeia",   "gender": "female"},   # Upbeat, inquisitiv
-    "despina":    {"id": "Despina",    "name": "Despina",     "gender": "female"},   # Smooth, fließend
-    "umbriel":    {"id": "Umbriel",    "name": "Umbriel",     "gender": "neutral"},  # Easy-going, vielseitig
+    "enceladus":  {"id": "Enceladus",  "name": "Enceladus",   "gender": "male",    "description": "Sanft & hauchend"},
+    "puck":       {"id": "Puck",       "name": "Puck",        "gender": "male",    "description": "Aufgeweckt & lebhaft"},
+    "schedar":    {"id": "Schedar",    "name": "Schedar",     "gender": "male",    "description": "Gleichmäßig & ruhig"},
+    "iapetus":    {"id": "Iapetus",    "name": "Iapetus",     "gender": "male",    "description": "Bodenständig & klar"},
+    "algenib":    {"id": "Algenib",    "name": "Algenib",     "gender": "female",  "description": "Rau & charakterstark"},
+    "laomedeia":  {"id": "Laomedeia", "name": "Laomedeia",   "gender": "female",  "description": "Aufgeweckt & neugierig"},
+    "despina":    {"id": "Despina",    "name": "Despina",     "gender": "female",  "description": "Sanft & fließend"},
+    "umbriel":    {"id": "Umbriel",    "name": "Umbriel",     "gender": "neutral", "description": "Entspannt & vielseitig"},
 }
 
 
 # Fish Audio (Cloned Voices)
 FISH_VOICES = {
-    "jenny": {"id": "cb55f2fc1a144c74b70ea7fdeb6b9f95", "name": "Jenny", "gender": "female"},
+    "jenny": {"id": "cb55f2fc1a144c74b70ea7fdeb6b9f95", "name": "Jenny", "gender": "female", "description": "Freundlich & entspannt"},
 }
 
 
@@ -187,6 +187,7 @@ def get_available_voices(user_id: str | None = None) -> list[dict]:
                     "name": v.name,
                     "gender": v.gender,
                     "engine": v.engine,
+                    "description": v.description,
                 })
             
             # 2. Cloned Voices (public or owned by user)
@@ -204,6 +205,7 @@ def get_available_voices(user_id: str | None = None) -> list[dict]:
                     "name": v_obj.name,
                     "gender": v_obj.gender or "neutral",
                     "engine": "fish",
+                    "description": v_obj.description,
                 })
                 
         if not voices:

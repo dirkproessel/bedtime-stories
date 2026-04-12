@@ -105,13 +105,13 @@ class StoryStore:
             items = []
             
             for k, v in EDGE_VOICES.items():
-                items.append(SystemVoice(id=k, name=v['name'], engine="edge", gender=v['gender']))
+                items.append(SystemVoice(id=k, name=v['name'], engine="edge", gender=v['gender'], description=v.get('description')))
             
             for k, v in GEMINI_VOICES.items():
-                items.append(SystemVoice(id=k, name=v['name'], engine="gemini", gender=v['gender']))
+                items.append(SystemVoice(id=k, name=v['name'], engine="gemini", gender=v['gender'], description=v.get('description')))
                 
             for k, v in FISH_VOICES.items():
-                items.append(SystemVoice(id=k, name=v['name'], engine="fish", gender=v['gender'], fish_voice_id=v['id']))
+                items.append(SystemVoice(id=k, name=v['name'], engine="fish", gender=v['gender'], fish_voice_id=v['id'], description=v.get('description')))
 
             for itm in items:
                 session.add(itm)

@@ -43,6 +43,7 @@ class SystemVoice(SQLModel, table=True):
     name: str
     engine: str  # "edge", "gemini", "fish", "openai"
     gender: str  # "male", "female", "neutral"
+    description: Optional[str] = Field(default=None)
     is_active: bool = Field(default=True)
     fish_voice_id: Optional[str] = Field(default=None)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

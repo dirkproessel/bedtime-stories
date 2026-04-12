@@ -56,6 +56,7 @@ export interface VoiceProfile {
     name: string;
     gender: string;
     engine: string;
+    description?: string;
     accent?: string;
     style?: string;
 }

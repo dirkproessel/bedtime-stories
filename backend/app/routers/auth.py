@@ -317,6 +317,7 @@ async def create_voice_clone(
             if settings.GEMINI_API_KEY and preview_path.exists():
                 logger.info(f"Starting Gemini analysis for voice {new_voice.id}...")
                 from google import genai
+                from google.genai import types
                 import time
                 client = genai.Client(api_key=settings.GEMINI_API_KEY)
                 
@@ -338,19 +339,26 @@ async def create_voice_clone(
                         time.sleep(2)
                         audio_file = client.files.get(name=audio_file.name)
                     
-                    prompt = '''
-                    Hör dir diese kurze Sprachaufnahme an.
-                    Analysiere die Stimme und antworte **ausschließlich** im folgenden JSON Format ohne Markdown-Blöcke:
-                    {
-                        "gender": "Schreibe exakt 'male', 'female' oder 'neutral'",
-                        "description": "Maximal 2 bis 3 kurze, knackige Worte zum Klang der Stimme (z.B. 'Warm & sanft')"
-                    }
+                    prompt = f'''
+                    Hör dir diese kurze Sprachaufnahme genau an. 
+                    Dies ist eine neu erstellte KI-Stimme. 
+                    Analysiere die Charakteristik, Tonlage und Stimmung der Stimme.
+                    
+                    Antworte **ausschließlich** im folgenden JSON Format ohne Markdown-Blöcke:
+                    {{
+                        "gender": "male, female oder neutral",
+                        "description": "2-3 treffende Worte zum Klang (z.B. 'Tief & autoritär', 'Hell & freundlich', 'Rauchig & sanft')"
+                    }}
                     '''
                     
-                    logger.info(f"Generating content description with Gemini using {settings.GEMINI_TEXT_MODEL}...")
+                    logger.info(f"Generating content description with Gemini using {settings.GEMINI_TEXT_MODEL} (Temperature 0.9)...")
                     res = client.models.generate_content(
                         model=settings.GEMINI_TEXT_MODEL,
-                        contents=[prompt, audio_file]
+                        contents=[prompt, audio_file],
+                        config=types.GenerateContentConfig(
+                            temperature=0.9,
+                            top_p=0.95
+                        )
                     )
                     
                     # Clean up
