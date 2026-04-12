@@ -285,6 +285,7 @@ async def create_voice_clone(
         
         session.add(new_voice)
         session.commit()
+        session.refresh(new_voice)
         
         # 1. Generate Voice Preview
         from app.services.tts_service import generate_voice_preview
@@ -296,10 +297,25 @@ async def create_voice_clone(
         preview_path = preview_dir / f"{new_voice.id}.mp3"
         
         try:
-            await generate_voice_preview(new_voice.id, preview_path)
+            # Retry loop for preview generation (gives Fish Audio time to index the new model)
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    logger.info(f"Generating preview for voice {new_voice.id} (Attempt {attempt + 1}/{max_retries})...")
+                    await generate_voice_preview(new_voice.id, preview_path, direct_fish_id=model.id)
+                    if preview_path.exists() and preview_path.stat().st_size > 1000:
+                        logger.info(f"Preview generated successfully on attempt {attempt + 1}")
+                        break
+                except Exception as e:
+                    if attempt == max_retries - 1:
+                        logger.error(f"Final attempt failed for preview {new_voice.id}: {e}")
+                        raise e
+                    logger.warning(f"Preview attempt {attempt + 1} failed, retrying in 2s...")
+                    await asyncio.sleep(2)
             
             # 2. Analyze with Gemini
             if settings.GEMINI_API_KEY and preview_path.exists():
+                logger.info(f"Starting Gemini analysis for voice {new_voice.id}...")
                 import google.generativeai as genai
                 genai.configure(api_key=settings.GEMINI_API_KEY)
                 
@@ -313,12 +329,14 @@ async def create_voice_clone(
                         "description": "Maximal 2 bis 3 kurze, knackige Worte zum Klang der Stimme (z.B. 'Warm & sanft')"
                     }
                     '''
-                    model = genai.GenerativeModel("gemini-1.5-flash")
-                    res = model.generate_content([uploaded, prompt])
+                    model_genai = genai.GenerativeModel("gemini-1.5-flash")
+                    res = model_genai.generate_content([uploaded, prompt])
                     genai.delete_file(uploaded.name)
                     return res.text
                 
                 res_text = await asyncio.to_thread(analyze_audio)
+                logger.info(f"Gemini raw response: {res_text}")
+                
                 clean_text = res_text.replace("```json", "").replace("```", "").strip()
                 data = json.loads(clean_text)
                 
@@ -326,10 +344,13 @@ async def create_voice_clone(
                 new_voice.description = data.get("description")
                 session.add(new_voice)
                 session.commit()
-                logger.info(f"Gemini voice analysis succeeded: {data}")
+                logger.info(f"Gemini voice analysis succeeded for {new_voice.id}: {data}")
+            else:
+                logger.warning(f"Skipping Gemini analysis. API Key: {'Set' if settings.GEMINI_API_KEY else 'Missing'}, Preview path exists: {preview_path.exists()}")
                 
         except Exception as preview_err:
-            logger.warning(f"Failed to generate or analyze voice preview for {new_voice.id}: {preview_err}")
+            logger.error(f"Failed to generate or analyze voice preview for {new_voice.id}: {str(preview_err)}", exc_info=True)
+            
         session.refresh(current_user)
         
         logger.info(f"Successfully created voice clone {model.id} for user {current_user.email}")

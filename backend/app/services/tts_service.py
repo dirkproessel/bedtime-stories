@@ -262,6 +262,7 @@ async def generate_tts_chunk(
     genre: str | None = None,
     previous_text: str | None = None,
     on_chunk_progress: callable = None,
+    direct_fish_id: str | None = None,
 ) -> tuple[Path, str]:
     """
     Convert text to speech and save as MP3.
@@ -283,7 +284,10 @@ async def generate_tts_chunk(
         voice_config = None
         
         # Look up in DB if the key looks like a UUID (32+ chars)
-        if len(voice_key) >= 30:
+        if direct_fish_id:
+            voice_config = {"id": direct_fish_id, "name": "Custom", "gender": "neutral"}
+            engine = "fish"
+        elif len(voice_key) >= 30:
             try:
                 from app.models import UserVoice
                 with Session(db_engine) as db_session:
@@ -530,6 +534,7 @@ async def generate_tts_chunk(
 async def generate_voice_preview(
     voice_key: str,
     output_path: Path,
+    direct_fish_id: str | None = None,
 ) -> Path:
     """Generate a short preview clip for a voice."""
     import hashlib
@@ -544,7 +549,7 @@ async def generate_voice_preview(
             return output_path
         output_path.unlink(missing_ok=True)
 
-    res_path, _ = await generate_tts_chunk(preview_text, output_path, voice_key)
+    res_path, _ = await generate_tts_chunk(preview_text, output_path, voice_key, direct_fish_id=direct_fish_id)
     hash_marker.write_text(text_hash)
     return res_path
 
