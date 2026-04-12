@@ -25,6 +25,7 @@ export const VOICE_META: Record<string, VoiceMeta> = {
     iapetus: { name: 'Thomas', desc: 'Bodenständig & klar' },
     zephyr: { name: 'Robin', desc: 'Hell & frisch' },
     umbriel: { name: 'Alex', desc: 'Entspannt & vielseitig' },
+    jenny: { name: 'Jenny', desc: 'Freundlich & entspannt' },
     none: { name: 'Keine Stimme', desc: 'Nur Text generieren', isStandard: true },
 };
 
