@@ -194,35 +194,33 @@ async def alexa_webhook(request: Request, session: Session = Depends(get_session
     if req_type == "AudioPlayer.PlaybackNearlyFinished":
         token = data.get("request", {}).get("token", "")
         if token.startswith("playlist_"):
-            # Format: playlist_{story_id}_{index}
-            parts = token.split("_")
-            if len(parts) == 3:
-                curr_idx = int(parts[2])
-                playlist = store.get_playlist(user.id)
-                next_idx = curr_idx + 1
-                if next_idx < len(playlist):
-                    next_story = playlist[next_idx]
-                    audio_url = f"{settings.BASE_URL}/api/stories/{next_story.id}/audio"
-                    directive = {
-                        "type": "AudioPlayer.Play",
-                        "playBehavior": "ENQUEUE",
-                        "audioItem": {
-                            "stream": {
-                                "token": f"playlist_{next_story.id}_{next_idx}",
-                                "url": audio_url,
-                                "offsetInMilliseconds": 0,
-                                "expectedPreviousToken": token
-                            },
-                            "metadata": {
-                                "title": next_story.title,
-                                "subtitle": f"Teil {next_idx + 1} deiner Playlist",
-                                "art": {
-                                    "sources": [{"url": f"{settings.BASE_URL}{next_story.image_url}" if next_story.image_url else ""}]
-                                }
+            playlist = store.get_playlist(user.id)
+            if playlist:
+                next_story = playlist[0]
+                # Remove from database immediately as it's being queued
+                store.remove_from_playlist(user.id, next_story.id)
+                
+                audio_url = f"{settings.BASE_URL}/api/stories/{next_story.id}/audio"
+                directive = {
+                    "type": "AudioPlayer.Play",
+                    "playBehavior": "ENQUEUE",
+                    "audioItem": {
+                        "stream": {
+                            "token": f"playlist_{next_story.id}",
+                            "url": audio_url,
+                            "offsetInMilliseconds": 0,
+                            "expectedPreviousToken": token
+                        },
+                        "metadata": {
+                            "title": next_story.title,
+                            "subtitle": "Nächste Geschichte aus deiner Liste",
+                            "art": {
+                                "sources": [{"url": f"{settings.BASE_URL}{next_story.image_url}" if next_story.image_url else ""}]
                             }
                         }
                     }
-                    return {"version": "1.0", "response": {"directives": [directive]}}
+                }
+                return {"version": "1.0", "response": {"directives": [directive]}}
         return {"version": "1.0", "response": {}}
 
     if req_type.startswith("AudioPlayer.") or req_type == "System.ExceptionEncountered":
@@ -322,9 +320,12 @@ async def alexa_webhook(request: Request, session: Session = Depends(get_session
         if intent_name == "PlayPlaylistIntent":
             playlist = store.get_playlist(user.id)
             if not playlist:
-                return alexa_response("Deine Playlist ist aktuell leer. Füge in der App Geschichten hinzu.")
+                return alexa_response("Deine Liste ist aktuell leer. Füge in der App Geschichten hinzu.")
             
             first = playlist[0]
+            # Remove from database immediately as playback starts
+            store.remove_from_playlist(user.id, first.id)
+            
             audio_url = f"{settings.BASE_URL}/api/stories/{first.id}/audio"
             
             directive = {
@@ -332,20 +333,20 @@ async def alexa_webhook(request: Request, session: Session = Depends(get_session
                 "playBehavior": "REPLACE_ALL",
                 "audioItem": {
                     "stream": {
-                        "token": f"playlist_{first.id}_0",
+                        "token": f"playlist_{first.id}",
                         "url": audio_url,
                         "offsetInMilliseconds": 0
                     },
                     "metadata": {
                         "title": first.title,
-                        "subtitle": "Teil 1 deiner Playlist",
+                        "subtitle": "Aus deiner Liste",
                         "art": {
                             "sources": [{"url": f"{settings.BASE_URL}{first.image_url}" if first.image_url else ""}]
                         }
                     }
                 }
             }
-            return alexa_response(f"Ich starte deine Playlist mit: {first.title}.", should_end_session=True, directives=[directive])
+            return alexa_response(f"Alles klar! Ich spiele deine Geschichte: {first.title}.", should_end_session=True, directives=[directive])
 
         if intent_name == "ClearPlaylistIntent":
             store.clear_playlist(user.id)
@@ -404,15 +405,18 @@ async def alexa_webhook(request: Request, session: Session = Depends(get_session
                     return alexa_response("Deine Liste ist aktuell leer. Möchtest du stattdessen eine neue Geschichte erfinden?")
                 
                 first = playlist[0]
+                # Remove from database immediately as playback starts
+                store.remove_from_playlist(user.id, first.id)
+                
                 audio_url = f"{settings.BASE_URL}/api/stories/{first.id}/audio"
                 directive = {
                     "type": "AudioPlayer.Play",
                     "playBehavior": "REPLACE_ALL",
                     "audioItem": {
-                        "stream": {"token": f"playlist_{first.id}_0", "url": audio_url, "offsetInMilliseconds": 0},
+                        "stream": {"token": f"playlist_{first.id}", "url": audio_url, "offsetInMilliseconds": 0},
                         "metadata": {
                             "title": first.title,
-                            "subtitle": "Teil 1 deiner Geschichten",
+                            "subtitle": "Aus deiner Liste",
                             "art": {"sources": [{"url": f"{settings.BASE_URL}{first.image_url}" if first.image_url else ""}]}
                         }
                     }

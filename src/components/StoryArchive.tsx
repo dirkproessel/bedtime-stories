@@ -1544,8 +1544,6 @@ export default function StoryArchive() {
 
                                 {user?.alexa_user_id && activeToolboxStory.voice_key !== 'none' && activeToolboxStory.status === 'done' && (
                                     <>
-                                        <div className="text-[10px] uppercase text-[#64748b] font-bold tracking-widest mt-3 mb-1 px-2">ALEXA WARTESCHLANGE</div>
-                                        
                                         {playlist.some(p => p.id === activeToolboxStory.id) ? (
                                             <button 
                                                 onClick={async () => {
@@ -1561,7 +1559,7 @@ export default function StoryArchive() {
                                                 <div className="w-8 h-8 bg-[#3b1216] rounded-[0.4rem] flex items-center justify-center shrink-0 text-[#ff4b55]">
                                                     <Music className="w-4 h-4" />
                                                 </div>
-                                                <div className="text-left text-[14px] text-[#ff4b55]">
+                                                <div className="text-left text-[14px] text-[#e2e8f0]">
                                                     Aus Playlist entfernen
                                                 </div>
                                             </button>
@@ -1580,7 +1578,7 @@ export default function StoryArchive() {
                                                 <div className="w-8 h-8 bg-[#0c2a3b] rounded-[0.4rem] flex items-center justify-center shrink-0 text-[#38bdf8]">
                                                     <Music className="w-4 h-4" />
                                                 </div>
-                                                <div className="text-left text-[14px] text-[#38bdf8]">
+                                                <div className="text-left text-[14px] text-[#e2e8f0]">
                                                     An Alexa senden
                                                 </div>
                                             </button>
