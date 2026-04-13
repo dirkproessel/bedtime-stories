@@ -125,9 +125,10 @@ def get_canonical_slot_value(slot_data: dict) -> str | None:
                 return values[0].get("value", {}).get("name")
     return slot_data.get("value")
 
-def alexa_response(text: str, should_end_session: bool = False, directives: list = None):
+def alexa_response(text: str, should_end_session: bool = False, directives: list = None, session_attributes: dict = None):
     return {
         "version": "1.0",
+        "sessionAttributes": session_attributes or {},
         "response": {
             "outputSpeech": {
                 "type": "PlainText",
@@ -230,9 +231,18 @@ async def alexa_webhook(request: Request, session: Session = Depends(get_session
 
     # 2. Handle LaunchRequest
     if req_type == "LaunchRequest":
+        playlist = store.get_playlist(user.id)
+        if playlist:
+            prompt = "Willkommen zurück! Möchtest du eine bereits fertige Geschichte hören oder eine neue Geschichte erfinden?"
+            last_prompt = "OFFERED_PLAYLIST"
+        else:
+            prompt = "Willkommen bei Storyja. Möchtest du eine neue Geschichte erfinden?"
+            last_prompt = "OFFERED_CREATE"
+            
         return alexa_response(
-            "Willkommen bei Storyja. Möchtest du eine Geschichte erstellen, deine Playlist abspielen oder deine letzte Geschichte hören?",
-            should_end_session=False
+            prompt,
+            should_end_session=False,
+            session_attributes={"lastPrompt": last_prompt}
         )
 
     if req_type == "IntentRequest":
@@ -381,9 +391,41 @@ async def alexa_webhook(request: Request, session: Session = Depends(get_session
             return alexa_response("Tschüss! Bis zum nächsten Mal.", should_end_session=True, directives=[{"type": "AudioPlayer.Stop"}])
 
         if intent_name == "AMAZON.HelpIntent":
-            return alexa_response("Du kannst mir eine Idee für eine neue Geschichte geben, deine Playlist hören oder deine letzte Geschichte abspielen. Was möchtest du tun?")
+            return alexa_response("Du kannst mir eine Idee für eine neue Geschichte geben oder eine bereits fertige Geschichte aus deiner Playlist hören. Was möchtest du tun?")
 
-    return alexa_response("Das habe ich leider nicht verstanden. Möchtest du eine Geschichte erstellen, deine Playlist hören oder eine abspielen?")
+        if intent_name == "AMAZON.YesIntent":
+            session_attr = data.get("session", {}).get("attributes", {})
+            last_prompt = session_attr.get("lastPrompt")
+            
+            if last_prompt == "OFFERED_PLAYLIST":
+                # User wants to hear the playlist - trigger PlayPlaylist logic
+                playlist = store.get_playlist(user.id)
+                if not playlist:
+                    return alexa_response("Deine Liste ist aktuell leer. Möchtest du stattdessen eine neue Geschichte erfinden?")
+                
+                first = playlist[0]
+                audio_url = f"{settings.BASE_URL}/api/stories/{first.id}/audio"
+                directive = {
+                    "type": "AudioPlayer.Play",
+                    "playBehavior": "REPLACE_ALL",
+                    "audioItem": {
+                        "stream": {"token": f"playlist_{first.id}_0", "url": audio_url, "offsetInMilliseconds": 0},
+                        "metadata": {
+                            "title": first.title,
+                            "subtitle": "Teil 1 deiner Geschichten",
+                            "art": {"sources": [{"url": f"{settings.BASE_URL}{first.image_url}" if first.image_url else ""}]}
+                        }
+                    }
+                }
+                return alexa_response(f"Alles klar! Ich spiele deine Geschichte: {first.title}.", should_end_session=True, directives=[directive])
+            
+            # Default to creation flow
+            return alexa_response("Prima! Über was soll die neue Geschichte handeln?", should_end_session=False)
+
+        if intent_name == "AMAZON.NoIntent":
+            return alexa_response("Kein Problem. Melde dich einfach, wenn du Lust auf eine Geschichte hast. Tschüss!", should_end_session=True)
+
+    return alexa_response("Das habe ich leider nicht verstanden. Möchtest du eine bereits fertige Geschichte hören oder eine neue Geschichte erfinden?")
 
 
 # ──────────────────────────────────
