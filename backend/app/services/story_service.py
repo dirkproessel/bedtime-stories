@@ -267,10 +267,9 @@ class StoryService:
 
             await on_progress("done", "Fertig!", points=total_points, is_absolute_points=True)
 
-            # Trigger Alexa Notification
-            if alexa_user_id:
-                from app.routers.alexa import send_alexa_notification
-                asyncio.create_task(send_alexa_notification(alexa_user_id, real_title))
+            # BENCHMARK
+            logger.info(f"BENCHMARK [{story_id}]: Total Pipeline Finished in {time.time() - start_time_total:.2f}s")
+
 
             logger.info(f"BENCHMARK [{story_id}]: Total Pipeline Finished in {time.time() - start_time_total:.2f}s")
 

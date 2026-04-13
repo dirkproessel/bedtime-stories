@@ -3,7 +3,7 @@ import json
 import logging
 from pathlib import Path
 from sqlmodel import Session, select, delete
-from app.models import StoryMeta, User, UserFavorite, StoryMetaResponse, UserVoice, SystemVoice
+from app.models import StoryMeta, User, UserFavorite, StoryMetaResponse, UserVoice, SystemVoice, PlaylistEntry
 from app.database import engine, create_db_and_tables
 from app.config import settings
 from app.auth_utils import get_password_hash
@@ -289,6 +289,80 @@ class StoryStore:
                 session.commit()
                 return True
             return False
+
+    # ──────────────────────────────────
+    # Playlist Management
+    # ──────────────────────────────────
+
+    def get_playlist(self, user_id: str) -> list[StoryMetaResponse]:
+        """Get the ordered playlist for a user."""
+        with Session(engine) as session:
+            statement = select(StoryMeta).join(PlaylistEntry).where(
+                PlaylistEntry.user_id == user_id
+            ).order_by(PlaylistEntry.position.asc())
+            results = session.exec(statement).all()
+            return [StoryMetaResponse.model_validate(s) for s in results]
+
+    def add_to_playlist(self, user_id: str, story_id: str) -> bool:
+        """Add a story to the end of the user's playlist if eligible."""
+        with Session(engine) as session:
+            # 1. Eligibility Check: Story must exist, be done, and have audio
+            story = session.get(StoryMeta, story_id)
+            if not story or story.status != "done" or story.voice_key == "none":
+                logger.warning(f"Playlist Reject: Story {story_id} not eligible.")
+                return False
+
+            # 2. Duplicate Check: Only once in playlist
+            existing = session.exec(select(PlaylistEntry).where(
+                PlaylistEntry.user_id == user_id, 
+                PlaylistEntry.story_id == story_id
+            )).first()
+            if existing:
+                return True # Already there
+
+            # 3. Find next position
+            max_pos = session.exec(select(PlaylistEntry.position).where(
+                PlaylistEntry.user_id == user_id
+            ).order_by(PlaylistEntry.position.desc())).first()
+            next_pos = (max_pos + 1) if max_pos is not None else 0
+
+            # 4. Add
+            entry = PlaylistEntry(user_id=user_id, story_id=story_id, position=next_pos)
+            session.add(entry)
+            session.commit()
+            return True
+
+    def remove_from_playlist(self, user_id: str, story_id: str) -> bool:
+        """Remove a story and re-index positions."""
+        with Session(engine) as session:
+            entry = session.exec(select(PlaylistEntry).where(
+                PlaylistEntry.user_id == user_id, 
+                PlaylistEntry.story_id == story_id
+            )).first()
+            
+            if not entry:
+                return False
+                
+            session.delete(entry)
+            session.commit()
+            
+            # Re-index
+            others = session.exec(select(PlaylistEntry).where(
+                PlaylistEntry.user_id == user_id
+            ).order_by(PlaylistEntry.position.asc())).all()
+            
+            for i, other in enumerate(others):
+                other.position = i
+                session.add(other)
+            session.commit()
+            return True
+
+    def clear_playlist(self, user_id: str):
+        """Delete all entries for a user."""
+        with Session(engine) as session:
+            session.exec(delete(PlaylistEntry).where(PlaylistEntry.user_id == user_id))
+            session.commit()
+
 
 # Singleton instance
 store = StoryStore()

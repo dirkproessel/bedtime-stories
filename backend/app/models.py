@@ -54,6 +54,15 @@ class UserFavorite(SQLModel, table=True):
     story_id: str = Field(foreign_key="storymeta.id", primary_key=True)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+class PlaylistEntry(SQLModel, table=True):
+    """Sequential queue for Alexa playback."""
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: str = Field(foreign_key="user.id", index=True)
+    story_id: str = Field(foreign_key="storymeta.id", index=True)
+    position: int = Field(default=0)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
 class StoryMeta(SQLModel, table=True):
     """Story Metadata stored in database."""
     id: str = Field(primary_key=True)

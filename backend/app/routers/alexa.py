@@ -190,6 +190,40 @@ async def alexa_webhook(request: Request, session: Session = Depends(get_session
         return alexa_response("Entschuldigung, ich konnte dein Profil nicht laden.")
 
     # 1. Handle AudioPlayer & System events (Must return empty response, NO SPEECH)
+    if req_type == "AudioPlayer.PlaybackNearlyFinished":
+        token = data.get("request", {}).get("token", "")
+        if token.startswith("playlist_"):
+            # Format: playlist_{story_id}_{index}
+            parts = token.split("_")
+            if len(parts) == 3:
+                curr_idx = int(parts[2])
+                playlist = store.get_playlist(user.id)
+                next_idx = curr_idx + 1
+                if next_idx < len(playlist):
+                    next_story = playlist[next_idx]
+                    audio_url = f"{settings.BASE_URL}/api/stories/{next_story.id}/audio"
+                    directive = {
+                        "type": "AudioPlayer.Play",
+                        "playBehavior": "ENQUEUE",
+                        "audioItem": {
+                            "stream": {
+                                "token": f"playlist_{next_story.id}_{next_idx}",
+                                "url": audio_url,
+                                "offsetInMilliseconds": 0,
+                                "expectedPreviousToken": token
+                            },
+                            "metadata": {
+                                "title": next_story.title,
+                                "subtitle": f"Teil {next_idx + 1} deiner Playlist",
+                                "art": {
+                                    "sources": [{"url": f"{settings.BASE_URL}{next_story.image_url}" if next_story.image_url else ""}]
+                                }
+                            }
+                        }
+                    }
+                    return {"version": "1.0", "response": {"directives": [directive]}}
+        return {"version": "1.0", "response": {}}
+
     if req_type.startswith("AudioPlayer.") or req_type == "System.ExceptionEncountered":
         logger.info(f"Handling background Alexa event: {req_type}")
         return {"version": "1.0", "response": {}}
@@ -197,7 +231,7 @@ async def alexa_webhook(request: Request, session: Session = Depends(get_session
     # 2. Handle LaunchRequest
     if req_type == "LaunchRequest":
         return alexa_response(
-            "Willkommen bei Storyja. Möchtest du eine Geschichte erstellen oder deine letzte Geschichte abspielen?",
+            "Willkommen bei Storyja. Möchtest du eine Geschichte erstellen, deine Playlist abspielen oder deine letzte Geschichte hören?",
             should_end_session=False
         )
 
@@ -271,10 +305,41 @@ async def alexa_webhook(request: Request, session: Session = Depends(get_session
 
             return alexa_response(
                 f"Abgemacht! Ich erstelle dir eine {backend_genre} Geschichte über {idea}. "
-                "Das dauert etwa zwei Minuten. Ich lasse deine Alexa leuchten, sobald ich fertig bin. "
-                "Bis gleich!",
+                "Das dauert etwa zwei Minuten. Ich bin gleich fertig!",
                 should_end_session=True
             )
+
+        if intent_name == "PlayPlaylistIntent":
+            playlist = store.get_playlist(user.id)
+            if not playlist:
+                return alexa_response("Deine Playlist ist aktuell leer. Füge in der App Geschichten hinzu.")
+            
+            first = playlist[0]
+            audio_url = f"{settings.BASE_URL}/api/stories/{first.id}/audio"
+            
+            directive = {
+                "type": "AudioPlayer.Play",
+                "playBehavior": "REPLACE_ALL",
+                "audioItem": {
+                    "stream": {
+                        "token": f"playlist_{first.id}_0",
+                        "url": audio_url,
+                        "offsetInMilliseconds": 0
+                    },
+                    "metadata": {
+                        "title": first.title,
+                        "subtitle": "Teil 1 deiner Playlist",
+                        "art": {
+                            "sources": [{"url": f"{settings.BASE_URL}{first.image_url}" if first.image_url else ""}]
+                        }
+                    }
+                }
+            }
+            return alexa_response(f"Ich starte deine Playlist mit: {first.title}.", should_end_session=True, directives=[directive])
+
+        if intent_name == "ClearPlaylistIntent":
+            store.clear_playlist(user.id)
+            return alexa_response("Deine Alexa Playlist wurde geleert.", should_end_session=True)
 
         if intent_name == "PlayStoryIntent" or intent_name == "AMAZON.ResumeIntent":
             # Get latest story for this user
@@ -284,7 +349,7 @@ async def alexa_webhook(request: Request, session: Session = Depends(get_session
             
             latest = stories[0]
             if latest.status != "done":
-                return alexa_response("Deine Geschichte wird gerade noch geschrieben. Ich melde mich, wenn sie fertig ist.")
+                return alexa_response("Deine Geschichte wird gerade noch geschrieben. Ich sag Bescheid, wenn sie fertig ist.")
 
             audio_url = f"{settings.BASE_URL}/api/stories/{latest.id}/audio"
             
@@ -316,9 +381,10 @@ async def alexa_webhook(request: Request, session: Session = Depends(get_session
             return alexa_response("Tschüss! Bis zum nächsten Mal.", should_end_session=True, directives=[{"type": "AudioPlayer.Stop"}])
 
         if intent_name == "AMAZON.HelpIntent":
-            return alexa_response("Du kannst mir eine Idee für eine neue Geschichte geben, oder mich bitten, deine letzte Geschichte abzuspielen. Was möchtest du tun?")
+            return alexa_response("Du kannst mir eine Idee für eine neue Geschichte geben, deine Playlist hören oder deine letzte Geschichte abspielen. Was möchtest du tun?")
 
-    return alexa_response("Das habe ich leider nicht verstanden. Möchtest du eine Geschichte erstellen oder eine abspielen?")
+    return alexa_response("Das habe ich leider nicht verstanden. Möchtest du eine Geschichte erstellen, deine Playlist hören oder eine abspielen?")
+
 
 # ──────────────────────────────────
 # Proactive Events (Notification)
