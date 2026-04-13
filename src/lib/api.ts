@@ -241,6 +241,10 @@ export async function cloneVoice(file: File): Promise<User> {
 }
 
 export async function unlinkAlexa(): Promise<void> {
+    const res = await fetch(`${API_BASE}/api/alexa/unlink`, {
+        method: 'POST',
+        headers: getAuthHeaders()
+    });
     if (!res.ok) {
         const error = await res.json().catch(() => ({}));
         throw new Error(error.detail || 'Failed to unlink Alexa');
