@@ -231,10 +231,10 @@ async def alexa_webhook(request: Request, session: Session = Depends(get_session
     if req_type == "LaunchRequest":
         playlist = store.get_playlist(user.id)
         if playlist:
-            prompt = "Willkommen zurück! Möchtest du eine bereits fertige Geschichte hören oder eine neue Geschichte erfinden?"
+            prompt = "Willkommen zurück! Möchtest du eine fertige Geschichte abspielen oder eine neue Geschichte erstellen?"
             last_prompt = "OFFERED_PLAYLIST"
         else:
-            prompt = "Willkommen bei Storyja. Möchtest du eine neue Geschichte erfinden?"
+            prompt = "Willkommen bei Storyja. Möchtest du eine neue Geschichte erstellen?"
             last_prompt = "OFFERED_CREATE"
             
         return alexa_response(
@@ -251,24 +251,19 @@ async def alexa_webhook(request: Request, session: Session = Depends(get_session
             idea = slots.get("idea", {}).get("value")
             genre = slots.get("genre", {}).get("value")
 
-            # Check dialog state - if not complete, delegate back to Alexa
-            dialog_state = data.get("request", {}).get("dialogState")
-            if dialog_state != "COMPLETED" and (not idea or not genre):
-                return {
-                    "version": "1.0",
-                    "response": {
-                        "directives": [
-                            {
-                                "type": "Dialog.Delegate",
-                                "updatedIntent": {
-                                    "name": "GenerateStoryIntent",
-                                    "confirmationStatus": "NONE",
-                                    "slots": slots
-                                }
-                            }
-                        ]
-                    }
-                }
+            # 1. Elicit Idea if missing
+            if not idea:
+                return alexa_elicit_slot(
+                    "Über was soll die Geschichte handeln?",
+                    "idea", "GenerateStoryIntent", slots
+                )
+            
+            # 2. Elicit Genre if missing (with custom child-friendly prompt)
+            if not genre:
+                return alexa_elicit_slot(
+                    "Wie soll die Geschichte sein: lustig, spannend oder zum einschlafen?",
+                    "genre", "GenerateStoryIntent", slots
+                )
 
             # Start Generation Pipeline
             story_id = str(uuid.uuid4())[:8]
@@ -288,10 +283,19 @@ async def alexa_webhook(request: Request, session: Session = Depends(get_session
 
             # Style Mapping (Author)
             style = "adams"
+            bg_lower = backend_genre.lower()
+            if "nach" in bg_lower or "schlaf" in bg_lower: backend_genre = "Gute Nacht"
+            elif "lustig" in bg_lower or "kom" in bg_lower: backend_genre = "Komödie"
+            elif "spannend" in bg_lower or "krimi" in bg_lower or "spann" in bg_lower or "detekt" in bg_lower: backend_genre = "Krimi"
+            elif "grusel" in bg_lower or "horror" in bg_lower: backend_genre = "Grusel"
+            elif "abenteu" in bg_lower: backend_genre = "Abenteuer"
+            elif "märchen" in bg_lower or "fabel" in bg_lower: backend_genre = "Märchen"
+
             if "Krimi" in backend_genre: style = "fitzek"
             elif "Gute Nacht" in backend_genre: style = "lindgren"
             elif "Grusel" in backend_genre: style = "king"
             elif "Komödie" in backend_genre: style = "jaud"
+            elif "Abenteuer" in backend_genre: style = "adams"
 
             # Execute pipeline in background via StoryService
             from app.services.story_service import story_service
@@ -399,13 +403,12 @@ async def alexa_webhook(request: Request, session: Session = Depends(get_session
             last_prompt = session_attr.get("lastPrompt")
             
             if last_prompt == "OFFERED_PLAYLIST":
-                # User wants to hear the playlist - trigger PlayPlaylist logic
+                # ... [Playlist removal logic same as before, preserving it] ...
                 playlist = store.get_playlist(user.id)
                 if not playlist:
                     return alexa_response("Deine Liste ist aktuell leer. Möchtest du stattdessen eine neue Geschichte erfinden?")
                 
                 first = playlist[0]
-                # Remove from database immediately as playback starts
                 store.remove_from_playlist(user.id, first.id)
                 
                 audio_url = f"{settings.BASE_URL}/api/stories/{first.id}/audio"
@@ -423,8 +426,11 @@ async def alexa_webhook(request: Request, session: Session = Depends(get_session
                 }
                 return alexa_response(f"Alles klar! Ich spiele deine Geschichte: {first.title}.", should_end_session=True, directives=[directive])
             
-            # Default to creation flow
-            return alexa_response("Prima! Über was soll die neue Geschichte handeln?", should_end_session=False)
+            # Start Creation Flow via explicit Elicitation
+            return alexa_elicit_slot(
+                "Prima! Über was soll die neue Geschichte handeln?",
+                "idea", "GenerateStoryIntent", {}
+            )
 
         if intent_name == "AMAZON.NoIntent":
             return alexa_response("Kein Problem. Melde dich einfach, wenn du Lust auf eine Geschichte hast. Tschüss!", should_end_session=True)
