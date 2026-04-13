@@ -241,16 +241,54 @@ export async function cloneVoice(file: File): Promise<User> {
 }
 
 export async function unlinkAlexa(): Promise<void> {
-    const res = await fetch(`${API_BASE}/api/alexa/unlink`, {
-        method: 'POST',
-        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
-    });
     if (!res.ok) {
         const error = await res.json().catch(() => ({}));
         throw new Error(error.detail || 'Failed to unlink Alexa');
     }
 }
+
+export async function fetchPlaylist(): Promise<StoryMeta[]> {
+    const res = await fetch(`${API_BASE}/api/playlist`, { headers: getAuthHeaders() });
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.detail || 'Fehler beim Laden der Playlist');
+    }
+    return res.json();
+}
+
+export async function addToPlaylist(storyId: string): Promise<void> {
+    const res = await fetch(`${API_BASE}/api/playlist/add/${storyId}`, {
+        method: 'POST',
+        headers: getAuthHeaders()
+    });
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.detail || 'Konnte nicht zur Playlist hinzugefügt werden');
+    }
+}
+
+export async function removeFromPlaylist(storyId: string): Promise<void> {
+    const res = await fetch(`${API_BASE}/api/playlist/${storyId}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
+    });
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.detail || 'Konnte nicht aus der Playlist entfernt werden');
+    }
+}
+
+export async function clearPlaylist(): Promise<void> {
+    const res = await fetch(`${API_BASE}/api/playlist`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
+    });
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.detail || 'Playlist konnte nicht geleert werden');
+    }
+}
+
 
 // --- Content Endpoints ---
 

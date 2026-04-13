@@ -1,6 +1,6 @@
 import { useStore } from '../store/useStore';
 import { getVoicePreviewUrl, exportStoryToKindle, getThumbUrl } from '../lib/api';
-import { Play, Trash2, Heart, BookOpen, Loader2, Mic, X, XCircle, Venus, Mars, Users, Pause, Send, Image as ImageIcon, RefreshCw, Sparkles, Settings2, MessageCircle, Search, ChevronLeft, ChevronRight, ArrowLeft, Wand2, User as UserIcon, Edit2 } from 'lucide-react';
+import { Play, Trash2, Heart, BookOpen, Loader2, Mic, X, XCircle, Venus, Mars, Users, Pause, Send, Image as ImageIcon, RefreshCw, Sparkles, Settings2, MessageCircle, Search, ChevronLeft, ChevronRight, ArrowLeft, Wand2, User as UserIcon, Edit2, Music } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useEffect, useState, useRef } from 'react';
 import ConfirmModal from './ConfirmModal';
@@ -356,7 +356,8 @@ export default function StoryArchive() {
         loadMoreStories, hasMore, isLoading,
         archiveGenre, archiveSearch, setArchiveGenre, setArchiveSearch, toggleArchiveGenre,
         revoiceStory, availableGenres, regenerateStoryImage,
-        updateStory
+        updateStory,
+        playlist, addToPlaylist, removeFromPlaylist
     } = useStore();
     const [selectedVoice, setSelectedVoice] = useState('seraphina');
     const [confirmRevoice, setConfirmRevoice] = useState(false);
@@ -1540,6 +1541,52 @@ export default function StoryArchive() {
                                         Via WhatsApp teilen
                                     </div>
                                 </button>
+
+                                {user?.alexa_user_id && activeToolboxStory.voice_key !== 'none' && activeToolboxStory.status === 'done' && (
+                                    <>
+                                        <div className="text-[10px] uppercase text-[#64748b] font-bold tracking-widest mt-3 mb-1 px-2">ALEXA WARTESCHLANGE</div>
+                                        
+                                        {playlist.some(p => p.id === activeToolboxStory.id) ? (
+                                            <button 
+                                                onClick={async () => {
+                                                    try {
+                                                        await removeFromPlaylist(activeToolboxStory.id);
+                                                        toast.success('Aus Alexa Playlist entfernt');
+                                                    } catch (e: any) {
+                                                        toast.error(e.message || 'Fehler beim Entfernen');
+                                                    }
+                                                }}
+                                                className="w-full flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-white/5 transition-all outline-none"
+                                            >
+                                                <div className="w-8 h-8 bg-[#3b1216] rounded-[0.4rem] flex items-center justify-center shrink-0 text-[#ff4b55]">
+                                                    <Music className="w-4 h-4" />
+                                                </div>
+                                                <div className="text-left text-[14px] text-[#ff4b55]">
+                                                    Aus Playlist entfernen
+                                                </div>
+                                            </button>
+                                        ) : (
+                                            <button 
+                                                onClick={async () => {
+                                                    try {
+                                                        await addToPlaylist(activeToolboxStory.id);
+                                                        toast.success('Zur Alexa Playlist hinzugefügt');
+                                                    } catch (e: any) {
+                                                        toast.error(e.message || 'Fehler beim Hinzufügen');
+                                                    }
+                                                }}
+                                                className="w-full flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-white/5 transition-all outline-none"
+                                            >
+                                                <div className="w-8 h-8 bg-[#0c2a3b] rounded-[0.4rem] flex items-center justify-center shrink-0 text-[#38bdf8]">
+                                                    <Music className="w-4 h-4" />
+                                                </div>
+                                                <div className="text-left text-[14px] text-[#38bdf8]">
+                                                    An Alexa senden
+                                                </div>
+                                            </button>
+                                        )}
+                                    </>
+                                )}
 
                                 <button 
                                     onClick={() => { setShowKindleModal(activeToolboxStory.id); setShowToolbox(null); }}

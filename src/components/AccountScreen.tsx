@@ -92,7 +92,7 @@ function VoiceCloneItem({ voice, onUpdate }: { voice: any, onUpdate: (user: any)
 }
 
 export default function AccountScreen() {
-    const { user, logout } = useStore();
+    const { user, logout, playlist, removeFromPlaylist, clearPlaylist } = useStore();
     const [kindleEmail, setKindleEmail] = useState(user?.kindle_email || '');
     const [username, setUsername] = useState(user?.username || user?.email || '');
     const [isSavingKindle, setIsSavingKindle] = useState(false);
@@ -380,6 +380,52 @@ export default function AccountScreen() {
                         <div className="flex items-center justify-between text-[10px] text-slate-500 font-mono bg-slate-900/50 p-2 rounded-lg border border-slate-800">
                              <span className="opacity-50">ID: {user.alexa_user_id.substring(0, 12)}...{user.alexa_user_id.slice(-8)}</span>
                         </div>
+
+                        {/* Playlist Summary */}
+                        {playlist.length > 0 && (
+                            <div className="bg-slate-900/40 rounded-xl border border-white/5 p-4 space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-8 h-8 rounded-lg bg-sky-500/10 flex items-center justify-center">
+                                            <Music className="w-4 h-4 text-sky-400" />
+                                        </div>
+                                        <span className="text-xs font-bold text-white uppercase tracking-wider">Warteschlange ({playlist.length})</span>
+                                    </div>
+                                    <button 
+                                        onClick={() => {
+                                            if (window.confirm("Möchtest du die gesamte Playlist leeren?")) {
+                                                clearPlaylist();
+                                                toast.success("Playlist geleert");
+                                            }
+                                        }}
+                                        className="text-[10px] font-bold text-slate-500 hover:text-red-400 transition-colors uppercase tracking-widest"
+                                    >
+                                        Leeren
+                                    </button>
+                                </div>
+                                
+                                <div className="space-y-2 max-h-48 overflow-y-auto pr-2 no-scrollbar">
+                                    {playlist.map((story, idx) => (
+                                        <div key={story.id} className="flex items-center justify-between group/item py-1">
+                                            <div className="flex items-center gap-2 min-w-0">
+                                                <span className="text-[10px] font-bold text-slate-600 w-4">{idx + 1}.</span>
+                                                <span className="text-xs text-slate-300 truncate font-medium">{story.title}</span>
+                                            </div>
+                                            <button 
+                                                onClick={() => {
+                                                    removeFromPlaylist(story.id);
+                                                    toast.success("Entfernt");
+                                                }}
+                                                className="p-1.5 text-slate-600 hover:text-red-400 opacity-0 group-hover/item:opacity-100 transition-all"
+                                            >
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
                         <button
                             onClick={handleUnlinkAlexa}
                             className="w-full py-2 bg-slate-800/50 hover:bg-red-500/10 text-slate-400 hover:text-red-400 text-[11px] font-medium rounded-xl transition-all border border-slate-700 hover:border-red-500/20"

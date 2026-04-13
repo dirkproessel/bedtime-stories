@@ -19,6 +19,10 @@ import {
     toggleStoryFavorite,
     revoiceStory as apiRevoiceStory,
     regenerateStoryImage as apiRegenerateStoryImage,
+    fetchPlaylist,
+    addToPlaylist as apiAddToPlaylist,
+    removeFromPlaylist as apiRemoveFromPlaylist,
+    clearPlaylist as apiClearPlaylist,
 } from '../lib/api';
 import { type UserVoice, type SystemVoice } from '../lib/api';
 
@@ -118,6 +122,13 @@ interface AppState {
     deleteStory: (id: string) => Promise<void>;
     regenerateStoryImage: (id: string, imageHints?: string) => Promise<void>;
     updateStory: (id: string, data: any) => Promise<void>;
+
+    // Alexa Playlist
+    playlist: StoryMeta[];
+    loadPlaylist: () => Promise<void>;
+    addToPlaylist: (storyId: string) => Promise<void>;
+    removeFromPlaylist: (storyId: string) => Promise<void>;
+    clearPlaylist: () => Promise<void>;
 }
 
 let pollInterval: ReturnType<typeof setInterval> | null = null;
@@ -171,6 +182,8 @@ export const useStore = create<AppState>((set, get) => {
     generatorParentId: null,
     generatorRemixType: null,
     generatorContext: null,
+
+    playlist: [],
 
     setGeneratorPrompt: (val) => set({ generatorPrompt: val }),
     setGeneratorGenre: (val) => set({ generatorGenre: val }),
@@ -240,7 +253,11 @@ export const useStore = create<AppState>((set, get) => {
                 console.log("Not logged in (Guest Mode)");
             }
             
-            await Promise.all([get().loadVoices(), get().loadStories()]);
+            await Promise.all([
+                get().loadVoices(), 
+                get().loadStories(),
+                get().loadPlaylist()
+            ]);
             set({ isInitialized: true });
             get().pollStatus(); // Start polling if any stories are generating
         } catch (e: any) {
@@ -598,6 +615,47 @@ export const useStore = create<AppState>((set, get) => {
             throw e;
         } finally {
             set({ isLoading: false });
+        }
+    },
+
+    loadPlaylist: async () => {
+        const { user } = get();
+        if (!user || !user.alexa_user_id) return;
+        try {
+            const playlist = await fetchPlaylist();
+            set({ playlist });
+        } catch (e) {
+            console.error("Failed to load Alexa playlist", e);
+        }
+    },
+
+    addToPlaylist: async (storyId) => {
+        try {
+            await apiAddToPlaylist(storyId);
+            await get().loadPlaylist();
+        } catch (e: any) {
+            set({ error: e.message });
+            throw e;
+        }
+    },
+
+    removeFromPlaylist: async (storyId) => {
+        try {
+            await apiRemoveFromPlaylist(storyId);
+            await get().loadPlaylist();
+        } catch (e: any) {
+            set({ error: e.message });
+            throw e;
+        }
+    },
+
+    clearPlaylist: async () => {
+        try {
+            await apiClearPlaylist();
+            set({ playlist: [] });
+        } catch (e: any) {
+            set({ error: e.message });
+            throw e;
         }
     },
     };
