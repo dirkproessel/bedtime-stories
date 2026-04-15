@@ -92,7 +92,9 @@ async def generate_story_image(synopsis: str, output_path: Path, genre: str = "R
                 contents=prompt_text,
                 config=types.GenerateContentConfig(
                     response_modalities=["IMAGE"],
-                    # Optional: safety_settings=[types.SafetySetting(category='HATE_SPEECH', threshold='BLOCK_NONE')]
+                    image_config=types.ImageConfig(
+                        image_size="512",  # 512px output = 747 tokens vs 1120 tokens at 1K
+                    ),
                 )
             )
 
