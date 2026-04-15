@@ -110,66 +110,6 @@ app.include_router(playlist.router)
 STATIC_DIR = Path(__file__).parent / "static"
 app.mount("/api/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
-from fastapi.responses import HTMLResponse
-
-@app.get("/api/s/{story_id}", response_class=HTMLResponse)
-async def share_story(story_id: str):
-    """
-    Redirect endpoint for social sharing. 
-    Provides rich meta tags for WhatsApp/social crawlers while hash routing is active.
-    """
-    from app.services.store import store
-    story = store.get_by_id(story_id)
-    
-    if not story:
-        # Fallback to root if story not found
-        return HTMLResponse(
-            content=f'<html><head><meta http-equiv="refresh" content="0; url={settings.BASE_URL}/"></head><body>Story not found. Redirecting...</body></html>'
-        )
-
-    title = story.title
-    description = story.description or "Anspruchsvolle Kurzgeschichten für Kinder und Erwachsene"
-    
-    # Use full image for better social preview quality
-    image_url = f"{settings.BASE_URL}/api/stories/{story_id}/image.png"
-    redirect_url = f"{settings.BASE_URL}/#/Story/{story_id}"
-
-    html_content = f"""<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <title>{title}</title>
-    
-    <!-- Open Graph / WhatsApp Preview -->
-    <meta property="og:title" content="{title}">
-    <meta property="og:description" content="{description}">
-    <meta property="og:image" content="{image_url}">
-    <meta property="og:image:secure_url" content="{image_url}">
-    <meta property="og:image:type" content="image/png">
-    <meta property="og:image:width" content="512">
-    <meta property="og:image:height" content="512">
-    <meta property="og:url" content="{settings.BASE_URL}/api/s/{story_id}">
-    <meta property="og:type" content="website">
-    <meta property="og:site_name" content="storyja">
-    
-    <!-- Twitter -->
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="{title}">
-    <meta name="twitter:description" content="{description}">
-    <meta name="twitter:image" content="{image_url}">
-
-    <!-- Redirection -->
-    <meta http-equiv="refresh" content="0; url={redirect_url}">
-    <script>window.location.href = "{redirect_url}";</script>
-</head>
-<body>
-    Lädt Geschichte: {title}...
-    <br><br>
-    Falls die Weiterleitung nicht funktioniert, <a href="{redirect_url}">hier klicken</a>.
-</body>
-</html>"""
-    return HTMLResponse(content=html_content)
-
 from app.services.store import store
 from app.services.story_service import story_service
 

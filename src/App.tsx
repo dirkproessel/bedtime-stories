@@ -129,15 +129,6 @@ function App() {
       desiredHash = ``;
     }
 
-    // AVOID OVERWRITING if we are currently landing on a story hash 
-    // This prevents the "redirect to /create" bug on initial load
-    const currentHash = window.location.hash.toLowerCase();
-    if (currentHash.startsWith('#/story/') || currentHash.startsWith('#/player/')) {
-       // If the store hasn't caught up yet, or is still preparing the reader, 
-       // DO NOT overwrite the story link with the default view hash.
-       if (!isReaderOpen) return;
-    }
-
     if (desiredHash !== '' && window.location.hash !== desiredHash) {
       window.history.pushState(null, '', desiredHash);
     }

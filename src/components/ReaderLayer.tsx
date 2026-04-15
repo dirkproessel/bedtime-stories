@@ -380,7 +380,7 @@ export default function ReaderLayer() {
                             </button>
                             <button 
                                 onClick={() => {
-                                    const shareUrl = `${window.location.origin}/api/s/${story.id}`;
+                                    const shareUrl = `${window.location.origin}${window.location.pathname}#/Story/${story.id}`;
                                     const text = `Ich habe eine neue Geschichte erstellt:\n\n*${story.title}*\n\n${story.description}\n\nHör sie dir hier an:\n${shareUrl}`;
                                     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
                                 }}
@@ -641,7 +641,7 @@ export default function ReaderLayer() {
 
                             <button 
                                 onClick={() => {
-                                    const shareUrl = `${window.location.origin}/api/s/${story.id}`;
+                                    const shareUrl = `${window.location.origin}${window.location.pathname}#/Story/${story.id}`;
                                     const text = `Ich habe eine neue Geschichte erstellt:\n\n*${story.title}*\n\n${story.description}\n\nHör sie dir hier an:\n${shareUrl}`;
                                     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
                                     setShowToolbox(false);
