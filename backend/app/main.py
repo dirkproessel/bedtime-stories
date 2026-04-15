@@ -110,6 +110,59 @@ app.include_router(playlist.router)
 STATIC_DIR = Path(__file__).parent / "static"
 app.mount("/api/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
+from fastapi.responses import HTMLResponse
+
+@app.get("/s/{story_id}", response_class=HTMLResponse)
+async def share_story(story_id: str):
+    """
+    Redirect endpoint for social sharing. 
+    Provides rich meta tags for WhatsApp/social crawlers while hash routing is active.
+    """
+    from app.services.store import store
+    story = store.get_by_id(story_id)
+    
+    if not story:
+        # Fallback to root if story not found
+        return HTMLResponse(
+            content=f'<html><head><meta http-equiv="refresh" content="0; url={settings.BASE_URL}/"></head><body>Story not found. Redirecting...</body></html>'
+        )
+
+    title = story.title
+    description = story.description or "Anspruchsvolle Kurzgeschichten für Kinder und Erwachsene"
+    
+    # Ensure absolute URL for image
+    image_url = f"{settings.BASE_URL}/api/stories/{story_id}/image.png"
+    redirect_url = f"{settings.BASE_URL}/#/Story/{story_id}"
+
+    html_content = f"""<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>{title}</title>
+    
+    <!-- Open Graph / WhatsApp Preview -->
+    <meta property="og:title" content="{title}">
+    <meta property="og:description" content="{description}">
+    <meta property="og:image" content="{image_url}">
+    <meta property="og:url" content="{settings.BASE_URL}/s/{story_id}">
+    <meta property="og:type" content="article">
+    
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{title}">
+    <meta name="twitter:description" content="{description}">
+    <meta name="twitter:image" content="{image_url}">
+
+    <!-- Redirection -->
+    <meta http-equiv="refresh" content="0; url={redirect_url}">
+    <script>window.location.href = "{redirect_url}";</script>
+</head>
+<body>
+    Lädt Geschichte: {title}...
+</body>
+</html>"""
+    return HTMLResponse(content=html_content)
+
 from app.services.store import store
 from app.services.story_service import story_service
 

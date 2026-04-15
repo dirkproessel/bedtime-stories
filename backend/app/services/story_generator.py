@@ -13,6 +13,16 @@ from app.services.rate_limiter import rate_limiter
 import logging
 logger = logging.getLogger(__name__)
 
+from google.genai import types
+from app.config import settings
+
+SAFETY_SETTINGS_CONFIG = [
+    types.SafetySetting(category="HATE_SPEECH", threshold="BLOCK_NONE"),
+    types.SafetySetting(category="DANGEROUS_CONTENT", threshold="BLOCK_NONE"),
+    types.SafetySetting(category="SEXUALLY_EXPLICIT", threshold="BLOCK_NONE"),
+    types.SafetySetting(category="HARASSMENT", threshold="BLOCK_NONE"),
+]
+
 client = genai.Client(api_key=settings.GEMINI_API_KEY)
 
 
@@ -361,6 +371,7 @@ DEIN HOOK:"""
             config={
                 "temperature": 0.9,
                 "max_output_tokens": 2000,
+                "safety_settings": SAFETY_SETTINGS_CONFIG,
             }
         )
         rate_limiter.increment_daily_quota("text")
@@ -488,7 +499,12 @@ Antworte EXKLUSIV im JSON-Format:
         client.models.generate_content,
         model=settings.GEMINI_TEXT_MODEL,
         contents=master_prompt,
-        config={"response_mime_type": "application/json", "temperature": 0.85, "max_output_tokens": 8192},
+        config={
+            "response_mime_type": "application/json", 
+            "temperature": 0.85, 
+            "max_output_tokens": 8192,
+            "safety_settings": SAFETY_SETTINGS_CONFIG
+        },
         on_progress=on_progress
     )
     rate_limiter.increment_daily_quota()
@@ -628,7 +644,10 @@ Antworte NUR im JSON-Format:
             client.models.generate_content,
             model=settings.GEMINI_TEXT_MODEL,
             contents=outline_prompt,
-            config={"response_mime_type": "application/json"},
+            config={
+                "response_mime_type": "application/json",
+                "safety_settings": SAFETY_SETTINGS_CONFIG
+            },
             on_progress=on_progress
         )
         rate_limiter.increment_daily_quota("text")
@@ -684,14 +703,15 @@ Antworte NUR im JSON-Format:
 
         write_prompt = f"""Schreibe das nächste chronologische Kapitel der Geschichte.
 
-353: STRIKTE REGELN:
-354: 1. NATÜRLICHER RHYTHMUS: Achte auf einen abwechslungsreichen Satzbau. Nutze sowohl kurze, prägnante Aussagen als auch elegante Nebensätze, um einen flüssigen Leserythmus zu erzeugen. Ideal für Audio/TTS, um Monotonie zu vermeiden. Vermeide jedoch extrem überladene Schachtelsätze.
-355: 2. Stil-Inspiration:
-356: {selected_style_info}
-357: Vermeide jegliche Floskeln, pädagogische Zeigefinger oder moralische Zusammenfassungen am Ende. Kein Kitsch, keine Moral!
-358: 3. Show, don't tell: Erkläre nicht, wie sich Charaktere fühlen – zeige es durch ihre Handlungen und Reaktionen.
-359: 4. Pacing & Detail: Beschreibe präzise und atmosphärisch, aber halte den Satzbau einfach und direkt.
-4. Format: Keinerlei Überschriften, Kapitelnummern oder Titel im generierten Text! Nur der reine, fließende Erzähltext für diesen Abschnitt. Die Geschichte muss nahtlos an den vorherigen Teil anknüpfen.
+STRIKTE REGELN:
+1. NATÜRLICHER RHYTHMUS: Achte auf einen abwechslungsreichen Satzbau. Nutze sowohl kurze, prägnante Aussagen als auch elegante Nebensätze, um einen flüssigen Leserythmus zu erzeugen. Ideal für Audio/TTS, um Monotonie zu vermeiden. Vermeide jedoch extrem überladene Schachtelsätze.
+2. Stil-Inspiration:
+{selected_style_info}
+Vermeide jegliche Floskeln, pädagogische Zeigefinger oder moralische Zusammenfassungen am Ende. Kein Kitsch, keine Moral!
+3. Show, don't tell: Erkläre nicht, wie sich Charaktere fühlen – zeige es durch ihre Handlungen und Reaktionen.
+4. Pacing & Detail: Beschreibe präzise und atmosphärisch. Behandle diesen Abschnitt mit der Tiefe eines Romans. Springe nicht zu schnell in der Handlung voran.
+5. VERMEIDE ÜBEREILTE ENDEN: Hetze nicht zum Schluss. Vermeide Floskeln wie "Und so lernten sie..." oder "Am Ende war alles...". Bleib im Moment der Szene.
+6. Format: Keinerlei Überschriften, Kapitelnummern oder Titel im generierten Text! Nur der reine, fließende Erzähltext.
 {f"SPEZIELLE REMIX-ANWEISUNG: {further_instructions}" if further_instructions else ""}
 {original_segment_context}
 {ende_regel}
@@ -709,7 +729,10 @@ Fokus / Ziel DIESES Kapitels: {seg['goal']}
             client.models.generate_content,
             model=settings.GEMINI_TEXT_MODEL,
             contents=write_prompt,
-            config={"temperature": 0.8},
+            config={
+                "temperature": 0.8,
+                "safety_settings": SAFETY_SETTINGS_CONFIG
+            },
             on_progress=on_progress
         )
         rate_limiter.increment_daily_quota()

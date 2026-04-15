@@ -7,6 +7,13 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
+SAFETY_SETTINGS_CONFIG = [
+    types.SafetySetting(category="HATE_SPEECH", threshold="BLOCK_NONE"),
+    types.SafetySetting(category="DANGEROUS_CONTENT", threshold="BLOCK_NONE"),
+    types.SafetySetting(category="SEXUALLY_EXPLICIT", threshold="BLOCK_NONE"),
+    types.SafetySetting(category="HARASSMENT", threshold="BLOCK_NONE"),
+]
+
 async def get_visual_prompt(client: genai.Client, synopsis: str, genre: str, style: str, image_hints: str | None = None) -> str:
     """
     Use Gemini to transform a German synopsis into a visually descriptive English image prompt.
@@ -33,7 +40,10 @@ async def get_visual_prompt(client: genai.Client, synopsis: str, genre: str, sty
     try:
         response = client.models.generate_content(
             model=settings.GEMINI_TEXT_MODEL,
-            contents=prompt
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                safety_settings=SAFETY_SETTINGS_CONFIG,
+            )
         )
         visual_desc = response.text.strip()
         logger.info(f"Gemini generated visual description (first 100 chars): {visual_desc[:100]}...")
@@ -95,6 +105,7 @@ async def generate_story_image(synopsis: str, output_path: Path, genre: str = "R
                     image_config=types.ImageConfig(
                         image_size="512",  # 512px output = 747 tokens vs 1120 tokens at 1K
                     ),
+                    safety_settings=SAFETY_SETTINGS_CONFIG,
                 )
             )
 
