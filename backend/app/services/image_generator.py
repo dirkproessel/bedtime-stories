@@ -8,10 +8,10 @@ from app.config import settings
 logger = logging.getLogger(__name__)
 
 SAFETY_SETTINGS_CONFIG = [
-    types.SafetySetting(category="HATE_SPEECH", threshold="BLOCK_NONE"),
-    types.SafetySetting(category="DANGEROUS_CONTENT", threshold="BLOCK_NONE"),
-    types.SafetySetting(category="SEXUALLY_EXPLICIT", threshold="BLOCK_NONE"),
-    types.SafetySetting(category="HARASSMENT", threshold="BLOCK_NONE"),
+    types.SafetySetting(category="HARM_CATEGORY_HATE_SPEECH", threshold="BLOCK_NONE"),
+    types.SafetySetting(category="HARM_CATEGORY_DANGEROUS_CONTENT", threshold="BLOCK_NONE"),
+    types.SafetySetting(category="HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold="BLOCK_NONE"),
+    types.SafetySetting(category="HARM_CATEGORY_HARASSMENT", threshold="BLOCK_NONE"),
 ]
 
 async def get_visual_prompt(client: genai.Client, synopsis: str, genre: str, style: str, image_hints: str | None = None) -> str:
