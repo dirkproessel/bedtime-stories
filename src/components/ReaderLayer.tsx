@@ -380,8 +380,8 @@ export default function ReaderLayer() {
                             </button>
                             <button 
                                 onClick={() => {
-                                    const shareUrl = `${window.location.origin}/s/${story.id}`;
-                                    const text = `Ich habe eine neue Geschichte erstellt:\n\n*${story.title}*\n\nHör sie dir hier an:\n${shareUrl}`;
+                                    const shareUrl = `${window.location.origin}/api/s/${story.id}`;
+                                    const text = `Ich habe eine neue Geschichte erstellt:\n\n*${story.title}*\n\n${story.description}\n\nHör sie dir hier an:\n${shareUrl}`;
                                     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
                                 }}
                                 className="flex items-center gap-2 px-5 py-2.5 bg-green-950/20 text-green-500 rounded-2xl text-xs font-bold hover:bg-green-950/30 transition-all border border-green-900/30"
@@ -641,7 +641,7 @@ export default function ReaderLayer() {
 
                             <button 
                                 onClick={() => {
-                                    const shareUrl = `${window.location.origin}/s/${story.id}`;
+                                    const shareUrl = `${window.location.origin}/api/s/${story.id}`;
                                     const text = `Ich habe eine neue Geschichte erstellt:\n\n*${story.title}*\n\n${story.description}\n\nHör sie dir hier an:\n${shareUrl}`;
                                     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
                                     setShowToolbox(false);

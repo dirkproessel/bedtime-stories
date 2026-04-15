@@ -112,7 +112,7 @@ app.mount("/api/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 from fastapi.responses import HTMLResponse
 
-@app.get("/s/{story_id}", response_class=HTMLResponse)
+@app.get("/api/s/{story_id}", response_class=HTMLResponse)
 async def share_story(story_id: str):
     """
     Redirect endpoint for social sharing. 
@@ -130,8 +130,8 @@ async def share_story(story_id: str):
     title = story.title
     description = story.description or "Anspruchsvolle Kurzgeschichten für Kinder und Erwachsene"
     
-    # Ensure absolute URL for image
-    image_url = f"{settings.BASE_URL}/api/stories/{story_id}/image.png"
+    # Use thumbnail for faster social preview
+    image_url = f"{settings.BASE_URL}/api/stories/{story_id}/thumb.jpg"
     redirect_url = f"{settings.BASE_URL}/#/Story/{story_id}"
 
     html_content = f"""<!DOCTYPE html>
@@ -144,8 +144,13 @@ async def share_story(story_id: str):
     <meta property="og:title" content="{title}">
     <meta property="og:description" content="{description}">
     <meta property="og:image" content="{image_url}">
-    <meta property="og:url" content="{settings.BASE_URL}/s/{story_id}">
-    <meta property="og:type" content="article">
+    <meta property="og:image:secure_url" content="{image_url}">
+    <meta property="og:image:type" content="image/jpeg">
+    <meta property="og:image:width" content="300">
+    <meta property="og:image:height" content="300">
+    <meta property="og:url" content="{settings.BASE_URL}/api/s/{story_id}">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="storyja">
     
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image">
@@ -159,6 +164,8 @@ async def share_story(story_id: str):
 </head>
 <body>
     Lädt Geschichte: {title}...
+    <br><br>
+    Falls die Weiterleitung nicht funktioniert, <a href="{redirect_url}">hier klicken</a>.
 </body>
 </html>"""
     return HTMLResponse(content=html_content)
