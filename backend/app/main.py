@@ -130,8 +130,8 @@ async def share_story(story_id: str):
     title = story.title
     description = story.description or "Anspruchsvolle Kurzgeschichten für Kinder und Erwachsene"
     
-    # Use thumbnail for faster social preview
-    image_url = f"{settings.BASE_URL}/api/stories/{story_id}/thumb.jpg"
+    # Use full image for better social preview quality
+    image_url = f"{settings.BASE_URL}/api/stories/{story_id}/image.png"
     redirect_url = f"{settings.BASE_URL}/#/Story/{story_id}"
 
     html_content = f"""<!DOCTYPE html>
@@ -145,9 +145,9 @@ async def share_story(story_id: str):
     <meta property="og:description" content="{description}">
     <meta property="og:image" content="{image_url}">
     <meta property="og:image:secure_url" content="{image_url}">
-    <meta property="og:image:type" content="image/jpeg">
-    <meta property="og:image:width" content="300">
-    <meta property="og:image:height" content="300">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:width" content="512">
+    <meta property="og:image:height" content="512">
     <meta property="og:url" content="{settings.BASE_URL}/api/s/{story_id}">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="storyja">
