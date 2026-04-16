@@ -101,15 +101,19 @@ async def generate_story_image(synopsis: str, output_path: Path, genre: str = "R
         logger.info(f"Final Enhanced Prompt: {enhanced_prompt}")
         
         async def call_nano_banana(prompt_text):
+            # Pro models (Imagen 3) and Flash models have different config requirements
+            if "pro" in model_id.lower():
+                image_cfg = types.ImageConfig(aspect_ratio="1:1")
+            else:
+                image_cfg = types.ImageConfig(image_size="512")
+
             return await asyncio.to_thread(
                 client.models.generate_content,
                 model=model_id,
                 contents=prompt_text,
                 config=types.GenerateContentConfig(
                     response_modalities=["IMAGE"],
-                    image_config=types.ImageConfig(
-                        image_size="512",  # 512px output = 747 tokens vs 1120 tokens at 1K
-                    ),
+                    image_config=image_cfg,
                     safety_settings=SAFETY_SETTINGS_CONFIG,
                 )
             )
