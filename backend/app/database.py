@@ -130,6 +130,28 @@ def ensure_migrations():
                     print(f"Migration: Adding {col_name} to systemvoice...")
                     cur.execute(f"ALTER TABLE systemvoice ADD COLUMN {col_name} {col_type}")
                     conn.commit()
+
+            # --- Check if systemsetting table exists and seed it ---
+            cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='systemsetting'")
+            if not cur.fetchone():
+                print("Migration: Creating systemsetting table...")
+                cur.execute("""
+                    CREATE TABLE systemsetting (
+                        key TEXT PRIMARY KEY,
+                        value TEXT NOT NULL,
+                        description TEXT,
+                        updated_at DATETIME
+                    )
+                """)
+                # Seed defaults
+                now_iso = datetime.now(timezone.utc).isoformat()
+                defaults = [
+                    ("gemini_text_model", settings.GEMINI_TEXT_MODEL, "Current Gemini model used for story text generation"),
+                    ("gemini_image_model", settings.GEMINI_IMAGE_MODEL, "Current Gemini model used for story cover generation")
+                ]
+                for k, v, d in defaults:
+                    cur.execute("INSERT INTO systemsetting (key, value, description, updated_at) VALUES (?, ?, ?, ?)", (k, v, d, now_iso))
+                conn.commit()
                     
         except Exception as e:
             print(f"Migration voice/systemvoice warning: {e}")

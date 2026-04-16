@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
-import { updateKindleEmail, updateUsername, uploadProfilePicture, unlinkAlexa, cloneVoice, updateCustomVoice, deleteCustomVoice } from '../lib/api';
-import { LogOut, Download, Mail, Check, Loader2, Radio, Copy, User, Shield, Camera, Mic, Music, Trash2, Globe, Lock, Venus, Mars, Users } from 'lucide-react';
+import { updateKindleEmail, updateUsername, uploadProfilePicture, unlinkAlexa, cloneVoice, updateCustomVoice, deleteCustomVoice, adminFetchSettings, adminUpdateSetting } from '../lib/api';
+import { LogOut, Download, Mail, Check, Loader2, Radio, Copy, User, Shield, Camera, Mic, Music, Trash2, Globe, Lock, Venus, Mars, Users, Settings2, Sparkles, Image as ImageIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ProfilePictureUpload from './ProfilePictureUpload';
 
@@ -86,6 +86,95 @@ function VoiceCloneItem({ voice, onUpdate }: { voice: any, onUpdate: (user: any)
                         {voice.description && <span>{voice.description}</span>}
                     </div>
                 )}
+            </div>
+        </div>
+    );
+}
+
+function SystemSettingsSection() {
+    const [settings, setSettings] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isSaving, setIsSaving] = useState<string | null>(null);
+
+    const loadSettings = async () => {
+        try {
+            const data = await adminFetchSettings();
+            setSettings(data);
+        } catch (e: any) {
+            toast.error('Fehler beim Laden der Einstellungen');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        loadSettings();
+    }, []);
+
+    const handleUpdate = async (key: string, value: string) => {
+        setIsSaving(key);
+        try {
+            await adminUpdateSetting(key, value);
+            toast.success('Einstellung gespeichert');
+            setSettings(prev => prev.map(s => s.key === key ? { ...s, value } : s));
+        } catch (e: any) {
+            toast.error(e.message);
+        } finally {
+            setIsSaving(null);
+        }
+    };
+
+    if (isLoading) return <div className="p-4 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto text-slate-500" /></div>;
+
+    const textModel = settings.find(s => s.key === 'gemini_text_model')?.value || '';
+    const imageModel = settings.find(s => s.key === 'gemini_image_model')?.value || '';
+
+    return (
+        <div className="w-full glass-panel rounded-3xl p-6 space-y-4 border border-purple-500/20">
+            <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center flex-shrink-0">
+                    <Settings2 className="w-5 h-5 text-purple-400" />
+                </div>
+                <div>
+                    <h3 className="font-bold text-white text-sm">System-Einstellungen</h3>
+                    <p className="text-xs text-slate-400">KI-Modelle global konfigurieren</p>
+                </div>
+            </div>
+
+            <div className="space-y-4 pt-2">
+                {/* Text Model */}
+                <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">
+                        <Sparkles className="w-3 h-3" />
+                        Text Generierung
+                    </div>
+                    <select 
+                        value={textModel}
+                        onChange={(e) => handleUpdate('gemini_text_model', e.target.value)}
+                        disabled={isSaving === 'gemini_text_model'}
+                        className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500/50 outline-none transition-all text-white text-sm"
+                    >
+                        <option value="gemini-3.1-flash-lite-preview">Gemini 3.1 Flash (Effizient & Schnell)</option>
+                        <option value="gemini-3.1-pro-preview">Gemini 3.1 Pro (Meisterhafte Lyrik)</option>
+                    </select>
+                </div>
+
+                {/* Image Model */}
+                <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">
+                        <ImageIcon className="w-3 h-3" />
+                        Cover Bilder
+                    </div>
+                    <select 
+                        value={imageModel}
+                        onChange={(e) => handleUpdate('gemini_image_model', e.target.value)}
+                        disabled={isSaving === 'gemini_image_model'}
+                        className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500/50 outline-none transition-all text-white text-sm"
+                    >
+                        <option value="gemini-3.1-flash-image-preview">Gemini 3.1 Flash (512px - Günstig)</option>
+                        <option value="gemini-3-pro-image-preview">Gemini 3.0 Pro (Premium Qualität)</option>
+                    </select>
+                </div>
             </div>
         </div>
     );
@@ -436,9 +525,12 @@ export default function AccountScreen() {
                 )}
             </div>
 
-            {/* RSS Feed Section */}
+            {/* System Settings for Admin */}
+            {user?.is_admin && <SystemSettingsSection />}
+
+            {/* Admin Dashboard Area */}
             {user?.is_admin && (
-                <div className="w-full glass-panel rounded-3xl p-6 space-y-4">
+                <div className="w-full glass-panel rounded-3xl p-6 space-y-4 border border-purple-500/20">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center flex-shrink-0">
                             <Shield className="w-5 h-5 text-purple-400" />

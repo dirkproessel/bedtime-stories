@@ -62,6 +62,13 @@ class PlaylistEntry(SQLModel, table=True):
     position: int = Field(default=0)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+class SystemSetting(SQLModel, table=True):
+    """Global system-wide settings stored in database."""
+    key: str = Field(primary_key=True)
+    value: str
+    description: Optional[str] = None
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
 
 class StoryMeta(SQLModel, table=True):
     """Story Metadata stored in database."""
@@ -215,4 +222,13 @@ class StoryListResponse(BaseModel):
     total_my: int = 0
     total_public: int = 0
     available_genres: list[str] = []
+
+class SystemSettingResponse(BaseModel):
+    key: str
+    value: str
+    description: Optional[str] = None
+    updated_at: datetime
+
+class SystemSettingUpdate(BaseModel):
+    value: str
 

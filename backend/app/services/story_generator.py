@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 from google.genai import types
 from app.config import settings
+from app.services.store import store
 
 SAFETY_SETTINGS_CONFIG = [
     types.SafetySetting(category="HARM_CATEGORY_HATE_SPEECH", threshold="BLOCK_NONE"),
@@ -364,9 +365,13 @@ DEIN HOOK:"""
             return "Das Tageslimit für Geschichten ist leider erreicht. Bitte versuche es morgen wieder."
             
         await rate_limiter.wait_for_capacity("text")
+        # Get current model from DB or fallback to config
+        text_model = store.get_system_setting("gemini_text_model", settings.GEMINI_TEXT_MODEL)
+        logger.info(f"Generating story hook with model: {text_model}")
+
         response = await _api_request_with_retry(
             client.models.generate_content,
-            model=settings.GEMINI_TEXT_MODEL,
+            model=text_model,
             contents=prompt,
             config={
                 "temperature": 0.9,
@@ -495,9 +500,13 @@ Antworte EXKLUSIV im JSON-Format:
         raise RuntimeError("Das Tageslimit für KI-Generierungen ist heute leider erreicht.")
 
     await rate_limiter.wait_for_capacity("text")
+    # Get current model from DB or fallback to config
+    text_model = store.get_system_setting("gemini_text_model", settings.GEMINI_TEXT_MODEL)
+    logger.info(f"Generating single-pass story with model: {text_model}")
+
     response = await _api_request_with_retry(
         client.models.generate_content,
-        model=settings.GEMINI_TEXT_MODEL,
+        model=text_model,
         contents=master_prompt,
         config={
             "response_mime_type": "application/json", 
@@ -640,9 +649,13 @@ Antworte NUR im JSON-Format:
             raise RuntimeError("Das Tageslimit für KI-Generierungen ist heute leider erreicht.")
             
         await rate_limiter.wait_for_capacity("text")
+        # Get current model from DB or fallback to config
+        text_model = store.get_system_setting("gemini_text_model", settings.GEMINI_TEXT_MODEL)
+        logger.info(f"Generating story outline with model: {text_model}")
+
         outline_res = await _api_request_with_retry(
             client.models.generate_content,
-            model=settings.GEMINI_TEXT_MODEL,
+            model=text_model,
             contents=outline_prompt,
             config={
                 "response_mime_type": "application/json",
@@ -725,9 +738,13 @@ Fokus / Ziel DIESES Kapitels: {seg['goal']}
         if not rate_limiter.has_daily_quota("text"):
             raise RuntimeError("Das Tageslimit für KI-Generierungen wurde während der Geschichte erreicht.")
             
+        # Get current model from DB or fallback to config
+        text_model = store.get_system_setting("gemini_text_model", settings.GEMINI_TEXT_MODEL)
+        logger.info(f"Writing chapter {i+1} with model: {text_model}")
+
         response = await _api_request_with_retry(
             client.models.generate_content,
-            model=settings.GEMINI_TEXT_MODEL,
+            model=text_model,
             contents=write_prompt,
             config={
                 "temperature": 0.8,

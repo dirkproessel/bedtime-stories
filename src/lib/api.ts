@@ -100,6 +100,13 @@ export interface GenerationStatus {
     title: string | null;
 }
 
+export interface SystemSetting {
+    key: string;
+    value: string;
+    description?: string;
+    updated_at: string;
+}
+
 export interface StoryRequest {
     prompt: string;
     system_prompt?: string;
@@ -560,4 +567,23 @@ export async function adminToggleVoice(type: string, id: string): Promise<boolea
     if (!res.ok) throw new Error('Fehler beim Ändern des Stimmen-Status');
     const data = await res.json();
     return data.new_state;
+}
+
+export async function adminFetchSettings(): Promise<SystemSetting[]> {
+    const res = await fetch(`${API_BASE}/api/admin/settings`, { headers: getAuthHeaders() });
+    if (!res.ok) throw new Error('Fehler beim Laden der Einstellungen');
+    return res.json();
+}
+
+export async function adminUpdateSetting(key: string, value: string): Promise<SystemSetting> {
+    const res = await fetch(`${API_BASE}/api/admin/settings/${key}`, {
+        method: 'PATCH',
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ value }),
+    });
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.detail || 'Einstellung konnte nicht aktualisiert werden');
+    }
+    return res.json();
 }

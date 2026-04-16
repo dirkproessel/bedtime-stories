@@ -4,6 +4,7 @@ from pathlib import Path
 from google import genai
 from google.genai import types
 from app.config import settings
+from app.services.store import store
 
 logger = logging.getLogger(__name__)
 
@@ -38,8 +39,11 @@ async def get_visual_prompt(client: genai.Client, synopsis: str, genre: str, sty
     """
     
     try:
+        # Get current model from DB or fallback to config
+        text_model = store.get_system_setting("gemini_text_model", settings.GEMINI_TEXT_MODEL)
+        
         response = client.models.generate_content(
-            model=settings.GEMINI_TEXT_MODEL,
+            model=text_model,
             contents=prompt,
             config=types.GenerateContentConfig(
                 safety_settings=SAFETY_SETTINGS_CONFIG,
@@ -91,8 +95,9 @@ async def generate_story_image(synopsis: str, output_path: Path, genre: str = "R
             f"Seamless edge-to-edge full-bleed artwork. The composition must fill the entire canvas completely."
         )
 
-        model_id = settings.GEMINI_IMAGE_MODEL
-        logger.info(f"Using Google Image model: {model_id} (Nano Banana)")
+        # Get current model from DB or fallback to config
+        model_id = store.get_system_setting("gemini_image_model", settings.GEMINI_IMAGE_MODEL)
+        logger.info(f"Using Google Image model: {model_id}")
         logger.info(f"Final Enhanced Prompt: {enhanced_prompt}")
         
         async def call_nano_banana(prompt_text):

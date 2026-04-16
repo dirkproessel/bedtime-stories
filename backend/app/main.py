@@ -67,6 +67,8 @@ from app.models import (
     KindleExportRequest,
     User,
     UserResponse,
+    SystemSettingResponse,
+    SystemSettingUpdate,
 )
 from app.auth_utils import get_current_active_user, get_optional_user
 from fastapi import Depends
@@ -526,6 +528,34 @@ async def admin_delete_story(story_id: str, current_user: User = Depends(get_cur
         shutil.rmtree(story_dir)
         
     return {"status": "success", "message": "Geschichte gelöscht."}
+
+
+@app.get("/api/admin/settings", response_model=list[SystemSettingResponse])
+async def admin_get_settings(current_user: User = Depends(get_current_active_user)):
+    """List all global system settings (Admin only)."""
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Nur Admins dürfen Einstellungen sehen.")
+    return store.get_all_settings()
+
+
+@app.patch("/api/admin/settings/{key}", response_model=SystemSettingResponse)
+async def admin_update_setting(
+    key: str, 
+    data: SystemSettingUpdate,
+    current_user: User = Depends(get_current_active_user)
+):
+    """Update a specific system setting (Admin only)."""
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Nur Admins dürfen Einstellungen ändern.")
+    
+    store.set_system_setting(key, data.value)
+    
+    # Return the updated object
+    all_s = store.get_all_settings()
+    updated = next((s for s in all_s if s.key == key), None)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Einstellung nicht gefunden.")
+    return updated
 
 
 @app.get("/api/stories/{story_id}")

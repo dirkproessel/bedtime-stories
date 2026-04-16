@@ -3,7 +3,7 @@ import json
 import logging
 from pathlib import Path
 from sqlmodel import Session, select, delete
-from app.models import StoryMeta, User, UserFavorite, StoryMetaResponse, UserVoice, SystemVoice, PlaylistEntry
+from app.models import StoryMeta, User, UserFavorite, StoryMetaResponse, UserVoice, SystemVoice, PlaylistEntry, SystemSetting
 from app.database import engine, create_db_and_tables
 from app.config import settings
 from app.auth_utils import get_password_hash
@@ -362,6 +362,36 @@ class StoryStore:
         with Session(engine) as session:
             session.exec(delete(PlaylistEntry).where(PlaylistEntry.user_id == user_id))
             session.commit()
+
+    # ──────────────────────────────────
+    # System Settings Management
+    # ──────────────────────────────────
+
+    def get_system_setting(self, key: str, default: str) -> str:
+        """Fetch a system-wide configuration value from the DB."""
+        with Session(engine) as session:
+            setting = session.get(SystemSetting, key)
+            if setting:
+                return setting.value
+        return default
+
+    def set_system_setting(self, key: str, value: str):
+        """Update or create a system setting."""
+        from datetime import timezone
+        with Session(engine) as session:
+            setting = session.get(SystemSetting, key)
+            if setting:
+                setting.value = value
+                setting.updated_at = datetime.now(timezone.utc)
+            else:
+                setting = SystemSetting(key=key, value=value, updated_at=datetime.now(timezone.utc))
+            session.add(setting)
+            session.commit()
+
+    def get_all_settings(self) -> list[SystemSetting]:
+        """List all system settings."""
+        with Session(engine) as session:
+            return list(session.exec(select(SystemSetting)).all())
 
 
 # Singleton instance
