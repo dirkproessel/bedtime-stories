@@ -40,7 +40,8 @@ def ensure_migrations():
             ("voice_name", "TEXT"),
             ("duration_seconds", "FLOAT"),
             ("image_url", "TEXT"),
-            ("is_on_spotify", "BOOLEAN DEFAULT 0")
+            ("is_on_spotify", "BOOLEAN DEFAULT 0"),
+            ("highlights", "TEXT")
         ]
         
         for col_name, col_type in needed_columns:
