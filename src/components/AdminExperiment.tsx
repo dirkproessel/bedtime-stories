@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
-import { Sparkles, Loader2, Play, Search, History, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Sparkles, Loader2, Search, History, CheckCircle2, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { getThumbUrl, fetchStory } from '../lib/api';
+import { getThumbUrl } from '../lib/api';
 
 interface AnalysisResult {
     story_id: string;

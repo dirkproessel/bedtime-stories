@@ -85,6 +85,7 @@ export interface StoryMeta {
     is_public: boolean;
     parent_id?: string;
     updated_at: string;
+    highlights?: string;
     is_favorite: boolean;
 }
 
