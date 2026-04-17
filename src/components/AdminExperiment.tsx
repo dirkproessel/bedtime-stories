@@ -13,16 +13,28 @@ interface AnalysisResult {
 }
 
 export default function AdminExperiment() {
-    const { stories, loadStories, updateStory, selectedStoryId, setSelectedStoryId } = useStore();
+    const { stories, loadStories, updateStory, selectedStoryId, setSelectedStoryId, setArchiveSearch } = useStore();
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [result, setResult] = useState<AnalysisResult | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
-        // Ensure stories are loaded for selection
-        loadStories(1);
-    }, []);
+        // Debounced search
+        const timer = setTimeout(() => {
+            setArchiveSearch(searchTerm);
+            loadStories(1);
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [searchTerm, setArchiveSearch, loadStories]);
+
+    // Clear search when leaving the component to avoid affecting other views
+    useEffect(() => {
+        return () => {
+            setArchiveSearch(null);
+            loadStories(1);
+        };
+    }, [setArchiveSearch, loadStories]);
 
     // Reset result when selected story changes
     useEffect(() => {
