@@ -162,6 +162,14 @@ function FlipStoryCard({ story, onPlay, onFavorite, onToolbox }: { story: any, o
                         <p className="text-[12px] text-slate-300 font-normal leading-[1.4] tracking-tight">
                             {story.description}
                         </p>
+                        {story.highlights && (
+                            <div className="mt-4 pt-4 border-t border-slate-800/50">
+                                <div className="text-[10px] font-bold text-primary uppercase tracking-widest mb-1.5 opacity-70">★ Highlights</div>
+                                <p className="text-[11px] text-slate-400 font-serif italic leading-[1.5]">
+                                    {story.highlights}
+                                </p>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -243,6 +251,15 @@ function ManagementStoryCard({
             <p className="text-[14px] text-slate-300 italic leading-[1.6] font-normal mb-5 pr-2">
                 {story.description}
             </p>
+
+            {story.highlights && (
+                <div className="mb-5 p-4 bg-primary/5 border border-primary/10 rounded-2xl">
+                     <span className="text-[10px] uppercase font-bold text-primary tracking-widest mb-2 block opacity-80">KI-Highlights</span>
+                     <p className="text-[13px] text-slate-300 font-serif italic leading-relaxed">
+                        {story.highlights}
+                     </p>
+                </div>
+            )}
 
             {/* Footer */}
             <div className="flex justify-between items-end border-t border-slate-800/50 pt-4 mt-auto">

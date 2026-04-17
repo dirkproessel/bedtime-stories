@@ -765,3 +765,52 @@ Fokus / Ziel DIESES Kapitels: {seg['goal']}
         "synopsis": synopsis,
         "chapters": full_chapters
     }
+
+async def generate_post_story_analysis(title: str, chapters: list[dict]) -> dict:
+    """Analyze the full story text to create a refined synopsis and extract highlights."""
+    full_text = "\n\n".join([c.get("text", "") for c in chapters])
+    
+    prompt = f"""Du bist ein preisgekrönter Lektor und Literaturkritiker. Deine Aufgabe ist es, eine abgeschlossene Kurzgeschichte zu analysieren.
+
+GESCHICHTE:
+Titel: {title}
+Text:
+{full_text[:6000]} # Limit to stay within context if story is very long
+
+AUFGABE:
+1. Erstelle eine neue, "punchy" Zusammenfassung der Geschichte (max. 3-4 Sätze). Sie soll atmosphärisch sein und Lust auf das Lesen machen, ohne zu viel zu verraten (keine Spoiler der Auflösung).
+2. Extrahiere die 2-3 besten "Punchlines" oder Highlights aus dem Text. Das können besonders witzige, tiefsinnige oder atmosphärische Sätze sein.
+
+Antworte EXKLUSIV im JSON-Format:
+{{
+    "refined_synopsis": "Die neue Zusammenfassung...",
+    "highlights": "Highlight 1 • Highlight 2 • Highlight 3"
+}}"""
+
+    try:
+        await rate_limiter.wait_for_capacity("text")
+        text_model = store.get_system_setting("gemini_text_model", settings.GEMINI_TEXT_MODEL)
+        
+        response = await _api_request_with_retry(
+            client.models.generate_content,
+            model=text_model,
+            contents=prompt,
+            config={
+                "response_mime_type": "application/json",
+                "temperature": 0.7,
+                "safety_settings": SAFETY_SETTINGS_CONFIG
+            }
+        )
+        rate_limiter.increment_daily_quota("text")
+        
+        data = json.loads(response.text.strip())
+        return {
+            "synopsis": data.get("refined_synopsis", ""),
+            "highlights": data.get("highlights", "")
+        }
+    except Exception as e:
+        logger.error(f"Post-story analysis failed: {e}")
+        return {
+            "synopsis": "",
+            "highlights": ""
+        }

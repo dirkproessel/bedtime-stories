@@ -352,6 +352,21 @@ export default function ReaderLayer() {
                             </div>
                         )}
 
+                        {story.highlights && (
+                            <div className="mb-12 p-6 bg-primary/5 border border-primary/20 rounded-[2rem] relative overflow-hidden group">
+                                <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                                    <Sparkles className="w-12 h-12 text-primary" />
+                                </div>
+                                <div className="flex items-center gap-2 mb-3 text-primary">
+                                    <Sparkles className="w-4 h-4" />
+                                    <span className="text-xs font-bold uppercase tracking-[0.2em]">KI-Highlights</span>
+                                </div>
+                                <p className="text-lg sm:text-xl text-primary/90 font-serif italic text-center leading-relaxed">
+                                    {story.highlights}
+                                </p>
+                            </div>
+                        )}
+
                         <article className="prose prose-slate prose-invert max-w-none prose-base sm:prose-lg lg:prose-base">
                             <div className="space-y-6">
                                 {story.chapters && story.chapters.length > 0 ? (

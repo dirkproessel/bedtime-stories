@@ -96,6 +96,7 @@ class StoryMeta(SQLModel, table=True):
     is_public: bool = Field(default=False)
     user_email: Optional[str] = Field(default=None) # Persistent for display cache
     parent_id: Optional[str] = Field(default=None) # Reference to original story
+    highlights: Optional[str] = Field(default=None) # AI-extracted punchlines/highlights
 
 class StoryMetaResponse(StoryMeta):
     """Story Metadata including transient API fields."""
@@ -189,6 +190,8 @@ class StoryUpdate(BaseModel):
     """Request to update story visibility/metadata."""
     is_public: Optional[bool] = None
     title: Optional[str] = None
+    description: Optional[str] = None
+    highlights: Optional[str] = None
     chapters: Optional[list[dict]] = None
 
 # --- API Response Models ---

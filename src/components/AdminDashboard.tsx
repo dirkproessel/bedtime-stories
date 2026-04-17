@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { useStore } from '../store/useStore';
-import { Users, BookOpen, ChevronLeft, Mic } from 'lucide-react';
+import { Users, BookOpen, ChevronLeft, Mic, FlaskConical } from 'lucide-react';
 import AdminUserManagement from './AdminUserManagement';
 import AdminStoryManagement from './AdminStoryManagement';
 import AdminVoiceManagement from './AdminVoiceManagement';
+import AdminExperiment from './AdminExperiment';
 
 export default function AdminDashboard() {
     const { setActiveView } = useStore();
-    const [subView, setSubView] = useState<'users' | 'stories' | 'voices'>('users');
+    const [subView, setSubView] = useState<'users' | 'stories' | 'voices' | 'experiment'>('users');
     const [filterUserId, setFilterUserId] = useState<string | null>(null);
 
     const handleShowUserStories = (userId: string) => {
@@ -69,6 +70,17 @@ export default function AdminDashboard() {
                     <Mic className="w-4 h-4" />
                     Stimmen
                 </button>
+                <button
+                    onClick={() => setSubView('experiment')}
+                    className={`flex items-center gap-2 px-6 py-2.5 rounded-xl transition-all font-medium text-sm ${
+                        subView === 'experiment' 
+                        ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' 
+                        : 'text-slate-400 hover:text-white hover:bg-white/5'
+                    }`}
+                >
+                    <FlaskConical className="w-4 h-4" />
+                    Labor
+                </button>
             </div>
 
             {/* Content Area */}
@@ -80,6 +92,8 @@ export default function AdminDashboard() {
                         filterUserId={filterUserId} 
                         onClearFilter={() => setFilterUserId(null)} 
                     />
+                ) : subView === 'experiment' ? (
+                    <AdminExperiment />
                 ) : (
                     <AdminVoiceManagement />
                 )}

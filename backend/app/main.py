@@ -74,7 +74,12 @@ from app.auth_utils import get_current_active_user, get_optional_user
 from fastapi import Depends
 from app.database import create_db_and_tables
 from app.models import StoryUpdate
-from app.services.story_generator import generate_full_story, generate_story_hook, get_author_names
+from app.services.story_generator import (
+    generate_full_story, 
+    generate_story_hook, 
+    get_author_names,
+    generate_post_story_analysis
+)
 from app.services.tts_service import (
     chapters_to_audio,
     get_available_voices,
@@ -530,6 +535,36 @@ async def admin_delete_story(story_id: str, current_user: User = Depends(get_cur
     return {"status": "success", "message": "Geschichte gelöscht."}
 
 
+@app.post("/api/admin/analyze-story/{story_id}")
+async def admin_analyze_story(story_id: str, current_user: User = Depends(get_current_active_user)):
+    """Analyze an existing story to refine synopsis and extract highlights (Admin only)."""
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Nur Admins dürfen Geschichten analysieren.")
+    
+    meta = store.get_by_id(story_id)
+    if not meta:
+        raise HTTPException(status_code=404, detail="Geschichte nicht gefunden")
+    
+    text_path = settings.AUDIO_OUTPUT_DIR / story_id / "story.json"
+    if not text_path.exists():
+        raise HTTPException(status_code=400, detail="Kein Text für diese Geschichte verfügbar.")
+    
+    try:
+        story_data = json.loads(text_path.read_text(encoding="utf-8"))
+        analysis = await generate_post_story_analysis(meta.title, story_data.get("chapters", []))
+        
+        return {
+            "story_id": story_id,
+            "title": meta.title,
+            "current_synopsis": meta.description,
+            "new_synopsis": analysis["synopsis"],
+            "highlights": analysis["highlights"]
+        }
+    except Exception as e:
+        logger.error(f"Analysis endpoint failed for {story_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/api/admin/settings", response_model=list[SystemSettingResponse])
 async def admin_get_settings(current_user: User = Depends(get_current_active_user)):
     """List all global system settings (Admin only)."""
@@ -707,6 +742,18 @@ async def update_story(
         if meta.user_id != current_user.id and not current_user.is_admin:
             raise HTTPException(status_code=403, detail="Keine Berechtigung.")
         meta.title = req.title
+
+    if req.description is not None:
+        # Only owner or admin can change description
+        if meta.user_id != current_user.id and not current_user.is_admin:
+            raise HTTPException(status_code=403, detail="Keine Berechtigung.")
+        meta.description = req.description
+
+    if req.highlights is not None:
+        # Only owner or admin can change highlights
+        if meta.user_id != current_user.id and not current_user.is_admin:
+            raise HTTPException(status_code=403, detail="Keine Berechtigung.")
+        meta.highlights = req.highlights
 
     if req.chapters is not None:
         # Only owner or admin can change text
