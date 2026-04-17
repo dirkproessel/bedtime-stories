@@ -80,6 +80,8 @@ interface AppState {
     toggleAdminVoice: (type: 'system' | 'clone', id: string) => Promise<void>;
     selectedStoryId: string | null;
     setSelectedStoryId: (id: string | null) => void;
+    adminSubView: 'users' | 'stories' | 'voices' | 'experiment';
+    setAdminSubView: (view: 'users' | 'stories' | 'voices' | 'experiment') => void;
     toggleStoryVisibility: (id: string, isPublic: boolean) => Promise<void>;
 
     // Layer Architecture
@@ -165,6 +167,7 @@ export const useStore = create<AppState>((set, get) => {
     adminClonedVoices: [],
     adminSystemVoices: [],
     selectedStoryId: null,
+    adminSubView: 'users',
     isLoading: false,
     error: null,
     isInitialized: false,
@@ -446,6 +449,7 @@ export const useStore = create<AppState>((set, get) => {
         }
     },
     setSelectedStoryId: (id) => set({ selectedStoryId: id }),
+    setAdminSubView: (view) => set({ adminSubView: view }),
     setReaderOpen: (open, storyId = null) => set({ 
         isReaderOpen: open, 
         readerStoryId: storyId || get().readerStoryId 

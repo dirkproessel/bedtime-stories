@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import { useStore } from '../store/useStore';
-import { Trash2, ExternalLink, Clock, User as UserIcon, Loader2, Music, X, BookOpen } from 'lucide-react';
+import { Trash2, ExternalLink, Clock, User as UserIcon, Loader2, Music, X, BookOpen, FlaskConical } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useState, useRef } from 'react';
 import ConfirmModal from './ConfirmModal';
@@ -13,7 +13,8 @@ interface Props {
 export default function AdminStoryManagement({ filterUserId, onClearFilter }: Props) {
     const { 
         stories, loadStories, deleteAdminStory, setReaderOpen, setRevoiceStoryId, 
-        isLoading, adminUsers, loadMoreStories, hasMore 
+        isLoading, adminUsers, loadMoreStories, hasMore,
+        setAdminSubView, setSelectedStoryId
     } = useStore();
     const [deleteConfirm, setDeleteConfirm] = useState<{ id: string, title: string } | null>(null);
 
@@ -125,6 +126,16 @@ export default function AdminStoryManagement({ filterUserId, onClearFilter }: Pr
                             title="Anzeigen"
                         >
                             <ExternalLink className="w-5 h-5" />
+                        </button>
+                        <button
+                            onClick={() => {
+                                setSelectedStoryId(story.id);
+                                setAdminSubView('experiment');
+                            }}
+                            className="p-2 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-all"
+                            title="Im Labor analysieren"
+                        >
+                            <FlaskConical className="w-5 h-5" />
                         </button>
                         <button
                             onClick={() => setRevoiceStoryId(story.id)}

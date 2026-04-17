@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { Sparkles, Loader2, Search, History, CheckCircle2, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { getThumbUrl } from '../lib/api';
+import { getThumbUrl, adminAnalyzeStory } from '../lib/api';
 
 interface AnalysisResult {
     story_id: string;
@@ -13,8 +13,7 @@ interface AnalysisResult {
 }
 
 export default function AdminExperiment() {
-    const { stories, loadStories, updateStory } = useStore();
-    const [selectedStoryId, setSelectedStoryId] = useState<string>('');
+    const { stories, loadStories, updateStory, selectedStoryId, setSelectedStoryId } = useStore();
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [result, setResult] = useState<AnalysisResult | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
@@ -24,6 +23,11 @@ export default function AdminExperiment() {
         // Ensure stories are loaded for selection
         loadStories(1);
     }, []);
+
+    // Reset result when selected story changes
+    useEffect(() => {
+        setResult(null);
+    }, [selectedStoryId]);
 
     const filteredStories = stories.filter(s => 
         s.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -35,14 +39,7 @@ export default function AdminExperiment() {
         setIsAnalyzing(true);
         setResult(null);
         try {
-            const response = await fetch(`/api/admin/analyze-story/${selectedStoryId}`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                }
-            });
-            if (!response.ok) throw new Error('Analyse fehlgeschlagen');
-            const data = await response.json();
+            const data = await adminAnalyzeStory(selectedStoryId);
             setResult(data);
             toast.success('Analyse abgeschlossen!');
         } catch (error: any) {
@@ -57,32 +54,13 @@ export default function AdminExperiment() {
         setIsSaving(true);
         try {
             await updateStory(result.story_id, {
-                // description is stored in description field in DB but called synopsis in generation
-                title: result.title, 
+                title: result.title,
+                description: result.new_synopsis,
+                highlights: result.highlights
             });
-            
-            // We need a way to save highlights and the new description.
-            // story_update API handles title and description (via description field)
-            // Wait, looking at models.py, 'description' is the field name. 
-            // In story_generator its 'synopsis'.
-            
-            const response = await fetch(`/api/stories/${result.story_id}`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                },
-                body: JSON.stringify({
-                    title: result.title,
-                    description: result.new_synopsis,
-                    highlights: result.highlights
-                })
-            });
-
-            if (!response.ok) throw new Error('Speichern fehlgeschlagen');
             
             toast.success('Änderungen gespeichert!');
-            // Update local store if possible or just reload
+            // Update local state by reloading or direct store update is handled by updateStory
             loadStories(1);
         } catch (error: any) {
             toast.error(error.message || 'Fehler beim Speichern');

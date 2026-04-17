@@ -588,3 +588,21 @@ export async function adminUpdateSetting(key: string, value: string): Promise<Sy
     }
     return res.json();
 }
+
+export async function adminAnalyzeStory(storyId: string): Promise<{
+    story_id: string;
+    title: string;
+    current_synopsis: string;
+    new_synopsis: string;
+    highlights: string;
+}> {
+    const res = await fetch(`${API_BASE}/api/admin/analyze-story/${storyId}`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+    });
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.detail || 'Analyse fehlgeschlagen');
+    }
+    return res.json();
+}

@@ -7,13 +7,12 @@ import AdminVoiceManagement from './AdminVoiceManagement';
 import AdminExperiment from './AdminExperiment';
 
 export default function AdminDashboard() {
-    const { setActiveView } = useStore();
-    const [subView, setSubView] = useState<'users' | 'stories' | 'voices' | 'experiment'>('users');
+    const { setActiveView, adminSubView, setAdminSubView } = useStore();
     const [filterUserId, setFilterUserId] = useState<string | null>(null);
 
     const handleShowUserStories = (userId: string) => {
         setFilterUserId(userId);
-        setSubView('stories');
+        setAdminSubView('stories');
     };
 
     return (
@@ -36,11 +35,11 @@ export default function AdminDashboard() {
             <div className="flex gap-2 p-1 bg-white/5 rounded-2xl border border-white/10 self-center">
                 <button
                     onClick={() => {
-                        setSubView('users');
+                        setAdminSubView('users');
                         setFilterUserId(null); // Clear filter when going back to user list
                     }}
                     className={`flex items-center gap-2 px-6 py-2.5 rounded-xl transition-all font-medium text-sm ${
-                        subView === 'users' 
+                        adminSubView === 'users' 
                         ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' 
                         : 'text-slate-400 hover:text-white hover:bg-white/5'
                     }`}
@@ -49,9 +48,9 @@ export default function AdminDashboard() {
                     Benutzer
                 </button>
                 <button
-                    onClick={() => setSubView('stories')}
+                    onClick={() => setAdminSubView('stories')}
                     className={`flex items-center gap-2 px-6 py-2.5 rounded-xl transition-all font-medium text-sm ${
-                        subView === 'stories' 
+                        adminSubView === 'stories' 
                         ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' 
                         : 'text-slate-400 hover:text-white hover:bg-white/5'
                     }`}
@@ -60,9 +59,9 @@ export default function AdminDashboard() {
                     Geschichten
                 </button>
                 <button
-                    onClick={() => setSubView('voices')}
+                    onClick={() => setAdminSubView('voices')}
                     className={`flex items-center gap-2 px-6 py-2.5 rounded-xl transition-all font-medium text-sm ${
-                        subView === 'voices' 
+                        adminSubView === 'voices' 
                         ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' 
                         : 'text-slate-400 hover:text-white hover:bg-white/5'
                     }`}
@@ -71,9 +70,9 @@ export default function AdminDashboard() {
                     Stimmen
                 </button>
                 <button
-                    onClick={() => setSubView('experiment')}
+                    onClick={() => setAdminSubView('experiment')}
                     className={`flex items-center gap-2 px-6 py-2.5 rounded-xl transition-all font-medium text-sm ${
-                        subView === 'experiment' 
+                        adminSubView === 'experiment' 
                         ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' 
                         : 'text-slate-400 hover:text-white hover:bg-white/5'
                     }`}
@@ -85,14 +84,14 @@ export default function AdminDashboard() {
 
             {/* Content Area */}
             <div className="w-full">
-                {subView === 'users' ? (
+                {adminSubView === 'users' ? (
                     <AdminUserManagement onShowStories={handleShowUserStories} />
-                ) : subView === 'stories' ? (
+                ) : adminSubView === 'stories' ? (
                     <AdminStoryManagement 
                         filterUserId={filterUserId} 
                         onClearFilter={() => setFilterUserId(null)} 
                     />
-                ) : subView === 'experiment' ? (
+                ) : adminSubView === 'experiment' ? (
                     <AdminExperiment />
                 ) : (
                     <AdminVoiceManagement />
