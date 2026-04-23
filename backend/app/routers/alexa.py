@@ -426,10 +426,10 @@ async def alexa_webhook(request: Request, session: Session = Depends(get_session
                 }
                 return alexa_response(f"Alles klar! Ich spiele deine Geschichte: {first.title}.", should_end_session=True, directives=[directive])
             
-            # Start Creation Flow via explicit Elicitation
-            return alexa_elicit_slot(
+            # Start Creation Flow
+            return alexa_response(
                 "Prima! Über was soll die neue Geschichte handeln?",
-                "idea", "GenerateStoryIntent", {}
+                should_end_session=False
             )
 
         if intent_name == "AMAZON.NoIntent":
