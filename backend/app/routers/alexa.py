@@ -263,34 +263,52 @@ async def _alexa_webhook_logic(data: dict, session: Session):
             # Start Generation Pipeline
             story_id = str(uuid.uuid4())[:8]
             
-            # Better Genre Mapping
+            # ── Genre Normalization (alle 20 Storyja-Genres) ──
             raw_genre = get_canonical_slot_value(slots.get("genre"))
-            backend_genre = raw_genre or "Abenteuer"
-            
-            # Fuzzy fallback / Normalization
-            bg_lower = backend_genre.lower()
-            if "nach" in bg_lower or "schlaf" in bg_lower: backend_genre = "Gute Nacht"
-            elif "lustig" in bg_lower or "kom" in bg_lower: backend_genre = "Komödie"
-            elif "krimi" in bg_lower or "spann" in bg_lower or "detekt" in bg_lower: backend_genre = "Krimi"
-            elif "grusel" in bg_lower or "horror" in bg_lower: backend_genre = "Grusel"
-            elif "abenteu" in bg_lower: backend_genre = "Abenteuer"
-            elif "märchen" in bg_lower or "fabel" in bg_lower: backend_genre = "Märchen"
+            bg = (raw_genre or "").lower()
 
-            # Style Mapping (Author)
-            style = "adams"
-            bg_lower = backend_genre.lower()
-            if "nach" in bg_lower or "schlaf" in bg_lower: backend_genre = "Gute Nacht"
-            elif "lustig" in bg_lower or "kom" in bg_lower: backend_genre = "Komödie"
-            elif "spannend" in bg_lower or "krimi" in bg_lower or "spann" in bg_lower or "detekt" in bg_lower: backend_genre = "Krimi"
-            elif "grusel" in bg_lower or "horror" in bg_lower: backend_genre = "Grusel"
-            elif "abenteu" in bg_lower: backend_genre = "Abenteuer"
-            elif "märchen" in bg_lower or "fabel" in bg_lower: backend_genre = "Märchen"
-
-            if "Krimi" in backend_genre: style = "fitzek"
-            elif "Gute Nacht" in backend_genre: style = "lindgren"
-            elif "Grusel" in backend_genre: style = "king"
-            elif "Komödie" in backend_genre: style = "jaud"
-            elif "Abenteuer" in backend_genre: style = "adams"
+            if "gute nacht" in bg or "schlaf" in bg or "einschlaf" in bg:
+                backend_genre, style = "Gute Nacht", "lindgren"
+            elif "krimi" in bg or "detektiv" in bg or "mörder" in bg:
+                backend_genre, style = "Krimi", "fitzek"
+            elif "thriller" in bg or "spannung" in bg or "spannend" in bg:
+                backend_genre, style = "Thriller", "fitzek"
+            elif "grusel" in bg or "horror" in bg or "angst" in bg:
+                backend_genre, style = "Grusel", "king"
+            elif "science" in bg or "sci-fi" in bg or "zukunft" in bg or "weltraum" in bg or "robot" in bg:
+                backend_genre, style = "Science-Fiction", "adams"
+            elif "fantasy" in bg or "drachen" in bg or "magie" in bg or "elf" in bg or "zauberer" in bg:
+                backend_genre, style = "Fantasy", "funke"
+            elif "märchen" in bg or "maerchen" in bg or "fee" in bg or "prinz" in bg:
+                backend_genre, style = "Märchen", "lindgren"
+            elif "fabel" in bg or "tier" in bg and "moral" in bg:
+                backend_genre, style = "Fabel", "kaestner"
+            elif "satire" in bg or "politisch" in bg or "zerrspiegel" in bg:
+                backend_genre, style = "Satire", "kling"
+            elif "dystopie" in bg or "dystopia" in bg or "überwachung" in bg or "diktatur" in bg:
+                backend_genre, style = "Dystopie", "zeh"
+            elif "histor" in bg or "mittelalter" in bg or "römer" in bg or "antike" in bg or "vergangenheit" in bg:
+                backend_genre, style = "Historisch", "kehlmann"
+            elif "mytholog" in bg or "götter" in bg or "herkules" in bg or "griech" in bg:
+                backend_genre, style = "Mythologie", "kehlmann"
+            elif "roadtrip" in bg or "reise" in bg or "unterwegs" in bg:
+                backend_genre, style = "Roadtrip", "jaud"
+            elif "drama" in bg or "tragödie" in bg or "tragoedie" in bg:
+                backend_genre, style = "Drama", "kehlmann"
+            elif "komödie" in bg or "komoedie" in bg or "lustig" in bg or "witzig" in bg:
+                backend_genre, style = "Komödie", "jaud"
+            elif "dark romance" in bg or "verboten" in bg or "machtspiel" in bg:
+                backend_genre, style = "Dark Romance", "rice"
+            elif "erotik" in bg or "leidenschaft" in bg:
+                backend_genre, style = "Erotik", "nin"
+            elif "sinnlich" in bg or "romanze" in bg and "sinnlich" in bg:
+                backend_genre, style = "Sinnliche Romanze", "nin"
+            elif "romanze" in bg or "liebe" in bg or "verliebt" in bg:
+                backend_genre, style = "Modern Romanze", "rooney"
+            elif "abenteu" in bg:
+                backend_genre, style = "Abenteuer", "adams"
+            else:
+                backend_genre, style = raw_genre or "Abenteuer", "adams"
 
             # Execute pipeline in background via StoryService
             from app.services.story_service import story_service
@@ -310,11 +328,73 @@ async def _alexa_webhook_logic(data: dict, session: Session):
                 )
             )
 
-            return alexa_response(
-                f"Abgemacht! Ich erstelle dir eine {backend_genre} Geschichte über {idea}. "
-                "Das dauert etwa zwei Minuten. Ich bin gleich fertig!",
-                should_end_session=True
-            )
+            # ── Genre-spezifische Cliffhanger-Ansagen ──
+            g = backend_genre
+            if g == "Krimi":
+                cliffhanger = (f"Der Fall wird eröffnet! Meine besten Ermittler arbeiten bereits an der Geschichte über {idea}. "
+                               "In zwei Minuten hast du die Lösung – wenn du sie wirklich willst. Ich blinke, wenn es so weit ist!")
+            elif g == "Thriller":
+                cliffhanger = (f"Der Countdown läuft! Eine Thriller-Geschichte über {idea} entsteht gerade in meinen Schaltkreisen. "
+                               "In zwei Minuten blinke ich – dann beginnt die Jagd!")
+            elif g == "Gute Nacht":
+                cliffhanger = (f"Schon bald werden deine Augen schwer... Ich webe dir gerade eine Gute-Nacht-Geschichte über {idea}. "
+                               "In zwei Minuten blinke ich auf, wenn es Zeit ist. Bis gleich, und träum schön!")
+            elif g == "Grusel":
+                cliffhanger = (f"Manche Geschichten sollte man besser nicht hören... aber du hast darum gebeten. "
+                               f"Ich schreibe dir eine Gruselgeschichte über {idea}. In zwei Minuten blinke ich – dann entscheidest du.")
+            elif g == "Science-Fiction":
+                cliffhanger = (f"Warpantrieb aktiviert! Eine Science-Fiction-Geschichte über {idea} wird gerade berechnet. "
+                               "In zwei Minuten blinke ich – dann reist du in die Zukunft!")
+            elif g == "Fantasy":
+                cliffhanger = (f"Die Magie erwacht! Eine Fantasy-Geschichte über {idea} nimmt gerade Form an. "
+                               "In zwei Minuten blinke ich – dann öffnen sich die Tore zu einer anderen Welt!")
+            elif g == "Märchen":
+                cliffhanger = (f"Es war einmal... gleich wird es so weit sein! Ich zaubere dir ein Märchen über {idea}. "
+                               "In zwei Minuten blinke ich auf – dann öffnet sich die Tür in eine andere Welt!")
+            elif g == "Fabel":
+                cliffhanger = (f"Die Tiere versammeln sich! Eine Fabel über {idea} wird gerade geschrieben. "
+                               "In zwei Minuten blinke ich – und die Moral der Geschichte wartet auf dich!")
+            elif g == "Satire":
+                cliffhanger = (f"Der Zerrspiegel wird poliert! Eine bissige Satire über {idea} entsteht gerade. "
+                               "In zwei Minuten blinke ich – und die Wahrheit steckt im Witz!")
+            elif g == "Dystopie":
+                cliffhanger = (f"System lädt... Eine Dystopie über {idea} wird gerade berechnet. "
+                               "In zwei Minuten blinke ich – Widerstand ist zwecklos... oder doch nicht?")
+            elif g == "Historisch":
+                cliffhanger = (f"Die Zeitmaschine startet! Eine historische Geschichte über {idea} entsteht gerade. "
+                               "In zwei Minuten blinke ich – dann reist du in die Vergangenheit!")
+            elif g == "Mythologie":
+                cliffhanger = (f"Die Götter wachen auf! Eine mythologische Geschichte über {idea} entsteht gerade auf dem Olymp. "
+                               "In zwei Minuten blinke ich – dann beginnt die Sage!")
+            elif g == "Roadtrip":
+                cliffhanger = (f"Motor läuft, Karte ausgepackt! Ein Roadtrip über {idea} beginnt gerade. "
+                               "In zwei Minuten blinke ich – dann geht die Reise los!")
+            elif g == "Drama":
+                cliffhanger = (f"Das Licht geht aus, der Vorhang hebt sich... Ein Drama über {idea} entsteht gerade. "
+                               "In zwei Minuten blinke ich – dann beginnt das Stück!")
+            elif g == "Komödie":
+                cliffhanger = (f"Bühne frei! Meine witzigsten Autoren lachen sich schon halb tot über deine Idee mit {idea}. "
+                               "In zwei Minuten blinke ich auf – dann kannst du lachen!")
+            elif g == "Modern Romanze":
+                cliffhanger = (f"Schmetterlinge im Bauch! Eine moderne Romanze über {idea} entsteht gerade. "
+                               "In zwei Minuten blinke ich – dann beginnt das Kribbeln!")
+            elif g == "Sinnliche Romanze":
+                cliffhanger = (f"Die Stimmung ist gesetzt... Eine sinnliche Romanze über {idea} entsteht gerade. "
+                               "In zwei Minuten blinke ich – dann beginnt das Abenteuer der Gefühle!")
+            elif g == "Erotik":
+                cliffhanger = (f"Die Tür schließt sich... Eine leidenschaftliche Geschichte über {idea} entsteht gerade. "
+                               "In zwei Minuten blinke ich – für Erwachsene, die warten können.")
+            elif g == "Dark Romance":
+                cliffhanger = (f"Das Verbotene hat einen besonderen Reiz... Eine Dark-Romance-Geschichte über {idea} entsteht gerade. "
+                               "In zwei Minuten blinke ich – wenn du dich traust!")
+            else:
+                # Abenteuer & default
+                cliffhanger = (f"Das Abenteuer ruft! Ich schicke meine kühnsten Autoren auf die Reise – "
+                                f"eine Geschichte über {idea} entsteht gerade. "
+                                "In zwei Minuten blinke ich auf und deine Geschichte wartet. Halt dich fest!")
+
+            return alexa_response(cliffhanger, should_end_session=True)
+
 
         if intent_name == "PlayPlaylistIntent":
             playlist = store.get_playlist(user.id)
