@@ -480,19 +480,26 @@ async def send_alexa_notification(alexa_user_id: str, title: str):
 
             # 2. Send Proactive Event
             # Schema: AMAZON.MediaContent.Available
+            # IMPORTANT: content.name must be 'localizedattribute:contentName'
+            # and localizedAttributes must use 'contentName' key (not 'title')
+            now_str = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+            expiry_str = (datetime.now(timezone.utc) + timedelta(hours=24)).isoformat().replace("+00:00", "Z")
             event_payload = {
-                "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+                "timestamp": now_str,
                 "referenceId": str(uuid.uuid4()),
-                "expiryTime": (datetime.now(timezone.utc) + timedelta(hours=24)).isoformat().replace("+00:00", "Z"),
+                "expiryTime": expiry_str,
                 "event": {
                     "name": "AMAZON.MediaContent.Available",
                     "payload": {
                         "availability": {
-                            "startTime": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+                            "startTime": now_str,
+                            "provider": {
+                                "name": "localizedattribute:providerName"
+                            },
                             "method": "STREAM"
                         },
                         "content": {
-                            "name": "localized:title",
+                            "name": "localizedattribute:contentName",
                             "contentType": "AUDIOBOOK"
                         }
                     }
@@ -500,7 +507,8 @@ async def send_alexa_notification(alexa_user_id: str, title: str):
                 "localizedAttributes": [
                     {
                         "locale": "de-DE",
-                        "title": "Deine Geschichte ist bereit!"
+                        "contentName": title,
+                        "providerName": "Storyja"
                     }
                 ],
                 "relevantAudience": {
@@ -531,12 +539,12 @@ async def send_alexa_notification(alexa_user_id: str, title: str):
             
             event_resp = await client.post(api_url, json=event_payload, headers=headers)
             if event_resp.status_code != 202:
-                logger.error(f"Alexa Notification Error: {event_resp.status_code} - {event_resp.text}")
+                logger.error(f"Alexa Notification Error: {event_resp.status_code} - {event_resp.text} | Payload: {json.dumps(event_payload)}")
             else:
-                logger.info(f"Successfully sent Alexa notification to {alexa_user_id}")
+                logger.info(f"Successfully sent Alexa notification to {alexa_user_id} (title: {title})")
                 
     except Exception as e:
-        logger.error(f"Failed to send Alexa notification: {e}")
+        logger.error(f"Failed to send Alexa notification: {e}", exc_info=True)
 
 @router.post("/unlink")
 async def alexa_unlink(
@@ -614,3 +622,109 @@ async def alexa_check_permissions(
 
     return report
 
+
+# ──────────────────────────────────
+# Test Notification (Admin Debug)
+# ──────────────────────────────────
+
+@router.post("/test-notification")
+async def alexa_test_notification(
+    current_user: User = Depends(get_current_active_user),
+    session: Session = Depends(get_session)
+):
+    """
+    Admin endpoint: Sends a real Alexa notification to the current user's
+    linked Alexa device. Returns the full Amazon API response for debugging.
+    """
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Nur für Admins.")
+
+    alexa_user_id = current_user.alexa_user_id
+    if not alexa_user_id:
+        return {"status": "error", "message": "Kein Alexa User ID mit diesem Account verknüpft. Bitte zuerst Account Linking durchführen."}
+
+    if not settings.ALEXA_CLIENT_ID or not settings.ALEXA_CLIENT_SECRET:
+        return {"status": "error", "message": "ALEXA_CLIENT_ID oder ALEXA_CLIENT_SECRET fehlen."}
+
+    debug = {
+        "alexa_user_id": alexa_user_id[:20] + "...",
+        "skill_stage": settings.ALEXA_SKILL_STAGE,
+        "lwa_status": None,
+        "notification_status": None,
+        "notification_response": None,
+        "notification_body": None,
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            # Step 1: Get token
+            lwa_resp = await client.post(
+                "https://api.amazon.com/auth/o2/token",
+                data={
+                    "grant_type": "client_credentials",
+                    "client_id": settings.ALEXA_CLIENT_ID.strip(),
+                    "client_secret": settings.ALEXA_CLIENT_SECRET.strip(),
+                    "scope": "alexa::proactive_events"
+                }
+            )
+            debug["lwa_status"] = lwa_resp.status_code
+            if lwa_resp.status_code != 200:
+                debug["lwa_error"] = lwa_resp.text
+                return debug
+
+            access_token = lwa_resp.json()["access_token"]
+
+            # Step 2: Send notification
+            now_str = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+            expiry_str = (datetime.now(timezone.utc) + timedelta(hours=24)).isoformat().replace("+00:00", "Z")
+            payload = {
+                "timestamp": now_str,
+                "referenceId": str(uuid.uuid4()),
+                "expiryTime": expiry_str,
+                "event": {
+                    "name": "AMAZON.MediaContent.Available",
+                    "payload": {
+                        "availability": {
+                            "startTime": now_str,
+                            "provider": {"name": "localizedattribute:providerName"},
+                            "method": "STREAM"
+                        },
+                        "content": {
+                            "name": "localizedattribute:contentName",
+                            "contentType": "AUDIOBOOK"
+                        }
+                    }
+                },
+                "localizedAttributes": [
+                    {
+                        "locale": "de-DE",
+                        "contentName": "Test: Deine Geschichte ist fertig!",
+                        "providerName": "Storyja"
+                    }
+                ],
+                "relevantAudience": {
+                    "type": "Unicast",
+                    "payload": {"user": alexa_user_id}
+                }
+            }
+
+            base_url = "https://api.eu.amazonalexa.com/v1/proactiveEvents"
+            api_url = f"{base_url}/stages/development" if settings.ALEXA_SKILL_STAGE == "development" else base_url
+
+            notify_resp = await client.post(
+                api_url,
+                json=payload,
+                headers={"Content-Type": "application/json", "Authorization": f"Bearer {access_token}"}
+            )
+            debug["notification_status"] = notify_resp.status_code
+            debug["notification_body"] = notify_resp.text or "(leer – 202 bedeutet Erfolg)"
+
+            if notify_resp.status_code == 202:
+                debug["result"] = "✅ Benachrichtigung erfolgreich gesendet!"
+            else:
+                debug["result"] = f"❌ Fehler: HTTP {notify_resp.status_code}"
+
+    except Exception as e:
+        debug["exception"] = str(e)
+
+    return debug
