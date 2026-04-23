@@ -225,9 +225,11 @@ class StoryService:
                 
                 await on_progress("done", "Fertig!", points=total_points, is_absolute_points=True)
                 
-                if alexa_user_id:
+                if alexa_user_id and user_id:
+                    added = store.add_to_playlist(user_id, story_id)
+                    logger.info(f"ALEXA PIPELINE [{story_id}]: add_to_playlist result = {added}")
                     from app.routers.alexa import send_alexa_notification
-                    asyncio.create_task(send_alexa_notification(alexa_user_id, story_meta.title))
+                    asyncio.create_task(send_alexa_notification(alexa_user_id, real_title))
                 
                 return
 
@@ -272,9 +274,11 @@ class StoryService:
 
             await on_progress("done", "Fertig!", points=total_points, is_absolute_points=True)
 
-            if alexa_user_id:
+            if alexa_user_id and user_id:
+                added = store.add_to_playlist(user_id, story_id)
+                logger.info(f"ALEXA PIPELINE [{story_id}]: add_to_playlist result = {added}")
                 from app.routers.alexa import send_alexa_notification
-                asyncio.create_task(send_alexa_notification(alexa_user_id, story_meta.title))
+                asyncio.create_task(send_alexa_notification(alexa_user_id, real_title))
 
             # BENCHMARK
             logger.info(f"BENCHMARK [{story_id}]: Total Pipeline Finished in {time.time() - start_time_total:.2f}s")
