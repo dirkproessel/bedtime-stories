@@ -494,14 +494,24 @@ async def send_alexa_notification(alexa_user_id: str, title: str):
                     "payload": {
                         "availability": {
                             "startTime": now_str,
+                            "provider": {
+                                "name": "localizedattribute:providerName"
+                            },
                             "method": "STREAM"
                         },
                         "content": {
-                            "name": safe_title,
+                            "name": "localizedattribute:contentName",
                             "contentType": "BOOK"
                         }
                     }
                 },
+                "localizedAttributes": [
+                    {
+                        "locale": "de-DE",
+                        "providerName": "Storyja",
+                        "contentName": safe_title
+                    }
+                ],
                 "relevantAudience": {
                     "type": "Unicast",
                     "payload": {
@@ -677,14 +687,24 @@ async def alexa_test_notification(
                     "payload": {
                         "availability": {
                             "startTime": now_str,
+                            "provider": {
+                                "name": "localizedattribute:providerName"
+                            },
                             "method": "STREAM"
                         },
                         "content": {
-                            "name": "Neue Geschichte bereit",
+                            "name": "localizedattribute:contentName",
                             "contentType": "BOOK"
                         }
                     }
                 },
+                "localizedAttributes": [
+                    {
+                        "locale": "de-DE",
+                        "providerName": "Storyja",
+                        "contentName": "Neue Geschichte bereit"
+                    }
+                ],
                 "relevantAudience": {
                     "type": "Unicast",
                     "payload": {"user": alexa_user_id}
