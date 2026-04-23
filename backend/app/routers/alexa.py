@@ -480,10 +480,10 @@ async def send_alexa_notification(alexa_user_id: str, title: str):
 
             # 2. Send Proactive Event
             # Schema: AMAZON.MediaContent.Available
-            # IMPORTANT: content.name must be 'localizedattribute:contentName'
-            # and localizedAttributes must use 'contentName' key (not 'title')
+            # Use direct strings (no localizedattribute refs) for simplicity and reliability
             now_str = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
             expiry_str = (datetime.now(timezone.utc) + timedelta(hours=24)).isoformat().replace("+00:00", "Z")
+            safe_title = (title or "Deine Geschichte")[:60]
             event_payload = {
                 "timestamp": now_str,
                 "referenceId": str(uuid.uuid4()),
@@ -494,22 +494,18 @@ async def send_alexa_notification(alexa_user_id: str, title: str):
                         "availability": {
                             "startTime": now_str,
                             "provider": {
-                                "name": "localizedattribute:providerName"
+                                "name": "Storyja"
                             },
                             "method": "STREAM"
                         },
                         "content": {
-                            "name": "localizedattribute:contentName",
-                            "contentType": "AUDIOBOOK"
+                            "name": safe_title,
+                            "contentType": "BOOK"
                         }
                     }
                 },
                 "localizedAttributes": [
-                    {
-                        "locale": "de-DE",
-                        "contentName": title,
-                        "providerName": "Storyja"
-                    }
+                    {"locale": "de-DE"}
                 ],
                 "relevantAudience": {
                     "type": "Unicast",
@@ -686,21 +682,17 @@ async def alexa_test_notification(
                     "payload": {
                         "availability": {
                             "startTime": now_str,
-                            "provider": {"name": "localizedattribute:providerName"},
+                            "provider": {"name": "Storyja"},
                             "method": "STREAM"
                         },
                         "content": {
-                            "name": "localizedattribute:contentName",
-                            "contentType": "AUDIOBOOK"
+                            "name": "Test: Deine Geschichte ist fertig!",
+                            "contentType": "BOOK"
                         }
                     }
                 },
                 "localizedAttributes": [
-                    {
-                        "locale": "de-DE",
-                        "contentName": "Test: Deine Geschichte ist fertig!",
-                        "providerName": "Storyja"
-                    }
+                    {"locale": "de-DE"}
                 ],
                 "relevantAudience": {
                     "type": "Unicast",
