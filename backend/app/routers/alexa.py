@@ -551,3 +551,66 @@ async def alexa_unlink(
         session.commit()
         return {"status": "success", "message": "Alexa Verknüpfung aufgehoben."}
     return {"status": "success", "message": "Keine Verknüpfung vorhanden."}
+
+# ──────────────────────────────────
+# Alexa Permission Check (Admin)
+# ──────────────────────────────────
+
+@router.get("/check-permissions")
+async def alexa_check_permissions(
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Admin endpoint: Checks Alexa Proactive Events configuration by attempting
+    to obtain an LWA access token. Returns a detailed status report.
+    """
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Nur für Admins.")
+
+    report = {
+        "client_id_set": bool(settings.ALEXA_CLIENT_ID),
+        "client_secret_set": bool(settings.ALEXA_CLIENT_SECRET),
+        "skill_stage": settings.ALEXA_SKILL_STAGE,
+        "lwa_token_status": None,
+        "lwa_error": None,
+        "proactive_events_enabled": False,
+    }
+
+    if not settings.ALEXA_CLIENT_ID or not settings.ALEXA_CLIENT_SECRET:
+        report["lwa_error"] = "ALEXA_CLIENT_ID oder ALEXA_CLIENT_SECRET fehlen in der .env Datei."
+        return report
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.post(
+                "https://api.amazon.com/auth/o2/token",
+                data={
+                    "grant_type": "client_credentials",
+                    "client_id": settings.ALEXA_CLIENT_ID.strip(),
+                    "client_secret": settings.ALEXA_CLIENT_SECRET.strip(),
+                    "scope": "alexa::proactive_events"
+                }
+            )
+            report["lwa_http_status"] = resp.status_code
+
+            if resp.status_code == 200:
+                token_data = resp.json()
+                report["lwa_token_status"] = "ok"
+                report["proactive_events_enabled"] = True
+                report["token_expires_in"] = token_data.get("expires_in")
+                report["token_type"] = token_data.get("token_type")
+            else:
+                body = resp.json() if resp.headers.get("content-type", "").startswith("application/json") else resp.text
+                report["lwa_token_status"] = "error"
+                report["lwa_error"] = body
+                if isinstance(body, dict) and body.get("error") == "invalid_scope":
+                    report["lwa_error"] = (
+                        "Permission 'Alexa Proactive Events' ist im Skill NICHT aktiviert. "
+                        "Bitte in der Alexa Developer Console unter Build → Permissions aktivieren."
+                    )
+    except Exception as e:
+        report["lwa_token_status"] = "exception"
+        report["lwa_error"] = str(e)
+
+    return report
+
