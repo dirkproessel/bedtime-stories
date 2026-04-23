@@ -166,9 +166,7 @@ def alexa_elicit_slot(text: str, slot_to_elicit: str, intent_name: str, slots: d
 # Webhook Endpoint
 # ──────────────────────────────────
 
-@router.post("/webhook")
-async def alexa_webhook(request: Request, session: Session = Depends(get_session)):
-    data = await request.json()
+async def _alexa_webhook_logic(data: dict, session: Session):
     logger.info(f"ALEXA REQUEST: {json.dumps(data)}")
     req_type = data.get("request", {}).get("type", "")
     # Robust User ID Extraction (Session vs Context)
@@ -433,6 +431,23 @@ async def alexa_webhook(request: Request, session: Session = Depends(get_session
 
     return alexa_response("Das habe ich leider nicht verstanden. Möchtest du eine bereits fertige Geschichte hören oder eine neue Geschichte erfinden?")
 
+@router.post("/webhook")
+async def alexa_webhook(request: Request, session: Session = Depends(get_session)):
+    data = await request.json()
+    import traceback
+    try:
+        with open("alexa_debug.txt", "a", encoding="utf-8") as f:
+            f.write(f"\n\n=== NEW REQUEST ===\n{json.dumps(data, indent=2)}\n")
+        
+        response = await _alexa_webhook_logic(data, session)
+        
+        with open("alexa_debug.txt", "a", encoding="utf-8") as f:
+            f.write(f"\n--- RESPONSE ---\n{json.dumps(response, indent=2)}\n")
+        return response
+    except Exception as e:
+        with open("alexa_debug.txt", "a", encoding="utf-8") as f:
+            f.write(f"\n--- ERROR ---\n{traceback.format_exc()}\n")
+        raise
 
 # ──────────────────────────────────
 # Proactive Events (Notification)
