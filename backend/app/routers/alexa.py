@@ -253,17 +253,13 @@ async def alexa_webhook(request: Request, session: Session = Depends(get_session
 
             # 1. Elicit Idea if missing
             if not idea:
-                return alexa_elicit_slot(
+                return alexa_response(
                     "Über was soll die Geschichte handeln?",
-                    "idea", "GenerateStoryIntent", slots
+                    should_end_session=False
                 )
             
-            # 2. Elicit Genre if missing (with custom child-friendly prompt)
-            if not genre:
-                return alexa_elicit_slot(
-                    "Wie soll die Geschichte sein: lustig, spannend oder zum einschlafen?",
-                    "genre", "GenerateStoryIntent", slots
-                )
+            # 2. Genre is automatically defaulted if missing. We skip explicitly asking for it 
+            # to prevent Alexa Dialog.ElicitSlot crashes if the Alexa model isn't fully configured.
 
             # Start Generation Pipeline
             story_id = str(uuid.uuid4())[:8]
