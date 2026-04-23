@@ -1,0 +1,88 @@
+{
+  "manifest": {
+    "apis": {
+      "custom": {
+        "endpoint": {
+          "sslCertificateType": "Trusted",
+          "uri": "https://api.storyja.com/api/alexa/webhook"
+        },
+        "interfaces": [
+          {
+            "type": "AUDIO_PLAYER"
+          }
+        ],
+        "locales": {}
+      }
+    },
+    "manifestVersion": "1.0",
+    "permissions": [
+      {
+        "name": "alexa::devices:all:notifications:write"
+      },
+      {
+        "name": "alexa::alerts:reminders:skill:readwrite"
+      },
+      {
+        "name": "alexa::person_id:read"
+      },
+      {
+        "name": "alexa::alerts:timers:skill:readwrite"
+      }
+    ],
+    "privacyAndCompliance": {
+      "allowsPurchases": false,
+      "containsAds": false,
+      "isChildDirected": false,
+      "isExportCompliant": true,
+      "locales": {
+        "de-DE": {
+          "privacyPolicyUrl": "https://api.storyja.com/api/static/privacy.html",
+          "termsOfUseUrl": "https://api.storyja.com/api/static/terms.html"
+        }
+      },
+      "shoppingKit": {
+        "isAmazonAssociatesOnAlexaEnabled": false,
+        "isShoppingActionsEnabled": false
+      },
+      "usesPersonalInfo": false
+    },
+    "publishingInformation": {
+      "automaticDistribution": {
+        "isActive": false
+      },
+      "category": "STORIES",
+      "distributionCountries": [
+        "DE"
+      ],
+      "distributionMode": "PUBLIC",
+      "isAvailableWorldwide": false,
+      "locales": {
+        "de-DE": {
+          "description": "Storyja.com \u00d4\u00c7\u00f4 Literatur auf Knopfdruck. Wir verwandeln deine Ideen in Sekunden in individuell generierte Kurzgeschichten. Von messerscharfer Satire bis zum tiefgr\u251c\u255dndigen Drama: Erlebe im Kurzgeschichten-Labor, wie KI die Kunst des Erz\u251c\u00f1hlens neu definiert.\n\nDefiniere die Grundidee Deiner Geschichte (z.B. \"Papa rutscht auf einer Banane aus\") sowie das Genre (z.B. \"Abenteuer\"). Danach wird eine Kurzgeschichte f\u251c\u255dr Dich erstellt und kann wenigen Minuten sp\u251c\u00f1ter abgespielt werden. Auch kann man bestehende Geschichten aus der storyja-App zur Wiedergabe auf Alexa freigeben.",
+          "examplePhrases": [
+            "Alexa, starte meine kurzgeschichten"
+          ],
+          "keywords": [
+            "stories",
+            "Kurzgeschichten"
+          ],
+          "largeIconUri": "https://s3.amazonaws.com/CAPS-SSE/echo_developer/87b3/23a01d6226524988a56bac40101bf9a5/APP_ICON_LARGE?versionId=AawfQn29pL1IONJgLaEy4ctCerqQxEdR&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Date=20260423T082239Z&X-Amz-SignedHeaders=host&X-Amz-Expires=604799&X-Amz-Credential=AKIAWBV6LQ4QOK4T6665%2F20260423%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Signature=8863b4d7c317e83ef1fcde530e280140c2154a4febf03fc3907ce3cca2361c41",
+          "name": "storyja",
+          "smallIconUri": "https://s3.amazonaws.com/CAPS-SSE/echo_developer/8f9a/ec1de0c3e6f04a0195c509c9b945fc30/APP_ICON?versionId=Sj2tpUskNDCHF_pETaQHUZElULiGCymX&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Date=20260423T082239Z&X-Amz-SignedHeaders=host&X-Amz-Expires=604799&X-Amz-Credential=AKIAWBV6LQ4QOK4T6665%2F20260423%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Signature=58846b9ef983f7c59bd08e382b21c84d1830339f6a3701c83aff0df602e5f328",
+          "summary": "Meine Kurzgeschichten"
+        }
+      },
+      "testingInstructions": "{\"ask_dist_username\":\"\",\"ask_dist_password\":\"\",\"ask_dist_testing_instructions\":\"- say \\\"erstellen\\\"\\n- say \\\"ein drache erwacht zu fr\u251c\u255dh\\\"\\n- say \\\"Abenteuer\\\"\\nThen it creates a story.\\ncome back 5 min later\\nsay \\\"abspielen\\\". then it plays the story\"}"
+    },
+    "events": {
+      "publications": [
+        {
+          "eventName": "AMAZON.MediaContent.Available"
+        }
+      ],
+      "endpoint": {
+        "uri": "https://api.storyja.com/api/alexa/webhook"
+      }
+    }
+  }
+}
