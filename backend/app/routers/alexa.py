@@ -504,9 +504,6 @@ async def send_alexa_notification(alexa_user_id: str, title: str):
                         }
                     }
                 },
-                "localizedAttributes": [
-                    {"locale": "de-DE"}
-                ],
                 "relevantAudience": {
                     "type": "Unicast",
                     "payload": {
@@ -691,9 +688,6 @@ async def alexa_test_notification(
                         }
                     }
                 },
-                "localizedAttributes": [
-                    {"locale": "de-DE"}
-                ],
                 "relevantAudience": {
                     "type": "Unicast",
                     "payload": {"user": alexa_user_id}
