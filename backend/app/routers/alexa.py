@@ -481,8 +481,9 @@ async def send_alexa_notification(alexa_user_id: str, title: str):
             # 2. Send Proactive Event
             # Schema: AMAZON.MediaContent.Available
             # Use direct strings (no localizedattribute refs) for simplicity and reliability
-            now_str = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
-            expiry_str = (datetime.now(timezone.utc) + timedelta(hours=24)).isoformat().replace("+00:00", "Z")
+            # NOTE: Use strftime to avoid microseconds in timestamps (Amazon rejects them)
+            now_str = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+            expiry_str = (datetime.now(timezone.utc) + timedelta(hours=24)).strftime("%Y-%m-%dT%H:%M:%SZ")
             safe_title = (title or "Deine Geschichte")[:60]
             event_payload = {
                 "timestamp": now_str,
@@ -493,9 +494,6 @@ async def send_alexa_notification(alexa_user_id: str, title: str):
                     "payload": {
                         "availability": {
                             "startTime": now_str,
-                            "provider": {
-                                "name": "Storyja"
-                            },
                             "method": "STREAM"
                         },
                         "content": {
@@ -668,8 +666,8 @@ async def alexa_test_notification(
             access_token = lwa_resp.json()["access_token"]
 
             # Step 2: Send notification
-            now_str = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
-            expiry_str = (datetime.now(timezone.utc) + timedelta(hours=24)).isoformat().replace("+00:00", "Z")
+            now_str = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+            expiry_str = (datetime.now(timezone.utc) + timedelta(hours=24)).strftime("%Y-%m-%dT%H:%M:%SZ")
             payload = {
                 "timestamp": now_str,
                 "referenceId": str(uuid.uuid4()),
@@ -679,11 +677,10 @@ async def alexa_test_notification(
                     "payload": {
                         "availability": {
                             "startTime": now_str,
-                            "provider": {"name": "Storyja"},
                             "method": "STREAM"
                         },
                         "content": {
-                            "name": "Test: Deine Geschichte ist fertig!",
+                            "name": "Neue Geschichte bereit",
                             "contentType": "BOOK"
                         }
                     }
