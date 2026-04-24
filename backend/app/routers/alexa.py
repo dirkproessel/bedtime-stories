@@ -247,24 +247,35 @@ async def _alexa_webhook_logic(data: dict, session: Session):
         slots = data["request"]["intent"].get("slots", {})
 
         if intent_name == "GenerateStoryIntent":
+            # Extract current slot values
             idea = slots.get("idea", {}).get("value")
-            genre = slots.get("genre", {}).get("value")
-
+            genre_slot = slots.get("genre", {})
+            genre = genre_slot.get("value")
+            
             # 1. Elicit Idea if missing
             if not idea:
-                return alexa_response(
-                    "Über was soll die Geschichte handeln?",
-                    should_end_session=False
+                return alexa_elicit_slot(
+                    "Über was soll die Geschichte handeln? Gib mir ein Thema oder eine kurze Idee.",
+                    "idea",
+                    intent_name,
+                    slots
                 )
             
-            # 2. Genre is automatically defaulted if missing. We skip explicitly asking for it 
-            # to prevent Alexa Dialog.ElicitSlot crashes if the Alexa model isn't fully configured.
+            # 2. Elicit Genre if missing (and not already filled)
+            # We now explicitly ask for the genre to give the user more 'Handhabe'
+            if not genre:
+                return alexa_elicit_slot(
+                    "In welchem Genre soll ich die Geschichte schreiben? Zum Beispiel Märchen, Krimi, Science-Fiction oder Gute-Nacht-Geschichte?",
+                    "genre",
+                    intent_name,
+                    slots
+                )
 
             # Start Generation Pipeline
             story_id = str(uuid.uuid4())[:8]
             
             # ── Genre Normalization (alle 20 Storyja-Genres) ──
-            raw_genre = get_canonical_slot_value(slots.get("genre"))
+            raw_genre = get_canonical_slot_value(genre_slot)
             bg = (raw_genre or "").lower()
 
             if "gute nacht" in bg or "schlaf" in bg or "einschlaf" in bg:
