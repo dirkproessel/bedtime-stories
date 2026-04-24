@@ -558,71 +558,94 @@ async def send_alexa_notification(alexa_user_id: str, title: str):
             
             access_token = resp.json()["access_token"]
 
-            # 2. Send Proactive Event
-            # Schema: AMAZON.MediaContent.Available
-            # Use direct strings (no localizedattribute refs) for simplicity and reliability
-            # NOTE: Use strftime to avoid microseconds in timestamps (Amazon rejects them)
+            # 2. Build Event Payload based on style
             now_str = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
             expiry_str = (datetime.now(timezone.utc) + timedelta(hours=24)).strftime("%Y-%m-%dT%H:%M:%SZ")
             safe_title = (title or "Deine Geschichte")[:60]
+            
+            style = settings.ALEXA_NOTIFICATION_STYLE.lower()
+            
+            if style == "message":
+                # Cleanest: "Du hast eine neue Nachricht von Storyja"
+                # (Optional: Put title in creatorName if desired)
+                event_name = "AMAZON.MessageAlert.Activated"
+                payload = {
+                    "state": {"status": "UNREAD", "freshness": "NEW"},
+                    "messageGroup": {
+                        "creator": {"name": "localizedattribute:creatorName"},
+                        "count": 1
+                    }
+                }
+                attributes = [{
+                    "locale": "de-DE",
+                    "creatorName": f"Storyja: {safe_title}" if safe_title else "Storyja"
+                }]
+            elif style == "occasion":
+                # Professional: "Für deine Geschichte gibt es Neuigkeiten: [Title]"
+                event_name = "AMAZON.Occasion.Updated"
+                payload = {
+                    "occasion": {
+                        "occasionName": "localizedattribute:occasionName",
+                        "subject": "localizedattribute:subject"
+                    }
+                }
+                attributes = [{
+                    "locale": "de-DE",
+                    "occasionName": "Geschichte",
+                    "subject": safe_title
+                }]
+            else: # "media" (Legacy/Default Template)
+                # Clunky: "Eine neue Nachricht von Storyja: [Title] wurde erstellt um [Zeit] in Storyja Streaming"
+                event_name = "AMAZON.MediaContent.Available"
+                payload = {
+                    "availability": {
+                        "startTime": now_str,
+                        "provider": {"name": "localizedattribute:providerName"},
+                        "method": "STREAM"
+                    },
+                    "content": {
+                        "name": "localizedattribute:contentName",
+                        "contentType": "BOOK"
+                    }
+                }
+                attributes = [{
+                    "locale": "de-DE",
+                    "providerName": "Storyja",
+                    "contentName": safe_title
+                }]
+
             event_payload = {
                 "timestamp": now_str,
                 "referenceId": str(uuid.uuid4()),
                 "expiryTime": expiry_str,
                 "event": {
-                    "name": "AMAZON.MediaContent.Available",
-                    "payload": {
-                        "availability": {
-                            "startTime": now_str,
-                            "provider": {
-                                "name": "localizedattribute:providerName"
-                            },
-                            "method": "STREAM"
-                        },
-                        "content": {
-                            "name": "localizedattribute:contentName",
-                            "contentType": "BOOK"
-                        }
-                    }
+                    "name": event_name,
+                    "payload": payload
                 },
-                "localizedAttributes": [
-                    {
-                        "locale": "de-DE",
-                        "providerName": "Storyja",
-                        "contentName": safe_title
-                    }
-                ],
+                "localizedAttributes": attributes,
                 "relevantAudience": {
                     "type": "Unicast",
-                    "payload": {
-                        "user": alexa_user_id
-                    }
+                    "payload": {"user": alexa_user_id}
                 }
             }
 
-            multimodal_payload = {
-                "title": title
-            }
+            # Alexa Notification Endpoint (Region: Europe)
+            base_api_url = "https://api.eu.amazonalexa.com/v1/proactiveEvents"
+            api_url = f"{base_api_url}/stages/development" if settings.ALEXA_SKILL_STAGE == "development" else base_api_url
             
-            # Note: The API endpoint depends on the region. Amazon Europe: api.eu.amazonalexa.com
-            # For simplicity we try the global/European one.
             headers = {
                 "Content-Type": "application/json",
                 "Authorization": f"Bearer {access_token}"
             }
             
-            # Alexa Notification Endpoint (Region: Europe)
-            base_api_url = "https://api.eu.amazonalexa.com/v1/proactiveEvents"
-            if settings.ALEXA_SKILL_STAGE == "development":
-                api_url = f"{base_api_url}/stages/development"
-            else:
-                api_url = base_api_url
-            
             event_resp = await client.post(api_url, json=event_payload, headers=headers)
             if event_resp.status_code != 202:
-                logger.error(f"Alexa Notification Error: {event_resp.status_code} - {event_resp.text} | Payload: {json.dumps(event_payload)}")
+                logger.error(f"Alexa Notification Error: {event_resp.status_code} - {event_resp.text} (Style: {style})")
             else:
-                logger.info(f"Successfully sent Alexa notification to {alexa_user_id} (title: {title})")
+                logger.info(f"Successfully sent Alexa notification ({style}) to {alexa_user_id}")
+                
+    except Exception as e:
+        logger.error(f"Failed to send Alexa notification: {e}", exc_info=True)
                 
     except Exception as e:
         logger.error(f"Failed to send Alexa notification: {e}", exc_info=True)
@@ -755,50 +778,15 @@ async def alexa_test_notification(
 
             access_token = lwa_resp.json()["access_token"]
 
-            # Step 2: Send notification
-            now_str = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-            expiry_str = (datetime.now(timezone.utc) + timedelta(hours=24)).strftime("%Y-%m-%dT%H:%M:%SZ")
-            payload = {
-                "timestamp": now_str,
-                "referenceId": str(uuid.uuid4()),
-                "expiryTime": expiry_str,
-                "event": {
-                    "name": "AMAZON.MediaContent.Available",
-                    "payload": {
-                        "availability": {
-                            "startTime": now_str,
-                            "provider": {
-                                "name": "localizedattribute:providerName"
-                            },
-                            "method": "STREAM"
-                        },
-                        "content": {
-                            "name": "localizedattribute:contentName",
-                            "contentType": "BOOK"
-                        }
-                    }
-                },
-                "localizedAttributes": [
-                    {
-                        "locale": "de-DE",
-                        "providerName": "Storyja",
-                        "contentName": "Neue Geschichte bereit"
-                    }
-                ],
-                "relevantAudience": {
-                    "type": "Unicast",
-                    "payload": {"user": alexa_user_id}
-                }
+            # Step 2: Send notification (Delegating to main function to test REAL logic)
+            # This ensures the test reflects the actual configured style.
+            await send_alexa_notification(alexa_user_id, "Test Geschichte")
+            
+            return {
+                "status": "success", 
+                "message": f"Test-Benachrichtigung (Style: {settings.ALEXA_NOTIFICATION_STYLE}) gesendet.",
+                "debug_alexa_user_id": alexa_user_id[:20] + "..."
             }
-
-            base_url = "https://api.eu.amazonalexa.com/v1/proactiveEvents"
-            api_url = f"{base_url}/stages/development" if settings.ALEXA_SKILL_STAGE == "development" else base_url
-
-            notify_resp = await client.post(
-                api_url,
-                json=payload,
-                headers={"Content-Type": "application/json", "Authorization": f"Bearer {access_token}"}
-            )
             debug["notification_status"] = notify_resp.status_code
             debug["notification_body"] = notify_resp.text or "(leer – 202 bedeutet Erfolg)"
 
