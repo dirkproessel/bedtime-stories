@@ -252,6 +252,16 @@ async def _alexa_webhook_logic(data: dict, session: Session):
             genre_slot = slots.get("genre", {})
             genre = genre_slot.get("value")
             
+            # Filter out generic phrases that Alexa might have miscaptured as the 'idea'
+            # (e.g. when the user says "Erstelle eine neue Geschichte")
+            if idea:
+                generic_phrases = [
+                    "eine neue geschichte", "neue geschichte", "eine geschichte", 
+                    "geschichte", "etwas neues", "eine neue", "erstellen"
+                ]
+                if idea.lower().strip() in generic_phrases:
+                    idea = None # Force elicitation
+
             # 1. Elicit Idea if missing
             if not idea:
                 return alexa_elicit_slot(
