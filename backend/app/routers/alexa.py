@@ -546,10 +546,13 @@ async def alexa_webhook(request: Request, session: Session = Depends(get_session
 # ──────────────────────────────────
 
 async def send_alexa_notification(alexa_user_id: str, title: str):
-    """Send a proactive event notification to Alexa (LED glow)."""
+    """
+    Send a proactive event notification to Alexa (LED glow).
+    Returns (success: bool, status_code: int, error_text: str)
+    """
     if not settings.ALEXA_CLIENT_ID or not settings.ALEXA_CLIENT_SECRET:
         logger.warning("Alexa Client ID/Secret not set. Skiping notification.")
-        return
+        return False, 0, "Client ID/Secret missing"
 
     try:
         # 1. Get Access Token from Amazon LWA
@@ -565,7 +568,7 @@ async def send_alexa_notification(alexa_user_id: str, title: str):
             )
             if resp.status_code != 200:
                 logger.error(f"LWA Token Error: {resp.status_code} - {resp.text}")
-                resp.raise_for_status()
+                return False, resp.status_code, f"LWA Error: {resp.text}"
             
             access_token = resp.json()["access_token"]
 
@@ -577,8 +580,6 @@ async def send_alexa_notification(alexa_user_id: str, title: str):
             style = settings.ALEXA_NOTIFICATION_STYLE.lower()
             
             if style == "message":
-                # Cleanest: "Du hast eine neue Nachricht von Storyja"
-                # (Optional: Put title in creatorName if desired)
                 event_name = "AMAZON.MessageAlert.Activated"
                 payload = {
                     "state": {"status": "UNREAD", "freshness": "NEW"},
@@ -592,7 +593,6 @@ async def send_alexa_notification(alexa_user_id: str, title: str):
                     "creatorName": f"Storyja: {safe_title}" if safe_title else "Storyja"
                 }]
             elif style == "occasion":
-                # Professional: "Für deine Geschichte gibt es Neuigkeiten: [Title]"
                 event_name = "AMAZON.Occasion.Updated"
                 payload = {
                     "occasion": {
@@ -606,7 +606,6 @@ async def send_alexa_notification(alexa_user_id: str, title: str):
                     "subject": safe_title
                 }]
             else: # "media" (Legacy/Default Template)
-                # Clunky: "Eine neue Nachricht von Storyja: [Title] wurde erstellt um [Zeit] in Storyja Streaming"
                 event_name = "AMAZON.MediaContent.Available"
                 payload = {
                     "availability": {
@@ -640,7 +639,6 @@ async def send_alexa_notification(alexa_user_id: str, title: str):
                 }
             }
 
-            # Alexa Notification Endpoint (Region: Europe)
             base_api_url = "https://api.eu.amazonalexa.com/v1/proactiveEvents"
             api_url = f"{base_api_url}/stages/development" if settings.ALEXA_SKILL_STAGE == "development" else base_api_url
             
@@ -652,14 +650,14 @@ async def send_alexa_notification(alexa_user_id: str, title: str):
             event_resp = await client.post(api_url, json=event_payload, headers=headers)
             if event_resp.status_code != 202:
                 logger.error(f"Alexa Notification Error: {event_resp.status_code} - {event_resp.text} (Style: {style})")
+                return False, event_resp.status_code, event_resp.text
             else:
                 logger.info(f"Successfully sent Alexa notification ({style}) to {alexa_user_id}")
+                return True, 202, "Success"
                 
     except Exception as e:
         logger.error(f"Failed to send Alexa notification: {e}", exc_info=True)
-                
-    except Exception as e:
-        logger.error(f"Failed to send Alexa notification: {e}", exc_info=True)
+        return False, 500, str(e)
 
 @router.post("/unlink")
 async def alexa_unlink(
@@ -790,14 +788,21 @@ async def alexa_test_notification(
             access_token = lwa_resp.json()["access_token"]
 
             # Step 2: Send notification (Delegating to main function to test REAL logic)
-            # This ensures the test reflects the actual configured style.
-            await send_alexa_notification(alexa_user_id, "Test Geschichte")
+            success, code, body = await send_alexa_notification(alexa_user_id, "Test Geschichte")
             
-            return {
-                "status": "success", 
-                "message": f"Test-Benachrichtigung (Style: {settings.ALEXA_NOTIFICATION_STYLE}) gesendet.",
-                "debug_alexa_user_id": alexa_user_id[:20] + "..."
-            }
+            if success:
+                return {
+                    "status": "success", 
+                    "message": f"Test-Benachrichtigung (Style: {settings.ALEXA_NOTIFICATION_STYLE}) gesendet.",
+                    "debug_alexa_user_id": alexa_user_id[:20] + "..."
+                }
+            else:
+                return {
+                    "status": "error",
+                    "message": f"Fehler beim Senden (Style: {settings.ALEXA_NOTIFICATION_STYLE})",
+                    "status_code": code,
+                    "response": body
+                }
             debug["notification_status"] = notify_resp.status_code
             debug["notification_body"] = notify_resp.text or "(leer – 202 bedeutet Erfolg)"
 

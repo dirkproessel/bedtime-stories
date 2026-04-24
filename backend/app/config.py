@@ -55,7 +55,7 @@ class Settings:
     ALEXA_DEFAULT_USER_ID: str = os.getenv("ALEXA_DEFAULT_USER_ID", "") # Fallback Admin ID
     ALEXA_ALLOW_GUESTS: bool = os.getenv("ALEXA_ALLOW_GUESTS", "true").lower() == "true"
     ALEXA_SKILL_STAGE: str = os.getenv("ALEXA_SKILL_STAGE", "development") # 'development' or 'live'
-    ALEXA_NOTIFICATION_STYLE: str = os.getenv("ALEXA_NOTIFICATION_STYLE", "message") # 'media', 'message', or 'occasion'
+    ALEXA_NOTIFICATION_STYLE: str = os.getenv("ALEXA_NOTIFICATION_STYLE", "media") # 'media', 'message', or 'occasion'
 
     def __init__(self):
         self.AUDIO_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
