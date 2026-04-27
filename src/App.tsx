@@ -9,6 +9,7 @@ import AccountScreen from './components/AccountScreen';
 import ReaderLayer from './components/ReaderLayer';
 import AudioCompanion from './components/AudioCompanion';
 import AdminDashboard from './components/AdminDashboard';
+import LandingScreen from './components/LandingScreen';
 const NAV_ITEMS = [
   { key: 'create' as const, label: 'Erstellen', icon: PenTool },
   { key: 'library' as const, label: 'Entwürfe', icon: BookOpen },
@@ -27,6 +28,9 @@ function App() {
   useEffect(() => {
     if (isInitialized && !user && !token && activeView === 'profile') {
         setActiveView('login');
+    }
+    if (isInitialized && user && activeView === 'landing') {
+        setActiveView('create');
     }
   }, [isInitialized, user, token, activeView, setActiveView]);
 
@@ -125,7 +129,7 @@ function App() {
       desiredHash = `#/favorites`;
     } else if (activeView === 'admin') {
       desiredHash = `#/admin`;
-    } else if (activeView === 'login') {
+    } else if (activeView === 'login' || activeView === 'landing') {
       desiredHash = ``;
     }
 
@@ -282,9 +286,10 @@ function App() {
            {/* Main Content Area */}
            <main 
              id="main-scroll-container" 
-             className="flex-1 overflow-y-auto pb-40 lg:pb-8 pt-2 lg:pt-8"
+             className={`flex-1 overflow-y-auto pb-40 lg:pb-8 ${activeView === 'landing' ? 'pt-0' : 'pt-2 lg:pt-8'}`}
            >
              {/* Dynamic Page Title (Responsive adjusting spacing) */}
+             {activeView !== 'landing' && (
               <div className="px-3 sm:px-6 mb-3 lg:mb-6 max-w-7xl mx-auto w-full">
                 <h1 className="text-lg lg:text-3xl font-semibold text-white lg:text-white text-center lg:text-left opacity-90 lg:opacity-100">
                  {activeView === 'create' && 'Erstelle eine eigene Geschichte'}
@@ -300,8 +305,10 @@ function App() {
                  {activeView === 'login' && (localStorage.getItem('is_registering') === 'true' ? 'Konto erstellen' : 'Willkommen zurück')}
                </h1>
              </div>
+             )}
 
-             <div className="max-w-7xl mx-auto w-full px-3 sm:px-6">
+             <div className={`mx-auto w-full ${activeView === 'landing' ? '' : 'max-w-7xl px-3 sm:px-6'}`}>
+                {activeView === 'landing' && <LandingScreen />}
                 {activeView === 'login' && <LoginScreen />}
                 {activeView === 'create' && <StoryCreator />}
                 {activeView === 'discover' && <StoryArchive key="discover" />}

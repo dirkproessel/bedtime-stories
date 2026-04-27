@@ -65,8 +65,8 @@ interface AppState {
     updateStorySpotify: (id: string, enabled: boolean) => Promise<void>;
 
     // UI
-    activeView: 'discover' | 'create' | 'library' | 'favorites' | 'profile' | 'login' | 'admin';
-    setActiveView: (view: 'discover' | 'create' | 'library' | 'favorites' | 'profile' | 'login' | 'admin') => void;
+    activeView: 'discover' | 'create' | 'library' | 'favorites' | 'profile' | 'login' | 'admin' | 'landing';
+    setActiveView: (view: 'discover' | 'create' | 'library' | 'favorites' | 'profile' | 'login' | 'admin' | 'landing') => void;
     
     // Admin
     adminUsers: User[];
@@ -162,7 +162,7 @@ export const useStore = create<AppState>((set, get) => {
             : [...state.archiveGenre, genre]
     })),
     setArchiveSearch: (search) => set({ archiveSearch: search }),
-    activeView: 'create',
+    activeView: initialToken ? 'create' : 'landing',
     adminUsers: [],
     adminClonedVoices: [],
     adminSystemVoices: [],
@@ -230,7 +230,7 @@ export const useStore = create<AppState>((set, get) => {
 
     logout: () => {
         localStorage.removeItem('auth_token');
-        set({ user: null, token: null, stories: [], activeView: 'login' });
+        set({ user: null, token: null, stories: [], activeView: 'landing' });
         get().stopPolling();
     },
 
