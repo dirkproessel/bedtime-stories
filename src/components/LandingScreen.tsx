@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { Sparkles, Headphones, Library, Mail, Lock, Loader2, Play } from 'lucide-react';
-import { fetchStories, getThumbUrl, StoryMeta } from '../lib/api';
+import { fetchStories, getThumbUrl, type StoryMeta } from '../lib/api';
 
 export default function LandingScreen() {
-    const { login, register, isLoading, error, setActiveView, setReaderOpen } = useStore();
+    const { register, isLoading, error, setActiveView, setReaderOpen } = useStore();
     const [publicStories, setPublicStories] = useState<StoryMeta[]>([]);
     
     // Auth State (Focus on Registration)
