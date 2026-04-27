@@ -83,7 +83,7 @@ export default function LandingScreen() {
                             onClick={() => document.getElementById('auth-section')?.scrollIntoView({ behavior: 'smooth' })}
                             className="w-full sm:w-auto px-8 py-4 bg-primary hover:bg-primary/90 text-white font-bold rounded-2xl shadow-lg shadow-primary/25 transition-all active:scale-[0.98] text-lg flex items-center justify-center gap-2"
                         >
-                            Jetzt kostenlos starten
+                            Jetzt ausprobieren
                         </button>
                     </div>
                 </div>
