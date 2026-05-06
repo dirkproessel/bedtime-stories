@@ -8,7 +8,7 @@ import html
 import urllib.parse
 
 from app.database import get_session
-from app.models import User, UserCreate, UserResponse, Token, PasswordUpdate, KindleEmailUpdate, UsernameUpdate, VoiceNameUpdate, Story
+from app.models import User, UserCreate, UserResponse, Token, PasswordUpdate, KindleEmailUpdate, UsernameUpdate, VoiceNameUpdate, StoryMeta
 from app.auth_utils import (
     verify_password, get_password_hash, create_access_token, 
     ACCESS_TOKEN_EXPIRE_MINUTES, get_current_active_user,
@@ -132,7 +132,7 @@ def login_merge(
         raise HTTPException(status_code=400, detail="Benutzerkonto inaktiv")
 
     # Merge stories
-    guest_stories = session.exec(select(Story).where(Story.user_id == current_user.id)).all()
+    guest_stories = session.exec(select(StoryMeta).where(StoryMeta.user_id == current_user.id)).all()
     for story in guest_stories:
         story.user_id = real_user.id
         session.add(story)
