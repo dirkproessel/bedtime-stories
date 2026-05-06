@@ -22,7 +22,7 @@ const WORLDS = [
     { id: 'romantik', title: 'Leidenschaft & Romantik', genres: ['Modern Romanze', 'Sinnliche Romanze', 'Erotik', 'Dark Romance'] }
 ];
 
-function CollectionRow({ title, stories, onPlay, onFavorite, onToolbox }: { title: string, stories: any[], onPlay: (id: string) => void, onFavorite: (id: string) => void, onToolbox: (id: string) => void }) {
+function CollectionRow({ title, stories, isGuest, onPlay, onFavorite, onToolbox }: { title: string, stories: any[], isGuest?: boolean, onPlay: (id: string) => void, onFavorite: (id: string) => void, onToolbox: (id: string) => void }) {
     if (stories.length === 0) return null;
     const scrollRef = useRef<HTMLDivElement>(null);
     const [showLeft, setShowLeft] = useState(false);
@@ -55,6 +55,7 @@ function CollectionRow({ title, stories, onPlay, onFavorite, onToolbox }: { titl
                         >
                             <FlipStoryCard 
                                 story={s} 
+                                isGuest={isGuest}
                                 onPlay={onPlay} 
                                 onFavorite={onFavorite} 
                                 onToolbox={onToolbox}
@@ -87,7 +88,7 @@ function CollectionRow({ title, stories, onPlay, onFavorite, onToolbox }: { titl
     );
 }
 
-function FlipStoryCard({ story, onPlay, onFavorite, onToolbox }: { story: any, onPlay: (id: string) => void, onFavorite: (id: string) => void, onToolbox: (id: string) => void }) {
+function FlipStoryCard({ story, isGuest, onPlay, onFavorite, onToolbox }: { story: any, isGuest?: boolean, onPlay: (id: string) => void, onFavorite: (id: string) => void, onToolbox: (id: string) => void }) {
     const [isFlipped, setIsFlipped] = useState(false);
     if (!story) return null;
 
@@ -120,19 +121,21 @@ function FlipStoryCard({ story, onPlay, onFavorite, onToolbox }: { story: any, o
                         {/* Grouped Actions (Heart & Toolbox) */}
                         <div className="flex items-center bg-slate-900/40 backdrop-blur-md rounded-xl border border-white/10 p-0.5">
                             {/* Heart Toggle */}
-                            <button
-                                onClick={(e) => { e.stopPropagation(); onFavorite(story.id); }}
-                                className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all active:scale-95 cursor-pointer ${
-                                    story.is_favorite 
-                                    ? 'text-red-500 bg-red-500/10' 
-                                    : 'text-white/70 hover:text-white hover:bg-white/5'
-                                }`}
-                            >
-                                <Heart className={`w-4 h-4 ${story.is_favorite ? 'fill-current' : ''}`} />
-                            </button>
+                            {!isGuest && (
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); onFavorite(story.id); }}
+                                    className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all active:scale-95 cursor-pointer ${
+                                        story.is_favorite 
+                                        ? 'text-red-500 bg-red-500/10' 
+                                        : 'text-white/70 hover:text-white hover:bg-white/5'
+                                    }`}
+                                >
+                                    <Heart className={`w-4 h-4 ${story.is_favorite ? 'fill-current' : ''}`} />
+                                </button>
+                            )}
                             
                             {/* Divider if both could be present */}
-                            <div className="w-px h-4 bg-white/10 mx-0.5" />
+                            {!isGuest && <div className="w-px h-4 bg-white/10 mx-0.5" />}
 
                             {/* Toolbox Button */}
                             <button
@@ -180,6 +183,7 @@ function FlipStoryCard({ story, onPlay, onFavorite, onToolbox }: { story: any, o
 
 function ManagementStoryCard({ 
     story, 
+    isGuest,
     onPlay, 
     onFavorite, 
     onToolbox,
@@ -187,6 +191,7 @@ function ManagementStoryCard({
     formatDuration
 }: { 
     story: any, 
+    isGuest?: boolean,
     onPlay: (id: string) => void, 
     onFavorite: (id: string) => void, 
     onToolbox: (id: string) => void,
@@ -300,18 +305,20 @@ function ManagementStoryCard({
                     >
                         <Play className="w-4 h-4 text-[#1DB954] fill-current ml-0.5" />
                     </button>
-                    <button
-                        onClick={(e) => { e.stopPropagation(); onFavorite(story.id); }}
-                        className={`w-10 h-10 rounded-[0.8rem] flex items-center justify-center border transition-all ${
-                            story.is_favorite 
-                            ? 'bg-[#3b1216] border-[#5e1e24] text-[#ff4b55]' 
-                            : 'bg-[#3b1216] border-[#5e1e24] text-[#ff4b55] opacity-50 hover:opacity-100' // If not favorited, just dim it slightly based on screenshot? Wait, standard heart toggle...
-                        }`}
-                        title={story.is_favorite ? 'Von Favoriten entfernen' : 'Zu Favoriten hinzufügen'}
-                    >
-                        {/* Assuming the screenshot has it filled if it's red */}
-                        <Heart className="w-4 h-4 text-[#ff4b55] fill-current" />
-                    </button>
+                    {!isGuest && (
+                        <button
+                            onClick={(e) => { e.stopPropagation(); onFavorite(story.id); }}
+                            className={`w-10 h-10 rounded-[0.8rem] flex items-center justify-center border transition-all ${
+                                story.is_favorite 
+                                ? 'bg-[#3b1216] border-[#5e1e24] text-[#ff4b55]' 
+                                : 'bg-[#3b1216] border-[#5e1e24] text-[#ff4b55] opacity-50 hover:opacity-100' // If not favorited, just dim it slightly based on screenshot? Wait, standard heart toggle...
+                            }`}
+                            title={story.is_favorite ? 'Von Favoriten entfernen' : 'Zu Favoriten hinzufügen'}
+                        >
+                            {/* Assuming the screenshot has it filled if it's red */}
+                            <Heart className="w-4 h-4 text-[#ff4b55] fill-current" />
+                        </button>
+                    )}
                     <button
                         onClick={(e) => { e.stopPropagation(); onToolbox(story.id); }}
                         className="w-10 h-10 bg-[#151a28] border border-[#212a40] rounded-[0.8rem] flex items-center justify-center transition-all hover:bg-[#1f273b]"
@@ -376,6 +383,7 @@ export default function StoryArchive() {
         updateStory,
         playlist, addToPlaylist, removeFromPlaylist
     } = useStore();
+    const isGuest = user?.email?.endsWith('@storyja.guest') ?? false;
     const [selectedVoice, setSelectedVoice] = useState('seraphina');
     const [confirmRevoice, setConfirmRevoice] = useState(false);
     const [revoicingId, setRevoicingId] = useState<string | null>(null);
@@ -1032,6 +1040,7 @@ export default function StoryArchive() {
                                         <ManagementStoryCard 
                                             key={story.id} 
                                             story={story} 
+                                            isGuest={isGuest}
                                             onPlay={handlePlay}
                                             onFavorite={toggleFavorite}
                                             onToolbox={setShowToolbox}
@@ -1480,7 +1489,7 @@ export default function StoryArchive() {
                                 {/* Sichtbarkeit & Versand */}
                                 <div className="text-[10px] uppercase text-[#64748b] font-bold tracking-widest mt-3 mb-1 px-2">SICHTBARKEIT & VERSAND</div>
                                 
-                                {activeToolboxStory.user_id === user?.id && (
+                                {activeToolboxStory.user_id === user?.id && !isGuest && (
                                     <div className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg hover:bg-white/5 transition-all">
                                         <div className="flex items-center gap-3">
                                             <div className="w-8 h-8 rounded-[0.4rem] flex items-center justify-center shrink-0 bg-[#1e293b] text-[#64748b]">

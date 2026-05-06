@@ -181,9 +181,12 @@ function SystemSettingsSection() {
 }
 
 export default function AccountScreen() {
-    const { user, logout, playlist, removeFromPlaylist, clearPlaylist } = useStore();
+    const { user, logout, playlist, removeFromPlaylist, clearPlaylist, upgradeGuest } = useStore();
+    const isGuest = user?.email?.endsWith('@storyja.guest') ?? false;
     const [kindleEmail, setKindleEmail] = useState(user?.kindle_email || '');
-    const [username, setUsername] = useState(user?.username || user?.email || '');
+    const [username, setUsername] = useState(isGuest ? '' : user?.username || user?.email || '');
+    const [upgradeEmail, setUpgradeEmail] = useState('');
+    const [upgradePassword, setUpgradePassword] = useState('');
     const [isSavingKindle, setIsSavingKindle] = useState(false);
     const [isSavingUsername, setIsSavingUsername] = useState(false);
     const [showAvatarUpload, setShowAvatarUpload] = useState(false);
@@ -307,11 +310,50 @@ export default function AccountScreen() {
                 </h2>
                 <div className="flex items-center justify-center gap-2 text-slate-400 text-sm">
                     <Mail className="w-4 h-4" />
-                    <span>{user.email}</span>
+                    <span>{isGuest ? 'Gast-Account' : user.email}</span>
                 </div>
             </div>
 
-            {/* Profile Settings */}
+            {isGuest ? (
+                <div className="w-full glass-panel rounded-3xl p-6 space-y-6 border-2 border-primary/30">
+                    <div className="text-center space-y-2 mb-6">
+                        <h3 className="text-xl font-bold text-white">Konto erstellen</h3>
+                        <p className="text-sm text-slate-400">Speichere deine Geschichten dauerhaft und schalte alle Funktionen (Favoriten, Veröffentlichen, Kindle-Export) frei.</p>
+                    </div>
+                    <form 
+                        onSubmit={async (e) => {
+                            e.preventDefault();
+                            try {
+                                await upgradeGuest(upgradeEmail, upgradePassword);
+                                toast.success("Konto erfolgreich erstellt!");
+                            } catch (e: any) {
+                                toast.error(e.message || "Fehler beim Upgrade");
+                            }
+                        }}
+                        className="space-y-4"
+                    >
+                        <input
+                            type="email"
+                            value={upgradeEmail}
+                            onChange={(e) => setUpgradeEmail(e.target.value)}
+                            placeholder="E-Mail Adresse"
+                            className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none transition-all text-white"
+                            required
+                        />
+                        <input
+                            type="password"
+                            value={upgradePassword}
+                            onChange={(e) => setUpgradePassword(e.target.value)}
+                            placeholder="Passwort wählen"
+                            className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none transition-all text-white"
+                            required
+                        />
+                        <button type="submit" className="btn-primary w-full py-3">Jetzt Registrieren</button>
+                    </form>
+                </div>
+            ) : (
+                <>
+                    {/* Profile Settings */}
             <div className="w-full glass-panel rounded-3xl p-6 space-y-6">
                 <div className="space-y-4">
                     <div className="space-y-2">
@@ -578,11 +620,21 @@ export default function AccountScreen() {
                     </div>
                 </div>
             )}
+            </>
+            )}
 
             {/* Logout */}
             <div className="w-full pt-4">
                 <button
-                    onClick={logout}
+                    onClick={() => {
+                        if (isGuest) {
+                            if (window.confirm("Achtung! Als Gast gehen deine Geschichten beim Abmelden verloren. Möchtest du dich wirklich abmelden?")) {
+                                logout();
+                            }
+                        } else {
+                            logout();
+                        }
+                    }}
                     className="w-full flex items-center justify-center gap-2 py-3.5 text-red-400 font-bold bg-red-500/5 border border-red-500/10 hover:bg-red-500/10 rounded-2xl transition-all"
                 >
                     <LogOut className="w-5 h-5" />

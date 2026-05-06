@@ -57,6 +57,58 @@ def register_user(user_in: UserCreate, session: Session = Depends(get_session)):
     session.refresh(new_user)
     return new_user
 
+@router.post("/guest")
+def register_guest(session: Session = Depends(get_session)):
+    """Create an anonymous guest user and return a token."""
+    guest_id = str(uuid.uuid4())
+    guest_email = f"guest_{guest_id[:8]}@storyja.guest"
+    
+    new_user = User(
+        id=guest_id,
+        email=guest_email,
+        username=f"Gast {guest_id[:4]}",
+        hashed_password=get_password_hash(str(uuid.uuid4())),
+        is_admin=False,
+    )
+    
+    session.add(new_user)
+    session.commit()
+    session.refresh(new_user)
+    
+    access_token_expires = timedelta(days=365) # Long lived token for guests
+    access_token = create_access_token(
+        data={"sub": new_user.id}, expires_delta=access_token_expires
+    )
+    return {"access_token": access_token, "token_type": "bearer", "user": new_user}
+
+@router.post("/upgrade-guest", response_model=UserResponse)
+def upgrade_guest(
+    user_in: UserCreate, 
+    current_user: User = Depends(get_current_active_user),
+    session: Session = Depends(get_session)
+):
+    """Upgrade a guest account to a real user account."""
+    if not current_user.email.endswith('@storyja.guest'):
+        raise HTTPException(status_code=400, detail="Aktueller Benutzer ist kein Gast.")
+        
+    # Check if the new email is already taken by someone else
+    existing_user = session.exec(select(User).where(User.email == user_in.email.lower())).first()
+    if existing_user:
+        raise HTTPException(
+            status_code=400,
+            detail="Diese E-Mail-Adresse ist bereits vergeben."
+        )
+        
+    current_user.email = user_in.email.lower()
+    current_user.username = user_in.email.lower()
+    current_user.hashed_password = get_password_hash(user_in.password)
+    
+    session.add(current_user)
+    session.commit()
+    session.refresh(current_user)
+    return current_user
+
+
 
 @router.post("/token", response_model=Token)
 def login_for_access_token(

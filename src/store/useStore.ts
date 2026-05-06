@@ -32,6 +32,8 @@ interface AppState {
     token: string | null;
     login: (email: string, pass: string) => Promise<void>;
     register: (email: string, pass: string) => Promise<void>;
+    loginAsGuest: () => Promise<void>;
+    upgradeGuest: (email: string, pass: string) => Promise<void>;
     logout: () => void;
     fetchUser: () => Promise<void>;
 
@@ -220,6 +222,38 @@ export const useStore = create<AppState>((set, get) => {
         try {
             await registerUser(email, password);
             await get().login(email, password);
+        } catch (e: any) {
+            set({ error: e.message });
+            throw e;
+        } finally {
+            set({ isLoading: false });
+        }
+    },
+
+    loginAsGuest: async () => {
+        set({ isLoading: true, error: null });
+        try {
+            const { registerGuest } = await import('../lib/api');
+            const data = await registerGuest();
+            localStorage.setItem('auth_token', data.access_token);
+            set({ token: data.access_token });
+            await get().fetchUser();
+            get().setActiveView('create');
+        } catch (e: any) {
+            set({ error: e.message });
+            throw e;
+        } finally {
+            set({ isLoading: false });
+        }
+    },
+
+    upgradeGuest: async (email, password) => {
+        set({ isLoading: true, error: null });
+        try {
+            const { upgradeGuest } = await import('../lib/api');
+            await upgradeGuest(email, password);
+            // Re-fetch user to get the new email and username
+            await get().fetchUser();
         } catch (e: any) {
             set({ error: e.message });
             throw e;

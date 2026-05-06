@@ -4,7 +4,7 @@ import { Sparkles, Headphones, Library, Mail, Lock, Loader2, Play } from 'lucide
 import { fetchStories, getThumbUrl, type StoryMeta } from '../lib/api';
 
 export default function LandingScreen() {
-    const { register, isLoading, error, setActiveView, setReaderOpen } = useStore();
+    const { register, loginAsGuest, isLoading, error, setActiveView, setReaderOpen } = useStore();
     const [publicStories, setPublicStories] = useState<StoryMeta[]>([]);
     
     // Auth State (Focus on Registration)
@@ -83,7 +83,13 @@ export default function LandingScreen() {
                             onClick={() => document.getElementById('auth-section')?.scrollIntoView({ behavior: 'smooth' })}
                             className="w-full sm:w-auto px-8 py-4 bg-primary hover:bg-primary/90 text-white font-bold rounded-2xl shadow-lg shadow-primary/25 transition-all active:scale-[0.98] text-lg flex items-center justify-center gap-2"
                         >
-                            Jetzt ausprobieren
+                            Konto erstellen
+                        </button>
+                        <button 
+                            onClick={() => loginAsGuest()}
+                            className="w-full sm:w-auto px-8 py-4 bg-white/5 hover:bg-white/10 text-white font-bold rounded-2xl border border-white/10 transition-all active:scale-[0.98] text-lg flex items-center justify-center gap-2"
+                        >
+                            Als Gast ausprobieren
                         </button>
                     </div>
                 </div>
@@ -224,6 +230,13 @@ export default function LandingScreen() {
                     </form>
 
                     <div className="mt-8 flex flex-col items-center gap-5">
+                        <button 
+                            onClick={() => loginAsGuest()}
+                            disabled={isLoading}
+                            className="w-full flex items-center justify-center gap-2 py-4 bg-white/5 hover:bg-white/10 text-white font-bold rounded-2xl border border-white/10 transition-all active:scale-[0.98] disabled:opacity-70"
+                        >
+                            Ohne Registrierung fortfahren
+                        </button>
                         <div className="h-px w-16 bg-slate-800" />
                         <p className="text-sm text-slate-400">
                             Bereits registriert?{' '}

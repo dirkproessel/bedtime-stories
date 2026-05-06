@@ -153,6 +153,31 @@ export async function registerUser(email: string, password: string): Promise<Use
     return res.json();
 }
 
+export async function registerGuest(): Promise<{ access_token: string, token_type: string, user: User }> {
+    const res = await fetch(`${API_BASE}/api/auth/guest`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+    });
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.detail || 'Gast-Login fehlgeschlagen');
+    }
+    return res.json();
+}
+
+export async function upgradeGuest(email: string, password: string): Promise<User> {
+    const res = await fetch(`${API_BASE}/api/auth/upgrade-guest`, {
+        method: 'POST',
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+    });
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.detail || 'Account-Upgrade fehlgeschlagen');
+    }
+    return res.json();
+}
+
 export async function fetchMe(): Promise<User> {
     const res = await fetch(`${API_BASE}/api/auth/me`, {
         headers: getAuthHeaders(),
