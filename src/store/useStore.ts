@@ -34,6 +34,7 @@ interface AppState {
     register: (email: string, pass: string) => Promise<void>;
     loginAsGuest: () => Promise<void>;
     upgradeGuest: (email: string, pass: string) => Promise<void>;
+    loginAndMergeGuest: (email: string, pass: string) => Promise<void>;
     logout: () => void;
     fetchUser: () => Promise<void>;
 
@@ -253,6 +254,22 @@ export const useStore = create<AppState>((set, get) => {
             const { upgradeGuest } = await import('../lib/api');
             await upgradeGuest(email, password);
             // Re-fetch user to get the new email and username
+            await get().fetchUser();
+        } catch (e: any) {
+            set({ error: e.message });
+            throw e;
+        } finally {
+            set({ isLoading: false });
+        }
+    },
+
+    loginAndMergeGuest: async (email, password) => {
+        set({ isLoading: true, error: null });
+        try {
+            const { loginAndMergeGuest } = await import('../lib/api');
+            const data = await loginAndMergeGuest(email, password);
+            localStorage.setItem('auth_token', data.access_token);
+            set({ token: data.access_token });
             await get().fetchUser();
         } catch (e: any) {
             set({ error: e.message });

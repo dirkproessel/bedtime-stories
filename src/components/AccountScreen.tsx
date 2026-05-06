@@ -187,6 +187,7 @@ export default function AccountScreen() {
     const [username, setUsername] = useState(isGuest ? '' : user?.username || user?.email || '');
     const [upgradeEmail, setUpgradeEmail] = useState('');
     const [upgradePassword, setUpgradePassword] = useState('');
+    const [guestAuthMode, setGuestAuthMode] = useState<'register' | 'login'>('register');
     const [isSavingKindle, setIsSavingKindle] = useState(false);
     const [isSavingUsername, setIsSavingUsername] = useState(false);
     const [showAvatarUpload, setShowAvatarUpload] = useState(false);
@@ -315,40 +316,68 @@ export default function AccountScreen() {
             </div>
 
             {isGuest ? (
-                <div className="w-full glass-panel rounded-3xl p-6 space-y-6 border-2 border-primary/30">
+                <div className="w-full glass-panel rounded-3xl p-6 space-y-6 border-2 border-primary/30 relative overflow-hidden">
+                    <div className="flex bg-slate-900/50 p-1 rounded-xl mb-2 border border-slate-800 relative z-10">
+                        <button
+                            onClick={() => setGuestAuthMode('register')}
+                            className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${guestAuthMode === 'register' ? 'bg-primary text-white shadow-md' : 'text-slate-400 hover:text-white'}`}
+                        >
+                            Neu registrieren
+                        </button>
+                        <button
+                            onClick={() => setGuestAuthMode('login')}
+                            className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${guestAuthMode === 'login' ? 'bg-primary text-white shadow-md' : 'text-slate-400 hover:text-white'}`}
+                        >
+                            Anmelden
+                        </button>
+                    </div>
+
                     <div className="text-center space-y-2 mb-6">
-                        <h3 className="text-xl font-bold text-white">Konto erstellen</h3>
-                        <p className="text-sm text-slate-400">Speichere deine Geschichten dauerhaft und schalte alle Funktionen (Favoriten, Veröffentlichen, Kindle-Export) frei.</p>
+                        <h3 className="text-xl font-bold text-white">
+                            {guestAuthMode === 'register' ? 'Konto erstellen' : 'Mit bestehendem Konto verbinden'}
+                        </h3>
+                        <p className="text-sm text-slate-400">
+                            {guestAuthMode === 'register' 
+                                ? 'Speichere deine Geschichten dauerhaft und schalte alle Funktionen (Favoriten, Veröffentlichen, Kindle-Export) frei.'
+                                : 'Melde dich an, um deine neuen Geschichten automatisch in deinen bestehenden Account zu übertragen.'}
+                        </p>
                     </div>
                     <form 
                         onSubmit={async (e) => {
                             e.preventDefault();
                             try {
-                                await upgradeGuest(upgradeEmail, upgradePassword);
-                                toast.success("Konto erfolgreich erstellt!");
+                                if (guestAuthMode === 'register') {
+                                    await upgradeGuest(upgradeEmail, upgradePassword);
+                                    toast.success("Konto erfolgreich erstellt!");
+                                } else {
+                                    await useStore.getState().loginAndMergeGuest(upgradeEmail, upgradePassword);
+                                    toast.success("Accounts erfolgreich zusammengeführt!");
+                                }
                             } catch (e: any) {
-                                toast.error(e.message || "Fehler beim Upgrade");
+                                toast.error(e.message || "Fehler beim Vorgang");
                             }
                         }}
-                        className="space-y-4"
+                        className="space-y-4 relative z-10"
                     >
                         <input
                             type="email"
                             value={upgradeEmail}
                             onChange={(e) => setUpgradeEmail(e.target.value)}
                             placeholder="E-Mail Adresse"
-                            className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none transition-all text-white"
+                            className="w-full px-4 py-3 bg-slate-900/80 border border-slate-700 rounded-xl focus:ring-2 focus:ring-primary/50 outline-none transition-all text-white"
                             required
                         />
                         <input
                             type="password"
                             value={upgradePassword}
                             onChange={(e) => setUpgradePassword(e.target.value)}
-                            placeholder="Passwort wählen"
-                            className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none transition-all text-white"
+                            placeholder="Passwort"
+                            className="w-full px-4 py-3 bg-slate-900/80 border border-slate-700 rounded-xl focus:ring-2 focus:ring-primary/50 outline-none transition-all text-white"
                             required
                         />
-                        <button type="submit" className="btn-primary w-full py-3">Jetzt Registrieren</button>
+                        <button type="submit" className="btn-primary w-full py-3 shadow-lg shadow-primary/20">
+                            {guestAuthMode === 'register' ? 'Jetzt Registrieren' : 'Jetzt Anmelden & Zusammenführen'}
+                        </button>
                     </form>
                 </div>
             ) : (

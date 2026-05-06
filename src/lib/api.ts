@@ -178,6 +178,19 @@ export async function upgradeGuest(email: string, password: string): Promise<Use
     return res.json();
 }
 
+export async function loginAndMergeGuest(email: string, password: string): Promise<{ access_token: string, token_type: string }> {
+    const res = await fetch(`${API_BASE}/api/auth/login-merge`, {
+        method: 'POST',
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+    });
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.detail || 'Login und Zusammenführen fehlgeschlagen');
+    }
+    return res.json();
+}
+
 export async function fetchMe(): Promise<User> {
     const res = await fetch(`${API_BASE}/api/auth/me`, {
         headers: getAuthHeaders(),

@@ -80,16 +80,17 @@ export default function LandingScreen() {
                     
                     <div className="flex flex-col sm:flex-row w-full sm:w-auto gap-4">
                         <button 
-                            onClick={() => document.getElementById('auth-section')?.scrollIntoView({ behavior: 'smooth' })}
+                            onClick={() => loginAsGuest()}
                             className="w-full sm:w-auto px-8 py-4 bg-primary hover:bg-primary/90 text-white font-bold rounded-2xl shadow-lg shadow-primary/25 transition-all active:scale-[0.98] text-lg flex items-center justify-center gap-2"
                         >
-                            Konto erstellen
+                            <Sparkles className="w-5 h-5" />
+                            Jetzt Geschichte erstellen
                         </button>
                         <button 
-                            onClick={() => loginAsGuest()}
+                            onClick={() => document.getElementById('auth-section')?.scrollIntoView({ behavior: 'smooth' })}
                             className="w-full sm:w-auto px-8 py-4 bg-white/5 hover:bg-white/10 text-white font-bold rounded-2xl border border-white/10 transition-all active:scale-[0.98] text-lg flex items-center justify-center gap-2"
                         >
-                            Als Gast ausprobieren
+                            Anmelden
                         </button>
                     </div>
                 </div>

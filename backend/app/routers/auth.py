@@ -8,7 +8,7 @@ import html
 import urllib.parse
 
 from app.database import get_session
-from app.models import User, UserCreate, UserResponse, Token, PasswordUpdate, KindleEmailUpdate, UsernameUpdate, VoiceNameUpdate
+from app.models import User, UserCreate, UserResponse, Token, PasswordUpdate, KindleEmailUpdate, UsernameUpdate, VoiceNameUpdate, Story
 from app.auth_utils import (
     verify_password, get_password_hash, create_access_token, 
     ACCESS_TOKEN_EXPIRE_MINUTES, get_current_active_user,
@@ -108,6 +108,45 @@ def upgrade_guest(
     session.refresh(current_user)
     return current_user
 
+
+@router.post("/login-merge")
+def login_merge(
+    user_in: UserCreate, 
+    current_user: User = Depends(get_current_active_user),
+    session: Session = Depends(get_session)
+):
+    """Merge current guest account into an existing real account."""
+    if not current_user.email.endswith('@storyja.guest'):
+        raise HTTPException(status_code=400, detail="Aktueller Benutzer ist kein Gast.")
+
+    # Find the real user
+    real_user = session.exec(select(User).where(User.email == user_in.email.lower())).first()
+    if not real_user or not verify_password(user_in.password, real_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Falsche E-Mail oder Passwort",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    if not real_user.is_active:
+        raise HTTPException(status_code=400, detail="Benutzerkonto inaktiv")
+
+    # Merge stories
+    guest_stories = session.exec(select(Story).where(Story.user_id == current_user.id)).all()
+    for story in guest_stories:
+        story.user_id = real_user.id
+        session.add(story)
+
+    # Delete the guest account
+    session.delete(current_user)
+    session.commit()
+
+    # Generate token for real user
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": real_user.id}, expires_delta=access_token_expires
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
 
 
 @router.post("/token", response_model=Token)
