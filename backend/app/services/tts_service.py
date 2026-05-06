@@ -546,14 +546,15 @@ async def generate_tts_chunk(
             async with httpx.AsyncClient(timeout=120.0) as client:
                 for chunk in text_chunks:
                     payload = {
-                        "model": "grok-tts-1",
-                        "input": chunk,
-                        "voice": voice_config["id"],
-                        "response_format": "mp3",
+                        "text": chunk,
+                        "voice_name": voice_config["id"],
                         "language": voice_config.get("language", "de"),
+                        "output_format": {
+                            "codec": "mp3"
+                        }
                     }
                     response = await client.post(
-                        "https://api.x.ai/v1/audio/speech",
+                        "https://api.x.ai/v1/tts",
                         headers=headers,
                         json=payload,
                     )
