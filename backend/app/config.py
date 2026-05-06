@@ -38,6 +38,7 @@ class Settings:
     BASE_URL: str = os.getenv("BASE_URL", "http://localhost:8000")
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
     FISH_API_KEY: str = os.getenv("FISH_API_KEY", "")
+    XAI_API_KEY: str = os.getenv("XAI_API_KEY", "")
     INTRO_MUSIC_PATH: Path = Path(__file__).parent / "static" / "intro_storyja.mp3"
     OUTRO_MUSIC_PATH: Path = Path(__file__).parent / "static" / "outro_storyja.mp3"
 

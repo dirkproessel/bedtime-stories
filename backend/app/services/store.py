@@ -94,30 +94,36 @@ class StoryStore:
                 logger.error(f"Failed to seed admin user: {e}")
 
     def _seed_system_voices(self):
-        """Seed system voices from tts_service constants if table is empty."""
+        """Seed system voices from tts_service constants. Upserts missing voices."""
         with Session(engine) as session:
-            existing = session.exec(select(SystemVoice)).first()
-            if existing: return
+            from app.services.tts_service import EDGE_VOICES, GEMINI_VOICES, FISH_VOICES, XAI_VOICES
             
-            from app.services.tts_service import EDGE_VOICES, GEMINI_VOICES, FISH_VOICES
-            
-            # Map of engine names
-            items = []
+            # Helper to add or update a system voice
+            def _upsert_voice(k, name, engine_name, gender, description=None, fish_id=None):
+                existing = session.get(SystemVoice, k)
+                if not existing:
+                    new_voice = SystemVoice(id=k, name=name, engine=engine_name, gender=gender, description=description, fish_voice_id=fish_id)
+                    session.add(new_voice)
+                    return 1
+                return 0
+                
+            added_count = 0
             
             for k, v in EDGE_VOICES.items():
-                items.append(SystemVoice(id=k, name=v['name'], engine="edge", gender=v['gender'], description=v.get('description')))
+                added_count += _upsert_voice(k, v['name'], "edge", v['gender'], v.get('description'))
             
             for k, v in GEMINI_VOICES.items():
-                items.append(SystemVoice(id=k, name=v['name'], engine="gemini", gender=v['gender'], description=v.get('description')))
+                added_count += _upsert_voice(k, v['name'], "gemini", v['gender'], v.get('description'))
                 
             for k, v in FISH_VOICES.items():
-                items.append(SystemVoice(id=k, name=v['name'], engine="fish", gender=v['gender'], fish_voice_id=v['id'], description=v.get('description')))
+                added_count += _upsert_voice(k, v['name'], "fish", v['gender'], v.get('description'), fish_id=v['id'])
 
-            for itm in items:
-                session.add(itm)
-            
-            session.commit()
-            logger.info(f"Seeded {len(items)} system voices into database.")
+            for k, v in XAI_VOICES.items():
+                added_count += _upsert_voice(k, v['name'], "xai", v['gender'], v.get('description'))
+
+            if added_count > 0:
+                session.commit()
+                logger.info(f"Seeded {added_count} missing system voices into database.")
 
     def _repair_unassigned_stories(self):
         """DEPRECATED: Manual control preferred."""

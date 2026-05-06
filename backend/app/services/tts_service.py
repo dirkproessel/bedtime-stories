@@ -64,6 +64,20 @@ FISH_VOICES = {
     "jenny": {"id": "cb55f2fc1a144c74b70ea7fdeb6b9f95", "name": "Jenny", "gender": "female", "description": "Freundlich & entspannt"},
 }
 
+# xAI Grok TTS voices
+# Native German voices (language=de, middle-aged)
+XAI_VOICES = {
+    # --- Nativ Deutsch ---
+    "xai_felix": {"id": "e1fc5a89", "name": "Felix",  "gender": "male",   "language": "de", "description": "Natürlich & klar (DE)"},
+    "xai_sonja": {"id": "44c91d64", "name": "Sonja",  "gender": "female", "language": "de", "description": "Warm & fließend (DE)"},
+    # --- Multilingual ---
+    "xai_ara":   {"id": "ara",      "name": "Ara",    "gender": "female", "language": "de", "description": "Expressiv & warm"},
+    "xai_eve":   {"id": "eve",      "name": "Eve",    "gender": "female", "language": "de", "description": "Klar & ausdrucksstark"},
+    "xai_leo":   {"id": "leo",      "name": "Leo",    "gender": "male",   "language": "de", "description": "Dynamisch & lebendig"},
+    "xai_rex":   {"id": "rex",      "name": "Rex",    "gender": "male",   "language": "de", "description": "Tief & markant"},
+    "xai_sal":   {"id": "sal",      "name": "Sal",    "gender": "male",   "language": "de", "description": "Ausgewogen & vielseitig"},
+}
+
 
 # 1a. Voice Basis-Regieanweisungen (User-Defined)
 VOICE_INSTRUCTIONS = {
@@ -84,6 +98,14 @@ VOICE_INSTRUCTIONS = {
     "despina": "„Du hast eine kultivierte, elegante und gehobene Stimme. Deine Ausstrahlung ist aristokratisch und fließend.“",
     "umbriel": "„Deine Stimme ist locker, unkompliziert und flexibel. Du klingst wie jemand, der eine Geschichte ganz entspannt nebenbei erzählt.“",
     "jenny": "„Du bist eine Frau mit einer freundlichen und entspannten Stimme. Du klingst herzlich und gelassen.“",
+    # xAI voices - kein system-prompt-Konzept fur TTS
+    "xai_felix": "",
+    "xai_sonja": "",
+    "xai_ara":   "",
+    "xai_eve":   "",
+    "xai_leo":   "",
+    "xai_rex":   "",
+    "xai_sal":   "",
 }
 
 # 1b. Genre Tweaks (User-Defined)
@@ -256,6 +278,9 @@ async def generate_tts_chunk(
     if voice_key in OPENAI_VOICES:
         voice_config = OPENAI_VOICES[voice_key]
         engine = "openai"
+    elif voice_key in XAI_VOICES:
+        voice_config = XAI_VOICES[voice_key]
+        engine = "xai"
     elif voice_key in FISH_VOICES:
         voice_config = FISH_VOICES[voice_key]
         engine = "fish"
@@ -485,6 +510,61 @@ async def generate_tts_chunk(
                 subprocess.run(cmd, input=bytes(data), capture_output=True, check=True)
 
             await asyncio.to_thread(_export_mp3, all_pcm_data, output_path)
+            return output_path, voice_key
+
+        elif engine == "xai":
+            if not settings.XAI_API_KEY:
+                raise ValueError("xAI API Key is missing.")
+
+            import httpx
+            from pydub import AudioSegment
+            import io
+
+            def _split_text_xai(t: str, max_bytes: int = 4000) -> list[str]:
+                """Split text into chunks ≤ max_bytes for xAI TTS (max 15k chars)."""
+                chunks: list[str] = []
+                current = ""
+                for sentence in t.replace("\n", " ").split(". "):
+                    candidate = (current + ". " + sentence).strip() if current else sentence
+                    if len(candidate.encode("utf-8")) > max_bytes:
+                        if current:
+                            chunks.append(current)
+                        current = sentence
+                    else:
+                        current = candidate
+                if current:
+                    chunks.append(current)
+                return chunks
+
+            text_chunks = _split_text_xai(clean_text)
+            headers = {
+                "Authorization": f"Bearer {settings.XAI_API_KEY.strip()}",
+                "Content-Type": "application/json",
+            }
+            audio_segments: list[bytes] = []
+
+            async with httpx.AsyncClient(timeout=120.0) as client:
+                for chunk in text_chunks:
+                    payload = {
+                        "model": "grok-tts-1",
+                        "input": chunk,
+                        "voice": voice_config["id"],
+                        "response_format": "mp3",
+                        "language": voice_config.get("language", "de"),
+                    }
+                    response = await client.post(
+                        "https://api.x.ai/v1/audio/speech",
+                        headers=headers,
+                        json=payload,
+                    )
+                    response.raise_for_status()
+                    audio_segments.append(response.content)
+
+            combined = AudioSegment.empty()
+            for mp3_data in audio_segments:
+                combined += AudioSegment.from_mp3(io.BytesIO(mp3_data))
+            combined = combined.set_frame_rate(44100).set_channels(2)
+            await asyncio.to_thread(combined.export, str(output_path), format="mp3", bitrate="192k")
             return output_path, voice_key
 
         elif engine == "fish":
