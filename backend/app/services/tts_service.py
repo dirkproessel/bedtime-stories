@@ -547,7 +547,7 @@ async def generate_tts_chunk(
                 for chunk in text_chunks:
                     payload = {
                         "text": chunk,
-                        "voice_name": voice_config["id"],
+                        "voice_id": voice_config["id"],
                         "language": voice_config.get("language", "de"),
                         "output_format": {
                             "codec": "mp3"
@@ -603,7 +603,9 @@ async def generate_voice_preview(
     preview_text = "Hallo! Willkommen im Labor für Kurzgeschichten. Lass uns gemeinsam in ein neues Abenteuer starten."
     # Include voice_key and a version prefix to force regeneration of cached fallbacks
     print(f"Generating preview for voice {voice_key}...")
-    text_hash = hashlib.md5(f"v3:{preview_text}:{voice_key}".encode()).hexdigest()[:8]
+    # Use v4 for xAI voices to force refresh, v3 for others
+    version = "v4" if voice_key.startswith("xai_") else "v3"
+    text_hash = hashlib.md5(f"{version}:{preview_text}:{voice_key}".encode()).hexdigest()[:8]
     hash_marker = output_path.parent / f".{output_path.stem}.hash"
 
     if output_path.exists() and output_path.stat().st_size > 1000:
