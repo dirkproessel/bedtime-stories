@@ -33,6 +33,7 @@ const LENGTHS = [
     { value: 5, label: 'Kurz', sub: '~5 Min' },
     { value: 10, label: 'Mittel', sub: '~10 Min' },
     { value: 20, label: 'Lang', sub: '~20 Min' },
+    { value: 60, label: 'XL', sub: '~60 Min' },
 ];
 
 const MAX_GENRES_VISIBLE = 8;
@@ -104,6 +105,19 @@ export default function StoryCreator() {
     const sortedVoices = useMemo(() => {
         return sortByPopularity(voices, popularity?.voices || [], v => v.key);
     }, [voices, popularity]);
+
+    const standardVoicesList = useMemo(() => 
+        voices
+            .filter(v => STANDARD_VOICE_KEYS.includes(v.key))
+            .filter(v => !isAudioEnabled || v.key !== 'none')
+            .sort((a, b) => STANDARD_VOICE_KEYS.indexOf(a.key) - STANDARD_VOICE_KEYS.indexOf(b.key))
+    , [voices, isAudioEnabled]);
+
+    const premiumVoicesList = useMemo(() => 
+        sortedVoices.filter(v => !isStandardVoice(v.key))
+    , [sortedVoices]);
+
+    const showVoiceHeadings = standardVoicesList.length > 0 && premiumVoicesList.length > 0;
 
     // Input state
     // freeText moved to store
@@ -389,7 +403,7 @@ export default function StoryCreator() {
                                 <div className="mb-1.5 flex items-center gap-2">
                                 <h3 className="text-xs uppercase font-bold tracking-wider text-slate-400">Dauer</h3>
                             </div>
-                            <div className="grid grid-cols-3 gap-2">
+                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
                                 {LENGTHS.map(l => (
                                     <button
                                         key={l.value}
@@ -405,91 +419,49 @@ export default function StoryCreator() {
                                 ))}
                             </div>
                         </div>
-                        {/* Vertonung Toggle */}
-                        <div className="flex items-center justify-between p-4 bg-slate-800/40 border-2 border-slate-700/50 rounded-2xl">
-                            <div className="flex items-center gap-3">
-                                <div className={`p-2 rounded-lg ${isAudioEnabled ? 'bg-primary/20 text-primary' : 'bg-slate-700/50 text-slate-500'}`}>
-                                    {isAudioEnabled ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
-                                </div>
-                                <div>
-                                    <h4 className="text-sm font-bold text-slate-200">Vertonung</h4>
-                                    <p className="text-xs text-slate-500">Geschichte als Audio generieren</p>
-                                </div>
+                        <div>
+                            <div className="mb-1.5 flex items-center gap-2">
+                                <h3 className="text-xs uppercase font-bold tracking-wider text-slate-400">Erzähler</h3>
                             </div>
-                            <button
-                                onClick={() => {
-                                    const next = !isAudioEnabled;
-                                    setIsAudioEnabled(next);
-                                    if (!next) setVoiceKey('none');
-                                    else if (voiceKey === 'none') setVoiceKey('marlene'); // Default to something if enabled
-                                }}
-                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${isAudioEnabled ? 'bg-primary' : 'bg-slate-700'}`}
-                            >
-                                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isAudioEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
-                            </button>
+                            {/* Vertonung Toggle */}
+                            <div className="flex items-center justify-between p-4 bg-slate-800/40 border-2 border-slate-700/50 rounded-2xl">
+                                <div className="flex items-center gap-3">
+                                    <div className={`p-2 rounded-lg ${isAudioEnabled ? 'bg-primary/20 text-primary' : 'bg-slate-700/50 text-slate-500'}`}>
+                                        {isAudioEnabled ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
+                                    </div>
+                                    <div>
+                                        <h4 className="text-sm font-bold text-slate-200">Vertonung</h4>
+                                        <p className="text-xs text-slate-500">Geschichte als Audio generieren</p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        const next = !isAudioEnabled;
+                                        setIsAudioEnabled(next);
+                                        if (!next) setVoiceKey('none');
+                                        else if (voiceKey === 'none') setVoiceKey('marlene'); // Default to something if enabled
+                                    }}
+                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${isAudioEnabled ? 'bg-primary' : 'bg-slate-700'}`}
+                                >
+                                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isAudioEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                                </button>
+                            </div>
                         </div>
 
                         {isAudioEnabled && (
                             <div className="space-y-5 animate-in slide-in-from-top-4 duration-300">
                                 <div>
-                                    <div className="mb-1.5 flex items-center gap-2">
-                                        <h3 className="text-xs uppercase font-bold tracking-wider text-slate-400">Erzähler</h3>
-                                    </div>
                                     <div className="space-y-3">
                                         {/* Standard Voices */}
-                                        <div className="space-y-3">
-                                            <div className="mb-1.5 flex items-center gap-2">
-                                                <h4 className="text-xs font-bold tracking-wider text-slate-500">Standard-Stimmen</h4>
-                                            </div>
-                                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
-                                            {voices
-                                                .filter(v => STANDARD_VOICE_KEYS.includes(v.key))
-                                                .filter(v => !isAudioEnabled || v.key !== 'none')
-                                                .sort((a, b) => STANDARD_VOICE_KEYS.indexOf(a.key) - STANDARD_VOICE_KEYS.indexOf(b.key))
-                                                .map(v => (
-                                                <div
-                                                    key={v.key}
-                                                    className={`p-3 rounded-xl transition-all border-2 cursor-pointer h-full min-h-[96px] flex flex-col justify-between gap-1 ${voiceKey === v.key
-                                                        ? 'border-primary bg-primary/10'
-                                                        : 'border-slate-700/50 bg-slate-800/60 hover:border-slate-600'
-                                                        }`}
-                                                    onClick={() => setVoiceKey(v.key)}
-                                                >
-                                                    <div className="flex items-center justify-between w-full">
-                                                        <div className="flex items-center gap-1.5 min-w-0">
-                                                            <h4 className={`text-sm font-bold truncate tracking-tight ${voiceKey === v.key ? 'text-white' : 'text-slate-300'}`}>
-                                                                {voiceName(v.key) !== v.key ? voiceName(v.key) : v.name}
-                                                            </h4>
-                                                            <div className={`${voiceKey === v.key ? 'text-white' : 'text-slate-600'}`}>
-                                                                {v.gender === 'female' ? <Venus className="w-3.5 h-3.5" /> :
-                                                                    v.gender === 'male' ? <Mars className="w-3.5 h-3.5" /> : <Users className="w-3.5 h-3.5" />}
-                                                            </div>
-                                                        </div>
-                                                        <button
-                                                            onClick={(e) => { e.stopPropagation(); handlePreviewVoice(v.key); }}
-                                                            className={`w-7 h-7 rounded-full flex items-center justify-center transition-all shrink-0 ${previewVoice === v.key ? 'bg-primary text-white' : 'bg-slate-800 text-slate-500 border border-slate-700/50'}`}
-                                                        >
-                                                            {previewVoice === v.key ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 ml-0.5" />}
-                                                        </button>
+                                        {standardVoicesList.length > 0 && (
+                                            <div className="space-y-3">
+                                                {showVoiceHeadings && (
+                                                    <div className="mb-1.5 flex items-center gap-2">
+                                                        <h4 className="text-xs font-bold tracking-wider text-slate-500">Standard-Stimmen</h4>
                                                     </div>
-                                                    <div className={`text-xs line-clamp-2 leading-tight ${voiceKey === v.key ? 'text-white/80' : 'text-slate-500'}`}>
-                                                        {v.description || voiceDesc(v.key)}
-                                                    </div>
-                                                </div>
-                                            ))}
-                                            </div>
-                                        </div>
-
-                                        {/* Premium Voices */}
-                                        <div className="space-y-3">
-                                            <div className="flex items-center gap-2 mb-1.5">
-                                                <h4 className="text-xs font-bold tracking-wider text-slate-500">Premium-Stimmen</h4>
-                                            </div>
-                                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
-                                                {sortedVoices
-                                                    .filter(v => !isStandardVoice(v.key))
-                                                    .slice(0, showAllVoices ? sortedVoices.length : MAX_PREMIUM_VOICES_VISIBLE)
-                                                    .map(v => (
+                                                )}
+                                                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+                                                {standardVoicesList.map(v => (
                                                     <div
                                                         key={v.key}
                                                         className={`p-3 rounded-xl transition-all border-2 cursor-pointer h-full min-h-[96px] flex flex-col justify-between gap-1 ${voiceKey === v.key
@@ -512,7 +484,7 @@ export default function StoryCreator() {
                                                                 onClick={(e) => { e.stopPropagation(); handlePreviewVoice(v.key); }}
                                                                 className={`w-7 h-7 rounded-full flex items-center justify-center transition-all shrink-0 ${previewVoice === v.key ? 'bg-primary text-white' : 'bg-slate-800 text-slate-500 border border-slate-700/50'}`}
                                                             >
-                                                                {previewVoice === v.key ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3 ml-0.5" />}
+                                                                {previewVoice === v.key ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 ml-0.5" />}
                                                             </button>
                                                         </div>
                                                         <div className={`text-xs line-clamp-2 leading-tight ${voiceKey === v.key ? 'text-white/80' : 'text-slate-500'}`}>
@@ -520,17 +492,64 @@ export default function StoryCreator() {
                                                         </div>
                                                     </div>
                                                 ))}
+                                                </div>
                                             </div>
-                                            {sortedVoices.filter(v => !isStandardVoice(v.key)).length > MAX_PREMIUM_VOICES_VISIBLE && (
-                                                <button 
-                                                    onClick={() => setShowAllVoices(!showAllVoices)}
-                                                    className="w-full flex items-center justify-center gap-2 p-2 rounded-xl border border-slate-800 text-xs font-bold text-slate-500 hover:text-slate-400 transition-all bg-slate-800/20"
-                                                >
-                                                    <span>{showAllVoices ? 'Weniger anzeigen' : `Alle Premiumstimmen (${sortedVoices.filter(v => !isStandardVoice(v.key)).length})`}</span>
-                                                    <ChevronDown className={`w-3 h-3 transition-transform ${showAllVoices ? 'rotate-180' : ''}`} />
-                                                </button>
-                                            )}
-                                        </div>
+                                        )}
+
+                                        {/* Premium Voices */}
+                                        {premiumVoicesList.length > 0 && (
+                                            <div className="space-y-3">
+                                                {showVoiceHeadings && (
+                                                    <div className="flex items-center gap-2 mb-1.5">
+                                                        <h4 className="text-xs font-bold tracking-wider text-slate-500">Premium-Stimmen</h4>
+                                                    </div>
+                                                )}
+                                                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+                                                    {premiumVoicesList
+                                                        .slice(0, showAllVoices ? premiumVoicesList.length : MAX_PREMIUM_VOICES_VISIBLE)
+                                                        .map(v => (
+                                                        <div
+                                                            key={v.key}
+                                                            className={`p-3 rounded-xl transition-all border-2 cursor-pointer h-full min-h-[96px] flex flex-col justify-between gap-1 ${voiceKey === v.key
+                                                                ? 'border-primary bg-primary/10'
+                                                                : 'border-slate-700/50 bg-slate-800/60 hover:border-slate-600'
+                                                                }`}
+                                                            onClick={() => setVoiceKey(v.key)}
+                                                        >
+                                                            <div className="flex items-center justify-between w-full">
+                                                                <div className="flex items-center gap-1.5 min-w-0">
+                                                                    <h4 className={`text-sm font-bold truncate tracking-tight ${voiceKey === v.key ? 'text-white' : 'text-slate-300'}`}>
+                                                                        {voiceName(v.key) !== v.key ? voiceName(v.key) : v.name}
+                                                                    </h4>
+                                                                    <div className={`${voiceKey === v.key ? 'text-white' : 'text-slate-600'}`}>
+                                                                        {v.gender === 'female' ? <Venus className="w-3.5 h-3.5" /> :
+                                                                            v.gender === 'male' ? <Mars className="w-3.5 h-3.5" /> : <Users className="w-3.5 h-3.5" />}
+                                                                    </div>
+                                                                </div>
+                                                                <button
+                                                                    onClick={(e) => { e.stopPropagation(); handlePreviewVoice(v.key); }}
+                                                                    className={`w-7 h-7 rounded-full flex items-center justify-center transition-all shrink-0 ${previewVoice === v.key ? 'bg-primary text-white' : 'bg-slate-800 text-slate-500 border border-slate-700/50'}`}
+                                                                >
+                                                                    {previewVoice === v.key ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3 ml-0.5" />}
+                                                                </button>
+                                                            </div>
+                                                            <div className={`text-xs line-clamp-2 leading-tight ${voiceKey === v.key ? 'text-white/80' : 'text-slate-500'}`}>
+                                                                {v.description || voiceDesc(v.key)}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                                {premiumVoicesList.length > MAX_PREMIUM_VOICES_VISIBLE && (
+                                                    <button 
+                                                        onClick={() => setShowAllVoices(!showAllVoices)}
+                                                        className="w-full flex items-center justify-center gap-2 p-2 rounded-xl border border-slate-800 text-xs font-bold text-slate-500 hover:text-slate-400 transition-all bg-slate-800/20"
+                                                    >
+                                                        <span>{showAllVoices ? 'Weniger anzeigen' : `Alle Premiumstimmen (${premiumVoicesList.length})`}</span>
+                                                        <ChevronDown className={`w-3 h-3 transition-transform ${showAllVoices ? 'rotate-180' : ''}`} />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>

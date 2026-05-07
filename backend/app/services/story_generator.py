@@ -698,8 +698,12 @@ Antworte NUR im JSON-Format:
             pct = 5 + int((i / num_segments) * 25) # Up to 30%
             await on_progress("text_chapter_done", f"Teil {i+1}/{num_segments} geschrieben", pct)
             
-        # Context is just the end of the previous chapter to maintain continuity
-        context = f"Ende des vorherigen Kapitels: {full_chapters[-1]['text'][-1000:]}" if full_chapters else "Dies ist der Beginn der Geschichte."
+        # Context is the entire story text generated so far to maintain consistency
+        if full_chapters:
+            previous_text = "\n\n".join([c['text'] for c in full_chapters])
+            context = f"Bisheriger Verlauf der Geschichte:\n{previous_text}"
+        else:
+            context = "Dies ist der Beginn der Geschichte."
         
         is_last_chapter = (i == num_segments - 1)
         
