@@ -8,23 +8,8 @@ from app.config import settings
 import asyncio
 import json
 import re
+from app.services.text_generator import generate_text
 from app.services.rate_limiter import rate_limiter
-
-import logging
-logger = logging.getLogger(__name__)
-
-from google.genai import types
-from app.config import settings
-from app.services.store import store
-
-SAFETY_SETTINGS_CONFIG = [
-    types.SafetySetting(category="HARM_CATEGORY_HATE_SPEECH", threshold="BLOCK_NONE"),
-    types.SafetySetting(category="HARM_CATEGORY_DANGEROUS_CONTENT", threshold="BLOCK_NONE"),
-    types.SafetySetting(category="HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold="BLOCK_NONE"),
-    types.SafetySetting(category="HARM_CATEGORY_HARASSMENT", threshold="BLOCK_NONE"),
-]
-
-client = genai.Client(api_key=settings.GEMINI_API_KEY)
 
 
 # Centralized models now coming from app.config.settings
@@ -369,18 +354,14 @@ DEIN HOOK:"""
         text_model = store.get_system_setting("gemini_text_model", settings.GEMINI_TEXT_MODEL)
         logger.info(f"Generating story hook with model: {text_model}")
 
-        response = await _api_request_with_retry(
-            client.models.generate_content,
+        response_text = await generate_text(
+            prompt=prompt,
             model=text_model,
-            contents=prompt,
-            config={
-                "temperature": 0.9,
-                "max_output_tokens": 2000,
-                "safety_settings": SAFETY_SETTINGS_CONFIG,
-            }
+            temperature=0.9,
+            max_tokens=2000
         )
         rate_limiter.increment_daily_quota("text")
-        hook_text = response.text.strip().strip('"').strip("'")
+        hook_text = response_text.strip().strip('"').strip("'")
         
         # Log full text for debugging
         logger.info(f"GEN HOOK (raw): '{hook_text}'")
@@ -504,21 +485,16 @@ Antworte EXKLUSIV im JSON-Format:
     text_model = store.get_system_setting("gemini_text_model", settings.GEMINI_TEXT_MODEL)
     logger.info(f"Generating single-pass story with model: {text_model}")
 
-    response = await _api_request_with_retry(
-        client.models.generate_content,
+    response_text = await generate_text(
+        prompt=master_prompt,
         model=text_model,
-        contents=master_prompt,
-        config={
-            "response_mime_type": "application/json", 
-            "temperature": 0.85, 
-            "max_output_tokens": 8192,
-            "safety_settings": SAFETY_SETTINGS_CONFIG
-        },
-        on_progress=on_progress
+        temperature=0.85,
+        max_tokens=8192,
+        response_mime_type="application/json"
     )
     rate_limiter.increment_daily_quota()
 
-    text = response.text.strip()
+    text = response_text.strip()
     
     # Robust JSON extraction: Find the first { and the last }
     json_match = re.search(r'\{.*\}', text, re.DOTALL)
@@ -653,19 +629,16 @@ Antworte NUR im JSON-Format:
         text_model = store.get_system_setting("gemini_text_model", settings.GEMINI_TEXT_MODEL)
         logger.info(f"Generating story outline with model: {text_model}")
 
-        outline_res = await _api_request_with_retry(
-            client.models.generate_content,
+        response_text = await generate_text(
+            prompt=outline_prompt,
             model=text_model,
-            contents=outline_prompt,
-            config={
-                "response_mime_type": "application/json",
-                "safety_settings": SAFETY_SETTINGS_CONFIG
-            },
-            on_progress=on_progress
+            temperature=0.8,
+            max_tokens=2000,
+            response_mime_type="application/json"
         )
         rate_limiter.increment_daily_quota("text")
         
-        text = outline_res.text.strip()
+        text = response_text.strip()
         
         outline_data = json.loads(text)
         title = outline_data.get("title", "Eine neue Geschichte")
@@ -746,18 +719,14 @@ Fokus / Ziel DIESES Kapitels: {seg['goal']}
         text_model = store.get_system_setting("gemini_text_model", settings.GEMINI_TEXT_MODEL)
         logger.info(f"Writing chapter {i+1} with model: {text_model}")
 
-        response = await _api_request_with_retry(
-            client.models.generate_content,
+        response_text = await generate_text(
+            prompt=write_prompt,
             model=text_model,
-            contents=write_prompt,
-            config={
-                "temperature": 0.8,
-                "safety_settings": SAFETY_SETTINGS_CONFIG
-            },
-            on_progress=on_progress
+            temperature=0.8,
+            max_tokens=4096
         )
         rate_limiter.increment_daily_quota()
-        segment_text = response.text.strip()
+        segment_text = response_text.strip()
         
         full_chapters.append({
             "title": "",
@@ -795,19 +764,16 @@ Antworte EXKLUSIV im JSON-Format:
         await rate_limiter.wait_for_capacity("text")
         text_model = store.get_system_setting("gemini_text_model", settings.GEMINI_TEXT_MODEL)
         
-        response = await _api_request_with_retry(
-            client.models.generate_content,
+        response_text = await generate_text(
+            prompt=prompt,
             model=text_model,
-            contents=prompt,
-            config={
-                "response_mime_type": "application/json",
-                "temperature": 0.7,
-                "safety_settings": SAFETY_SETTINGS_CONFIG
-            }
+            temperature=0.7,
+            max_tokens=1000,
+            response_mime_type="application/json"
         )
         rate_limiter.increment_daily_quota("text")
         
-        data = json.loads(response.text.strip())
+        data = json.loads(response_text)
         return {
             "synopsis": data.get("refined_synopsis", ""),
             "highlights": data.get("highlights", "")

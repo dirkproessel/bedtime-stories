@@ -42,6 +42,7 @@ class Settings:
     INTRO_MUSIC_PATH: Path = Path(__file__).parent / "static" / "intro_storyja.mp3"
     OUTRO_MUSIC_PATH: Path = Path(__file__).parent / "static" / "outro_storyja.mp3"
     FAL_KEY: str = os.getenv("FAL_KEY", "")
+    DEEPSEEK_API_KEY: str = os.getenv("DEEPSEEK_API_KEY", "")
 
     # SMTP Settings (Gmail)
     SMTP_HOST: str = os.getenv("SMTP_HOST", "smtp.gmail.com")

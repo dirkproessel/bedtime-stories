@@ -162,6 +162,7 @@ function SystemSettingsSection() {
                     >
                         <option value="gemini-3.1-flash-lite-preview">Gemini 3.1 Flash (Effizient & Schnell)</option>
                         <option value="gemini-3.1-pro-preview">Gemini 3.1 Pro (Meisterhafte Lyrik)</option>
+                        <option value="deepseek-v4-flash">DeepSeek V4 Flash (Neu & Schnell)</option>
                     </select>
                 </div>
 

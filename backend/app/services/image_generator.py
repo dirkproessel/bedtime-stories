@@ -6,6 +6,7 @@ from google.genai import types
 import fal_client
 from app.config import settings
 from app.services.store import store
+from app.services.text_generator import generate_text
 
 logger = logging.getLogger(__name__)
 
@@ -43,14 +44,11 @@ async def get_visual_prompt(client: genai.Client, synopsis: str, genre: str, sty
         # Get current model from DB or fallback to config
         text_model = store.get_system_setting("gemini_text_model", settings.GEMINI_TEXT_MODEL)
         
-        response = client.models.generate_content(
+        visual_desc = await generate_text(
+            prompt=prompt,
             model=text_model,
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                safety_settings=SAFETY_SETTINGS_CONFIG,
-            )
+            temperature=0.7
         )
-        visual_desc = response.text.strip()
         logger.info(f"Gemini generated visual description (first 100 chars): {visual_desc[:100]}...")
         return visual_desc
     except Exception as e:
