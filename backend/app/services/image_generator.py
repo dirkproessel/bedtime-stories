@@ -3,6 +3,7 @@ import logging
 from pathlib import Path
 from google import genai
 from google.genai import types
+import fal_client
 from app.config import settings
 from app.services.store import store
 
@@ -57,10 +58,39 @@ async def get_visual_prompt(client: genai.Client, synopsis: str, genre: str, sty
         # Fallback to something that includes context if possible
         return f"A high-quality, atmospheric artistic illustration in the {genre} genre, reflecting the mood of {style}."
 
+async def generate_with_fal_ai(prompt: str, output_path: Path):
+    """Generate image using fal.ai flux/schnell."""
+    logger.info("Using fal.ai (flux/schnell) for image generation")
+    try:
+        result = await fal_client.run_async(
+            "fal-ai/flux/schnell",
+            arguments={
+                "prompt": prompt,
+                "image_size": "square_hd"
+            }
+        )
+        
+        if result and "images" in result and len(result["images"]) > 0:
+            image_url = result["images"][0]["url"]
+            import httpx
+            async with httpx.AsyncClient() as client:
+                resp = await client.get(image_url)
+                if resp.status_code == 200:
+                    output_path.parent.mkdir(parents=True, exist_ok=True)
+                    output_path.write_bytes(resp.content)
+                    logger.info(f"fal.ai image saved successfully to {output_path}")
+                    return output_path
+        
+        logger.error(f"fal.ai returned no image: {result}")
+        return None
+    except Exception as e:
+        logger.error(f"fal.ai generation failed: {e}")
+        return None
+
 async def generate_story_image(synopsis: str, output_path: Path, genre: str = "Realismus", style: str = "Douglas Adams", image_hints: str | None = None):
     """
-    Generate a square cover image for the story using Google's Imagen.
-    Uses Gemini to optimize the prompt for the best visual results.
+    Generate a square cover image for the story.
+    Supports Google Imagen and fal.ai (Flux).
     """
     logger.info(f"ENTERING generate_story_image for {output_path.name}")
     
@@ -69,6 +99,10 @@ async def generate_story_image(synopsis: str, output_path: Path, genre: str = "R
         return None
 
     try:
+        # Get current model from DB or fallback to config
+        model_id = store.get_system_setting("gemini_image_model", settings.GEMINI_IMAGE_MODEL)
+        logger.info(f"Current Image Model/Provider: {model_id}")
+
         client = genai.Client(api_key=settings.GEMINI_API_KEY)
         
         # Step 1: Use LLM to generate a safe, visual English prompt
@@ -86,7 +120,7 @@ async def generate_story_image(synopsis: str, output_path: Path, genre: str = "R
         }
         genre_hint = style_hints.get(genre, "Artistic illustration")
         
-        # Construct the final prompt for Imagen
+        # Construct the final prompt
         enhanced_prompt = (
             f"STRICT RULE: NO TEXT, NO WORDS, NO LETTERS, NO SIGNATURES, NO TITLES, NO WATERMARKS. "
             f"Style: {genre_hint}. {visual_description}. "
@@ -95,8 +129,11 @@ async def generate_story_image(synopsis: str, output_path: Path, genre: str = "R
             f"Seamless edge-to-edge full-bleed artwork. The composition must fill the entire canvas completely."
         )
 
-        # Get current model from DB or fallback to config
-        model_id = store.get_system_setting("gemini_image_model", settings.GEMINI_IMAGE_MODEL)
+        # Provider Check
+        if "fal-ai" in model_id.lower() or "flux" in model_id.lower():
+            return await generate_with_fal_ai(enhanced_prompt, output_path)
+
+        # Fallback to Google Imagen
         logger.info(f"Using Google Image model: {model_id}")
         logger.info(f"Final Enhanced Prompt: {enhanced_prompt}")
         
