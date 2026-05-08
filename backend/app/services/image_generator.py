@@ -17,7 +17,7 @@ SAFETY_SETTINGS_CONFIG = [
     types.SafetySetting(category="HARM_CATEGORY_HARASSMENT", threshold="BLOCK_NONE"),
 ]
 
-async def get_visual_prompt(client: genai.Client, synopsis: str, genre: str, style: str, image_hints: str | None = None) -> str:
+async def get_visual_prompt(synopsis: str, genre: str, style: str, image_hints: str | None = None) -> str:
     """
     Use Gemini to transform a German synopsis into a visually descriptive English image prompt.
     """
@@ -100,11 +100,12 @@ async def generate_story_image(synopsis: str, output_path: Path, genre: str = "R
         # Get current model from DB or fallback to config
         model_id = store.get_system_setting("gemini_image_model", settings.GEMINI_IMAGE_MODEL)
         logger.info(f"Current Image Model/Provider: {model_id}")
-
-        client = genai.Client(api_key=settings.GEMINI_API_KEY)
         
+        # We still need the genai client for Google Imagen models
+        client = genai.Client(api_key=settings.GEMINI_API_KEY)
+
         # Step 1: Use LLM to generate a safe, visual English prompt
-        visual_description = await get_visual_prompt(client, synopsis, genre, style, image_hints)
+        visual_description = await get_visual_prompt(synopsis, genre, style, image_hints)
         
         style_hints = {
             "Sci-Fi": "Futuristic, cinematic concept art, neon accents, detailed textures",

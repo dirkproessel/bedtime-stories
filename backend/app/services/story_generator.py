@@ -10,6 +10,10 @@ import json
 import re
 from app.services.text_generator import generate_text
 from app.services.rate_limiter import rate_limiter
+from app.services.store import store
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 # Centralized models now coming from app.config.settings
