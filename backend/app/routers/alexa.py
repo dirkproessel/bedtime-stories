@@ -331,6 +331,9 @@ async def _alexa_webhook_logic(data: dict, session: Session):
             else:
                 backend_genre, style = raw_genre or "Abenteuer", "adams"
 
+            # Fetch default voice for Alexa from system settings
+            alexa_voice = store.get_system_setting("alexa_default_voice", "seraphina")
+
             # Execute pipeline in background via StoryService
             from app.services.story_service import story_service
             asyncio.create_task(
@@ -341,7 +344,7 @@ async def _alexa_webhook_logic(data: dict, session: Session):
                     style=style,
                     characters=None,
                     target_minutes=10,
-                    voice_key="seraphina",
+                    voice_key=alexa_voice,
                     speech_rate="0%",
                     original_prompt=idea,
                     user_id=user.id,

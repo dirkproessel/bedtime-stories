@@ -1,0 +1,95 @@
+﻿{
+  "manifest": {
+    "apis": {
+      "custom": {
+        "endpoint": {
+          "sslCertificateType": "Trusted",
+          "uri": "https://api.storyja.com/api/alexa/webhook"
+        },
+        "interfaces": [
+          {
+            "type": "AUDIO_PLAYER"
+          }
+        ],
+        "locales": {}
+      }
+    },
+    "events": {
+      "endpoint": {
+        "sslCertificateType": "Trusted",
+        "uri": "https://api.storyja.com/api/alexa/webhook"
+      },
+      "publications": [
+        {
+          "eventName": "AMAZON.MediaContent.Available"
+        }
+      ]
+    },
+    "manifestVersion": "1.0",
+    "permissions": [
+      {
+        "name": "alexa::alerts:reminders:skill:readwrite"
+      },
+      {
+        "name": "alexa::person_id:read"
+      },
+      {
+        "name": "alexa::alerts:timers:skill:readwrite"
+      },
+      {
+        "name": "alexa::devices:all:notifications:write"
+      }
+    ],
+    "privacyAndCompliance": {
+      "allowsPurchases": false,
+      "containsAds": false,
+      "isChildDirected": false,
+      "isExportCompliant": true,
+      "locales": {
+        "de-DE": {
+          "privacyPolicyUrl": "https://api.storyja.com/api/static/privacy.html",
+          "termsOfUseUrl": "https://api.storyja.com/api/static/terms.html"
+        }
+      },
+      "shoppingKit": {
+        "isAmazonAssociatesOnAlexaEnabled": false,
+        "isShoppingActionsEnabled": false
+      },
+      "usesPersonalInfo": false
+    },
+    "publishingInformation": {
+      "automaticDistribution": {
+        "isActive": true,
+        "sourceLocaleForLanguages": [
+          {
+            "language": "de",
+            "sourceLocale": "de-DE"
+          }
+        ]
+      },
+      "category": "STORIES",
+      "distributionCountries": [
+        "DE"
+      ],
+      "distributionMode": "PUBLIC",
+      "isAvailableWorldwide": false,
+      "locales": {
+        "de-DE": {
+          "description": "Storyja.com - Literatur auf Knopfdruck. Wir verwandeln deine Ideen in Sekunden in individuell generierte Kurzgeschichten. Von witzig bis Gute-Nacht-Geschichten: Erlebe im Kurzgeschichten-Labor, wie KI die Kunst des Erz├ñhlens neu definiert.\n\nDefiniere die Grundidee Deiner Geschichte (z.B. \"Papa rutscht auf einer Banane aus\") sowie das Genre (z.B. \"Abenteuer\"). Danach wird eine Kurzgeschichte f├╝r Dich erstellt und kann wenigen Minuten sp├ñter abgespielt werden. Auch kann man bestehende Geschichten aus der storyja-App zur Wiedergabe auf Alexa freigeben.",
+          "examplePhrases": [
+            "Alexa, starte meine kurzgeschichten"
+          ],
+          "keywords": [
+            "stories",
+            "Kurzgeschichten"
+          ],
+          "largeIconUri": "https://s3.amazonaws.com/CAPS-SSE/echo_developer/87b3/23a01d6226524988a56bac40101bf9a5/APP_ICON_LARGE?versionId=AawfQn29pL1IONJgLaEy4ctCerqQxEdR&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Date=20260424T104218Z&X-Amz-SignedHeaders=host&X-Amz-Expires=604799&X-Amz-Credential=AKIAWBV6LQ4QOK4T6665%2F20260424%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Signature=200a984c4c73654ac2a9f367af18dbc72b6265d9a5a1738dd117717f3c485716",
+          "name": "storyja",
+          "smallIconUri": "https://s3.amazonaws.com/CAPS-SSE/echo_developer/8f9a/ec1de0c3e6f04a0195c509c9b945fc30/APP_ICON?versionId=Sj2tpUskNDCHF_pETaQHUZElULiGCymX&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Date=20260424T104218Z&X-Amz-SignedHeaders=host&X-Amz-Expires=604799&X-Amz-Credential=AKIAWBV6LQ4QOK4T6665%2F20260424%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Signature=bdaff6b60cae2ab7866c59270188c7475d9e63167bb2e23fac0fdd87ff028a60",
+          "summary": "Meine Kurzgeschichten"
+        }
+      },
+      "testingInstructions": "{\"ask_dist_username\":\"\",\"ask_dist_password\":\"\",\"ask_dist_testing_instructions\":\"- say \\\"erstellen\\\"\\n- say \\\"ein drache erwacht zu frÔö£ÔòØh\\\"\\n- say \\\"Abenteuer\\\"\\nThen it creates a story.\\ncome back 5 min later\\nsay \\\"abspielen\\\". then it plays the story\"}"
+    }
+  }
+}

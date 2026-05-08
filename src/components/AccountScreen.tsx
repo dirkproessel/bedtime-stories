@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
-import { updateKindleEmail, updateUsername, uploadProfilePicture, unlinkAlexa, cloneVoice, updateCustomVoice, deleteCustomVoice, adminFetchSettings, adminUpdateSetting } from '../lib/api';
+import { updateKindleEmail, updateUsername, uploadProfilePicture, unlinkAlexa, cloneVoice, updateCustomVoice, deleteCustomVoice, adminFetchSettings, adminUpdateSetting, adminListVoices } from '../lib/api';
 import { LogOut, Download, Mail, Check, Loader2, Radio, Copy, User, Shield, Camera, Mic, Music, Trash2, Globe, Lock, Venus, Mars, Users, Settings2, Sparkles, Image as ImageIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ProfilePictureUpload from './ProfilePictureUpload';
@@ -93,22 +93,27 @@ function VoiceCloneItem({ voice, onUpdate }: { voice: any, onUpdate: (user: any)
 
 function SystemSettingsSection() {
     const [settings, setSettings] = useState<any[]>([]);
+    const [allVoices, setAllVoices] = useState<{ clones: any[], system: any[] }>({ clones: [], system: [] });
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState<string | null>(null);
 
-    const loadSettings = async () => {
+    const loadData = async () => {
         try {
-            const data = await adminFetchSettings();
-            setSettings(data);
+            const [settingsData, voicesData] = await Promise.all([
+                adminFetchSettings(),
+                adminListVoices()
+            ]);
+            setSettings(settingsData);
+            setAllVoices(voicesData);
         } catch (e: any) {
-            toast.error('Fehler beim Laden der Einstellungen');
+            toast.error('Fehler beim Laden der Systemdaten');
         } finally {
             setIsLoading(false);
         }
     };
 
     useEffect(() => {
-        loadSettings();
+        loadData();
     }, []);
 
     const handleUpdate = async (key: string, value: string) => {
@@ -128,6 +133,7 @@ function SystemSettingsSection() {
 
     const textModel = settings.find(s => s.key === 'gemini_text_model')?.value || '';
     const imageModel = settings.find(s => s.key === 'gemini_image_model')?.value || '';
+    const alexaVoice = settings.find(s => s.key === 'alexa_default_voice')?.value || 'seraphina';
 
     return (
         <div className="w-full glass-panel rounded-3xl p-6 space-y-4 border border-purple-500/20">
@@ -173,6 +179,37 @@ function SystemSettingsSection() {
                     >
                         <option value="gemini-3.1-flash-image-preview">Gemini 3.1 Flash (512px - Günstig)</option>
                         <option value="gemini-3-pro-image-preview">Gemini 3.0 Pro (Premium Qualität)</option>
+                    </select>
+                </div>
+
+                {/* Alexa Voice */}
+                <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">
+                        <Mic className="w-3 h-3" />
+                        Alexa Vorlese-Stimme
+                    </div>
+                    <select 
+                        value={alexaVoice}
+                        onChange={(e) => handleUpdate('alexa_default_voice', e.target.value)}
+                        disabled={isSaving === 'alexa_default_voice'}
+                        className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500/50 outline-none transition-all text-white text-sm"
+                    >
+                        <optgroup label="System-Stimmen">
+                            {allVoices.system.map(v => (
+                                <option key={v.id} value={v.id}>
+                                    {v.name} ({v.engine}{!v.is_active ? ' - Inaktiv' : ''})
+                                </option>
+                            ))}
+                        </optgroup>
+                        {allVoices.clones.length > 0 && (
+                            <optgroup label="Nutzer-Klone">
+                                {allVoices.clones.map(v => (
+                                    <option key={v.id} value={v.id}>
+                                        {v.name} (Klon von {v.user_name || 'Unbekannt'})
+                                    </option>
+                                ))}
+                            </optgroup>
+                        )}
                     </select>
                 </div>
             </div>
