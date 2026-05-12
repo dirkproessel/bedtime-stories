@@ -25,7 +25,10 @@ async def generate_text(
     temperature: float = 0.8, 
     max_tokens: int = 4096, 
     response_mime_type: str = "text/plain",
-    system_instruction: str = None
+    system_instruction: str = None,
+    response_schema: dict = None,
+    presence_penalty: float = 0.0,
+    frequency_penalty: float = 0.0
 ) -> str:
     """
     Unified text generation function supporting Gemini and DeepSeek.
@@ -36,21 +39,26 @@ async def generate_text(
     logger.info(f"TEXT_GEN: Using model {model} (Temp: {temperature}, MIME: {response_mime_type})")
 
     if model.startswith("gemini"):
-        return await _generate_gemini(prompt, model, temperature, max_tokens, response_mime_type, system_instruction)
+        return await _generate_gemini(prompt, model, temperature, max_tokens, response_mime_type, system_instruction, response_schema, presence_penalty, frequency_penalty)
     elif model.startswith("deepseek"):
-        return await _generate_deepseek(prompt, model, temperature, max_tokens, response_mime_type, system_instruction)
+        return await _generate_deepseek(prompt, model, temperature, max_tokens, response_mime_type, system_instruction, presence_penalty, frequency_penalty)
     else:
         logger.warning(f"Unknown model prefix for '{model}'. Falling back to Gemini.")
-        return await _generate_gemini(prompt, settings.GEMINI_TEXT_MODEL, temperature, max_tokens, response_mime_type, system_instruction)
+        return await _generate_gemini(prompt, settings.GEMINI_TEXT_MODEL, temperature, max_tokens, response_mime_type, system_instruction, response_schema, presence_penalty, frequency_penalty)
 
-async def _generate_gemini(prompt, model, temperature, max_tokens, response_mime_type, system_instruction):
+async def _generate_gemini(prompt, model, temperature, max_tokens, response_mime_type, system_instruction, response_schema, presence_penalty, frequency_penalty):
     config = {
         "temperature": temperature,
         "max_output_tokens": max_tokens,
         "safety_settings": SAFETY_SETTINGS_CONFIG,
+        "presence_penalty": presence_penalty,
+        "frequency_penalty": frequency_penalty,
     }
     if response_mime_type == "application/json":
         config["response_mime_type"] = "application/json"
+    
+    if response_schema:
+        config["response_schema"] = response_schema
     
     if system_instruction:
         config["system_instruction"] = system_instruction
@@ -68,7 +76,7 @@ async def _generate_gemini(prompt, model, temperature, max_tokens, response_mime
         logger.error(f"Gemini generation failed: {e}")
         raise e
 
-async def _generate_deepseek(prompt, model, temperature, max_tokens, response_mime_type, system_instruction):
+async def _generate_deepseek(prompt, model, temperature, max_tokens, response_mime_type, system_instruction, presence_penalty, frequency_penalty):
     """DeepSeek API call (OpenAI compatible)"""
     if not settings.DEEPSEEK_API_KEY:
         raise ValueError("DEEPSEEK_API_KEY is missing in settings")
@@ -98,6 +106,8 @@ async def _generate_deepseek(prompt, model, temperature, max_tokens, response_mi
         "messages": messages,
         "temperature": temperature,
         "max_tokens": max_tokens,
+        "presence_penalty": presence_penalty,
+        "frequency_penalty": frequency_penalty,
         "stream": False
     }
     

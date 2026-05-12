@@ -12,6 +12,24 @@ from app.services.text_generator import generate_text
 from app.services.rate_limiter import rate_limiter
 from app.services.store import store
 import logging
+from pydantic import BaseModel
+
+class StorySegment(BaseModel):
+    goal: str
+
+class OutlineSchema(BaseModel):
+    title: str
+    synopsis: str
+    segments: list[StorySegment]
+
+class PostStoryAnalysisSchema(BaseModel):
+    refined_synopsis: str
+    highlights: str
+
+class SinglePassSchema(BaseModel):
+    title: str
+    synopsis: str
+    full_text: str
 
 logger = logging.getLogger(__name__)
 
@@ -494,7 +512,8 @@ Antworte EXKLUSIV im JSON-Format:
         model=text_model,
         temperature=0.85,
         max_tokens=8192,
-        response_mime_type="application/json"
+        response_mime_type="application/json",
+        response_schema=SinglePassSchema
     )
     rate_limiter.increment_daily_quota()
 
@@ -638,12 +657,23 @@ Antworte NUR im JSON-Format:
             model=text_model,
             temperature=0.8,
             max_tokens=2000,
-            response_mime_type="application/json"
+            response_mime_type="application/json",
+            response_schema=OutlineSchema
         )
         rate_limiter.increment_daily_quota("text")
         
         text = response_text.strip()
         
+        # Robust JSON extraction: Find the first { and the last }
+        json_match = re.search(r'\{.*\}', text, re.DOTALL)
+        if json_match:
+            text = json_match.group(0)
+        else:
+            if text.startswith("```json"):
+                text = text.replace("```json", "", 1).replace("```", "", 1).strip()
+            elif text.startswith("```"):
+                text = text.replace("```", "", 2).strip()
+                
         outline_data = json.loads(text)
         title = outline_data.get("title", "Eine neue Geschichte")
         synopsis = outline_data.get("synopsis", "Kurzgeschichte")
@@ -706,6 +736,7 @@ Vermeide jegliche Floskeln, pädagogische Zeigefinger oder moralische Zusammenfa
 4. Pacing & Detail: Beschreibe präzise und atmosphärisch. Behandle diesen Abschnitt mit der Tiefe eines Romans. Springe nicht zu schnell in der Handlung voran.
 5. VERMEIDE ÜBEREILTE ENDEN: Hetze nicht zum Schluss. Vermeide Floskeln wie "Und so lernten sie..." oder "Am Ende war alles...". Bleib im Moment der Szene.
 6. Format: Keinerlei Überschriften, Kapitelnummern oder Titel im generierten Text! Nur der reine, fließende Erzähltext.
+7. FORTSCHRITT STATT WIEDERHOLUNG: Wiederhole niemals Phrasen, Metaphern oder innere Monologe aus den vorherigen Kapiteln. Fasse das Bisherige nicht zusammen. Die Handlung MUSS aktiv voranschreiten. Bringe ununterbrochen neue, frische Details ein.
 {f"SPEZIELLE REMIX-ANWEISUNG: {further_instructions}" if further_instructions else ""}
 {original_segment_context}
 {ende_regel}
@@ -727,7 +758,9 @@ Fokus / Ziel DIESES Kapitels: {seg['goal']}
             prompt=write_prompt,
             model=text_model,
             temperature=0.8,
-            max_tokens=4096
+            max_tokens=4096,
+            presence_penalty=0.1,
+            frequency_penalty=0.3
         )
         rate_limiter.increment_daily_quota()
         segment_text = response_text.strip()
@@ -773,11 +806,24 @@ Antworte EXKLUSIV im JSON-Format:
             model=text_model,
             temperature=0.7,
             max_tokens=1000,
-            response_mime_type="application/json"
+            response_mime_type="application/json",
+            response_schema=PostStoryAnalysisSchema
         )
         rate_limiter.increment_daily_quota("text")
         
-        data = json.loads(response_text)
+        text = response_text.strip()
+        
+        # Robust JSON extraction
+        json_match = re.search(r'\{.*\}', text, re.DOTALL)
+        if json_match:
+            text = json_match.group(0)
+        else:
+            if text.startswith("```json"):
+                text = text.replace("```json", "", 1).replace("```", "", 1).strip()
+            elif text.startswith("```"):
+                text = text.replace("```", "", 2).strip()
+                
+        data = json.loads(text)
         return {
             "synopsis": data.get("refined_synopsis", ""),
             "highlights": data.get("highlights", "")
