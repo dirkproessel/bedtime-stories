@@ -15,7 +15,10 @@ import logging
 from pydantic import BaseModel
 
 class StorySegment(BaseModel):
-    goal: str
+    plot_action: str
+    setting: str
+    emotional_shift: str
+    ending_note: str
 
 class OutlineSchema(BaseModel):
     title: str
@@ -617,7 +620,12 @@ Antworte NUR im JSON-Format:
     "title": "Titel (evtl. angepasst)",
     "synopsis": "Aktualisierte Zusammenfassung",
     "segments": [
-        {{ "goal": "Was in diesem Teil im Vergleich zum Original geändert oder beibehalten wird..." }},
+        {{ 
+            "plot_action": "Was in diesem Teil im Vergleich zum Original geändert oder beibehalten wird...",
+            "setting": "Ort der Handlung...",
+            "emotional_shift": "Emotionale Entwicklung...",
+            "ending_note": "Wie dieser Abschnitt endet..."
+        }},
         ...
     ]
 }}"""
@@ -631,13 +639,19 @@ Stil-Vorgaben:
 
 Teile die Geschichte in exakt {num_segments} logische Abschnitte auf.
 WICHTIG: Die Geschichte soll wie aus einem Guss erscheinen. Die Abschnitte dienen nur der internen Planung.
+PACING & STRUKTUR: Der dramaturgische Bogen über die Segmente hinweg MUSS dem Ziel ({genre_data['ziel']}) und den Tropen ({genre_data['tropen']}) des Genres entsprechen! (z.B. eine kontinuierlich steigende Spannungskurve für Krimi/Abenteuer, oder eine stetig sinkende, beruhigende Energiekurve für Gute-Nacht-Geschichten).
 ACHTUNG ZUR LÄNGE: Die gesamte Geschichte darf STRENGSTENS MAXIMAL {total_words} Wörter lang werden. Jeder Abschnitt muss Material für maximal {words_per_segment} Wörter Text bieten. Keine Abschweifungen oder Füllsätze!
 Antworte NUR im JSON-Format:
 {{
     "title": "Titel",
     "synopsis": "Prägnante Zusammenfassung (maximal 3-4 Sätze), die Lust auf die Geschichte macht.",
     "segments": [
-        {{ "goal": "Was in diesem Teil passiert..." }},
+        {{ 
+            "plot_action": "Was konkret physisch passiert...",
+            "setting": "Der Ort der Handlung...",
+            "emotional_shift": "Die emotionale Entwicklung oder Stimmung...",
+            "ending_note": "Wie dieser Abschnitt endet (z.B. Cliffhanger, ruhiger Ausklang)..."
+        }},
         ...
     ]
 }}"""
@@ -744,7 +758,11 @@ Vermeide jegliche Floskeln, pädagogische Zeigefinger oder moralische Zusammenfa
 Rahmenbedingungen:
 Titel der Gesamtgeschichte: {title}
 Zusammenfassung der Geschichte: {synopsis}
-Fokus / Ziel DIESES Kapitels: {seg['goal']}
+Vorgaben für DIESES Kapitel:
+- Kernhandlung (Plot): {seg.get('plot_action', seg.get('goal', ''))}
+- Ort (Setting): {seg.get('setting', 'Aus dem Kontext ableiten')}
+- Emotionale Entwicklung: {seg.get('emotional_shift', 'Neutral')}
+- Ziel für das Kapitelende: {seg.get('ending_note', 'Logisch abschließen')}
 {context}
 """
         if not rate_limiter.has_daily_quota("text"):
