@@ -670,9 +670,8 @@ Antworte NUR im JSON-Format:
             prompt=outline_prompt,
             model=text_model,
             temperature=0.8,
-            max_tokens=2000,
-            response_mime_type="application/json",
-            response_schema=OutlineSchema
+            max_tokens=4000,
+            response_mime_type="application/json"
         )
         rate_limiter.increment_daily_quota("text")
         
