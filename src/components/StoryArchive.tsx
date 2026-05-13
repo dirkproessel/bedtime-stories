@@ -368,7 +368,7 @@ function ManagementStoryCard({
 export default function StoryArchive({ filterOverride }: { filterOverride?: 'my' | 'public' | 'favorites' | 'all' }) {
     const { 
         stories, loadStories, setActiveView, 
-        toggleStoryVisibility, user, archiveFilter: storeFilter, setArchiveFilter,
+        toggleStoryVisibility, user, archiveFilter: storeFilter,
         totalStories, totalMyStories, totalPublicStories,
         voices, revoiceStoryId, setRevoiceStoryId,
         updateStorySpotify, startGeneration,
