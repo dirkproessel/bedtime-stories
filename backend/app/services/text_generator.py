@@ -51,6 +51,8 @@ async def _generate_gemini(prompt, model, temperature, max_tokens, response_mime
         "temperature": temperature,
         "max_output_tokens": max_tokens,
         "safety_settings": SAFETY_SETTINGS_CONFIG,
+        "presence_penalty": presence_penalty,
+        "frequency_penalty": frequency_penalty,
     }
     if response_mime_type == "application/json":
         config["response_mime_type"] = "application/json"

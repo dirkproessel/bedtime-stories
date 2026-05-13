@@ -514,7 +514,7 @@ Antworte EXKLUSIV im validen JSON-Format. WICHTIG: Entwerte (escape) alle Anfüh
         prompt=master_prompt,
         model=text_model,
         temperature=0.85,
-        max_tokens=8192,
+        max_tokens=16384,
         response_mime_type="application/json",
         response_schema=SinglePassSchema
     )
@@ -535,6 +535,14 @@ Antworte EXKLUSIV im validen JSON-Format. WICHTIG: Entwerte (escape) alle Anfüh
 
     try:
         data = json.loads(text)
+    except Exception as json_err:
+        logger.warning(f"Single-pass JSON parse failed: {json_err}. Attempting aggressive cleanup...")
+        text = re.sub(r',\s*\}', '}', text)
+        text = re.sub(r',\s*\]', ']', text)
+        try:
+            data = json.loads(text)
+        except:
+            raise json_err
         # Handle cases where full_text itself contains JSON (recursive LLM error)
         story_content = data.get("full_text", "")
         if isinstance(story_content, dict):
@@ -670,7 +678,7 @@ Antworte NUR im validen JSON-Format. WICHTIG: Entwerte (escape) alle Anführungs
             prompt=outline_prompt,
             model=text_model,
             temperature=0.8,
-            max_tokens=4000,
+            max_tokens=8192,
             response_mime_type="application/json"
         )
         rate_limiter.increment_daily_quota("text")
@@ -687,7 +695,23 @@ Antworte NUR im validen JSON-Format. WICHTIG: Entwerte (escape) alle Anführungs
             elif text.startswith("```"):
                 text = text.replace("```", "", 2).strip()
                 
-        outline_data = json.loads(text)
+        try:
+            outline_data = json.loads(text)
+        except Exception as json_err:
+            logger.warning(f"Initial JSON parse failed: {json_err}. Attempting aggressive cleanup...")
+            # Aggressive cleanup for unescaped quotes
+            # This is a heuristic: try to find common patterns like "key": "value with "quotes" inside"
+            # But simpler: just try to use a more forgiving parser logic if we had one.
+            # For now, let's just try to fix common trailing commas and unescaped quotes.
+            text = re.sub(r',\s*\}', '}', text)
+            text = re.sub(r',\s*\]', ']', text)
+            try:
+                outline_data = json.loads(text)
+            except:
+                # If it still fails, let's try one more thing: 
+                # Replace "plot_action": "..." with something safer if we can find it
+                raise json_err
+
         title = outline_data.get("title", "Eine neue Geschichte")
         synopsis = outline_data.get("synopsis", "Kurzgeschichte")
         segments = outline_data.get("segments", [])
@@ -775,7 +799,7 @@ Vorgaben für DIESES Kapitel:
             prompt=write_prompt,
             model=text_model,
             temperature=0.8,
-            max_tokens=4096,
+            max_tokens=8192,
             presence_penalty=0.1,
             frequency_penalty=0.3
         )
