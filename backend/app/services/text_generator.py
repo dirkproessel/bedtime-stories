@@ -79,14 +79,14 @@ async def _generate_deepseek(prompt, model, temperature, max_tokens, response_mi
     if not settings.DEEPSEEK_API_KEY:
         raise ValueError("DEEPSEEK_API_KEY is missing in settings")
 
-    # The user asked for "deepseek-v4-flash", but standard IDs are "deepseek-chat"
-    # We use the provided ID, but if it fails we might need to fallback.
-    api_model = model
-    if api_model == "deepseek-v4-flash":
-        # DeepSeek V3 is current, V4 is not yet public. 
-        # Using deepseek-chat as the most likely intended endpoint if v4-flash doesn't exist.
-        # But we'll try exactly what the user wanted first.
-        pass
+    # Map frontend model names to actual DeepSeek API model names
+    api_model = "deepseek-chat"
+    if "pro" in model.lower() or "reasoner" in model.lower():
+        api_model = "deepseek-reasoner"
+    elif "flash" in model.lower():
+        api_model = "deepseek-chat"
+    else:
+        api_model = model
 
     url = "https://api.deepseek.com/chat/completions"
     headers = {
@@ -100,7 +100,7 @@ async def _generate_deepseek(prompt, model, temperature, max_tokens, response_mi
     messages.append({"role": "user", "content": prompt})
 
     payload = {
-        "model": "deepseek-chat", # Fallback to chat for now as v4-flash might be a typo or internal preview
+        "model": api_model,
         "messages": messages,
         "temperature": temperature,
         "max_tokens": max_tokens,
@@ -108,15 +108,11 @@ async def _generate_deepseek(prompt, model, temperature, max_tokens, response_mi
         "frequency_penalty": frequency_penalty,
         "stream": False
     }
-    
-    # If they specifically said v4-flash, maybe they know something I don't (or it's a future proofing)
-    if "flash" in model:
-        # Some providers use -flash suffixes. 
-        payload["model"] = "deepseek-chat" # DeepSeek doesn't have a flash model yet, chat is their efficient one.
 
     if response_mime_type == "application/json":
         # DeepSeek supports json_object for deepseek-chat
-        payload["response_format"] = {"type": "json_object"}
+        if api_model == "deepseek-chat":
+            payload["response_format"] = {"type": "json_object"}
         if "json" not in prompt.lower():
             prompt += " (Respond in JSON format)"
             messages[-1]["content"] = prompt
