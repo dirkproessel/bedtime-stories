@@ -486,7 +486,7 @@ STRIKTE REGELN:
 Vermeide jegliche Floskeln, pädagogische Zeigefinger oder moralische Zusammenfassungen am Ende. Die Geschichte endet mit dem letzten narrativen Moment. Kein Kitsch, keine Moral!
 3. Show, don't tell: Erkläre nicht, wie sich Charaktere fühlen – zeige es durch ihre Handlungen und Reaktionen.
 4. Pacing & Detail: Hetze nicht durch die Handlung. Entwickle Szenen durch konkrete Details, aber halte die Syntax (Satzbau) einfach.
-5. UMFANG: STRENGES MAXIMUM von {word_count} Wörtern. Nutze eine präzise Wortwahl statt vieler Adjektive. Die neue sprachliche Freiheit darf NICHT zu unnötiger Länge führen. Vermeide Abschweifungen.
+5. UMFANG: ZIELGRÖßE: ca. {word_count} Wörter. Nutze eine präzise Wortwahl statt vieler Adjektive. Die neue sprachliche Freiheit darf NICHT zu unnötiger Länge führen. Vermeide Abschweifungen.
 
 Rahmenbedingungen:
 Schreibe eine Geschichte im Genre {genre_data['name']}. Der Kern der Handlung (Nutzer-Wunsch) ist: {user_hook}{char_text}. Folge dem Narrativ: {genre_data['ziel']} unter Verwendung von {genre_data['tropen']}.
@@ -640,7 +640,7 @@ Stil-Vorgaben:
 Teile die Geschichte in exakt {num_segments} logische Abschnitte auf.
 WICHTIG: Die Geschichte soll wie aus einem Guss erscheinen. Die Abschnitte dienen nur der internen Planung.
 PACING & STRUKTUR: Der dramaturgische Bogen über die Segmente hinweg MUSS dem Ziel ({genre_data['ziel']}) und den Tropen ({genre_data['tropen']}) des Genres entsprechen! (z.B. eine kontinuierlich steigende Spannungskurve für Krimi/Abenteuer, oder eine stetig sinkende, beruhigende Energiekurve für Gute-Nacht-Geschichten).
-ACHTUNG ZUR LÄNGE: Die gesamte Geschichte darf STRENGSTENS MAXIMAL {total_words} Wörter lang werden. Jeder Abschnitt muss Material für maximal {words_per_segment} Wörter Text bieten. Keine Abschweifungen oder Füllsätze!
+ACHTUNG ZUR LÄNGE: Die gesamte Geschichte sollte etwa {total_words} Wörter lang werden. Jeder Abschnitt muss Material für ca. {words_per_segment} Wörter Text bieten. Keine Abschweifungen oder Füllsätze!
 Antworte NUR im JSON-Format:
 {{
     "title": "Titel",
@@ -728,9 +728,9 @@ Antworte NUR im JSON-Format:
         is_last_chapter = (i == num_segments - 1)
         
         if is_last_chapter:
-            ende_regel = f"5. UMFANG & ENDE: Schreibe STRENG MAXIMAL {words_per_segment} Wörter. DIES IST DAS FINALE KAPITEL! Führe die Geschichte zwingend zu einem runden, atmosphärischen Abschluss. Schließe die Handlung ab. Kein Cliffhanger mehr!"
+            ende_regel = f"5. UMFANG & ENDE: Ziele auf ca. {words_per_segment} Wörter ab. DIES IST DAS FINALE KAPITEL! Führe die Geschichte zwingend zu einem runden, atmosphärischen Abschluss. Schließe die Handlung ab. Kein Cliffhanger mehr!"
         else:
-            ende_regel = f"5. UMFANG & ENDE: Schreibe STRENG MAXIMAL {words_per_segment} Wörter. WICHTIG: Beende das Kapitel NIEMALS mitten in einem Satz. Führe die Szene logisch zu Ende oder erzeuge einen weichen Übergang/Cliffhanger."
+            ende_regel = f"5. UMFANG & ENDE: Ziele auf ca. {words_per_segment} Wörter ab. WICHTIG: Beende das Kapitel NIEMALS mitten in einem Satz. Führe die Szene logisch zu Ende oder erzeuge einen weichen Übergang/Cliffhanger."
         
         # For improvements, provide the original chapter text if available
         original_segment_context = ""
