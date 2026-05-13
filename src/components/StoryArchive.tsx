@@ -495,16 +495,12 @@ export default function StoryArchive() {
     }, [stories]);
 
 
-    // Effect to switch to "public" if "my" is empty on first load
+    // Effect to set initial check as done
     useEffect(() => {
         if (!initialCheckDone && totalStories !== undefined && user) {
-            if (archiveFilter === 'my' && totalMyStories === 0 && totalPublicStories > 0) {
-                setArchiveFilter('public');
-                loadStories(1);
-            }
             setInitialCheckDone(true);
         }
-    }, [totalMyStories, totalPublicStories, totalStories, initialCheckDone, archiveFilter, loadStories, setArchiveFilter, user]);
+    }, [totalStories, initialCheckDone, user]);
 
     // Handle initial genres scroll check
     useEffect(() => {

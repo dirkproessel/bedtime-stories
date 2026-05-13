@@ -406,7 +406,7 @@ export const useStore = create<AppState>((set, get) => {
                 generatorContext: null 
             });
             // Immediately switch to archive and reload to show the "Pending" story
-            set({ activeView: 'library' });
+            set({ activeView: 'library', archiveFilter: 'my' });
             await get().loadStories();
             get().pollStatus();
         } catch (e: any) {
@@ -419,7 +419,7 @@ export const useStore = create<AppState>((set, get) => {
         set({ error: null });
         try {
             await generateFreeStory(text, voiceKey, targetMinutes);
-            set({ activeView: 'library' });
+            set({ activeView: 'library', archiveFilter: 'my' });
             await get().loadStories();
             get().pollStatus();
         } catch (e: any) {

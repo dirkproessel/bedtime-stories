@@ -18,7 +18,7 @@ const NAV_ITEMS = [
 ];
 
 function App() {
-  const { fetchData, isLoading, error, isInitialized, activeView, setActiveView, user, token } = useStore();
+  const { fetchData, isLoading, error, isInitialized, activeView, setActiveView, user, token, setArchiveFilter } = useStore();
 
   // Initial Data Fetch
   useEffect(() => {
@@ -198,6 +198,10 @@ function App() {
                  key={key}
                  onClick={() => {
                    setActiveView(key);
+                   if (key === 'library') setArchiveFilter('my');
+                   if (key === 'discover') setArchiveFilter('public');
+                   if (key === 'favorites') setArchiveFilter('favorites');
+
                    if (useStore.getState().isReaderOpen) {
                      useStore.getState().setReaderOpen(false);
                    }
