@@ -436,14 +436,14 @@ export default function StoryArchive({ filterOverride }: { filterOverride?: 'my'
     const [initialCheckDone, setInitialCheckDone] = useState(false);
 
     useEffect(() => {
-        // First load with the initial filter
-        loadStories(1);
+        // First load with the effective filter (override takes priority over store state)
+        loadStories(1, undefined, undefined, filterOverride);
         
         // If we are in discover mode, pre-fetch rows
         if (archiveFilter === 'public') {
             loadCollections();
         }
-    }, [archiveFilter]);
+    }, [filterOverride]);
 
     const loadCollections = async () => {
         const { fetchStories } = await import('../lib/api');
@@ -525,7 +525,7 @@ export default function StoryArchive({ filterOverride }: { filterOverride?: 'my'
         const timer = setTimeout(() => {
             if (searchValue !== (archiveSearch || '')) {
                 setArchiveSearch(searchValue || null);
-                loadStories(1);
+                loadStories(1, undefined, undefined, filterOverride);
             }
         }, 500);
         return () => clearTimeout(timer);
@@ -539,7 +539,7 @@ export default function StoryArchive({ filterOverride }: { filterOverride?: 'my'
         }
         setArchiveSearch(null);
         setSearchValue('');
-        loadStories(1);
+        loadStories(1, undefined, undefined, filterOverride);
     };
 
 
@@ -854,7 +854,7 @@ export default function StoryArchive({ filterOverride }: { filterOverride?: 'my'
                                 </button>
                                 {archiveGenre.length > 0 && (
                                     <button 
-                                        onClick={(e) => { e.stopPropagation(); setArchiveGenre([]); loadStories(1); }}
+                                        onClick={(e) => { e.stopPropagation(); setArchiveGenre([]); loadStories(1, undefined, undefined, filterOverride); }}
                                         className="absolute -top-1 -right-1 p-0.5 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-full transition-colors border border-slate-700"
                                     >
                                         <X className="w-2.5 h-2.5" />

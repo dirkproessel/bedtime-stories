@@ -57,7 +57,7 @@ interface AppState {
     setArchiveGenre: (genre: string[]) => void;
     toggleArchiveGenre: (genre: string) => void;
     setArchiveSearch: (search: string | null) => void;
-    loadStories: (page?: number, userId?: string, pageSize?: number) => Promise<void>;
+    loadStories: (page?: number, userId?: string, pageSize?: number, filterOverride?: string) => Promise<void>;
     loadMoreStories: (userId?: string, pageSize?: number) => Promise<void>;
 
     // Generation
@@ -330,15 +330,16 @@ export const useStore = create<AppState>((set, get) => {
         }
     },
 
-    loadStories: async (page = 1, userId?: string, pageSize = 20) => {
+    loadStories: async (page = 1, userId?: string, pageSize = 20, filterOverride?: string) => {
         const { archiveFilter, archiveGenre, archiveSearch } = get();
+        const effectiveFilter = filterOverride || archiveFilter;
         set({ isLoading: true });
         try {
             const { fetchStories } = await import('../lib/api');
             const res = await fetchStories({
                 page: page, 
                 pageSize: pageSize, 
-                filter: archiveFilter, 
+                filter: effectiveFilter, 
                 userId: userId,
                 genre: archiveGenre.length > 0 ? archiveGenre : undefined,
                 search: archiveSearch || undefined
@@ -351,7 +352,7 @@ export const useStore = create<AppState>((set, get) => {
                 totalPublicStories: total_public,
                 currArchivePage: page,
                 availableGenres: available_genres || [],
-                hasMore: stories.length === pageSize && stories.length < (archiveFilter === 'my' ? total_my : archiveFilter === 'public' ? total_public : total)
+                hasMore: stories.length === pageSize && stories.length < (effectiveFilter === 'my' ? total_my : effectiveFilter === 'public' ? total_public : total)
             });
         } catch (e: any) {
             set({ error: e.message });
