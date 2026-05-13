@@ -171,6 +171,20 @@ async def start_generation(req: StoryRequest, current_user: User = Depends(get_c
                 except:
                     logger.warning(f"Failed to load parent text for {req.parent_id}")
 
+    # Initialize story record synchronously so it's guaranteed to be in the store 
+    # when the frontend receives the 'started' response and reloads the archive.
+    story_service.initialize_story(
+        story_id=story_id,
+        prompt=req.system_prompt or req.prompt,
+        genre=req.genre,
+        style=req.style,
+        voice_key=req.voice_key,
+        target_minutes=req.target_minutes,
+        user_id=current_user.id,
+        parent_id=req.parent_id,
+        original_prompt=req.prompt
+    )
+
     # Run generation in background
     asyncio.create_task(
         story_service.run_pipeline(
@@ -239,6 +253,18 @@ class RegenerateImageRequest(BaseModel):
 async def start_free_generation(req: FreeTextRequest, current_user: User = Depends(get_current_active_user)):
     """Start generation from free text prompt."""
     story_id = str(uuid.uuid4())[:8]
+
+    # Initialize story record synchronously
+    story_service.initialize_story(
+        story_id=story_id,
+        prompt=req.text,
+        genre="Realismus",
+        style="adams",
+        voice_key=req.voice_key,
+        target_minutes=req.target_minutes,
+        user_id=current_user.id,
+        original_prompt=req.text
+    )
 
     # Run generation in background
     asyncio.create_task(

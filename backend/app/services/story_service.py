@@ -37,28 +37,19 @@ class StoryService:
                 return False
         return await asyncio.to_thread(_resize)
 
-    async def run_pipeline(
+    def initialize_story(
         self,
         story_id: str,
         prompt: str,
         genre: str,
         style: str,
-        characters: list[str] | None,
-        target_minutes: int,
         voice_key: str,
-        speech_rate: str,
-        original_prompt: str | None = None,
+        target_minutes: int,
         user_id: str | None = None,
         parent_id: str | None = None,
-        remix_type: str | None = None,
-        further_instructions: str | None = None,
-        parent_meta: StoryMeta | None = None,
-        parent_text: dict | None = None,
-        alexa_user_id: str | None = None,
-    ):
-        """Full pipeline: text → TTS → merge → save."""
-        logger.info(f"!!! STARTING PIPELINE for story {story_id} (Alexa: {alexa_user_id}) !!!")
-        
+        original_prompt: str | None = None,
+    ) -> StoryMeta:
+        """Synchronously create the initial story record and directory."""
         story_dir = settings.AUDIO_OUTPUT_DIR / story_id
         story_dir.mkdir(parents=True, exist_ok=True)
 
@@ -99,6 +90,44 @@ class StoryService:
             "progress": "Starte Generierung...",
             "title": None,
         }
+        return story_meta
+
+    async def run_pipeline(
+        self,
+        story_id: str,
+        prompt: str,
+        genre: str,
+        style: str,
+        characters: list[str] | None,
+        target_minutes: int,
+        voice_key: str,
+        speech_rate: str,
+        original_prompt: str | None = None,
+        user_id: str | None = None,
+        parent_id: str | None = None,
+        remix_type: str | None = None,
+        further_instructions: str | None = None,
+        parent_meta: StoryMeta | None = None,
+        parent_text: dict | None = None,
+        alexa_user_id: str | None = None,
+    ):
+        """Full pipeline: text → TTS → merge → save."""
+        logger.info(f"!!! STARTING PIPELINE for story {story_id} (Alexa: {alexa_user_id}) !!!")
+        
+        # Initialize (idempotent, ensures record exists before we start background work)
+        self.initialize_story(
+            story_id=story_id,
+            prompt=prompt,
+            genre=genre,
+            style=style,
+            voice_key=voice_key,
+            target_minutes=target_minutes,
+            user_id=user_id,
+            parent_id=parent_id,
+            original_prompt=original_prompt
+        )
+        
+        story_dir = settings.AUDIO_OUTPUT_DIR / story_id
 
         estimated_chapters = max(2, target_minutes // 5)
         total_points = 5 + (10 * estimated_chapters) + 5
