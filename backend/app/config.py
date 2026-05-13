@@ -8,8 +8,8 @@ load_dotenv(dotenv_path=env_path)
 
 class Settings:
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
-    # Text model: Gemini 3 Flash Preview (upgraded 2026-04-15 for better quality at same price)
-    GEMINI_TEXT_MODEL: str = os.getenv("GEMINI_TEXT_MODEL", "gemini-3-flash-preview")
+    # Text model: Gemini 3.1 Flash Lite (GA version for stable performance)
+    GEMINI_TEXT_MODEL: str = os.getenv("GEMINI_TEXT_MODEL", "gemini-3.1-flash-lite")
     # Image model: Nano Banana 2 (upgraded 2026-04-15, 512px output for cost efficiency)
     GEMINI_IMAGE_MODEL: str = os.getenv("GEMINI_IMAGE_MODEL", "gemini-3.1-flash-image-preview")
     # Detect old/new admin credentials with explicit logging

@@ -375,8 +375,8 @@ DEIN HOOK:"""
             return "Das Tageslimit für Geschichten ist leider erreicht. Bitte versuche es morgen wieder."
             
         await rate_limiter.wait_for_capacity("text")
-        # Get current model from DB or fallback to config
-        text_model = store.get_system_setting("gemini_text_model", settings.GEMINI_TEXT_MODEL)
+        # Inspiration/Hook should always be fast - use the default Flash model from config
+        text_model = settings.GEMINI_TEXT_MODEL
         logger.info(f"Generating story hook with model: {text_model}")
 
         response_text = await generate_text(

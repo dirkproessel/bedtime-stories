@@ -365,10 +365,10 @@ function ManagementStoryCard({
     );
 }
 
-export default function StoryArchive() {
+export default function StoryArchive({ filterOverride }: { filterOverride?: 'my' | 'public' | 'favorites' | 'all' }) {
     const { 
         stories, loadStories, setActiveView, 
-        toggleStoryVisibility, user, archiveFilter, setArchiveFilter,
+        toggleStoryVisibility, user, archiveFilter: storeFilter, setArchiveFilter,
         totalStories, totalMyStories, totalPublicStories,
         voices, revoiceStoryId, setRevoiceStoryId,
         updateStorySpotify, startGeneration,
@@ -383,6 +383,7 @@ export default function StoryArchive() {
         updateStory,
         playlist, addToPlaylist, removeFromPlaylist
     } = useStore();
+    const archiveFilter = filterOverride || storeFilter;
     const isGuest = user?.email?.endsWith('@storyja.guest') ?? false;
     const [selectedVoice, setSelectedVoice] = useState('seraphina');
     const [confirmRevoice, setConfirmRevoice] = useState(false);

@@ -18,7 +18,7 @@ const NAV_ITEMS = [
 ];
 
 function App() {
-  const { fetchData, isLoading, error, isInitialized, activeView, setActiveView, user, token, setArchiveFilter } = useStore();
+  const { fetchData, isLoading, error, isInitialized, activeView, setActiveView, user, token } = useStore();
 
   // Initial Data Fetch
   useEffect(() => {
@@ -198,10 +198,6 @@ function App() {
                  key={key}
                  onClick={() => {
                    setActiveView(key);
-                   if (key === 'library') setArchiveFilter('my');
-                   if (key === 'discover') setArchiveFilter('public');
-                   if (key === 'favorites') setArchiveFilter('favorites');
-
                    if (useStore.getState().isReaderOpen) {
                      useStore.getState().setReaderOpen(false);
                    }
@@ -315,9 +311,9 @@ function App() {
                 {activeView === 'landing' && <LandingScreen />}
                 {activeView === 'login' && <LoginScreen />}
                 {activeView === 'create' && <StoryCreator />}
-                {activeView === 'discover' && <StoryArchive key="discover" />}
-                {activeView === 'library' && <StoryArchive key="library" />}
-                {activeView === 'favorites' && <StoryArchive key="favorites" />}
+                {activeView === 'discover' && <StoryArchive key="discover" filterOverride="public" />}
+                {activeView === 'library' && <StoryArchive key="library" filterOverride="my" />}
+                {activeView === 'favorites' && <StoryArchive key="favorites" filterOverride="favorites" />}
                 {activeView === 'profile' && <AccountScreen />}
                 {activeView === 'admin' && <AdminDashboard />}
              </div>

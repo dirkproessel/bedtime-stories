@@ -471,31 +471,35 @@ export const useStore = create<AppState>((set, get) => {
         }
     },
     setActiveView: (view) => {
-        set({ activeView: view });
-        // Standard scroll to top on view change
+        const updates: Partial<AppState> = { activeView: view };
+        
+        // Atomic filter sync
+        if (view === 'library') {
+            updates.archiveFilter = 'my';
+            updates.archiveGenre = [];
+            updates.archiveSearch = null;
+        } else if (view === 'discover') {
+            updates.archiveFilter = 'public';
+            updates.archiveGenre = [];
+            updates.archiveSearch = null;
+        } else if (view === 'favorites') {
+            updates.archiveFilter = 'favorites';
+            updates.archiveGenre = [];
+            updates.archiveSearch = null;
+        } else if (view === 'admin') {
+            updates.archiveFilter = 'all';
+            updates.archiveGenre = [];
+            updates.archiveSearch = null;
+        }
+
+        set(updates);
+
+        // Side effects
         if (typeof window !== 'undefined') {
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
-        // Handle filter auto-sync if switching to library/discover
-        if (view === 'library') {
-            get().setArchiveFilter('my');
-            get().setArchiveGenre([]);
-            get().setArchiveSearch(null);
-            get().loadStories(1);
-        } else if (view === 'discover') {
-            get().setArchiveFilter('public');
-            get().setArchiveGenre([]);
-            get().setArchiveSearch(null);
-            get().loadStories(1);
-        } else if (view === 'favorites') {
-            get().setArchiveFilter('favorites');
-            get().setArchiveGenre([]);
-            get().setArchiveSearch(null);
-            get().loadStories(1);
-        } else if (view === 'admin') {
-            get().setArchiveFilter('all');
-            get().setArchiveGenre([]);
-            get().setArchiveSearch(null);
+        
+        if (['library', 'discover', 'favorites', 'admin'].includes(view)) {
             get().loadStories(1);
         }
     },
