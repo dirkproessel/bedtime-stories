@@ -492,7 +492,7 @@ Rahmenbedingungen:
 Schreibe eine Geschichte im Genre {genre_data['name']}. Der Kern der Handlung (Nutzer-Wunsch) ist: {user_hook}{char_text}. Folge dem Narrativ: {genre_data['ziel']} unter Verwendung von {genre_data['tropen']}.
 {remix_context}
 
-Antworte EXKLUSIV im JSON-Format:
+Antworte EXKLUSIV im validen JSON-Format. WICHTIG: Entwerte (escape) alle Anführungszeichen innerhalb von Texten mit einem Backslash (z.B. \\"Wort\\").
 {{
     "title": "Titel",
     "synopsis": "Zusammenfassung",
@@ -615,7 +615,7 @@ RECHNE MIT:
 2. GEZIELTE ANPASSUNG: Plane nur Änderungen in den Segmenten, die für die 'Spezielle Verbesserungs-Anweisung' relevant sind.
 3. KONTINUITÄT: Die Gliederung muss sicherstellen, dass die Geschichte ihren Charakter behält.
 
-Antworte NUR im JSON-Format:
+Antworte NUR im validen JSON-Format. WICHTIG: Entwerte (escape) alle Anführungszeichen innerhalb von Texten mit einem Backslash (z.B. \\"Wort\\").
 {{
     "title": "Titel (evtl. angepasst)",
     "synopsis": "Aktualisierte Zusammenfassung",
@@ -641,7 +641,7 @@ Teile die Geschichte in exakt {num_segments} logische Abschnitte auf.
 WICHTIG: Die Geschichte soll wie aus einem Guss erscheinen. Die Abschnitte dienen nur der internen Planung.
 PACING & STRUKTUR: Der dramaturgische Bogen über die Segmente hinweg MUSS dem Ziel ({genre_data['ziel']}) und den Tropen ({genre_data['tropen']}) des Genres entsprechen! (z.B. eine kontinuierlich steigende Spannungskurve für Krimi/Abenteuer, oder eine stetig sinkende, beruhigende Energiekurve für Gute-Nacht-Geschichten).
 ACHTUNG ZUR LÄNGE: Die gesamte Geschichte sollte etwa {total_words} Wörter lang werden. Jeder Abschnitt muss Material für ca. {words_per_segment} Wörter Text bieten. Keine Abschweifungen oder Füllsätze!
-Antworte NUR im JSON-Format:
+Antworte NUR im validen JSON-Format. WICHTIG: Entwerte (escape) alle Anführungszeichen innerhalb von Texten mit einem Backslash (z.B. \\"Wort\\").
 {{
     "title": "Titel",
     "synopsis": "Prägnante Zusammenfassung (maximal 3-4 Sätze), die Lust auf die Geschichte macht.",
