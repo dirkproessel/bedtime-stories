@@ -139,6 +139,7 @@ app.include_router(playlist.router)
 STATIC_DIR = Path(__file__).parent / "static"
 app.mount("/api/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
+from app.services.store import store
 from app.services.story_service import story_service
 
 # Simple in-memory cache for idempotency
