@@ -528,7 +528,7 @@ async def list_stories(
 # ──────────────────────────────────
 
 @app.post("/api/users/me/link-whatsapp")
-async def link_whatsapp(phone: str = Form(...), current_user: User = Depends(get_current_user)):
+async def link_whatsapp(phone: str = Form(...), current_user: User = Depends(get_current_active_user)):
     """Links a WhatsApp phone number to the current user and migrates stories."""
     result = store.link_whatsapp_phone(current_user.id, phone)
     if result["status"] == "error":
