@@ -19,8 +19,8 @@ class WhatsAppService:
             logger.warning("Twilio credentials missing. WhatsAppService will not be able to send messages.")
             self.client = None
 
-    def send_message(self, to_number: str, body: str):
-        """Sends a WhatsApp message via Twilio."""
+    def send_message(self, to_number: str, body: str, media_url: str = None):
+        """Sends a WhatsApp message via Twilio with optional media."""
         if not self.client:
             logger.error("Cannot send WhatsApp message: Twilio client not initialized.")
             return None
@@ -33,12 +33,17 @@ class WhatsAppService:
             from_number = self.from_number
             if not from_number.startswith("whatsapp:"):
                 from_number = f"whatsapp:{from_number}"
+            
+            params = {
+                "from_": from_number,
+                "body": body,
+                "to": to_number
+            }
+            
+            if media_url:
+                params["media_url"] = [media_url]
                 
-            message = self.client.messages.create(
-                from_=from_number,
-                body=body,
-                to=to_number
-            )
+            message = self.client.messages.create(**params)
             logger.info(f"WhatsApp message sent to {to_number}: {message.sid}")
             return message.sid
         except Exception as e:

@@ -400,5 +400,67 @@ class StoryStore:
             return list(session.exec(select(SystemSetting)).all())
 
 
+    def get_or_create_whatsapp_user(self, phone: str) -> User:
+        """Finds or creates a 'shadow user' for a specific WhatsApp phone number."""
+        clean_phone = phone.replace("whatsapp:", "").strip()
+        # Use a virtual email domain to identify WhatsApp users
+        email = f"{clean_phone}@whatsapp.storyja.com".lower()
+        
+        with Session(engine) as session:
+            user = session.exec(select(User).where(User.email == email)).first()
+            if user:
+                return user
+            
+            # Create new shadow user with a stable but random ID
+            new_user = User(
+                id=f"wa-{str(uuid.uuid4())[:8]}",
+                email=email,
+                hashed_password="WHATSAPP_SHADOW_USER", # No password login possible
+                username=f"WhatsApp ({clean_phone})"
+            )
+            session.add(new_user)
+            session.commit()
+            session.refresh(new_user)
+            logger.info(f"Created shadow user for WhatsApp: {email}")
+            return new_user
+
+    def link_whatsapp_phone(self, user_id: str, phone: str) -> dict:
+        """Links a phone number to a user and migrates stories from shadow user."""
+        clean_phone = phone.replace("whatsapp:", "").replace(" ", "").strip()
+        shadow_email = f"{clean_phone}@whatsapp.storyja.com".lower()
+        
+        with Session(engine) as session:
+            # 1. Check if phone is already used
+            existing = session.exec(select(User).where(User.whatsapp_phone == clean_phone)).first()
+            if existing and existing.id != user_id:
+                return {"status": "error", "message": "Nummer bereits verknüpft"}
+                
+            user = session.get(User, user_id)
+            if not user:
+                return {"status": "error", "message": "Nutzer nicht gefunden"}
+                
+            user.whatsapp_phone = clean_phone
+            session.add(user)
+            
+            # 2. Check for shadow user
+            shadow = session.exec(select(User).where(User.email == shadow_email)).first()
+            migrated_count = 0
+            if shadow:
+                from app.models import StoryMeta
+                stories = session.exec(select(StoryMeta).where(StoryMeta.user_id == shadow.id)).all()
+                for s in stories:
+                    s.user_id = user.id
+                    session.add(s)
+                migrated_count = len(stories)
+                session.delete(shadow)
+                
+            session.commit()
+            return {
+                "status": "success", 
+                "migrated": migrated_count > 0,
+                "count": migrated_count
+            }
+
+
 # Singleton instance
 store = StoryStore()

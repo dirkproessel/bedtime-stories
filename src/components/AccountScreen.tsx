@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
-import { updateKindleEmail, updateUsername, uploadProfilePicture, unlinkAlexa, cloneVoice, updateCustomVoice, deleteCustomVoice, adminFetchSettings, adminUpdateSetting, adminListVoices } from '../lib/api';
-import { LogOut, Download, Mail, Check, Loader2, Radio, Copy, User, Shield, Camera, Mic, Music, Trash2, Globe, Lock, Venus, Mars, Users, Settings2, Sparkles, Image as ImageIcon } from 'lucide-react';
+import { updateKindleEmail, updateUsername, uploadProfilePicture, unlinkAlexa, cloneVoice, updateCustomVoice, deleteCustomVoice, adminFetchSettings, adminUpdateSetting, adminListVoices, linkWhatsAppPhone } from '../lib/api';
+import { LogOut, Download, Mail, Check, Loader2, Radio, Copy, User, Shield, Camera, Mic, Music, Trash2, Globe, Lock, Venus, Mars, Users, Settings2, Sparkles, Image as ImageIcon, MessageCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ProfilePictureUpload from './ProfilePictureUpload';
 
@@ -232,6 +232,8 @@ export default function AccountScreen() {
     const [isSavingUsername, setIsSavingUsername] = useState(false);
     const [showAvatarUpload, setShowAvatarUpload] = useState(false);
     const [isCloning, setIsCloning] = useState(false);
+    const [whatsappPhone, setWhatsappPhone] = useState(user?.whatsapp_phone || '');
+    const [isSavingWhatsapp, setIsSavingWhatsapp] = useState(false);
 
     const handleSaveKindle = async () => {
         if (kindleEmail === user?.kindle_email) return;
@@ -311,6 +313,24 @@ export default function AccountScreen() {
             toast.success('Verknüpfung aufgehoben');
         } catch (e: any) {
             toast.error(e.message || 'Fehler beim Trennen');
+        }
+    };
+
+    const handleSaveWhatsapp = async () => {
+        if (whatsappPhone === user?.whatsapp_phone) return;
+        setIsSavingWhatsapp(true);
+        try {
+            const result = await linkWhatsAppPhone(whatsappPhone);
+            if (result.migrated) {
+                toast.success(`Nummer verknüpft! ${result.count} Geschichten wurden migriert.`);
+            } else {
+                toast.success('WhatsApp-Nummer verknüpft!');
+            }
+            useStore.setState({ user: { ...user!, whatsapp_phone: whatsappPhone } });
+        } catch (e: any) {
+            toast.error(e.message || 'Fehler beim Verknüpfen');
+        } finally {
+            setIsSavingWhatsapp(false);
         }
     };
 
@@ -545,6 +565,40 @@ export default function AccountScreen() {
                 
                 <p className="text-xs text-slate-500 leading-relaxed italic">
                     Wichtig: Füge <a href="https://www.amazon.de/hz/mycd/myx#/home/settings/pdoc" target="_blank" rel="noopener noreferrer" className="text-orange-400 hover:underline">"stories@storyja.com"</a> in deinem Amazon-Konto als genehmigte E-Mail hinzu.
+                </p>
+            </div>
+
+            {/* WhatsApp Integration Section */}
+            <div className="w-full glass-panel rounded-3xl p-6 space-y-4 border border-green-500/20">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center flex-shrink-0">
+                        <MessageCircle className="w-5 h-5 text-green-400" />
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-white text-sm">WhatsApp Story-Bot</h3>
+                        <p className="text-xs text-slate-400">Geschichten per Chat erstellen & verknüpfen</p>
+                    </div>
+                </div>
+
+                <div className="flex gap-2">
+                    <input
+                        type="tel"
+                        value={whatsappPhone}
+                        onChange={(e) => setWhatsappPhone(e.target.value)}
+                        placeholder="+49123456789"
+                        className="flex-1 px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-green-500/20 focus:border-green-500/50 outline-none transition-all text-white text-sm placeholder:text-slate-600"
+                    />
+                    <button
+                        onClick={handleSaveWhatsapp}
+                        disabled={isSavingWhatsapp || whatsappPhone === user?.whatsapp_phone}
+                        className="px-4 py-2.5 bg-green-600 hover:bg-green-500 text-white font-medium rounded-xl transition-colors disabled:opacity-50 flex items-center gap-2 shadow-lg shadow-green-500/20"
+                    >
+                        {isSavingWhatsapp ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                    </button>
+                </div>
+                
+                <p className="text-xs text-slate-500 leading-relaxed">
+                    Verknüpfe deine Nummer, um Geschichten, die du über WhatsApp erstellst, automatisch in deinem Account zu sehen.
                 </p>
             </div>
 

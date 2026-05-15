@@ -219,6 +219,22 @@ export async function updateUsername(username: string): Promise<any> {
     return res.json();
 }
 
+export async function linkWhatsAppPhone(phone: string): Promise<any> {
+    const formData = new FormData();
+    formData.append('phone', phone);
+    
+    const res = await fetch(`${API_BASE}/api/users/me/link-whatsapp`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: formData,
+    });
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.detail || 'WhatsApp-Verknüpfung fehlgeschlagen');
+    }
+    return res.json();
+}
+
 export async function updateVoiceName(voice_name: string): Promise<any> {
     const res = await fetch(`${API_BASE}/api/auth/me/voice-name`, {
         method: 'PUT',

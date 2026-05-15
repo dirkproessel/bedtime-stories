@@ -134,11 +134,24 @@ async def run_whatsapp_pipeline(from_number: str, **kwargs):
     """Wrapper to run story generation and notify user on WhatsApp when done."""
     try:
         await story_service.run_pipeline(**kwargs)
+        
         story_id = kwargs.get("story_id")
+        story = store.get_by_id(story_id)
+        
         base_url = settings.BASE_URL.rstrip('/')
-        # Link to the public story page
         url = f"{base_url}/stories/{story_id}"
-        whatsapp_service.send_message(from_number, f"🌟 Deine Geschichte ist fertig! Du kannst sie hier hören: {url}")
+        
+        title = story.title if story else "Deine Geschichte"
+        desc = story.description if story else ""
+        
+        # Alignment with manual share text
+        text = f"Ich habe eine neue Geschichte erstellt:\n\n*{title}*\n\n{desc}\n\nHör sie dir hier an:\n{url}"
+        
+        # Build full image URL for WhatsApp media
+        media_url = f"{base_url}/api/stories/{story_id}/thumb.jpg"
+        
+        whatsapp_service.send_message(from_number, text, media_url=media_url)
+        
     except Exception as e:
         logger.error(f"WhatsApp Pipeline failed: {e}")
         whatsapp_service.send_message(from_number, "❌ Leider gab es ein Problem bei der Erstellung deiner Geschichte. Bitte versuche es später noch einmal.")
@@ -158,7 +171,14 @@ async def whatsapp_webhook(From: str = Form(...), Body: str = Form(...)):
     
     # 2. Build TwiML Response (Immediate reply)
     twiml = MessagingResponse()
-    twiml.message(result["reply"])
+    reply_text = result["reply"]
+    
+    # Append suggestions as a list if present
+    suggestions = result.get("suggestions", [])
+    if suggestions:
+        reply_text += "\n\n💡 Vorschläge:\n" + "\n".join([f"• {s}" for s in suggestions])
+    
+    twiml.message(reply_text)
     
     # 3. If ready, trigger story generation
     if result.get("status") == "READY" and result.get("story_params"):
@@ -166,40 +186,35 @@ async def whatsapp_webhook(From: str = Form(...), Body: str = Form(...)):
         story_id = str(uuid.uuid4())[:8]
         logger.info(f"WhatsApp Webhook: TRIGGERING STORY {story_id} for {From}")
         
-        # Use admin as default user for WhatsApp stories
-        all_users = store.get_all_users()
-        if not all_users:
-            logger.error("WhatsApp Webhook: No users found in DB to assign story.")
-            # We still return the TwiML reply but can't generate the story
-        else:
-            admin_user = next((u for u in all_users if u.email == settings.ADMIN_EMAIL), all_users[0])
-            
-            # Initialize story record
-            story_service.initialize_story(
+        # Use a dedicated shadow user for this phone number
+        wa_user = store.get_or_create_whatsapp_user(From)
+        
+        # Initialize story record
+        story_service.initialize_story(
+            story_id=story_id,
+            prompt=params["prompt"],
+            genre=params["genre"],
+            style=params["style"],
+            voice_key=params["voice_key"],
+            target_minutes=params["target_minutes"],
+            user_id=wa_user.id
+        )
+        
+        # Run pipeline in background with notification wrapper
+        asyncio.create_task(
+            run_whatsapp_pipeline(
+                from_number=From,
                 story_id=story_id,
                 prompt=params["prompt"],
                 genre=params["genre"],
                 style=params["style"],
-                voice_key=params["voice_key"],
+                characters=None,
                 target_minutes=params["target_minutes"],
-                user_id=admin_user.id
+                voice_key=params["voice_key"],
+                speech_rate="0%",
+                user_id=wa_user.id
             )
-            
-            # Run pipeline in background with notification wrapper
-            asyncio.create_task(
-                run_whatsapp_pipeline(
-                    from_number=From,
-                    story_id=story_id,
-                    prompt=params["prompt"],
-                    genre=params["genre"],
-                    style=params["style"],
-                    characters=None,
-                    target_minutes=params["target_minutes"],
-                    voice_key=params["voice_key"],
-                    speech_rate="0%",
-                    user_id=admin_user.id
-                )
-            )
+        )
             
             # Clear session after starting generation
             conversation_service.clear_session(From)
@@ -511,6 +526,14 @@ async def list_stories(
 # ──────────────────────────────────
 # Admin Actions
 # ──────────────────────────────────
+
+@app.post("/api/users/me/link-whatsapp")
+async def link_whatsapp(phone: str = Form(...), current_user: User = Depends(get_current_user)):
+    """Links a WhatsApp phone number to the current user and migrates stories."""
+    result = store.link_whatsapp_phone(current_user.id, phone)
+    if result["status"] == "error":
+        raise HTTPException(status_code=400, detail=result["message"])
+    return result
 
 @app.get("/api/admin/users", response_model=list[UserResponse])
 async def admin_list_users(current_user: User = Depends(get_current_active_user)):

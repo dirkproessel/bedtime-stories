@@ -20,6 +20,7 @@ class User(SQLModel, table=True):
     kindle_email: Optional[str] = Field(default=None)
     avatar_url: Optional[str] = Field(default=None)
     alexa_user_id: Optional[str] = Field(default=None, unique=True, index=True)
+    whatsapp_phone: Optional[str] = Field(default=None, unique=True, index=True)
     custom_voice_id: Optional[str] = Field(default=None)
     custom_voice_name: Optional[str] = Field(default=None)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -128,6 +129,7 @@ class UserResponse(BaseModel):
     alexa_user_id: Optional[str] = None
     custom_voice_id: Optional[str] = None # Deprecated, keep for backward compat
     custom_voice_name: Optional[str] = None # Deprecated, keep for backward compat
+    whatsapp_phone: Optional[str] = None
     custom_voices: list["UserVoiceResponse"] = []
 
 class UserVoiceResponse(BaseModel):
