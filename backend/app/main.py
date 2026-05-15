@@ -18,6 +18,7 @@ import json
 import logging
 import time
 import uuid
+import httpx
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -172,14 +173,54 @@ async def run_whatsapp_pipeline(from_number: str, **kwargs):
         logger.error(f"WhatsApp Pipeline failed: {e}")
         whatsapp_service.send_message(from_number, "❌ Leider gab es ein Problem bei der Erstellung deiner Geschichte. Bitte versuche es später noch einmal.")
 
-@app.post("/api/webhook/whatsapp")
-async def whatsapp_webhook(From: str = Form(...), Body: str = Form(...)):
-    """Webhook for incoming WhatsApp messages from Twilio."""
-    logger.info(f"WhatsApp Webhook: INCOMING from {From} - Body: '{Body}'")
-    
-    # 1. Process message via Conversation Service
+async def download_twilio_media(url: str):
+    """Download media from Twilio using account credentials."""
+    if not whatsapp_service.account_sid or not whatsapp_service.auth_token:
+        logger.error("Twilio credentials missing - cannot download media")
+        return None
+        
     try:
-        result = await conversation_service.process_message(From, Body)
+        async with httpx.AsyncClient() as client:
+            auth = (whatsapp_service.account_sid, whatsapp_service.auth_token)
+            # Twilio media URLs redirect to Amazon S3, so follow_redirects is important
+            resp = await client.get(url, auth=auth, follow_redirects=True)
+            resp.raise_for_status()
+            return resp.content
+    except Exception as e:
+        logger.error(f"Failed to download Twilio media from {url}: {e}")
+        return None
+
+@app.post("/api/webhook/whatsapp")
+async def whatsapp_webhook(request: Request):
+    """Webhook for incoming WhatsApp messages from Twilio."""
+    # Twilio sends data as form-encoded
+    form_data = await request.form()
+    
+    From = form_data.get("From", "")
+    Body = form_data.get("Body", "")
+    NumMedia = int(form_data.get("NumMedia", 0))
+    
+    logger.info(f"WhatsApp Webhook: INCOMING from {From} - Body: '{Body}' - Media: {NumMedia}")
+    
+    # 1. Handle Media
+    media_items = []
+    if NumMedia > 0:
+        for i in range(NumMedia):
+            media_url = form_data.get(f"MediaUrl{i}")
+            mime_type = form_data.get(f"MediaContentType{i}")
+            
+            if media_url:
+                logger.info(f"Downloading media {i}: {media_url} ({mime_type})")
+                data = await download_twilio_media(media_url)
+                if data:
+                    media_items.append({
+                        "data": data,
+                        "mime_type": mime_type
+                    })
+
+    # 2. Process message via Conversation Service
+    try:
+        result = await conversation_service.process_message(From, Body, media_items=media_items)
         logger.info(f"WhatsApp Webhook: AI Result Status={result.get('status')} - Reply: '{result.get('reply')[:50]}...'")
     except Exception as e:
         logger.error(f"WhatsApp Webhook: Conversation processing failed: {e}")

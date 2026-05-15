@@ -2,6 +2,7 @@ import logging
 import json
 import uuid
 from datetime import datetime
+from google.genai import types
 from app.services.text_generator import generate_text
 from app.services.story_service import story_service
 from app.config import settings
@@ -39,7 +40,7 @@ JSON-FORMAT:
 """
 
 class ConversationService:
-    async def process_message(self, from_number: str, message: str) -> dict:
+    async def process_message(self, from_number: str, message: str, media_items: list = None) -> dict:
         """Processes a message from a user and returns a reply + potential story params."""
         
         # 1. Get or create session
@@ -54,13 +55,27 @@ class ConversationService:
         
         # 2. Build conversation context for Gemini
         conversation_context = "\n".join([f"Nutzer: {m['user']}\nBot: {m['bot']}" for m in session["history"]])
-        full_prompt = f"{conversation_context}\nNutzer: {message}\n\nAntworte im JSON-Format gemäß System-Instruction."
+        
+        # Build contents list for Gemini (multimodal support)
+        contents = []
+        
+        # Add history and current text
+        history_text = f"{conversation_context}\nNutzer: {message or '(Medien gesendet)'}"
+        contents.append(history_text)
+        
+        # Add media items if present
+        if media_items:
+            for item in media_items:
+                if "data" in item and "mime_type" in item:
+                    contents.append(types.Part.from_bytes(data=item["data"], mime_type=item["mime_type"]))
+        
+        full_instruction = SYSTEM_PROMPT + "\n\nAntworte im JSON-Format. Wenn Medien (Bild/Audio) vorhanden sind, beziehe dich darauf."
         
         try:
             # 3. Call Gemini
             response_json = await generate_text(
-                prompt=full_prompt,
-                system_instruction=SYSTEM_PROMPT,
+                contents=contents,
+                system_instruction=full_instruction,
                 response_mime_type="application/json"
             )
             

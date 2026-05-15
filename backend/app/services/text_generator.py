@@ -20,7 +20,7 @@ SAFETY_SETTINGS_CONFIG = [
 ]
 
 async def generate_text(
-    prompt: str, 
+    contents: str | list, 
     model: str = None, 
     temperature: float = 0.8, 
     max_tokens: int = 4096, 
@@ -39,14 +39,16 @@ async def generate_text(
     logger.info(f"TEXT_GEN: Using model {model} (Temp: {temperature}, MIME: {response_mime_type})")
 
     if model.startswith("gemini"):
-        return await _generate_gemini(prompt, model, temperature, max_tokens, response_mime_type, system_instruction, response_schema, presence_penalty, frequency_penalty)
+        return await _generate_gemini(contents, model, temperature, max_tokens, response_mime_type, system_instruction, response_schema, presence_penalty, frequency_penalty)
     elif model.startswith("deepseek"):
-        return await _generate_deepseek(prompt, model, temperature, max_tokens, response_mime_type, system_instruction, presence_penalty, frequency_penalty)
+        # DeepSeek only supports text
+        prompt_text = contents if isinstance(contents, str) else str(contents)
+        return await _generate_deepseek(prompt_text, model, temperature, max_tokens, response_mime_type, system_instruction, presence_penalty, frequency_penalty)
     else:
         logger.warning(f"Unknown model prefix for '{model}'. Falling back to Gemini.")
-        return await _generate_gemini(prompt, settings.GEMINI_TEXT_MODEL, temperature, max_tokens, response_mime_type, system_instruction, response_schema, presence_penalty, frequency_penalty)
+        return await _generate_gemini(contents, settings.GEMINI_TEXT_MODEL, temperature, max_tokens, response_mime_type, system_instruction, response_schema, presence_penalty, frequency_penalty)
 
-async def _generate_gemini(prompt, model, temperature, max_tokens, response_mime_type, system_instruction, response_schema, presence_penalty, frequency_penalty):
+async def _generate_gemini(contents, model, temperature, max_tokens, response_mime_type, system_instruction, response_schema, presence_penalty, frequency_penalty):
     config = {
         "temperature": temperature,
         "max_output_tokens": max_tokens,
@@ -62,11 +64,15 @@ async def _generate_gemini(prompt, model, temperature, max_tokens, response_mime
         config["system_instruction"] = system_instruction
 
     try:
+        # contents can be a simple string or a list of parts
+        # If it's a string, we wrap it in a list as the SDK expects
+        formatted_contents = contents if isinstance(contents, list) else [contents]
+
         # Using to_thread because the SDK might be blocking
         response = await asyncio.to_thread(
             gemini_client.models.generate_content,
             model=model,
-            contents=prompt,
+            contents=formatted_contents,
             config=config
         )
         return response.text.strip()
