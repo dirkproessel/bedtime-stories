@@ -47,6 +47,7 @@ export interface User {
     created_at: string;
     story_count?: number;
     alexa_user_id?: string;
+    whatsapp_phone?: string;
     custom_voice_id?: string; // Legacy
     custom_voice_name?: string; // Legacy
     custom_voices?: UserVoice[];
