@@ -294,9 +294,6 @@ async def whatsapp_webhook(request: Request):
                 user_id=wa_user.id
             )
         )
-            
-        # Clear session after starting generation
-        conversation_service.clear_session(From)
     
     return Response(content=str(twiml), media_type="application/xml")
 
