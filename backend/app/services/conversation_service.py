@@ -12,8 +12,6 @@ logger = logging.getLogger(__name__)
 # { "whatsapp_number": { "idea": "...", "history": [], "last_updated": ... } }
 sessions = {}
 
-from twilio.twiml.messaging_response import MessagingResponse
-
 SYSTEM_PROMPT = """
 Du bist der Storyja WhatsApp Bot. Deine Aufgabe ist es, mit dem Nutzer eine Geschichte-Idee zu entwickeln.
 Sei freundlich, kreativ und hilfsbereit (Stil: Kindergeschichten-Experte).
