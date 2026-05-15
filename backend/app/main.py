@@ -100,8 +100,24 @@ app = FastAPI(title="Bedtime Stories API", version="1.0.0")
 
 @app.on_event("startup")
 def on_startup():
-    logger.info("Bedtime Stories API starting up - Running database initialization...")
     create_db_and_tables()
+    
+    # Manual migration for SQLite (adding missing columns)
+    try:
+        from sqlalchemy import text
+        from app.database import engine
+        with engine.connect() as conn:
+            # Check if whatsapp_phone exists, if not add it
+            try:
+                conn.execute(text("ALTER TABLE user ADD COLUMN whatsapp_phone TEXT"))
+                conn.commit()
+                logger.info("Database Migration: Added whatsapp_phone column to user table.")
+            except Exception as e:
+                # Column likely already exists
+                pass
+    except Exception as e:
+        logger.error(f"Migration error: {e}")
+    logger.info("Bedtime Stories API starting up - Running database initialization...")
 
 app.add_middleware(
     CORSMiddleware,
