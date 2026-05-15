@@ -139,8 +139,10 @@ app.include_router(playlist.router)
 STATIC_DIR = Path(__file__).parent / "static"
 app.mount("/api/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
-from app.services.store import store
 from app.services.story_service import story_service
+
+# Simple in-memory cache for idempotency
+processed_messages = {} # { message_sid: timestamp }
 
 
 # ──────────────────────────────────
@@ -196,6 +198,20 @@ async def whatsapp_webhook(request: Request):
     # Twilio sends data as form-encoded
     form_data = await request.form()
     
+    # Idempotency check: Don't process the same message twice (Twilio retries on slow response)
+    MessageSid = form_data.get("MessageSid")
+    if MessageSid:
+        now = time.time()
+        if MessageSid in processed_messages:
+            logger.info(f"WhatsApp Webhook: Skipping duplicate message {MessageSid}")
+            return Response(content="", status_code=200)
+        processed_messages[MessageSid] = now
+        
+        # Cleanup old messages every now and then
+        if len(processed_messages) > 1000:
+            cutoff = now - 600 # 10 minutes
+            processed_messages = {k: v for k, v in processed_messages.items() if v > cutoff}
+
     From = form_data.get("From", "")
     Body = form_data.get("Body", "")
     NumMedia = int(form_data.get("NumMedia", 0))
@@ -240,6 +256,10 @@ async def whatsapp_webhook(request: Request):
     # 3. If ready, trigger story generation (only if we have a prompt)
     if result.get("status") == "READY" and result.get("story_params") and result["story_params"].get("prompt"):
         params = result["story_params"]
+        
+        # SEND IMMEDIATE FEEDBACK
+        whatsapp_service.send_message(From, "Ich schreibe die Geschichte jetzt für dich... Das dauert einen kurzen Moment! ✍️")
+        
         story_id = str(uuid.uuid4())[:8]
         logger.info(f"WhatsApp Webhook: TRIGGERING STORY {story_id} for {From}")
         
