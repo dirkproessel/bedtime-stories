@@ -26,12 +26,16 @@ class WhatsAppService:
             return None
         
         try:
-            # Ensure the number has the whatsapp: prefix
+            # Ensure the numbers have the whatsapp: prefix
             if not to_number.startswith("whatsapp:"):
                 to_number = f"whatsapp:{to_number}"
+            
+            from_number = self.from_number
+            if not from_number.startswith("whatsapp:"):
+                from_number = f"whatsapp:{from_number}"
                 
             message = self.client.messages.create(
-                from_=self.from_number,
+                from_=from_number,
                 body=body,
                 to=to_number
             )

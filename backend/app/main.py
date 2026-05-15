@@ -145,58 +145,65 @@ async def run_whatsapp_pipeline(from_number: str, **kwargs):
 @app.post("/api/webhook/whatsapp")
 async def whatsapp_webhook(From: str = Form(...), Body: str = Form(...)):
     """Webhook for incoming WhatsApp messages from Twilio."""
-    logger.info(f"WhatsApp Message from {From}: {Body}")
+    logger.info(f"WhatsApp Webhook: INCOMING from {From} - Body: '{Body}'")
     
     # 1. Process message via Conversation Service
-    result = await conversation_service.process_message(From, Body)
+    try:
+        result = await conversation_service.process_message(From, Body)
+        logger.info(f"WhatsApp Webhook: AI Result Status={result.get('status')} - Reply: '{result.get('reply')[:50]}...'")
+    except Exception as e:
+        logger.error(f"WhatsApp Webhook: Conversation processing failed: {e}")
+        result = {"status": "INCOMPLETE", "reply": "Ups, da ist etwas schief gelaufen. Versuch es bitte gleich nochmal!"}
     
-    # 2. Send immediate reply
-    whatsapp_service.send_message(From, result["reply"])
+    # 2. Build TwiML Response (Immediate reply)
+    twiml = MessagingResponse()
+    twiml.message(result["reply"])
     
     # 3. If ready, trigger story generation
     if result.get("status") == "READY" and result.get("story_params"):
         params = result["story_params"]
         story_id = str(uuid.uuid4())[:8]
+        logger.info(f"WhatsApp Webhook: TRIGGERING STORY {story_id} for {From}")
         
         # Use admin as default user for WhatsApp stories
         all_users = store.get_all_users()
         if not all_users:
-            logger.error("No users found in DB to assign WhatsApp story to.")
-            return Response(content="OK", media_type="text/plain")
+            logger.error("WhatsApp Webhook: No users found in DB to assign story.")
+            # We still return the TwiML reply but can't generate the story
+        else:
+            admin_user = next((u for u in all_users if u.email == settings.ADMIN_EMAIL), all_users[0])
             
-        admin_user = next((u for u in all_users if u.email == settings.ADMIN_EMAIL), all_users[0])
-        
-        # Initialize story record
-        story_service.initialize_story(
-            story_id=story_id,
-            prompt=params["prompt"],
-            genre=params["genre"],
-            style=params["style"],
-            voice_key=params["voice_key"],
-            target_minutes=params["target_minutes"],
-            user_id=admin_user.id
-        )
-        
-        # Run pipeline in background with notification wrapper
-        asyncio.create_task(
-            run_whatsapp_pipeline(
-                from_number=From,
+            # Initialize story record
+            story_service.initialize_story(
                 story_id=story_id,
                 prompt=params["prompt"],
                 genre=params["genre"],
                 style=params["style"],
-                characters=None,
-                target_minutes=params["target_minutes"],
                 voice_key=params["voice_key"],
-                speech_rate="0%",
+                target_minutes=params["target_minutes"],
                 user_id=admin_user.id
             )
-        )
-        
-        # Clear session after starting generation
-        conversation_service.clear_session(From)
+            
+            # Run pipeline in background with notification wrapper
+            asyncio.create_task(
+                run_whatsapp_pipeline(
+                    from_number=From,
+                    story_id=story_id,
+                    prompt=params["prompt"],
+                    genre=params["genre"],
+                    style=params["style"],
+                    characters=None,
+                    target_minutes=params["target_minutes"],
+                    voice_key=params["voice_key"],
+                    speech_rate="0%",
+                    user_id=admin_user.id
+                )
+            )
+            
+            # Clear session after starting generation
+            conversation_service.clear_session(From)
     
-    return Response(content="OK", media_type="text/plain")
+    return Response(content=str(twiml), media_type="application/xml")
 
 
 

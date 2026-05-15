@@ -12,27 +12,34 @@ logger = logging.getLogger(__name__)
 # { "whatsapp_number": { "idea": "...", "history": [], "last_updated": ... } }
 sessions = {}
 
+from twilio.twiml.messaging_response import MessagingResponse
+
 SYSTEM_PROMPT = """
 Du bist der Storyja WhatsApp Bot. Deine Aufgabe ist es, mit dem Nutzer eine Geschichte-Idee zu entwickeln.
 Sei freundlich, kreativ und hilfsbereit (Stil: Kindergeschichten-Experte).
 
-PRÜFUNG:
+ZERTIFIZIERUNG:
 Damit wir eine Geschichte generieren können, brauchen wir:
 1. Ein klares Genre (z.B. Märchen, Abenteuer, Science-Fiction).
 2. Ein Thema oder einen Helden.
 3. Einen groben Plot.
 
+DEINE ANTWORT-STRUKTUR:
+1. Reagiere auf die Eingabe des Nutzers (Lob, Bestätigung, Humor).
+2. Wenn Informationen fehlen: Frage gezielt nach EINER Sache (z.B. "Welches Genre soll es sein?").
+3. Wenn alles bereit ist: Fasse die Idee kurz zusammen und sage dem Nutzer, dass die Geschichte jetzt generiert wird.
+4. Gib IMMER auch die "Nächsten Schritte" oder Tipps an (z.B. "Du kannst auch 'Abenteuer' schreiben, wenn du unsicher bist").
+
 LOGIK:
-- Wenn Infos fehlen, frage charmant nach.
-- Wenn alles klar ist, fasse die Idee kurz zusammen und setze den Status auf "READY".
-- Gib IMMER ein JSON-Objekt zurück.
+- Wenn alles klar ist, setze den Status auf "READY".
+- Gib IMMER ein valides JSON-Objekt zurück.
 
 JSON-FORMAT:
 {
   "status": "INCOMPLETE" | "READY",
-  "reply": "Deine Antwort an den Nutzer auf Deutsch",
+  "reply": "Deine ausführliche Antwort an den Nutzer auf Deutsch (inkl. Next Steps)",
   "story_params": {
-    "prompt": "Vollständiger Prompt für die KI",
+    "prompt": "Vollständiger, detaillierter Prompt für die KI (basiert auf dem Chat)",
     "genre": "Genre Name",
     "style": "lindgren",
     "voice_key": "seraphina",
@@ -63,7 +70,7 @@ class ConversationService:
         
         # 2. Build conversation context for Gemini
         conversation_context = "\n".join([f"Nutzer: {m['user']}\nBot: {m['bot']}" for m in session["history"]])
-        full_prompt = f"{conversation_context}\nNutzer: {message}\n\nAntworte im JSON-Format."
+        full_prompt = f"{conversation_context}\nNutzer: {message}\n\nAntworte im JSON-Format gemäß System-Instruction."
         
         try:
             # 3. Call Gemini
@@ -73,6 +80,7 @@ class ConversationService:
                 response_mime_type="application/json"
             )
             
+            logger.info(f"Gemini WhatsApp Response: {response_json}")
             data = json.loads(response_json)
             
             # 4. Update session history
