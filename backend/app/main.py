@@ -237,8 +237,8 @@ async def whatsapp_webhook(request: Request):
     
     twiml.message(reply_text)
     
-    # 3. If ready, trigger story generation
-    if result.get("status") == "READY" and result.get("story_params"):
+    # 3. If ready, trigger story generation (only if we have a prompt)
+    if result.get("status") == "READY" and result.get("story_params") and result["story_params"].get("prompt"):
         params = result["story_params"]
         story_id = str(uuid.uuid4())[:8]
         logger.info(f"WhatsApp Webhook: TRIGGERING STORY {story_id} for {From}")

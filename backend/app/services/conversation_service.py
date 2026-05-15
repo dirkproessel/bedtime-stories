@@ -70,11 +70,10 @@ class ConversationService:
                     contents.append(types.Part.from_bytes(data=item["data"], mime_type=item["mime_type"]))
         
         full_instruction = SYSTEM_PROMPT + "\n\nAntworte im JSON-Format. Wenn Medien (Bild/Audio) vorhanden sind, beziehe dich darauf."
-        
         try:
             # 3. Call Gemini
             response_json = await generate_text(
-                contents=contents,
+                prompt=contents,
                 system_instruction=full_instruction,
                 response_mime_type="application/json"
             )

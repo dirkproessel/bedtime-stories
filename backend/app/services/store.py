@@ -401,17 +401,22 @@ class StoryStore:
 
 
     def get_or_create_whatsapp_user(self, phone: str) -> User:
-        """Finds or creates a 'shadow user' for a specific WhatsApp phone number."""
+        """Finds or creates a user for a WhatsApp phone number. Prioritizes linked profiles."""
         clean_phone = phone.replace("whatsapp:", "").strip()
-        # Use a virtual email domain to identify WhatsApp users
-        email = f"{clean_phone}@whatsapp.storyja.com".lower()
         
         with Session(engine) as session:
+            # 1. First check if any user has linked this phone number in their profile
+            user = session.exec(select(User).where(User.whatsapp_phone == clean_phone)).first()
+            if user:
+                return user
+                
+            # 2. Then check for an existing shadow user by the specialized WhatsApp email
+            email = f"{clean_phone}@whatsapp.storyja.com".lower()
             user = session.exec(select(User).where(User.email == email)).first()
             if user:
                 return user
             
-            # Create new shadow user with a stable but random ID
+            # 3. Create new shadow user if no existing account found
             new_user = User(
                 id=f"wa-{str(uuid.uuid4())[:8]}",
                 email=email,
@@ -421,7 +426,7 @@ class StoryStore:
             session.add(new_user)
             session.commit()
             session.refresh(new_user)
-            logger.info(f"Created shadow user for WhatsApp: {email}")
+            logger.info(f"Created new shadow user for WhatsApp: {email}")
             return new_user
 
     def link_whatsapp_phone(self, user_id: str, phone: str) -> dict:

@@ -60,8 +60,8 @@ class StoryService:
                 voice_name = v["name"]
                 break
 
-        clean_prompt = original_prompt or prompt
-        if "Kurzgeschichte im Genre" in clean_prompt and "Idee:" in clean_prompt:
+        clean_prompt = original_prompt or prompt or ""
+        if clean_prompt and "Kurzgeschichte im Genre" in clean_prompt and "Idee:" in clean_prompt:
             clean_prompt = clean_prompt.split("Idee:", 1)[-1].strip()
         
         author_display = get_author_names(style)
