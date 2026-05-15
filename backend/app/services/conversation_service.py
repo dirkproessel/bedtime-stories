@@ -44,14 +44,33 @@ class ConversationService:
         """Processes a message from a user and returns a reply + potential story params."""
         
         # 1. Get or create session
+        now = datetime.now()
+        
+        # Manual reset command
+        if message and message.strip().lower() in ["!reset", "neustart", "stop"]:
+            if from_number in sessions:
+                del sessions[from_number]
+            return {
+                "status": "INCOMPLETE",
+                "reply": "Alles klar, ich habe unser Gespräch zurückgesetzt. Worüber soll ich heute eine Geschichte schreiben?",
+                "suggestions": ["Abenteuer im Weltraum", "Ein magischer Wald", "Ein mutiger Hund"]
+            }
+
         if from_number not in sessions:
             sessions[from_number] = {
                 "history": [],
-                "last_updated": datetime.now()
+                "last_updated": now
             }
         
         session = sessions[from_number]
-        session["last_updated"] = datetime.now()
+        
+        # Timeout logic: Reset if last message was > 30 minutes ago
+        time_diff = now - session["last_updated"]
+        if time_diff.total_seconds() > 1800: # 30 minutes
+            logger.info(f"Session timeout for {from_number} ({time_diff.total_seconds()}s). Resetting history.")
+            session["history"] = []
+            
+        session["last_updated"] = now
         
         # 2. Build conversation context for Gemini
         conversation_context = "\n".join([f"Nutzer: {m['user']}\nBot: {m['bot']}" for m in session["history"]])
