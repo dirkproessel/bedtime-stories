@@ -196,6 +196,7 @@ async def download_twilio_media(url: str):
 @app.post("/api/webhook/whatsapp")
 async def whatsapp_webhook(request: Request):
     """Webhook for incoming WhatsApp messages from Twilio."""
+    global processed_messages
     # Twilio sends data as form-encoded
     form_data = await request.form()
     
