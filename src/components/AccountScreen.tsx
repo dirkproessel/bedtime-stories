@@ -602,8 +602,6 @@ export default function AccountScreen() {
                 </p>
             </div>
 
-            </div>
-
             {/* Alexa Integration Section */}
             <div className={`w-full glass-panel rounded-3xl p-6 space-y-4 border-2 ${user.alexa_user_id ? 'border-sky-500/30' : 'border-transparent'}`}>
                 <div className="flex items-center gap-3">
