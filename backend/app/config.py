@@ -59,6 +59,12 @@ class Settings:
     ALEXA_ALLOW_GUESTS: bool = os.getenv("ALEXA_ALLOW_GUESTS", "true").lower() == "true"
     ALEXA_SKILL_STAGE: str = os.getenv("ALEXA_SKILL_STAGE", "development") # 'development' or 'live'
     ALEXA_NOTIFICATION_STYLE: str = os.getenv("ALEXA_NOTIFICATION_STYLE", "media") # 'media', 'message', or 'occasion'
+    
+    # WhatsApp Cloud API (Meta)
+    WHATSAPP_ACCESS_TOKEN: str = os.getenv("WHATSAPP_ACCESS_TOKEN", "")
+    WHATSAPP_PHONE_NUMBER_ID: str = os.getenv("WHATSAPP_PHONE_NUMBER_ID", "")
+    WHATSAPP_VERIFY_TOKEN: str = os.getenv("WHATSAPP_VERIFY_TOKEN", "")
+    WHATSAPP_BUSINESS_ACCOUNT_ID: str = os.getenv("WHATSAPP_BUSINESS_ACCOUNT_ID", "")
 
     def __init__(self):
         self.AUDIO_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)

@@ -176,128 +176,161 @@ async def run_whatsapp_pipeline(from_number: str, **kwargs):
         logger.error(f"WhatsApp Pipeline failed: {e}")
         whatsapp_service.send_message(from_number, "❌ Leider gab es ein Problem bei der Erstellung deiner Geschichte. Bitte versuche es später noch einmal.")
 
-async def download_twilio_media(url: str):
-    """Download media from Twilio using account credentials."""
-    if not whatsapp_service.account_sid or not whatsapp_service.auth_token:
-        logger.error("Twilio credentials missing - cannot download media")
+async def download_whatsapp_media(media_id: str):
+    """Download media from WhatsApp Cloud API."""
+    if not settings.WHATSAPP_ACCESS_TOKEN:
+        logger.error("WhatsApp Access Token missing - cannot download media")
         return None
         
     try:
+        headers = {"Authorization": f"Bearer {settings.WHATSAPP_ACCESS_TOKEN}"}
         async with httpx.AsyncClient() as client:
-            auth = (whatsapp_service.account_sid, whatsapp_service.auth_token)
-            # Twilio media URLs redirect to Amazon S3, so follow_redirects is important
-            resp = await client.get(url, auth=auth, follow_redirects=True)
+            # 1. Get media URL
+            url_resp = await client.get(f"https://graph.facebook.com/v20.0/{media_id}", headers=headers)
+            url_resp.raise_for_status()
+            media_url = url_resp.json().get("url")
+            
+            if not media_url:
+                logger.error(f"No URL found for media ID {media_id}")
+                return None
+                
+            # 2. Download actual binary data
+            resp = await client.get(media_url, headers=headers)
             resp.raise_for_status()
             return resp.content
     except Exception as e:
-        logger.error(f"Failed to download Twilio media from {url}: {e}")
+        logger.error(f"Failed to download WhatsApp media {media_id}: {e}")
         return None
+
+@app.get("/api/webhook/whatsapp")
+async def verify_whatsapp_webhook(request: Request):
+    """Handshake for Meta Webhook verification."""
+    params = request.query_params
+    mode = params.get("hub.mode")
+    token = params.get("hub.verify_token")
+    challenge = params.get("hub.challenge")
+    
+    if mode == "subscribe" and token == settings.WHATSAPP_VERIFY_TOKEN:
+        logger.info("WhatsApp Webhook: VERIFIED")
+        return Response(content=challenge, status_code=200)
+    
+    logger.warning(f"WhatsApp Webhook: Verification failed (mode={mode}, token={token})")
+    return Response(content="Forbidden", status_code=403)
 
 @app.post("/api/webhook/whatsapp")
 async def whatsapp_webhook(request: Request):
-    """Webhook for incoming WhatsApp messages from Twilio."""
+    """Webhook for incoming WhatsApp messages from Meta Cloud API."""
     global processed_messages
-    # Twilio sends data as form-encoded
-    form_data = await request.form()
     
-    # Idempotency check: Don't process the same message twice (Twilio retries on slow response)
-    MessageSid = form_data.get("MessageSid")
-    if MessageSid:
-        now = time.time()
-        if MessageSid in processed_messages:
-            logger.info(f"WhatsApp Webhook: Skipping duplicate message {MessageSid}")
-            return Response(content="", status_code=200)
-        processed_messages[MessageSid] = now
-        
-        # Cleanup old messages every now and then
-        if len(processed_messages) > 1000:
-            cutoff = now - 600 # 10 minutes
-            processed_messages = {k: v for k, v in processed_messages.items() if v > cutoff}
-
-    From = form_data.get("From", "")
-    Body = form_data.get("Body", "")
-    NumMedia = int(form_data.get("NumMedia", 0))
-    
-    logger.info(f"WhatsApp Webhook: INCOMING from {From} - Body: '{Body}' - Media: {NumMedia}")
-    
-    # 1. Handle Media
-    media_items = []
-    if NumMedia > 0:
-        for i in range(NumMedia):
-            media_url = form_data.get(f"MediaUrl{i}")
-            mime_type = form_data.get(f"MediaContentType{i}")
-            
-            if media_url:
-                logger.info(f"Downloading media {i}: {media_url} ({mime_type})")
-                data = await download_twilio_media(media_url)
-                if data:
-                    media_items.append({
-                        "data": data,
-                        "mime_type": mime_type
-                    })
-
-    # 2. Process message via Conversation Service
     try:
-        result = await conversation_service.process_message(From, Body, media_items=media_items)
-        logger.info(f"WhatsApp Webhook: AI Result Status={result.get('status')} - Reply: '{result.get('reply')[:50]}...'")
-    except Exception as e:
-        logger.error(f"WhatsApp Webhook: Conversation processing failed: {e}")
-        result = {"status": "INCOMPLETE", "reply": "Ups, da ist etwas schief gelaufen. Versuch es bitte gleich nochmal!"}
+        payload = await request.json()
+    except Exception:
+        # Fallback for non-JSON or other probes
+        return Response(content="OK", status_code=200)
+
+    # 1. Parse Meta JSON structure
+    # entries -> changes -> value -> messages
+    entries = payload.get("entry", [])
+    for entry in entries:
+        changes = entry.get("changes", [])
+        for change in changes:
+            value = change.get("value", {})
+            messages = value.get("messages", [])
+            
+            for message in messages:
+                msg_id = message.get("id")
+                
+                # Idempotency check
+                if msg_id:
+                    now = time.time()
+                    if msg_id in processed_messages:
+                        logger.info(f"WhatsApp Webhook: Skipping duplicate message {msg_id}")
+                        continue
+                    processed_messages[msg_id] = now
+                    
+                    # Cleanup old messages
+                    if len(processed_messages) > 1000:
+                        cutoff = now - 600
+                        processed_messages = {k: v for k, v in processed_messages.items() if v > cutoff}
+
+                from_number = message.get("from")
+                msg_type = message.get("type")
+                body = ""
+                media_items = []
+
+                if msg_type == "text":
+                    body = message.get("text", {}).get("body", "")
+                elif msg_type == "image":
+                    body = message.get("image", {}).get("caption", "")
+                    media_id = message.get("image", {}).get("id")
+                    mime_type = message.get("image", {}).get("mime_type")
+                    if media_id:
+                        logger.info(f"Downloading image media: {media_id}")
+                        data = await download_whatsapp_media(media_id)
+                        if data:
+                            media_items.append({"data": data, "mime_type": mime_type})
+                elif msg_type == "audio":
+                    media_id = message.get("audio", {}).get("id")
+                    mime_type = message.get("audio", {}).get("mime_type")
+                    if media_id:
+                        logger.info(f"Downloading audio media: {media_id}")
+                        data = await download_whatsapp_media(media_id)
+                        if data:
+                            media_items.append({"data": data, "mime_type": mime_type})
+
+                logger.info(f"WhatsApp Webhook: INCOMING from {from_number} - Body: '{body}' - Media: {len(media_items)}")
+
+                # 2. Process message via Conversation Service
+                try:
+                    result = await conversation_service.process_message(from_number, body, media_items=media_items)
+                    logger.info(f"WhatsApp Webhook: AI Result Status={result.get('status')} - Reply: '{result.get('reply')[:50]}...'")
+                except Exception as e:
+                    logger.error(f"WhatsApp Webhook: Conversation processing failed: {e}")
+                    result = {"status": "INCOMPLETE", "reply": "Ups, da ist etwas schief gelaufen. Versuch es bitte gleich nochmal!"}
+                
+                # 3. Send reply
+                reply_text = result["reply"]
+                suggestions = result.get("suggestions", [])
+                if suggestions:
+                    reply_text += "\n\n💡 Vorschläge:\n" + "\n".join([f"• {s}" for s in suggestions])
+                
+                whatsapp_service.send_message(from_number, reply_text)
+                
+                # 4. If ready, trigger story generation
+                if result.get("status") == "READY" and result.get("story_params") and result["story_params"].get("prompt"):
+                    params = result["story_params"]
+                    whatsapp_service.send_message(from_number, "Ich schreibe die Geschichte jetzt für dich... Das dauert einen kurzen Moment! ✍️")
+                    
+                    story_id = str(uuid.uuid4())[:8]
+                    wa_user = store.get_or_create_whatsapp_user(from_number)
+                    
+                    story_service.initialize_story(
+                        story_id=story_id,
+                        prompt=params["prompt"],
+                        genre=params["genre"],
+                        style=params["style"],
+                        voice_key=params["voice_key"],
+                        target_minutes=params["target_minutes"],
+                        user_id=wa_user.id
+                    )
+                    
+                    asyncio.create_task(
+                        run_whatsapp_pipeline(
+                            from_number=from_number,
+                            story_id=story_id,
+                            prompt=params["prompt"],
+                            genre=params["genre"],
+                            style=params["style"],
+                            characters=None,
+                            target_minutes=params["target_minutes"],
+                            voice_key=params["voice_key"],
+                            speech_rate="0%",
+                            user_id=wa_user.id
+                        )
+                    )
+                    conversation_service.clear_session(from_number)
     
-    # 2. Send reply via REST API instead of TwiML (more reliable for logging/debugging)
-    reply_text = result["reply"]
-    suggestions = result.get("suggestions", [])
-    if suggestions:
-        reply_text += "\n\n💡 Vorschläge:\n" + "\n".join([f"• {s}" for s in suggestions])
-    
-    whatsapp_service.send_message(From, reply_text)
-    
-    # 3. If ready, trigger story generation
-    if result.get("status") == "READY" and result.get("story_params") and result["story_params"].get("prompt"):
-        params = result["story_params"]
-        
-        # Immediate notification for generation start
-        whatsapp_service.send_message(From, "Ich schreibe die Geschichte jetzt für dich... Das dauert einen kurzen Moment! ✍️")
-        
-        story_id = str(uuid.uuid4())[:8]
-        logger.info(f"WhatsApp Webhook: TRIGGERING STORY {story_id} for {From}")
-        
-        # Use a dedicated shadow user for this phone number
-        wa_user = store.get_or_create_whatsapp_user(From)
-        
-        # Initialize story record
-        story_service.initialize_story(
-            story_id=story_id,
-            prompt=params["prompt"],
-            genre=params["genre"],
-            style=params["style"],
-            voice_key=params["voice_key"],
-            target_minutes=params["target_minutes"],
-            user_id=wa_user.id
-        )
-        
-        # Run pipeline in background with notification wrapper
-        asyncio.create_task(
-            run_whatsapp_pipeline(
-                from_number=From,
-                story_id=story_id,
-                prompt=params["prompt"],
-                genre=params["genre"],
-                style=params["style"],
-                characters=None,
-                target_minutes=params["target_minutes"],
-                voice_key=params["voice_key"],
-                speech_rate="0%",
-                user_id=wa_user.id
-            )
-        )
-        
-        # Clear session after starting generation
-        conversation_service.clear_session(From)
-    
-    # Return empty TwiML
-    twiml = MessagingResponse()
-    return Response(content=str(twiml), media_type="application/xml")
+    return Response(content="OK", status_code=200)
 
 
 

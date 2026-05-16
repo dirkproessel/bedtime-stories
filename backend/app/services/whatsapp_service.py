@@ -1,53 +1,68 @@
 import os
 import logging
-from twilio.rest import Client
-from dotenv import load_dotenv
-
-load_dotenv()
+import httpx
+from app.config import settings
 
 logger = logging.getLogger(__name__)
 
 class WhatsAppService:
     def __init__(self):
-        self.account_sid = os.getenv("TWILIO_ACCOUNT_SID")
-        self.auth_token = os.getenv("TWILIO_AUTH_TOKEN")
-        self.from_number = os.getenv("TWILIO_WHATSAPP_NUMBER", "whatsapp:+14155238886")
+        self.access_token = settings.WHATSAPP_ACCESS_TOKEN
+        self.phone_number_id = settings.WHATSAPP_PHONE_NUMBER_ID
+        self.api_version = "v20.0"
+        self.base_url = f"https://graph.facebook.com/{self.api_version}/{self.phone_number_id}/messages"
         
-        if self.account_sid and self.auth_token:
-            self.client = Client(self.account_sid, self.auth_token)
-        else:
-            logger.warning("Twilio credentials missing. WhatsAppService will not be able to send messages.")
-            self.client = None
+        if not self.access_token or not self.phone_number_id:
+            logger.warning("WhatsApp Cloud API credentials missing (Access Token or Phone Number ID).")
 
     def send_message(self, to_number: str, body: str, media_url: str = None):
-        """Sends a WhatsApp message via Twilio with optional media."""
-        if not self.client:
-            logger.error("Cannot send WhatsApp message: Twilio client not initialized.")
+        """Sends a WhatsApp message via Meta Cloud API."""
+        if not self.access_token or not self.phone_number_id:
+            logger.error("Cannot send WhatsApp message: Credentials not configured.")
             return None
         
-        try:
-            # Ensure the numbers have the whatsapp: prefix
-            if not to_number.startswith("whatsapp:"):
-                to_number = f"whatsapp:{to_number}"
-            
-            from_number = self.from_number
-            if not from_number.startswith("whatsapp:"):
-                from_number = f"whatsapp:{from_number}"
-            
-            params = {
-                "from_": from_number,
-                "body": body,
-                "to": to_number
+        # Clean up phone number (remove 'whatsapp:' prefix if present and ensure it's just digits)
+        clean_number = to_number.replace("whatsapp:", "").replace("+", "").strip()
+        
+        headers = {
+            "Authorization": f"Bearer {self.access_token}",
+            "Content-Type": "application/json"
+        }
+        
+        if media_url:
+            # Send as image with caption
+            payload = {
+                "messaging_product": "whatsapp",
+                "to": clean_number,
+                "type": "image",
+                "image": {
+                    "link": media_url,
+                    "caption": body
+                }
+            }
+        else:
+            # Send as plain text
+            payload = {
+                "messaging_product": "whatsapp",
+                "to": clean_number,
+                "type": "text",
+                "text": {
+                    "body": body
+                }
             }
             
-            if media_url:
-                params["media_url"] = [media_url]
-                
-            message = self.client.messages.create(**params)
-            logger.info(f"WhatsApp message sent to {to_number}: {message.sid}")
-            return message.sid
+        try:
+            with httpx.Client() as client:
+                response = client.post(self.base_url, headers=headers, json=payload)
+                response.raise_for_status()
+                data = response.json()
+                message_id = data.get("messages", [{}])[0].get("id")
+                logger.info(f"WhatsApp message sent to {clean_number}: {message_id}")
+                return message_id
         except Exception as e:
-            logger.error(f"Error sending WhatsApp message: {e}")
+            logger.error(f"Error sending WhatsApp message via Meta API: {e}")
+            if hasattr(e, 'response') and e.response:
+                logger.error(f"Response error details: {e.response.text}")
             return None
 
 whatsapp_service = WhatsAppService()
