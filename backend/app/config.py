@@ -36,6 +36,7 @@ class Settings:
     
     AUDIO_OUTPUT_DIR: Path = Path(os.getenv("AUDIO_OUTPUT_DIR", "./audio_output"))
     BASE_URL: str = os.getenv("BASE_URL", "http://localhost:8000")
+    FRONTEND_URL: str = os.getenv("FRONTEND_URL", "https://storyja.com")
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
     FISH_API_KEY: str = os.getenv("FISH_API_KEY", "")
     XAI_API_KEY: str = os.getenv("XAI_API_KEY", "")

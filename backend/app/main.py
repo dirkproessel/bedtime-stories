@@ -161,22 +161,26 @@ async def run_whatsapp_pipeline(from_number: str, **kwargs):
             logger.error(f"WhatsApp Pipeline: Story {story_id} not found after generation!")
             return
 
-        base_url = settings.BASE_URL.rstrip('/')
-        url = f"{base_url}/stories/{story_id}"
+        # Use FRONTEND_URL for the story link
+        frontend_url = settings.FRONTEND_URL.rstrip('/')
+        url = f"{frontend_url}/stories/{story_id}"
+        
+        # Use BASE_URL (API) for the media resource
+        api_base_url = settings.BASE_URL.rstrip('/')
+        media_url = f"{api_base_url}/api/stories/{story_id}/thumb.jpg"
         
         title = story.title or "Deine Geschichte"
         desc = story.description or ""
         
-        # 1. Send a text-only confirmation first (reliable fallback)
-        confirmation_text = f"✅ *Fertig!* Deine Geschichte *\"{title}\"* ist bereit.\n\nHör sie dir hier an:\n{url}"
-        whatsapp_service.send_message(from_number, confirmation_text)
+        # 1. Text Confirmation
+        whatsapp_service.send_message(from_number, f"✅ *Fertig!* Deine Geschichte *\"{title}\"* ist bereit.")
         
-        # 2. Send the media message (optional/nice-to-have)
-        media_url = f"{base_url}/api/stories/{story_id}/thumb.jpg"
-        text_with_media = f"*{title}*\n\n{desc}"
+        # 2. Image with Synopsis + Link in Caption
+        caption = f"*{title}*\n\n{desc}\n\nLink: {url}"
+        whatsapp_service.send_message(from_number, caption, media_url=media_url)
         
-        logger.info(f"WhatsApp Pipeline: Sending media notification for {story_id} to {from_number}")
-        whatsapp_service.send_message(from_number, text_with_media, media_url=media_url)
+        # 3. Final separate Link message (for better clickability/preview)
+        whatsapp_service.send_message(from_number, f"Hör sie dir hier an:\n{url}")
         
     except Exception as e:
         logger.error(f"WhatsApp Pipeline failed for story {story_id}: {e}", exc_info=True)
