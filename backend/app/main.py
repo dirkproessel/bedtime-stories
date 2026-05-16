@@ -279,17 +279,15 @@ async def handle_incoming_whatsapp(message: dict):
             logger.error(f"WhatsApp Webhook: Conversation processing failed: {e}")
             result = {"status": "INCOMPLETE", "reply": "Ups, da ist etwas schief gelaufen. Versuch es bitte gleich nochmal!"}
         
-        # 3. Send reply
-        reply_text = result["reply"]
-        suggestions = result.get("suggestions", [])
-        
-        # Send with buttons if available, otherwise plain text
-        whatsapp_service.send_message(from_number, reply_text, buttons=suggestions if suggestions else None)
-        
-        # 4. If ready, trigger story generation
+        # 3. Handle Status
         if result.get("status") == "READY" and result.get("story_params") and result["story_params"].get("prompt"):
             params = result["story_params"]
-            whatsapp_service.send_message(from_number, "Ich schreibe die Geschichte jetzt für dich... Das dauert einen kurzen Moment! ✍️")
+            # Use the AI's reply if it's short, otherwise use a default starter
+            starter_msg = result.get("reply", "Alles klar, ich fange an zu schreiben! ✍️")
+            if len(starter_msg) > 100:
+                starter_msg = "Alles klar, ich schreibe die Geschichte jetzt für dich! Das dauert einen kurzen Moment... ✍️"
+            
+            whatsapp_service.send_message(from_number, starter_msg)
             
             story_id = str(uuid.uuid4())[:8]
             wa_user = store.get_or_create_whatsapp_user(from_number)
@@ -318,6 +316,11 @@ async def handle_incoming_whatsapp(message: dict):
                 user_id=wa_user.id
             )
             conversation_service.clear_session(from_number)
+        else:
+            # Standard planning message
+            reply_text = result.get("reply", "Ich höre...")
+            suggestions = result.get("suggestions", [])
+            whatsapp_service.send_message(from_number, reply_text, buttons=suggestions if suggestions else None)
 
     except Exception as e:
         logger.error(f"Critical error in handle_incoming_whatsapp: {e}", exc_info=True)

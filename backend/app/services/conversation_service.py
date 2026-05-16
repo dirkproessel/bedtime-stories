@@ -1,47 +1,45 @@
 import logging
 import json
 import uuid
+import random
 from datetime import datetime
 from google.genai import types
 from app.services.text_generator import generate_text
 from app.services.story_service import story_service
+from app.services.story_generator import STANZWERK_BIBLIOTHEK
 from app.config import settings
 
 logger = logging.getLogger(__name__)
 
 # In-memory session store
-# { "whatsapp_number": { "idea": "...", "history": [], "last_updated": ... } }
 sessions = {}
 
-SYSTEM_PROMPT = """
+BASE_SYSTEM_PROMPT = """
 Du bist der Storyja WhatsApp Bot. Deine Mission: Gemeinsam mit dem Nutzer eine tolle Kindergeschichte planen.
 
+ABLAUF (WICHTIG):
+1. IDEE KLÄREN: Sammle Infos (Held, Ort, Handlung).
+2. AUTOREN-WAHL: Wenn die Idee steht, schlage dem Nutzer immer 3-4 passende Autoren/Stile aus der Liste vor (als "suggestions"). Erkläre kurz, warum diese passen (z.B. "Dahl für schwarzen Humor, Funke für Magie").
+3. BESTÄTIGUNG: Erst wenn der Nutzer einen Autor gewählt hat, setze Status auf "READY".
+
 STATUS-REGELN:
-- "INCOMPLETE": Standard-Status. Nutze diesen, um Ideen zu sammeln, nach dem Genre zu fragen oder Bilder zu kommentieren. Frage aktiv nach, wenn etwas unklar ist.
-- "READY": NUR dann verwenden, wenn Genre und Grundidee (Held/Handlung) feststehen UND du dem Nutzer im vorherigen Schritt einen Plan vorgeschlagen hast, dem er zugestimmt hat (oder wenn die Infos so klar sind, dass kein Zweifel besteht). 
-- WICHTIG: Wenn Status "READY", dann KEINE Fragen im "reply". Die Antwort muss eine Bestätigung sein ("Alles klar, ich fange an!").
+- "INCOMPLETE": Standard-Status für Planung und Autoren-Vorschläge.
+- "READY": NUR wenn Idee UND Autor feststehen. 
 
 DIALOG-STIL:
 - Kurz und knackig (WhatsApp-Stil). 
-- Sei ein kreativer Partner: Vermeide Klischees wie "magischer Wald" oder "sprechende Tiere". Sei wilder und überraschender! 
-- Vorschlag-Ideen (Beispiele): "Zeitreisende Pizza", "Der Roboter-Flohmarkt", "Unterwasser-Bahnhof", "Die mutige Socke".
-  - STILE (Wähle immer EXAKT EINE passende ID aus der Liste. Sei mutig und wechsle die Autoren oft ab, nutze nicht immer die gleichen!):
-    - Kids: `funke`, `pantermueller`, `auer`, `lindgren`, `kaestner`, `dahl`.
-    - Humor/Satire: `kling`, `loriot`, `jaud`, `regener`, `evers`, `stuckrad_barre`, `strunk`, `pratchett`, `adams`, `kinney`.
-    - Spannung/Drama: `fitzek`, `christie`, `king`, `zeh`, `kehlmann`, `kracht`, `kafka`, `hemingway`, `rooney`.
-    - Sinnlich/Intensiv: `nin`, `miller`, `rice`.
-- Gib immer 2-3 konkrete, originelle Vorschläge als "suggestions" (max. 20 Zeichen!).
-- Wenn ein Bild gesendet wird, beziehe es enthusiastisch ein.
+- Sei ein kreativer Partner: Vermeide Klischees.
+- Vorschlag-Ideen für Autoren: "Stil von Roald Dahl", "Wie Cornelia Funke", "Marc-Uwe Kling Vibe".
 
 JSON-FORMAT:
 {
   "status": "INCOMPLETE" | "READY",
   "reply": "Deine Antwort",
-  "suggestions": ["Option A", "Option B"],
+  "suggestions": ["Autor A", "Autor B", "Autor C"],
   "story_params": {
-    "prompt": "Vollständiger, kreativer Story-Prompt",
+    "prompt": "Vollständiger Story-Prompt",
     "genre": "Genre",
-    "style": "NUR EINE ID (z.B. 'kling')",
+    "style": "ID DES GEWÄHLTEN AUTORS (oder 'none' während Planung)",
     "voice_key": "none",
     "target_minutes": 10
   }
@@ -49,6 +47,16 @@ JSON-FORMAT:
 """
 
 class ConversationService:
+    def _get_random_authors_prompt(self):
+        """Provide the full categorized library so Gemini can pick the best matches to suggest."""
+        all_authors = []
+        for cat_name, authors in STANZWERK_BIBLIOTHEK.items():
+            for a in authors:
+                all_authors.append(f"- `{a['id']}`: {a['name']} ({a['wortwahl']} - {a['atmosphaere']})")
+        
+        authors_str = "\n".join(all_authors)
+        return f"\nVOLLSTÄNDIGE AUTOREN-BIBLIOTHEK:\n{authors_str}\n\nWICHTIG: Schlage dem Nutzer aus dieser Liste 3-4 Autoren vor, die am besten zu seiner aktuellen Story-Idee passen!\n"
+
     async def process_message(self, from_number: str, message: str, media_items: list = None) -> dict:
         """Processes a message from a user and returns a reply + potential story params."""
         
@@ -97,7 +105,9 @@ class ConversationService:
                 if "data" in item and "mime_type" in item:
                     contents.append(types.Part.from_bytes(data=item["data"], mime_type=item["mime_type"]))
         
-        full_instruction = SYSTEM_PROMPT + "\n\nAntworte im JSON-Format. Wenn Medien (Bild/Audio) vorhanden sind, beziehe dich darauf."
+        # Inject dynamic author pool
+        dynamic_authors = self._get_random_authors_prompt()
+        full_instruction = BASE_SYSTEM_PROMPT + dynamic_authors + "\n\nAntworte im JSON-Format. Beziehe dich auf Medien, falls vorhanden."
         try:
             # 3. Call Gemini
             response_json = await generate_text(
