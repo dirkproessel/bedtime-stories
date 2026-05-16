@@ -561,6 +561,17 @@ Antworte EXKLUSIV im validen JSON-Format. WICHTIG: Entwerte (escape) alle Anfüh
             "synopsis": "Die Geschichte konnte nicht korrekt formatiert werden.", 
             "chapters": [{"title": "Text", "text": text}]
         }
+    
+    # Handle success case (where json.loads succeeded)
+    story_content = data.get("full_text", "")
+    if isinstance(story_content, dict):
+        story_content = story_content.get("full_text", str(story_content))
+        
+    return {
+        "title": data.get("title", "Eine neue Geschichte"),
+        "synopsis": data.get("synopsis", "Kurzgeschichte"),
+        "chapters": [{"title": "Geschichte", "text": story_content}]
+    }
 
 
 async def _generate_multi_pass(

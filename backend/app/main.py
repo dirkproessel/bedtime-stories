@@ -295,6 +295,8 @@ async def whatsapp_webhook(request: Request):
         # Clear session after starting generation
         conversation_service.clear_session(From)
     
+    # Return empty TwiML
+    twiml = MessagingResponse()
     return Response(content=str(twiml), media_type="application/xml")
 
 
