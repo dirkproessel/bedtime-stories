@@ -244,22 +244,19 @@ async def whatsapp_webhook(request: Request):
         logger.error(f"WhatsApp Webhook: Conversation processing failed: {e}")
         result = {"status": "INCOMPLETE", "reply": "Ups, da ist etwas schief gelaufen. Versuch es bitte gleich nochmal!"}
     
-    # 2. Build TwiML Response (Immediate reply)
-    twiml = MessagingResponse()
+    # 2. Send reply via REST API instead of TwiML (more reliable for logging/debugging)
     reply_text = result["reply"]
-    
-    # Append suggestions as a list if present
     suggestions = result.get("suggestions", [])
     if suggestions:
         reply_text += "\n\n💡 Vorschläge:\n" + "\n".join([f"• {s}" for s in suggestions])
     
-    twiml.message(reply_text)
+    whatsapp_service.send_message(From, reply_text)
     
-    # 3. If ready, trigger story generation (only if we have a prompt)
+    # 3. If ready, trigger story generation
     if result.get("status") == "READY" and result.get("story_params") and result["story_params"].get("prompt"):
         params = result["story_params"]
         
-        # SEND IMMEDIATE FEEDBACK
+        # Immediate notification for generation start
         whatsapp_service.send_message(From, "Ich schreibe die Geschichte jetzt für dich... Das dauert einen kurzen Moment! ✍️")
         
         story_id = str(uuid.uuid4())[:8]
@@ -295,6 +292,7 @@ async def whatsapp_webhook(request: Request):
             )
         )
     
+    logger.info(f"WhatsApp Webhook: Returning TwiML: {str(twiml)[:100]}...")
     return Response(content=str(twiml), media_type="application/xml")
 
 
