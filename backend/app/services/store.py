@@ -406,7 +406,7 @@ class StoryStore:
 
     def is_message_processed(self, msg_id: str) -> bool:
         """Check if a message ID has already been handled, and record it if not."""
-        with Session(self.engine) as session:
+        with Session(engine) as session:
             # Check existence
             statement = select(MessageLog).where(MessageLog.msg_id == msg_id)
             if session.exec(statement).first():
