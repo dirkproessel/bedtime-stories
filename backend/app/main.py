@@ -297,7 +297,7 @@ async def handle_incoming_whatsapp(message: dict):
                 prompt=params["prompt"],
                 genre=params["genre"],
                 style=params["style"],
-                voice_key=params["voice_key"],
+                voice_key="none",
                 target_minutes=params["target_minutes"],
                 user_id=wa_user.id
             )
@@ -311,7 +311,7 @@ async def handle_incoming_whatsapp(message: dict):
                 style=params["style"],
                 characters=None,
                 target_minutes=params["target_minutes"],
-                voice_key=params["voice_key"],
+                voice_key="none",
                 speech_rate="0%",
                 user_id=wa_user.id
             )
