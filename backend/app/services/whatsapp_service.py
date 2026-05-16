@@ -15,13 +15,13 @@ class WhatsAppService:
         if not self.access_token or not self.phone_number_id:
             logger.warning("WhatsApp Cloud API credentials missing (Access Token or Phone Number ID).")
 
-    def send_message(self, to_number: str, body: str, media_url: str = None):
-        """Sends a WhatsApp message via Meta Cloud API."""
+    def send_message(self, to_number: str, body: str, media_url: str = None, buttons: list[str] = None):
+        """Sends a WhatsApp message via Meta Cloud API with optional media or quick-reply buttons."""
         if not self.access_token or not self.phone_number_id:
             logger.error("Cannot send WhatsApp message: Credentials not configured.")
             return None
         
-        # Clean up phone number (remove 'whatsapp:' prefix if present and ensure it's just digits)
+        # Clean up phone number
         clean_number = to_number.replace("whatsapp:", "").replace("+", "").strip()
         
         headers = {
@@ -29,8 +29,34 @@ class WhatsAppService:
             "Content-Type": "application/json"
         }
         
-        if media_url:
-            # Send as image with caption
+        # 1. Interactive Buttons (Quick Replies)
+        # Note: Meta allows max 3 buttons, each title max 20 characters.
+        if buttons and not media_url:
+            valid_buttons = []
+            for i, btn_text in enumerate(buttons[:3]):
+                # WhatsApp limit: 20 chars per button title
+                title = btn_text[:20]
+                valid_buttons.append({
+                    "type": "reply",
+                    "reply": {
+                        "id": f"btn_{i}",
+                        "title": title
+                    }
+                })
+            
+            payload = {
+                "messaging_product": "whatsapp",
+                "to": clean_number,
+                "type": "interactive",
+                "interactive": {
+                    "type": "button",
+                    "body": {"text": body},
+                    "action": {"buttons": valid_buttons}
+                }
+            }
+        
+        # 2. Image with Caption
+        elif media_url:
             payload = {
                 "messaging_product": "whatsapp",
                 "to": clean_number,
@@ -40,15 +66,14 @@ class WhatsAppService:
                     "caption": body
                 }
             }
+        
+        # 3. Plain Text
         else:
-            # Send as plain text
             payload = {
                 "messaging_product": "whatsapp",
                 "to": clean_number,
                 "type": "text",
-                "text": {
-                    "body": body
-                }
+                "text": {"body": body}
             }
             
         try:

@@ -259,6 +259,12 @@ async def whatsapp_webhook(request: Request):
 
                 if msg_type == "text":
                     body = message.get("text", {}).get("body", "")
+                elif msg_type == "interactive":
+                    # Handle Button Clicks
+                    interactive = message.get("interactive", {})
+                    if interactive.get("type") == "button_reply":
+                        body = interactive.get("button_reply", {}).get("title", "")
+                        logger.info(f"Button Click received: {body}")
                 elif msg_type == "image":
                     body = message.get("image", {}).get("caption", "")
                     media_id = message.get("image", {}).get("id")
@@ -290,10 +296,9 @@ async def whatsapp_webhook(request: Request):
                 # 3. Send reply
                 reply_text = result["reply"]
                 suggestions = result.get("suggestions", [])
-                if suggestions:
-                    reply_text += "\n\n💡 Vorschläge:\n" + "\n".join([f"• {s}" for s in suggestions])
                 
-                whatsapp_service.send_message(from_number, reply_text)
+                # Send with buttons if available, otherwise plain text
+                whatsapp_service.send_message(from_number, reply_text, buttons=suggestions if suggestions else None)
                 
                 # 4. If ready, trigger story generation
                 if result.get("status") == "READY" and result.get("story_params") and result["story_params"].get("prompt"):
