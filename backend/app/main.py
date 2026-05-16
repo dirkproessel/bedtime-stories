@@ -197,11 +197,14 @@ async def download_whatsapp_media(media_id: str):
         async with httpx.AsyncClient() as client:
             # 1. Get media URL
             url_resp = await client.get(f"https://graph.facebook.com/v20.0/{media_id}", headers=headers)
-            url_resp.raise_for_status()
+            if url_resp.status_code >= 400:
+                logger.error(f"Meta Media Info Error ({url_resp.status_code}): {url_resp.text}")
+                return None
+                
             media_url = url_resp.json().get("url")
             
             if not media_url:
-                logger.error(f"No URL found for media ID {media_id}")
+                logger.error(f"No URL found for media ID {media_id}. Response: {url_resp.text}")
                 return None
                 
             # 2. Download actual binary data
@@ -279,20 +282,25 @@ async def whatsapp_webhook(request: Request):
                 elif msg_type == "image":
                     body = message.get("image", {}).get("caption", "")
                     media_id = message.get("image", {}).get("id")
-                    mime_type = message.get("image", {}).get("mime_type")
+                    mime_type = message.get("image", {}).get("mime_type", "image/jpeg")
                     if media_id:
-                        logger.info(f"Downloading image media: {media_id}")
+                        logger.info(f"Downloading image media: {media_id} ({mime_type})")
                         data = await download_whatsapp_media(media_id)
                         if data:
                             media_items.append({"data": data, "mime_type": mime_type})
-                elif msg_type == "audio":
-                    media_id = message.get("audio", {}).get("id")
-                    mime_type = message.get("audio", {}).get("mime_type")
+                        else:
+                            logger.error(f"Failed to download image {media_id}")
+
+                elif msg_type in ["audio", "voice"]:
+                    media_id = message.get(msg_type, {}).get("id")
+                    mime_type = message.get(msg_type, {}).get("mime_type", "audio/ogg")
                     if media_id:
-                        logger.info(f"Downloading audio media: {media_id}")
+                        logger.info(f"Downloading {msg_type} media: {media_id} ({mime_type})")
                         data = await download_whatsapp_media(media_id)
                         if data:
                             media_items.append({"data": data, "mime_type": mime_type})
+                        else:
+                            logger.error(f"Failed to download {msg_type} {media_id}")
 
                 logger.info(f"WhatsApp Webhook: INCOMING from {from_number} - Body: '{body}' - Media: {len(media_items)}")
 
