@@ -78,16 +78,19 @@ class WhatsAppService:
             
         try:
             with httpx.Client() as client:
+                logger.debug(f"WhatsApp API Request Payload: {json.dumps(payload)}")
                 response = client.post(self.base_url, headers=headers, json=payload)
-                response.raise_for_status()
+                
+                if response.status_code >= 400:
+                    logger.error(f"WhatsApp API Error ({response.status_code}): {response.text}")
+                    return None
+                    
                 data = response.json()
                 message_id = data.get("messages", [{}])[0].get("id")
                 logger.info(f"WhatsApp message sent to {clean_number}: {message_id}")
                 return message_id
         except Exception as e:
-            logger.error(f"Error sending WhatsApp message via Meta API: {e}")
-            if hasattr(e, 'response') and e.response:
-                logger.error(f"Response error details: {e.response.text}")
+            logger.error(f"Critical error sending WhatsApp message: {e}")
             return None
 
 whatsapp_service = WhatsAppService()

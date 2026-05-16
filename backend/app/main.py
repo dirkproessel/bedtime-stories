@@ -151,28 +151,35 @@ processed_messages = {} # { message_sid: timestamp }
 
 async def run_whatsapp_pipeline(from_number: str, **kwargs):
     """Wrapper to run story generation and notify user on WhatsApp when done."""
+    story_id = kwargs.get("story_id")
     try:
+        logger.info(f"WhatsApp Pipeline: Starting background generation for story {story_id}")
         await story_service.run_pipeline(**kwargs)
         
-        story_id = kwargs.get("story_id")
         story = store.get_by_id(story_id)
-        
+        if not story:
+            logger.error(f"WhatsApp Pipeline: Story {story_id} not found after generation!")
+            return
+
         base_url = settings.BASE_URL.rstrip('/')
         url = f"{base_url}/stories/{story_id}"
         
-        title = story.title if story else "Deine Geschichte"
-        desc = story.description if story else ""
+        title = story.title or "Deine Geschichte"
+        desc = story.description or ""
         
-        # Alignment with manual share text
-        text = f"Ich habe eine neue Geschichte erstellt:\n\n*{title}*\n\n{desc}\n\nHör sie dir hier an:\n{url}"
+        # 1. Send a text-only confirmation first (reliable fallback)
+        confirmation_text = f"✅ *Fertig!* Deine Geschichte *\"{title}\"* ist bereit.\n\nHör sie dir hier an:\n{url}"
+        whatsapp_service.send_message(from_number, confirmation_text)
         
-        # Build full image URL for WhatsApp media
+        # 2. Send the media message (optional/nice-to-have)
         media_url = f"{base_url}/api/stories/{story_id}/thumb.jpg"
+        text_with_media = f"*{title}*\n\n{desc}"
         
-        whatsapp_service.send_message(from_number, text, media_url=media_url)
+        logger.info(f"WhatsApp Pipeline: Sending media notification for {story_id} to {from_number}")
+        whatsapp_service.send_message(from_number, text_with_media, media_url=media_url)
         
     except Exception as e:
-        logger.error(f"WhatsApp Pipeline failed: {e}")
+        logger.error(f"WhatsApp Pipeline failed for story {story_id}: {e}", exc_info=True)
         whatsapp_service.send_message(from_number, "❌ Leider gab es ein Problem bei der Erstellung deiner Geschichte. Bitte versuche es später noch einmal.")
 
 async def download_whatsapp_media(media_id: str):

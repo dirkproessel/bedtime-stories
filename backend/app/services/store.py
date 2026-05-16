@@ -402,11 +402,17 @@ class StoryStore:
 
     def get_or_create_whatsapp_user(self, phone: str) -> User:
         """Finds or creates a user for a WhatsApp phone number. Prioritizes linked profiles."""
-        clean_phone = phone.replace("whatsapp:", "").strip()
+        # Normalize: remove 'whatsapp:', '+', and spaces
+        clean_phone = phone.replace("whatsapp:", "").replace("+", "").replace(" ", "").strip()
         
         with Session(engine) as session:
             # 1. First check if any user has linked this phone number in their profile
-            user = session.exec(select(User).where(User.whatsapp_phone == clean_phone)).first()
+            # We use a LIKE or manual check to be safe against leading pluses in DB
+            user = session.exec(select(User).where(
+                (User.whatsapp_phone == clean_phone) | 
+                (User.whatsapp_phone == f"+{clean_phone}")
+            )).first()
+            
             if user:
                 return user
                 
@@ -431,12 +437,16 @@ class StoryStore:
 
     def link_whatsapp_phone(self, user_id: str, phone: str) -> dict:
         """Links a phone number to a user and migrates stories from shadow user."""
-        clean_phone = phone.replace("whatsapp:", "").replace(" ", "").strip()
+        clean_phone = phone.replace("whatsapp:", "").replace("+", "").replace(" ", "").strip()
         shadow_email = f"{clean_phone}@whatsapp.storyja.com".lower()
         
         with Session(engine) as session:
             # 1. Check if phone is already used
-            existing = session.exec(select(User).where(User.whatsapp_phone == clean_phone)).first()
+            existing = session.exec(select(User).where(
+                (User.whatsapp_phone == clean_phone) | 
+                (User.whatsapp_phone == f"+{clean_phone}")
+            )).first()
+            
             if existing and existing.id != user_id:
                 return {"status": "error", "message": "Nummer bereits verknüpft"}
                 
