@@ -230,6 +230,99 @@ async def verify_whatsapp_webhook(request: Request):
     logger.warning(f"WhatsApp Webhook: Verification failed (mode={mode}, token={token})")
     return Response(content="Forbidden", status_code=403)
 
+async def handle_incoming_whatsapp(message: dict):
+    """Heavy lifting: Download media, call AI, and send reply."""
+    from_number = message.get("from")
+    msg_type = message.get("type")
+    body = ""
+    media_items = []
+
+    try:
+        if msg_type == "text":
+            body = message.get("text", {}).get("body", "")
+        elif msg_type == "interactive":
+            # Handle Button Clicks
+            interactive = message.get("interactive", {})
+            if interactive.get("type") == "button_reply":
+                body = interactive.get("button_reply", {}).get("title", "")
+                logger.info(f"Button Click received: {body}")
+        elif msg_type == "image":
+            body = message.get("image", {}).get("caption", "")
+            media_id = message.get("image", {}).get("id")
+            mime_type = message.get("image", {}).get("mime_type", "image/jpeg")
+            if media_id:
+                logger.info(f"Downloading image media: {media_id} ({mime_type})")
+                data = await download_whatsapp_media(media_id)
+                if data:
+                    media_items.append({"data": data, "mime_type": mime_type})
+                else:
+                    logger.error(f"Failed to download image {media_id}")
+
+        elif msg_type in ["audio", "voice"]:
+            media_id = message.get(msg_type, {}).get("id")
+            mime_type = message.get(msg_type, {}).get("mime_type", "audio/ogg")
+            if media_id:
+                logger.info(f"Downloading {msg_type} media: {media_id} ({mime_type})")
+                data = await download_whatsapp_media(media_id)
+                if data:
+                    media_items.append({"data": data, "mime_type": mime_type})
+                else:
+                    logger.error(f"Failed to download {msg_type} {media_id}")
+
+        logger.info(f"WhatsApp Webhook: Processing message from {from_number} - Body: '{body}' - Media: {len(media_items)}")
+
+        # 2. Process message via Conversation Service
+        try:
+            result = await conversation_service.process_message(from_number, body, media_items=media_items)
+            logger.info(f"WhatsApp Webhook: AI Result Status={result.get('status')} - Reply: '{result.get('reply')[:50]}...'")
+        except Exception as e:
+            logger.error(f"WhatsApp Webhook: Conversation processing failed: {e}")
+            result = {"status": "INCOMPLETE", "reply": "Ups, da ist etwas schief gelaufen. Versuch es bitte gleich nochmal!"}
+        
+        # 3. Send reply
+        reply_text = result["reply"]
+        suggestions = result.get("suggestions", [])
+        
+        # Send with buttons if available, otherwise plain text
+        whatsapp_service.send_message(from_number, reply_text, buttons=suggestions if suggestions else None)
+        
+        # 4. If ready, trigger story generation
+        if result.get("status") == "READY" and result.get("story_params") and result["story_params"].get("prompt"):
+            params = result["story_params"]
+            whatsapp_service.send_message(from_number, "Ich schreibe die Geschichte jetzt für dich... Das dauert einen kurzen Moment! ✍️")
+            
+            story_id = str(uuid.uuid4())[:8]
+            wa_user = store.get_or_create_whatsapp_user(from_number)
+            
+            story_service.initialize_story(
+                story_id=story_id,
+                prompt=params["prompt"],
+                genre=params["genre"],
+                style=params["style"],
+                voice_key=params["voice_key"],
+                target_minutes=params["target_minutes"],
+                user_id=wa_user.id
+            )
+            
+            # Use await here because it's already in a background task
+            await run_whatsapp_pipeline(
+                from_number=from_number,
+                story_id=story_id,
+                prompt=params["prompt"],
+                genre=params["genre"],
+                style=params["style"],
+                characters=None,
+                target_minutes=params["target_minutes"],
+                voice_key=params["voice_key"],
+                speech_rate="0%",
+                user_id=wa_user.id
+            )
+            conversation_service.clear_session(from_number)
+
+    except Exception as e:
+        logger.error(f"Critical error in handle_incoming_whatsapp: {e}", exc_info=True)
+        whatsapp_service.send_message(from_number, "❌ Da ist etwas schief gelaufen. Bitte versuch es später nochmal.")
+
 @app.post("/api/webhook/whatsapp")
 async def whatsapp_webhook(request: Request):
     """Webhook for incoming WhatsApp messages from Meta Cloud API."""
@@ -266,92 +359,8 @@ async def whatsapp_webhook(request: Request):
                         cutoff = now - 600
                         processed_messages = {k: v for k, v in processed_messages.items() if v > cutoff}
 
-                from_number = message.get("from")
-                msg_type = message.get("type")
-                body = ""
-                media_items = []
-
-                if msg_type == "text":
-                    body = message.get("text", {}).get("body", "")
-                elif msg_type == "interactive":
-                    # Handle Button Clicks
-                    interactive = message.get("interactive", {})
-                    if interactive.get("type") == "button_reply":
-                        body = interactive.get("button_reply", {}).get("title", "")
-                        logger.info(f"Button Click received: {body}")
-                elif msg_type == "image":
-                    body = message.get("image", {}).get("caption", "")
-                    media_id = message.get("image", {}).get("id")
-                    mime_type = message.get("image", {}).get("mime_type", "image/jpeg")
-                    if media_id:
-                        logger.info(f"Downloading image media: {media_id} ({mime_type})")
-                        data = await download_whatsapp_media(media_id)
-                        if data:
-                            media_items.append({"data": data, "mime_type": mime_type})
-                        else:
-                            logger.error(f"Failed to download image {media_id}")
-
-                elif msg_type in ["audio", "voice"]:
-                    media_id = message.get(msg_type, {}).get("id")
-                    mime_type = message.get(msg_type, {}).get("mime_type", "audio/ogg")
-                    if media_id:
-                        logger.info(f"Downloading {msg_type} media: {media_id} ({mime_type})")
-                        data = await download_whatsapp_media(media_id)
-                        if data:
-                            media_items.append({"data": data, "mime_type": mime_type})
-                        else:
-                            logger.error(f"Failed to download {msg_type} {media_id}")
-
-                logger.info(f"WhatsApp Webhook: INCOMING from {from_number} - Body: '{body}' - Media: {len(media_items)}")
-
-                # 2. Process message via Conversation Service
-                try:
-                    result = await conversation_service.process_message(from_number, body, media_items=media_items)
-                    logger.info(f"WhatsApp Webhook: AI Result Status={result.get('status')} - Reply: '{result.get('reply')[:50]}...'")
-                except Exception as e:
-                    logger.error(f"WhatsApp Webhook: Conversation processing failed: {e}")
-                    result = {"status": "INCOMPLETE", "reply": "Ups, da ist etwas schief gelaufen. Versuch es bitte gleich nochmal!"}
-                
-                # 3. Send reply
-                reply_text = result["reply"]
-                suggestions = result.get("suggestions", [])
-                
-                # Send with buttons if available, otherwise plain text
-                whatsapp_service.send_message(from_number, reply_text, buttons=suggestions if suggestions else None)
-                
-                # 4. If ready, trigger story generation
-                if result.get("status") == "READY" and result.get("story_params") and result["story_params"].get("prompt"):
-                    params = result["story_params"]
-                    whatsapp_service.send_message(from_number, "Ich schreibe die Geschichte jetzt für dich... Das dauert einen kurzen Moment! ✍️")
-                    
-                    story_id = str(uuid.uuid4())[:8]
-                    wa_user = store.get_or_create_whatsapp_user(from_number)
-                    
-                    story_service.initialize_story(
-                        story_id=story_id,
-                        prompt=params["prompt"],
-                        genre=params["genre"],
-                        style=params["style"],
-                        voice_key=params["voice_key"],
-                        target_minutes=params["target_minutes"],
-                        user_id=wa_user.id
-                    )
-                    
-                    asyncio.create_task(
-                        run_whatsapp_pipeline(
-                            from_number=from_number,
-                            story_id=story_id,
-                            prompt=params["prompt"],
-                            genre=params["genre"],
-                            style=params["style"],
-                            characters=None,
-                            target_minutes=params["target_minutes"],
-                            voice_key=params["voice_key"],
-                            speech_rate="0%",
-                            user_id=wa_user.id
-                        )
-                    )
-                    conversation_service.clear_session(from_number)
+                # Process message in background to avoid Meta timeout retries
+                asyncio.create_task(handle_incoming_whatsapp(message))
     
     return Response(content="OK", status_code=200)
 
