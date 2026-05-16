@@ -346,18 +346,11 @@ async def whatsapp_webhook(request: Request):
             for message in messages:
                 msg_id = message.get("id")
                 
-                # Idempotency check
+                # Persistent Idempotency check (DB backed)
                 if msg_id:
-                    now = time.time()
-                    if msg_id in processed_messages:
+                    if store.is_message_processed(msg_id):
                         logger.info(f"WhatsApp Webhook: Skipping duplicate message {msg_id}")
                         continue
-                    processed_messages[msg_id] = now
-                    
-                    # Cleanup old messages
-                    if len(processed_messages) > 1000:
-                        cutoff = now - 600
-                        processed_messages = {k: v for k, v in processed_messages.items() if v > cutoff}
 
                 # Process message in background to avoid Meta timeout retries
                 asyncio.create_task(handle_incoming_whatsapp(message))

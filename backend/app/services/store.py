@@ -28,6 +28,10 @@ def parse_date(date_val):
 # Ownership stability: No more automatic migrations or repairs.
 # Manual user assignment is the source of truth.
 
+class MessageLog(SQLModel, table=True):
+    msg_id: str = Field(primary_key=True)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
 class StoryStore:
     def __init__(self):
         # Create DB tables if they don't exist
@@ -399,6 +403,24 @@ class StoryStore:
         with Session(engine) as session:
             return list(session.exec(select(SystemSetting)).all())
 
+
+    def is_message_processed(self, msg_id: str) -> bool:
+        """Check if a message ID has already been handled, and record it if not."""
+        with Session(self.engine) as session:
+            # Check existence
+            statement = select(MessageLog).where(MessageLog.msg_id == msg_id)
+            if session.exec(statement).first():
+                return True
+            
+            # Not found? Mark as being handled
+            try:
+                log = MessageLog(msg_id=msg_id)
+                session.add(log)
+                session.commit()
+                return False
+            except Exception:
+                # If another worker beat us to it (integrity error), return True
+                return True
 
     def get_or_create_whatsapp_user(self, phone: str) -> User:
         """Finds or creates a user for a WhatsApp phone number. Prioritizes linked profiles."""
