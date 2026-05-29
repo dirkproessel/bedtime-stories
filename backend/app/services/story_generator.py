@@ -777,7 +777,14 @@ Antworte NUR im validen JSON-Format. WICHTIG: Entwerte (escape) alle Anführungs
         else:
             ende_regel = f"5. UMFANG & ENDE: Ziele auf ca. {words_per_segment} Wörter ab. WICHTIG: Beende das Kapitel NIEMALS mitten in einem Satz. Führe die Szene logisch zu Ende oder erzeuge einen weichen Übergang/Cliffhanger."
         
-        # For improvements, provide the original chapter text if         multi_voice_regel = ""
+        # For improvements/remixes, provide the original chapter text as context
+        original_segment_context = ""
+        if parent_text and i < len(parent_text.get("chapters", [])):
+            orig_chapter = parent_text["chapters"][i].get("text", "")
+            if orig_chapter:
+                original_segment_context = f"Originaltext dieses Kapitels (zur Orientierung, NICHT kopieren):\n{orig_chapter[:500]}..."
+
+        multi_voice_regel = ""
         if multi_voice:
             multi_voice_regel = (
                 "8. MEHRERE STIMMEN (SPEAKER-TAGS): Verwende für wörtliche Rede und Erzähltext die folgenden S2-Pro Sprecher-Tags:\n"
