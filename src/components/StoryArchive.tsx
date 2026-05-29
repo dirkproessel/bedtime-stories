@@ -1,5 +1,5 @@
 import { useStore } from '../store/useStore';
-import { getVoicePreviewUrl, exportStoryToKindle, getThumbUrl, type VoiceMeta } from '../lib/api';
+import { getVoicePreviewUrl, exportStoryToKindle, getThumbUrl, type VoiceProfile } from '../lib/api';
 import { Play, Trash2, Heart, BookOpen, Loader2, Mic, X, XCircle, Venus, Mars, Users, Pause, Send, Image as ImageIcon, RefreshCw, Sparkles, Settings2, MessageCircle, Search, ChevronLeft, ChevronRight, ArrowLeft, Wand2, User as UserIcon, Edit2, Music } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useEffect, useState, useRef, useMemo } from 'react';
@@ -1197,7 +1197,7 @@ export default function StoryArchive({ filterOverride }: { filterOverride?: 'my'
 
                                     <p className="text-sm text-slate-400 mb-4">Wähle eine neue Stimme für diese Geschichte:</p>
                                     <div className="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto mb-6 pr-1 custom-scrollbar">
-                                        {filteredRevoiceVoices.map((v: VoiceMeta) => (
+                                        {filteredRevoiceVoices.map((v: VoiceProfile) => (
                                             <div
                                                 key={v.key}
                                                 className={`p-3 rounded-xl transition-all border-2 cursor-pointer flex items-center justify-between ${selectedVoice === v.key

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useStore } from '../store/useStore';
 import { 
     fetchStory, getThumbUrl, type StoryDetail, exportStoryToKindle, 
-    getVoicePreviewUrl, type VoiceMeta
+    getVoicePreviewUrl, type VoiceProfile
 } from '../lib/api';
 import { 
     Moon, BookOpen, Send, Loader2, MessageCircle, Headphones, Heart, 
@@ -780,7 +780,7 @@ export default function ReaderLayer() {
 
                                      <p className="text-sm text-slate-400 mb-4">Wähle eine neue Stimme für diese Geschichte:</p>
                                      <div className="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto mb-6 pr-1 custom-scrollbar">
-                                         {filteredRevoiceVoices.map((v: VoiceMeta) => (
+                                         {filteredRevoiceVoices.map((v: VoiceProfile) => (
                                             <div
                                                 key={v.key}
                                                 className={`p-3 rounded-xl transition-all border-2 cursor-pointer flex items-center justify-between ${selectedVoice === v.key
