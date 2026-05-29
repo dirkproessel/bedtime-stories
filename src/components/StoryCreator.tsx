@@ -60,10 +60,22 @@ export default function StoryCreator() {
         generatorMinutes: targetMinutes, setGeneratorMinutes: setTargetMinutes,
         generatorVoice: voiceKey, setGeneratorVoice: setVoiceKey,
         generatorParentId, generatorRemixType, generatorContext, setGeneratorRemix,
-        isReaderOpen
+        isReaderOpen,
+        generatorMultiVoice, setGeneratorMultiVoice
     } = useStore();
 
     const [isAudioEnabled, setIsAudioEnabled] = useState(false);
+
+    const isFishVoiceSelected = useMemo(() => {
+        const selectedVoice = voices.find(v => v.key === voiceKey);
+        return selectedVoice?.engine === 'fish';
+    }, [voices, voiceKey]);
+
+    useEffect(() => {
+        if (!isAudioEnabled || !isFishVoiceSelected) {
+            setGeneratorMultiVoice(false);
+        }
+    }, [isAudioEnabled, isFishVoiceSelected, setGeneratorMultiVoice]);
 
     const toggleAuthor = (id: string) => {
         setSelectedAuthors(
@@ -251,8 +263,9 @@ export default function StoryCreator() {
             target_minutes: targetMinutes,
             voice_key: voiceKey,
             parent_id: generatorParentId || undefined,
-            remix_type: generatorRemixType || undefined
-        } as any);
+            remix_type: generatorRemixType || undefined,
+            multi_voice: generatorMultiVoice
+        });
     };
 
     return (
@@ -446,6 +459,26 @@ export default function StoryCreator() {
                                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isAudioEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
                                 </button>
                             </div>
+
+                            {isAudioEnabled && isFishVoiceSelected && (
+                                <div className="flex items-center justify-between p-4 bg-slate-800/40 border-2 border-slate-700/50 rounded-2xl animate-in slide-in-from-top-2 duration-200">
+                                    <div className="flex items-center gap-3">
+                                        <div className={`p-2 rounded-lg ${generatorMultiVoice ? 'bg-primary/20 text-primary' : 'bg-slate-700/50 text-slate-500'}`}>
+                                            <Sparkles className="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <h4 className="text-sm font-bold text-slate-200">Hörspiel-Modus (Mehrere Sprecher)</h4>
+                                            <p className="text-xs text-slate-500">Verteilt Rollen automatisch auf verschiedene Stimmen</p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => setGeneratorMultiVoice(!generatorMultiVoice)}
+                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${generatorMultiVoice ? 'bg-primary' : 'bg-slate-700'}`}
+                                    >
+                                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${generatorMultiVoice ? 'translate-x-6' : 'translate-x-1'}`} />
+                                    </button>
+                                </div>
+                            )}
                         </div>
 
                         {isAudioEnabled && (

@@ -48,6 +48,7 @@ class StoryService:
         user_id: str | None = None,
         parent_id: str | None = None,
         original_prompt: str | None = None,
+        multi_voice: bool = False,
     ) -> StoryMeta:
         """Synchronously create the initial story record and directory."""
         story_dir = settings.AUDIO_OUTPUT_DIR / story_id
@@ -82,6 +83,7 @@ class StoryService:
             created_at=datetime.now(timezone.utc),
             user_id=user_id,
             parent_id=parent_id,
+            multi_voice=multi_voice,
         )
         store.add_story(story_meta)
         
@@ -107,9 +109,9 @@ class StoryService:
         parent_id: str | None = None,
         remix_type: str | None = None,
         further_instructions: str | None = None,
-        parent_meta: StoryMeta | None = None,
         parent_text: dict | None = None,
         alexa_user_id: str | None = None,
+        multi_voice: bool = False,
     ):
         """Full pipeline: text → TTS → merge → save."""
         logger.info(f"!!! STARTING PIPELINE for story {story_id} (Alexa: {alexa_user_id}) !!!")
@@ -124,7 +126,8 @@ class StoryService:
             target_minutes=target_minutes,
             user_id=user_id,
             parent_id=parent_id,
-            original_prompt=original_prompt
+            original_prompt=original_prompt,
+            multi_voice=multi_voice,
         )
         
         story_dir = settings.AUDIO_OUTPUT_DIR / story_id
@@ -214,6 +217,11 @@ class StoryService:
                 else:
                     await on_progress("generating_text", "Texterstellung", **kwargs)
 
+            # We always generate stories with emotion tags. They are dynamically stripped
+            # on display and for unsupported TTS engines, but this allows future re-voicing
+            # (e.g., to a Fish/x.ai voice) to automatically use the emotions.
+            supports_emotions = True
+
             story_data = await generate_full_story(
                 prompt=prompt,
                 genre=genre,
@@ -224,6 +232,8 @@ class StoryService:
                 remix_type=remix_type,
                 further_instructions=further_instructions,
                 parent_text=parent_text,
+                multi_voice=multi_voice,
+                supports_emotions=supports_emotions,
             )
             
             real_title = story_data["title"]

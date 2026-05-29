@@ -121,6 +121,7 @@ export interface StoryRequest {
     parent_id?: string;
     remix_type?: 'improvement' | 'sequel';
     further_instructions?: string;
+    multi_voice?: boolean;
 }
 
 // --- Auth Endpoints ---

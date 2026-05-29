@@ -15,6 +15,15 @@ import { voiceName } from '../lib/voices';
 import { formatAuthorStyles } from '../lib/authors';
 import { formatDuration } from '../lib/utils';
 
+export function cleanStoryTextForDisplay(text: string): string {
+    if (!text) return '';
+    let cleaned = text.replace(/<\|speaker:\d+\|>/g, '');
+    cleaned = cleaned.replace(/\[[^\]]+\]/g, '');
+    cleaned = cleaned.replace(/<([^>|]+)>([\s\S]*?)<\/\1>/g, '$2');
+    cleaned = cleaned.replace(/<[^>|]+>/g, '');
+    return cleaned.trim();
+}
+
 export default function ReaderLayer() {
     const { 
         isReaderOpen, readerStoryId, setAudioCompanion, user,
@@ -373,7 +382,7 @@ export default function ReaderLayer() {
                                     story.chapters.map((ch, idx) => (
                                         <div key={idx} className="space-y-4">
                                             <p className="story-text text-slate-300 font-serif whitespace-pre-line">
-                                                {ch.text}
+                                                {cleanStoryTextForDisplay(ch.text)}
                                             </p>
                                         </div>
                                     ))

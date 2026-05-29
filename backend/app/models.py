@@ -99,6 +99,8 @@ class StoryMeta(SQLModel, table=True):
     user_email: Optional[str] = Field(default=None) # Persistent for display cache
     parent_id: Optional[str] = Field(default=None) # Reference to original story
     highlights: Optional[str] = Field(default=None) # AI-extracted punchlines/highlights
+    multi_voice: bool = Field(default=False)
+
 
 class StoryMetaResponse(StoryMeta):
     """Story Metadata including transient API fields."""
@@ -178,6 +180,8 @@ class StoryRequest(BaseModel):
     parent_id: Optional[str] = None
     remix_type: Optional[str] = None # "improvement" | "sequel"
     further_instructions: Optional[str] = None
+    multi_voice: bool = False
+
 
 class FreeTextRequest(BaseModel):
     """Free text prompt for story generation."""

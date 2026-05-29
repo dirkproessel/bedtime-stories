@@ -112,12 +112,14 @@ interface AppState {
     generatorParentId: string | null;
     generatorRemixType: 'improvement' | 'sequel' | null;
     generatorContext: { title: string; synopsis: string } | null;
+    generatorMultiVoice: boolean;
     
     setGeneratorPrompt: (val: string) => void;
     setGeneratorGenre: (val: string) => void;
     setGeneratorAuthors: (val: string[]) => void;
     setGeneratorMinutes: (val: number) => void;
     setGeneratorVoice: (val: string) => void;
+    setGeneratorMultiVoice: (val: boolean) => void;
     setGeneratorRemix: (parentId: string | null, type: 'improvement' | 'sequel' | null, context?: { title: string; synopsis: string } | null) => void;
     fetchData: () => Promise<void>;
 
@@ -190,6 +192,7 @@ export const useStore = create<AppState>((set, get) => {
     generatorParentId: null,
     generatorRemixType: null,
     generatorContext: null,
+    generatorMultiVoice: false,
 
     playlist: [],
 
@@ -198,6 +201,7 @@ export const useStore = create<AppState>((set, get) => {
     setGeneratorAuthors: (val) => set({ generatorAuthors: val }),
     setGeneratorMinutes: (val) => set({ generatorMinutes: val }),
     setGeneratorVoice: (val) => set({ generatorVoice: val }),
+    setGeneratorMultiVoice: (val) => set({ generatorMultiVoice: val }),
     setGeneratorRemix: (parentId, type, context = null) => set({ 
         generatorParentId: parentId, 
         generatorRemixType: type,
@@ -405,11 +409,12 @@ export const useStore = create<AppState>((set, get) => {
         set({ error: null });
         try {
             await generateStory(req);
-            // Reset remix state after starting
+            // Reset remix state and multi-voice after starting
             set({ 
                 generatorParentId: null, 
                 generatorRemixType: null, 
-                generatorContext: null 
+                generatorContext: null,
+                generatorMultiVoice: false
             });
             // Immediately switch to archive and reload to show the "Pending" story
             set({ activeView: 'library', archiveFilter: 'my' });

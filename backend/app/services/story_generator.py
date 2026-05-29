@@ -408,13 +408,17 @@ async def generate_full_story(
     remix_type: str | None = None,
     further_instructions: str | None = None,
     parent_text: dict | None = None,
+    multi_voice: bool = False,
+    supports_emotions: bool = False,
 ) -> dict:
     # Due to LLM word length limits (~1000 words max per request), 
     # we always use the multi-pass (chapter-by-chapter) generation.
     return await _generate_multi_pass(
         prompt, genre, style, characters, target_minutes, on_progress,
-        remix_type, further_instructions, parent_text
+        remix_type, further_instructions, parent_text,
+        multi_voice, supports_emotions
     )
+
 
 
 async def _api_request_with_retry(func, *args, on_progress=None, max_retries=3, initial_delay=2, **kwargs):
@@ -444,7 +448,8 @@ async def _api_request_with_retry(func, *args, on_progress=None, max_retries=3, 
 
 async def _generate_single_pass(
     prompt, genre, style, characters, target_minutes, on_progress,
-    remix_type=None, further_instructions=None, parent_text=None
+    remix_type=None, further_instructions=None, parent_text=None,
+    multi_voice=False, supports_emotions=False
 ):
     """Original single-pass logic for shorter stories with improved JSON cleanup."""
     selected_style_info = generate_modular_prompt(style)
@@ -576,7 +581,8 @@ Antworte EXKLUSIV im validen JSON-Format. WICHTIG: Entwerte (escape) alle Anfüh
 
 async def _generate_multi_pass(
     prompt, genre, style, characters, target_minutes, on_progress,
-    remix_type=None, further_instructions=None, parent_text=None
+    remix_type=None, further_instructions=None, parent_text=None,
+    multi_voice=False, supports_emotions=False
 ):
     """Two-step generation for long stories to ensure length and flow."""
     selected_style_info = generate_modular_prompt(style)
@@ -739,11 +745,15 @@ Antworte NUR im validen JSON-Format. WICHTIG: Entwerte (escape) alle Anführungs
         # Graceful fallback to single-pass if outline fails
         return await _generate_single_pass(
             prompt, genre, style, characters, target_minutes, on_progress,
-            remix_type, further_instructions, parent_text
+            remix_type, further_instructions, parent_text,
+            multi_voice, supports_emotions
         )
     
     if not segments:
-        return await _generate_single_pass(prompt, genre, style, characters, target_minutes, on_progress)
+        return await _generate_single_pass(
+            prompt, genre, style, characters, target_minutes, on_progress,
+            multi_voice=multi_voice, supports_emotions=supports_emotions
+        )
     
     full_chapters = []
     
@@ -767,14 +777,26 @@ Antworte NUR im validen JSON-Format. WICHTIG: Entwerte (escape) alle Anführungs
         else:
             ende_regel = f"5. UMFANG & ENDE: Ziele auf ca. {words_per_segment} Wörter ab. WICHTIG: Beende das Kapitel NIEMALS mitten in einem Satz. Führe die Szene logisch zu Ende oder erzeuge einen weichen Übergang/Cliffhanger."
         
-        # For improvements, provide the original chapter text if available
-        original_segment_context = ""
-        if remix_type == "improvement" and parent_text and "chapters" in parent_text:
-            if i < len(parent_text["chapters"]):
-                original_segment_context = f"\nURSPRÜNGLICHER TEXT DIESES KAPITELS:\n{parent_text['chapters'][i]['text']}\n"
+        # For improvements, provide the original chapter text if         multi_voice_regel = ""
+        if multi_voice:
+            multi_voice_regel = (
+                "8. MEHRERE STIMMEN (SPEAKER-TAGS): Verwende für wörtliche Rede und Erzähltext die folgenden S2-Pro Sprecher-Tags:\n"
+                "   - `<|speaker:0|>` für den Erzähler (Narrator)\n"
+                "   - `<|speaker:1|>` für den ersten sprechenden Hauptcharakter (z.B. der Protagonist)\n"
+                "   - `<|speaker:2|>` für den zweiten sprechenden Charakter\n"
+                "   Füge den jeweiligen Tag IMMER direkt vor dem Textabsatz oder dem gesprochenen Satz ein. Ändere den Sprecher-Tag nur, wenn ein anderer Charakter spricht oder der Erzähler fortfährt. Jede wörtliche Rede MUSS mit dem passenden Sprecher-Tag versehen werden."
+            )
+
+        emotion_regel = ""
+        if supports_emotions:
+            emotion_regel = (
+                "9. EMOTIONS-TAGS: Du kannst emotionale Ausdrücke direkt in den Text einbetten. Füge dazu englische Tags in eckigen Klammern am Anfang eines Satzes oder vor wörtlicher Rede ein.\n"
+                "   Beispiele: [whispering], [laughing], [sighing], [excited], [sad], [angry], [gasp], [yawn].\n"
+                "   Nutze diese äußerst sparsam (maximal 1-2 Mal pro Kapitel) und nur dort, wo es emotional wirklich passt."
+            )
 
         write_prompt = f"""Schreibe das nächste chronologische Kapitel der Geschichte.
-
+ 
 STRIKTE REGELN:
 1. NATÜRLICHER RHYTHMUS: Achte auf einen abwechslungsreichen Satzbau. Nutze sowohl kurze, prägnante Aussagen als auch elegante Nebensätze, um einen flüssigen Leserythmus zu erzeugen. Ideal für Audio/TTS, um Monotonie zu vermeiden. Vermeide jedoch extrem überladene Schachtelsätze.
 2. Stil-Inspiration:
@@ -785,6 +807,8 @@ Vermeide jegliche Floskeln, pädagogische Zeigefinger oder moralische Zusammenfa
 5. VERMEIDE ÜBEREILTE ENDEN: Hetze nicht zum Schluss. Vermeide Floskeln wie "Und so lernten sie..." oder "Am Ende war alles...". Bleib im Moment der Szene.
 6. Format: Keinerlei Überschriften, Kapitelnummern oder Titel im generierten Text! Nur der reine, fließende Erzähltext.
 7. FORTSCHRITT STATT WIEDERHOLUNG: Wiederhole niemals Phrasen, Metaphern oder innere Monologe aus den vorherigen Kapiteln. Fasse das Bisherige nicht zusammen. Die Handlung MUSS aktiv voranschreiten. Bringe ununterbrochen neue, frische Details ein.
+{multi_voice_regel}
+{emotion_regel}
 {f"SPEZIELLE REMIX-ANWEISUNG: {further_instructions}" if further_instructions else ""}
 {original_segment_context}
 {ende_regel}

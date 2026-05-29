@@ -249,6 +249,91 @@ def get_available_voices(user_id: str | None = None) -> list[dict]:
     return voices
 
 
+import re
+
+def strip_emotion_tags(text: str) -> str:
+    """Remove bracketed emotion tags like [whispering] or [excited]."""
+    text = re.sub(r'\[[^\]]+\]', '', text)
+    # Remove XML-like emotion tags but keep their contents e.g. <whisper>text</whisper> -> text
+    text = re.sub(r'<([^>|]+)>([\s\S]*?)<\/\1>', r'\2', text)
+    text = re.sub(r'<[^>|]+>', '', text)
+    return text
+
+def strip_speaker_tags(text: str) -> str:
+    """Remove speaker tags like <|speaker:0|>."""
+    return re.sub(r'<\|speaker:\d+\|>', '', text)
+
+def get_fish_voice_id(voice_key: str, user_id: str | None = None) -> str:
+    """Resolve a voice key to the actual Fish voice ID string."""
+    if voice_key in FISH_VOICES:
+        return FISH_VOICES[voice_key]["id"]
+    try:
+        with Session(db_engine) as db_session:
+            from app.models import UserVoice, SystemVoice
+            vk_clean = str(voice_key).strip().lower()
+            voice_obj = db_session.get(UserVoice, vk_clean)
+            if not voice_obj and user_id:
+                voice_obj = db_session.exec(
+                    select(UserVoice).where(UserVoice.fish_voice_id == vk_clean)
+                ).first()
+            if voice_obj:
+                return voice_obj.fish_voice_id
+            sys_voice = db_session.get(SystemVoice, voice_key)
+            if sys_voice and sys_voice.fish_voice_id:
+                return sys_voice.fish_voice_id
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Error resolving Fish ID: {e}")
+    return voice_key
+
+def get_multi_voice_refs(primary_voice_key: str, text: str, user_id: str | None = None) -> list[str]:
+    """Find unique speaker indices in text and map them to appropriate Fish voice IDs."""
+    speaker_indices = [int(x) for x in re.findall(r'<\|speaker:(\d+)\|>', text)]
+    if not speaker_indices:
+        return [get_fish_voice_id(primary_voice_key, user_id)]
+    max_speaker_idx = max(speaker_indices)
+    primary_id = get_fish_voice_id(primary_voice_key, user_id)
+    ref_ids = [primary_id] * (max_speaker_idx + 1)
+    if max_speaker_idx > 0:
+        all_voices = get_available_voices(user_id=user_id)
+        other_fish_voices = [
+            v for v in all_voices 
+            if v.get("engine") == "fish" and v.get("key") != primary_voice_key and v.get("key") != "none"
+        ]
+        for idx in range(1, max_speaker_idx + 1):
+            if other_fish_voices:
+                chosen_voice = other_fish_voices.pop(0)
+                ref_ids[idx] = get_fish_voice_id(chosen_voice["key"], user_id)
+            else:
+                ref_ids[idx] = primary_id
+    return ref_ids
+
+async def generate_fish_audio(text: str, output_path: Path, reference_ids: list[str], use_s2_pro: bool = False):
+    """Generate audio using Fish Audio API directly via httpx."""
+    import httpx
+    headers = {
+        "Authorization": f"Bearer {settings.FISH_API_KEY.strip()}",
+        "Content-Type": "application/json",
+    }
+    if use_s2_pro:
+        headers["model"] = "s2-pro"
+    payload = {
+        "text": text,
+        "format": "mp3",
+        "mp3_bitrate": 128,
+    }
+    if len(reference_ids) == 1:
+        payload["reference_id"] = reference_ids[0]
+    else:
+        payload["reference_id"] = reference_ids
+    async with httpx.AsyncClient(timeout=120.0) as client:
+        async with client.stream("POST", "https://api.fish.audio/v1/tts", headers=headers, json=payload) as response:
+            response.raise_for_status()
+            with open(output_path, "wb") as f:
+                async for chunk in response.iter_bytes():
+                    f.write(chunk)
+
+
 async def generate_tts_chunk(
     text: str,
     output_path: Path,
@@ -351,6 +436,12 @@ async def generate_tts_chunk(
 
     # Cleanup text: remove markdown formatting
     clean_text = text.replace("*", "").replace("_", "").replace("#", "")
+
+    # Cleanup emotion and speaker tags based on engine support
+    if engine not in ["fish", "xai"]:
+        clean_text = strip_emotion_tags(clean_text)
+    if engine != "fish":
+        clean_text = strip_speaker_tags(clean_text)
 
     try:
         if engine == "edge":
@@ -583,18 +674,38 @@ async def generate_tts_chunk(
             if not settings.FISH_API_KEY:
                 raise ValueError("Fish Audio API Key is missing.")
             
-            # Fish Audio SDK is synchronous, so we run it in a thread to avoid blocking the event loop
-            def _generate_fish():
-                with open(output_path, "wb") as f:
-                    session = FishSession(apikey=settings.FISH_API_KEY)
-                    for chunk in session.tts(TTSRequest(
-                        text=clean_text,
-                        reference_id=voice_config["id"],
-                        format="mp3"
-                    )):
-                        f.write(chunk)
+            # Check if text contains speaker tags for S2-Pro multi-speaker
+            has_speaker_tags = bool(re.search(r'<\|speaker:\d+\|>', clean_text))
             
-            await asyncio.to_thread(_generate_fish)
+            if has_speaker_tags:
+                user_id = None
+                try:
+                    story_id = output_path.parent.name
+                    if story_id == "chunks":
+                        story_id = output_path.parent.parent.name
+                    with Session(db_engine) as db_session:
+                        from app.models import StoryMeta
+                        story_obj = db_session.get(StoryMeta, story_id)
+                        if story_obj:
+                            user_id = story_obj.user_id
+                except Exception as db_err:
+                    logger.debug(f"Could not resolve user_id for multi-voice references: {db_err}")
+                
+                ref_ids = get_multi_voice_refs(voice_key, clean_text, user_id)
+                logger.info(f"TTS Fish S2-Pro: multi-voice enabled. Mapping references: {ref_ids}")
+                await generate_fish_audio(clean_text, output_path, ref_ids, use_s2_pro=True)
+            else:
+                # Fish Audio SDK is synchronous, so we run it in a thread to avoid blocking the event loop
+                def _generate_fish():
+                    with open(output_path, "wb") as f:
+                        session = FishSession(apikey=settings.FISH_API_KEY)
+                        for chunk in session.tts(TTSRequest(
+                            text=clean_text,
+                            reference_id=voice_config["id"],
+                            format="mp3"
+                        )):
+                            f.write(chunk)
+                await asyncio.to_thread(_generate_fish)
             return output_path, voice_key
 
     except Exception as e:

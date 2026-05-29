@@ -117,6 +117,15 @@ def on_startup():
             except Exception as e:
                 # Column likely already exists
                 pass
+
+            # Check if multi_voice exists, if not add it
+            try:
+                conn.execute(text("ALTER TABLE storymeta ADD COLUMN multi_voice BOOLEAN DEFAULT 0"))
+                conn.commit()
+                logger.info("Database Migration: Added multi_voice column to storymeta table.")
+            except Exception as e:
+                # Column likely already exists
+                pass
     except Exception as e:
         logger.error(f"Migration error: {e}")
     logger.info("Bedtime Stories API starting up - Running database initialization...")
@@ -425,7 +434,8 @@ async def start_generation(req: StoryRequest, current_user: User = Depends(get_c
         target_minutes=req.target_minutes,
         user_id=current_user.id,
         parent_id=req.parent_id,
-        original_prompt=req.prompt
+        original_prompt=req.prompt,
+        multi_voice=req.multi_voice
     )
 
     # Run generation in background
@@ -446,6 +456,7 @@ async def start_generation(req: StoryRequest, current_user: User = Depends(get_c
             further_instructions=req.further_instructions,
             parent_meta=parent_meta,
             parent_text=parent_text,
+            multi_voice=req.multi_voice
         )
     )
 
