@@ -56,26 +56,20 @@ GEMINI_VOICES = {
     "laomedeia":  {"id": "Laomedeia", "name": "Laomedeia",   "gender": "female",  "description": "Aufgeweckt & neugierig"},
     "despina":    {"id": "Despina",    "name": "Despina",     "gender": "female",  "description": "Sanft & fließend"},
     "umbriel":    {"id": "Umbriel",    "name": "Umbriel",     "gender": "neutral", "description": "Entspannt & vielseitig"},
-}
-
-
-# Fish Audio (Cloned Voices)
+}# Fish Audio (Cloned Voices)
 FISH_VOICES = {
     "jenny": {"id": "cb55f2fc1a144c74b70ea7fdeb6b9f95", "name": "Jenny", "gender": "female", "description": "Freundlich & entspannt"},
+    "christoph": {"id": "3ee58b7440a04e468868eab1a7fff651", "name": "Christoph Maria Herbst", "gender": "male", "description": "Ironisch & charakterstark"},
+    "katharina": {"id": "53c3de1d063f4ce4a027eab5497b2f11", "name": "Katharina Thalbach", "gender": "female", "description": "Knorrig & ausdrucksstark"},
 }
 
 # xAI Grok TTS voices
-# Native German voices (language=de, middle-aged)
+# Native German voices (language=de)
 XAI_VOICES = {
-    # --- Nativ Deutsch ---
-    "xai_felix": {"id": "e1fc5a89", "name": "Felix",  "gender": "male",   "language": "de", "description": "Natürlich & klar (DE)"},
-    "xai_sonja": {"id": "44c91d64", "name": "Sonja",  "gender": "female", "language": "de", "description": "Warm & fließend (DE)"},
-    # --- Multilingual ---
-    "xai_ara":   {"id": "ara",      "name": "Ara",    "gender": "female", "language": "de", "description": "Expressiv & warm"},
-    "xai_eve":   {"id": "eve",      "name": "Eve",    "gender": "female", "language": "de", "description": "Klar & ausdrucksstark"},
-    "xai_leo":   {"id": "leo",      "name": "Leo",    "gender": "male",   "language": "de", "description": "Dynamisch & lebendig"},
-    "xai_rex":   {"id": "rex",      "name": "Rex",    "gender": "male",   "language": "de", "description": "Tief & markant"},
-    "xai_sal":   {"id": "sal",      "name": "Sal",    "gender": "male",   "language": "de", "description": "Ausgewogen & vielseitig"},
+    "xai_clara":  {"id": "458705c07139", "name": "Clara (xAI)",  "gender": "female", "language": "de", "description": "Klar & natürlich"},
+    "xai_moritz": {"id": "41321eb41295", "name": "Moritz (xAI)", "gender": "male",   "language": "de", "description": "Freundlich & markant"},
+    "xai_niklas": {"id": "40f31906b23d", "name": "Niklas (xAI)", "gender": "male",   "language": "de", "description": "Jung & engagiert"},
+    "xai_lena":   {"id": "3a7889066fa2", "name": "Lena (xAI)",   "gender": "female", "language": "de", "description": "Ausdrucksstark & warm"},
 }
 
 
@@ -98,14 +92,13 @@ VOICE_INSTRUCTIONS = {
     "despina": "„Du hast eine kultivierte, elegante und gehobene Stimme. Deine Ausstrahlung ist aristokratisch und fließend.“",
     "umbriel": "„Deine Stimme ist locker, unkompliziert und flexibel. Du klingst wie jemand, der eine Geschichte ganz entspannt nebenbei erzählt.“",
     "jenny": "„Du bist eine Frau mit einer freundlichen und entspannten Stimme. Du klingst herzlich und gelassen.“",
+    "christoph": "„Du bist ein männlicher Erzähler mit einer ironischen, charakterstarken und pointierten Ausdrucksweise. Du sprichst deutlich und lebendig.“",
+    "katharina": "„Du bist eine weibliche Erzählerin mit einer knorrigen, sehr ausdrucksstarken und lebhaften Stimme. Du betonst theatralisch und intensiv.“",
     # xAI voices - kein system-prompt-Konzept fur TTS
-    "xai_felix": "",
-    "xai_sonja": "",
-    "xai_ara":   "",
-    "xai_eve":   "",
-    "xai_leo":   "",
-    "xai_rex":   "",
-    "xai_sal":   "",
+    "xai_clara":  "",
+    "xai_moritz": "",
+    "xai_niklas": "",
+    "xai_lena":   "",
 }
 
 # 1b. Genre Tweaks (User-Defined)

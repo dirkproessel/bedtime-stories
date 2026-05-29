@@ -65,6 +65,7 @@ def ensure_migrations():
             ("kindle_email", "TEXT"),
             ("avatar_url", "TEXT"),
             ("alexa_user_id", "TEXT"),
+            ("whatsapp_phone", "TEXT"),
             ("custom_voice_id", "TEXT"),
             ("custom_voice_name", "TEXT")
         ]
@@ -75,6 +76,8 @@ def ensure_migrations():
                 cur.execute(f"ALTER TABLE user ADD COLUMN {col_name} {col_type}")
                 if col_name == "alexa_user_id":
                     cur.execute("CREATE UNIQUE INDEX IF NOT EXISTS ix_user_alexa_user_id ON user (alexa_user_id)")
+                if col_name == "whatsapp_phone":
+                    cur.execute("CREATE UNIQUE INDEX IF NOT EXISTS ix_user_whatsapp_phone ON user (whatsapp_phone)")
                 conn.commit()
 
         if "created_at" not in [c.lower() for c in user_columns]:

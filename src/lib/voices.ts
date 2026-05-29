@@ -26,6 +26,12 @@ export const VOICE_META: Record<string, VoiceMeta> = {
     zephyr: { name: 'Robin', desc: 'Hell & frisch' },
     umbriel: { name: 'Alex', desc: 'Entspannt & vielseitig' },
     jenny: { name: 'Jenny', desc: 'Freundlich & entspannt' },
+    christoph: { name: 'Christoph Maria Herbst', desc: 'Ironisch & charakterstark' },
+    katharina: { name: 'Katharina Thalbach', desc: 'Knorrig & ausdrucksstark' },
+    xai_clara: { name: 'Clara (xAI)', desc: 'Klar & natürlich' },
+    xai_moritz: { name: 'Moritz (xAI)', desc: 'Freundlich & markant' },
+    xai_niklas: { name: 'Niklas (xAI)', desc: 'Jung & engagiert' },
+    xai_lena: { name: 'Lena (xAI)', desc: 'Ausdrucksstark & warm' },
     none: { name: 'Keine Stimme', desc: 'Nur Text generieren', isStandard: true },
 };
 

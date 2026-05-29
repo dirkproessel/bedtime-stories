@@ -98,7 +98,7 @@ class StoryStore:
                 logger.error(f"Failed to seed admin user: {e}")
 
     def _seed_system_voices(self):
-        """Seed system voices from tts_service constants. Upserts missing voices."""
+        """Seed system voices from tts_service constants. Upserts missing/updated voices and deactivates obsolete ones."""
         with Session(engine) as session:
             from app.services.tts_service import EDGE_VOICES, GEMINI_VOICES, FISH_VOICES, XAI_VOICES
             
@@ -109,6 +109,20 @@ class StoryStore:
                     new_voice = SystemVoice(id=k, name=name, engine=engine_name, gender=gender, description=description, fish_voice_id=fish_id)
                     session.add(new_voice)
                     return 1
+                else:
+                    updated = False
+                    if not existing.is_active:
+                        existing.is_active = True
+                        updated = True
+                    if existing.name != name:
+                        existing.name = name
+                        updated = True
+                    if existing.description != description:
+                        existing.description = description
+                        updated = True
+                    if updated:
+                        session.add(existing)
+                        return 1
                 return 0
                 
             added_count = 0
@@ -125,9 +139,22 @@ class StoryStore:
             for k, v in XAI_VOICES.items():
                 added_count += _upsert_voice(k, v['name'], "xai", v['gender'], v.get('description'))
 
-            if added_count > 0:
+            # Deactivate obsolete system voices
+            valid_keys = set(EDGE_VOICES.keys()) | set(GEMINI_VOICES.keys()) | set(FISH_VOICES.keys()) | set(XAI_VOICES.keys())
+            db_voices = session.exec(select(SystemVoice).where(SystemVoice.is_active == True)).all()
+            deactivated_count = 0
+            for db_v in db_voices:
+                if db_v.id not in valid_keys:
+                    db_v.is_active = False
+                    session.add(db_v)
+                    deactivated_count += 1
+
+            if added_count > 0 or deactivated_count > 0:
                 session.commit()
-                logger.info(f"Seeded {added_count} missing system voices into database.")
+                if added_count > 0:
+                    logger.info(f"Seeded/updated {added_count} system voices in database.")
+                if deactivated_count > 0:
+                    logger.info(f"Deactivated {deactivated_count} obsolete system voices in database.")
 
     def _repair_unassigned_stories(self):
         """DEPRECATED: Manual control preferred."""
