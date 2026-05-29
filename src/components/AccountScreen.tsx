@@ -14,6 +14,7 @@ function VoiceCloneItem({ voice, onUpdate }: { voice: any, onUpdate: (user: any)
         try {
             const updatedUser = await updateCustomVoice(voice.id, { name });
             onUpdate(updatedUser);
+            await useStore.getState().loadVoices();
             toast.success('Name gespeichert');
         } catch(e: any) {
             toast.error(e.message);
@@ -27,6 +28,7 @@ function VoiceCloneItem({ voice, onUpdate }: { voice: any, onUpdate: (user: any)
         try {
             const updatedUser = await updateCustomVoice(voice.id, { is_public: !voice.is_public });
             onUpdate(updatedUser);
+            await useStore.getState().loadVoices();
             toast.success(!voice.is_public ? 'Stimme ist nun öffentlich' : 'Stimme ist nun privat');
         } catch(e: any) {
             toast.error(e.message);
@@ -40,6 +42,7 @@ function VoiceCloneItem({ voice, onUpdate }: { voice: any, onUpdate: (user: any)
         try {
             const updatedUser = await deleteCustomVoice(voice.id);
             onUpdate(updatedUser);
+            await useStore.getState().loadVoices();
             toast.success('Stimme gelöscht');
         } catch(e: any) {
             toast.error(e.message);

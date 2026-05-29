@@ -209,6 +209,7 @@ export const useStore = create<AppState>((set, get) => {
             localStorage.setItem('auth_token', data.access_token);
             set({ token: data.access_token });
             await get().fetchUser();
+            await get().loadVoices();
             get().setActiveView('create');
         } catch (e: any) {
             set({ error: e.message });
@@ -239,6 +240,7 @@ export const useStore = create<AppState>((set, get) => {
             localStorage.setItem('auth_token', data.access_token);
             set({ token: data.access_token });
             await get().fetchUser();
+            await get().loadVoices();
             get().setActiveView('create');
         } catch (e: any) {
             set({ error: e.message });
@@ -271,6 +273,7 @@ export const useStore = create<AppState>((set, get) => {
             localStorage.setItem('auth_token', data.access_token);
             set({ token: data.access_token });
             await get().fetchUser();
+            await get().loadVoices();
         } catch (e: any) {
             set({ error: e.message });
             throw e;
