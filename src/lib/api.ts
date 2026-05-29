@@ -661,3 +661,25 @@ export async function adminAnalyzeStory(storyId: string): Promise<{
     }
     return res.json();
 }
+
+export async function adminAddVoice(data: {
+    name: string;
+    engine: string;
+    gender: string;
+    description?: string;
+    fish_voice_id?: string;
+}): Promise<VoiceProfile> {
+    const res = await fetch(`${API_BASE}/api/admin/voices`, {
+        method: 'POST',
+        headers: {
+            ...getAuthHeaders(),
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Fehler beim Erstellen der Stimme');
+    }
+    return res.json();
+}

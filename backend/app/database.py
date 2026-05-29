@@ -125,6 +125,7 @@ def ensure_migrations():
             sys_needed = [
                 ("description", "TEXT"),
                 ("is_active", "BOOLEAN DEFAULT 1"),
+                ("is_custom", "BOOLEAN DEFAULT 0"),
                 ("fish_voice_id", "TEXT"),
                 ("created_at", "DATETIME")
             ]

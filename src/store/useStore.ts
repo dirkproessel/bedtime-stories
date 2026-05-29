@@ -16,6 +16,7 @@ import {
     adminDeleteStory,
     adminListVoices,
     adminToggleVoice,
+    adminAddVoice,
     toggleStoryFavorite,
     revoiceStory as apiRevoiceStory,
     regenerateStoryImage as apiRegenerateStoryImage,
@@ -81,6 +82,7 @@ interface AppState {
     adminSystemVoices: SystemVoice[];
     loadAdminVoices: () => Promise<void>;
     toggleAdminVoice: (type: 'system' | 'clone', id: string) => Promise<void>;
+    addAdminVoice: (data: { name: string, engine: string, gender: string, description?: string, fish_voice_id?: string }) => Promise<void>;
     selectedStoryId: string | null;
     setSelectedStoryId: (id: string | null) => void;
     adminSubView: 'users' | 'stories' | 'voices' | 'experiment';
@@ -625,6 +627,19 @@ export const useStore = create<AppState>((set, get) => {
         } catch (e: any) {
             set({ error: e.message });
             throw e;
+        }
+    },
+
+    addAdminVoice: async (data) => {
+        set({ isLoading: true, error: null });
+        try {
+            await adminAddVoice(data);
+            await get().loadAdminVoices();
+        } catch (e: any) {
+            set({ error: e.message });
+            throw e;
+        } finally {
+            set({ isLoading: false });
         }
     },
     toggleFavorite: async (id) => {

@@ -311,6 +311,24 @@ async def generate_tts_chunk(
             except Exception as e:
                 logger.error(f"Error checking dynamic voice ID: {e}")
 
+    # Check database for custom system voice if not hardcoded
+    if voice_config is None:
+        try:
+            from app.models import SystemVoice
+            with Session(db_engine) as db_session:
+                sys_voice = db_session.get(SystemVoice, voice_key)
+                if sys_voice and sys_voice.is_active:
+                    engine = sys_voice.engine
+                    voice_config = {
+                        "id": sys_voice.fish_voice_id or sys_voice.id,
+                        "name": sys_voice.name,
+                        "gender": sys_voice.gender,
+                        "description": sys_voice.description
+                    }
+                    logger.info(f"TTS: Found system voice {sys_voice.name} ({engine}) in DB.")
+        except Exception as e:
+            logger.error(f"Error checking SystemVoice from DB: {e}")
+
     # Final engine check if not found yet
     if voice_config is None:
         if voice_key in GEMINI_VOICES:

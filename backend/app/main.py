@@ -70,6 +70,8 @@ from app.models import (
     UserResponse,
     SystemSettingResponse,
     SystemSettingUpdate,
+    SystemVoice,
+    SystemVoiceCreate,
 )
 from app.auth_utils import get_current_active_user, get_optional_user
 from fastapi import Depends
@@ -735,6 +737,64 @@ async def admin_toggle_voice(
         raise HTTPException(status_code=404, detail="Stimme nicht gefunden.")
     
     return {"new_state": new_state}
+
+
+@app.post("/api/admin/voices", response_model=VoiceProfile)
+async def admin_add_voice(
+    data: SystemVoiceCreate,
+    current_user: User = Depends(get_current_active_user)
+):
+    """Add a custom system voice (Admin only)."""
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Nur Admins dürfen Stimmen hinzufügen.")
+        
+    import re
+    import unicodedata
+
+    # Slugify name to create ID
+    slug = data.name.lower()
+    replacements = {"ä": "ae", "ö": "oe", "ü": "ue", "ß": "ss"}
+    for char, rep in replacements.items():
+        slug = slug.replace(char, rep)
+    slug = unicodedata.normalize('NFKD', slug).encode('ascii', 'ignore').decode('ascii')
+    slug = re.sub(r'[^\w\s-]', '', slug).strip()
+    slug = re.sub(r'[-\s]+', '_', slug)
+    
+    # Validation
+    if not slug:
+        raise HTTPException(status_code=400, detail="Ungültiger Anzeigename. Bitte wähle einen Namen mit Buchstaben oder Zahlen.")
+        
+    # Check if voice already exists
+    from app.database import get_session
+    from sqlmodel import select
+    with next(get_session()) as session:
+        existing = session.get(SystemVoice, slug)
+        if existing:
+            raise HTTPException(status_code=400, detail="Eine Stimme mit einem ähnlichen Anzeigenamen existiert bereits. Bitte wähle einen leicht geänderten Namen.")
+            
+    # Create the custom system voice
+    new_voice = SystemVoice(
+        id=slug,
+        name=data.name,
+        engine=data.engine,
+        gender=data.gender,
+        description=data.description,
+        is_active=True,
+        is_custom=True,
+        fish_voice_id=data.fish_voice_id
+    )
+    
+    try:
+        saved_voice = store.add_system_voice(new_voice)
+        return VoiceProfile(
+            key=saved_voice.id,
+            name=saved_voice.name,
+            gender=saved_voice.gender,
+            engine=saved_voice.engine,
+            description=saved_voice.description
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Fehler beim Speichern der Stimme: {str(e)}")
 
 
 @app.delete("/api/admin/users/{user_id}")

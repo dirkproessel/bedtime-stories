@@ -141,7 +141,7 @@ class StoryStore:
 
             # Deactivate obsolete system voices
             valid_keys = set(EDGE_VOICES.keys()) | set(GEMINI_VOICES.keys()) | set(FISH_VOICES.keys()) | set(XAI_VOICES.keys())
-            db_voices = session.exec(select(SystemVoice).where(SystemVoice.is_active == True)).all()
+            db_voices = session.exec(select(SystemVoice).where(SystemVoice.is_active == True, SystemVoice.is_custom == False)).all()
             deactivated_count = 0
             for db_v in db_voices:
                 if db_v.id not in valid_keys:
@@ -223,6 +223,14 @@ class StoryStore:
                 "clones": clones,
                 "system": system
             }
+
+    def add_system_voice(self, voice: SystemVoice) -> SystemVoice:
+        """Add a custom system voice directly to the database."""
+        with Session(engine) as session:
+            session.add(voice)
+            session.commit()
+            session.refresh(voice)
+            return voice
 
     def toggle_voice_active(self, voice_type: str, voice_id: str):
         """Toggle is_active for system voice or is_public for UserVoice (Admin override)."""

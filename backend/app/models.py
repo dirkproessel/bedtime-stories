@@ -46,6 +46,7 @@ class SystemVoice(SQLModel, table=True):
     gender: str  # "male", "female", "neutral"
     description: Optional[str] = Field(default=None)
     is_active: bool = Field(default=True)
+    is_custom: bool = Field(default=False)
     fish_voice_id: Optional[str] = Field(default=None)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -154,6 +155,13 @@ class UsernameUpdate(BaseModel):
 
 class VoiceNameUpdate(BaseModel):
     voice_name: str
+
+class SystemVoiceCreate(BaseModel):
+    name: str
+    engine: str
+    gender: str = "neutral"
+    description: Optional[str] = None
+    fish_voice_id: Optional[str] = None
 
 class StoryRequest(BaseModel):
     """Request to generate a new story."""
