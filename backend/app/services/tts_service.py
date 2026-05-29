@@ -330,7 +330,7 @@ async def generate_fish_audio(text: str, output_path: Path, reference_ids: list[
         async with client.stream("POST", "https://api.fish.audio/v1/tts", headers=headers, json=payload) as response:
             response.raise_for_status()
             with open(output_path, "wb") as f:
-                async for chunk in response.iter_bytes():
+                async for chunk in response.aiter_bytes():
                     f.write(chunk)
 
 
