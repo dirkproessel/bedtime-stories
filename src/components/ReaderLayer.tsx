@@ -31,7 +31,7 @@ export default function ReaderLayer() {
         revoiceStory, setGeneratorPrompt,
         setGeneratorGenre, setGeneratorAuthors, setGeneratorMinutes,
         setGeneratorVoice, setGeneratorRemix, setActiveView,
-        regenerateStoryImage, stories
+        regenerateStoryImage, stories, voices
     } = useStore();
     const [story, setStory] = useState<StoryDetail | null>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -44,6 +44,29 @@ export default function ReaderLayer() {
     const [selectedVoice, setSelectedVoice] = useState('seraphina');
     const [confirmRevoice, setConfirmRevoice] = useState(false);
     const [isRevoicing, setIsRevoicing] = useState(false);
+    const [revoiceMultiVoice, setRevoiceMultiVoice] = useState(false);
+
+    // Filter voices based on multi-voice setting
+    const filteredRevoiceVoices = useMemo(() => {
+        const list = voices.filter(v => v.key !== 'none');
+        if (revoiceMultiVoice) {
+            return list.filter(v => v.engine === 'fish');
+        }
+        return list;
+    }, [voices, revoiceMultiVoice]);
+
+    // Auto-select Fish voice if multi-voice toggled on
+    useEffect(() => {
+        if (revoiceMultiVoice) {
+            const selectedVoiceObj = voices.find(v => v.key === selectedVoice);
+            if (selectedVoiceObj?.engine !== 'fish') {
+                const firstFish = voices.find(v => v.engine === 'fish');
+                if (firstFish) {
+                    setSelectedVoice(firstFish.key);
+                }
+            }
+        }
+    }, [revoiceMultiVoice, selectedVoice, voices]);
 
     // Image Regeneration Modal
     const [showImageRegenModal, setShowImageRegenModal] = useState(false);
@@ -172,7 +195,7 @@ export default function ReaderLayer() {
         if (!readerStoryId) return;
         setIsRevoicing(true);
         try {
-            await revoiceStory(readerStoryId, selectedVoice);
+            await revoiceStory(readerStoryId, selectedVoice, '0%', revoiceMultiVoice);
             toast.success('Neuvertonung gestartet!');
             setShowRevoiceModal(false);
             setConfirmRevoice(false);
@@ -562,6 +585,8 @@ export default function ReaderLayer() {
 
                                     <button 
                                         onClick={() => {
+                                            setRevoiceMultiVoice(story?.multi_voice || false);
+                                            setSelectedVoice(story?.voice_key || 'seraphina');
                                             setShowRevoiceModal(true);
                                             setShowToolbox(false);
                                         }}
@@ -734,10 +759,28 @@ export default function ReaderLayer() {
 
                             {!confirmRevoice ? (
                                 <>
-                                    <p className="text-sm text-slate-400 mb-4">Wähle eine neue Stimme für diese Geschichte:</p>
-                                    <div className="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto mb-6 pr-1 custom-scrollbar">
-                                        {/* Voices list - assuming 'voices' are in store or can be fetched */}
-                                        {useStore.getState().voices.filter(v => v.key !== 'none').map(v => (
+                                     <div className="flex items-center justify-between p-3 bg-slate-900 border border-slate-800 rounded-xl mb-4">
+                                         <div className="flex items-center gap-3">
+                                             <div className={`p-1.5 rounded-lg ${revoiceMultiVoice ? 'bg-primary/20 text-primary' : 'bg-slate-800 text-slate-500'}`}>
+                                                 <Sparkles className="w-4 h-4" />
+                                             </div>
+                                             <div>
+                                                 <h4 className="text-xs font-bold text-slate-200">Hörspiel-Modus (Mehrere Sprecher)</h4>
+                                                 <p className="text-[10px] text-slate-500">Verteilt Rollen automatisch auf verschiedene Stimmen</p>
+                                             </div>
+                                         </div>
+                                         <button
+                                             type="button"
+                                             onClick={() => setRevoiceMultiVoice(!revoiceMultiVoice)}
+                                             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${revoiceMultiVoice ? 'bg-primary' : 'bg-slate-800 border border-slate-700/50'}`}
+                                         >
+                                             <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${revoiceMultiVoice ? 'translate-x-6' : 'translate-x-1'}`} />
+                                         </button>
+                                     </div>
+
+                                     <p className="text-sm text-slate-400 mb-4">Wähle eine neue Stimme für diese Geschichte:</p>
+                                     <div className="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto mb-6 pr-1 custom-scrollbar">
+                                         {filteredRevoiceVoices.map(v => (
                                             <div
                                                 key={v.key}
                                                 className={`p-3 rounded-xl transition-all border-2 cursor-pointer flex items-center justify-between ${selectedVoice === v.key

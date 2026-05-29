@@ -910,3 +910,63 @@ Antworte EXKLUSIV im JSON-Format:
             "synopsis": "",
             "highlights": ""
         }
+
+
+async def inject_speaker_tags_to_story(story_data: dict, supports_emotions: bool = False) -> dict:
+    """Analyze the story text and inject speaker tags (and optional emotion tags) using Gemini."""
+    # Convert story_data to a clean JSON string
+    input_json = json.dumps(story_data, ensure_ascii=False, indent=2)
+    
+    prompt = f"""Du bist ein Lektor und Hörspiel-Produzent. Deine Aufgabe ist es, eine bestehende Geschichte so aufzubereiten, dass sie mit mehreren Stimmen (S2-Pro Format) vertont werden kann.
+Dazu musst du den Erzähler und alle sprechenden Charaktere identifizieren, ihnen feste Sprecher-IDs zuweisen und die entsprechenden S2-Pro Sprecher-Tags (<|speaker:X|>) in den Text einfügen.
+
+REGELN:
+1. `<|speaker:0|>` ist IMMER der Erzähler (Narrator).
+2. `<|speaker:1|>`, `<|speaker:2|>`, `<|speaker:3|>` etc. sind die sprechenden Charaktere. Weise jedem Charakter eine feste, konsistente ID über alle Kapitel hinweg zu.
+3. Füge den jeweiligen Sprecher-Tag IMMER direkt vor dem Textabsatz oder dem gesprochenen Satz ein. Ändere den Sprecher-Tag nur, wenn ein anderer Charakter spricht oder der Erzähler fortfährt. Jede wörtliche Rede MUSS mit dem passenden Sprecher-Tag versehen werden.
+4. Ändere den eigentlichen Text der Geschichte (Wortlaut, Handlung) NICHT. Füge nur die Sprecher-Tags ein.
+5. Falls emotions_enabled True ist, kannst du optionale emotionale Ausdrücke in eckigen Klammern (z.B. [whispering], [laughing], [excited], [sad], [sighing]) am Satzanfang einfügen. Verwende diese sehr sparsam (maximal 1-2 pro Kapitel).
+
+emotions_enabled: {str(supports_emotions)}
+
+GESCHICHTE (JSON-Format):
+{input_json}
+
+Antworte EXKLUSIV im gleichen JSON-Format wie die Eingabe, wobei in jedem Kapitel das Feld 'text' mit den eingefügten Sprecher-Tags (und optionalen Emotions-Tags) aktualisiert wurde. Keine Erklärungen drumherum!"""
+
+    try:
+        await rate_limiter.wait_for_capacity("text")
+        text_model = store.get_system_setting("gemini_text_model", settings.GEMINI_TEXT_MODEL)
+        logger.info(f"Injecting speaker tags using model: {text_model}")
+        
+        response_text = await generate_text(
+            prompt=prompt,
+            model=text_model,
+            temperature=0.3, # Low temperature for strict consistency and JSON formatting
+            max_tokens=8192,
+            response_mime_type="application/json"
+        )
+        rate_limiter.increment_daily_quota("text")
+        
+        text = response_text.strip()
+        # Robust JSON extraction
+        json_match = re.search(r'\{.*\}', text, re.DOTALL)
+        if json_match:
+            text = json_match.group(0)
+        else:
+            if text.startswith("```json"):
+                text = text.replace("```json", "", 1).replace("```", "", 1).strip()
+            elif text.startswith("```"):
+                text = text.replace("```", "", 2).strip()
+                
+        output_data = json.loads(text)
+        # Ensure format matches original
+        if "chapters" in output_data and isinstance(output_data["chapters"], list):
+            return output_data
+        else:
+            logger.error("JSON returned by Gemini does not have 'chapters' list.")
+            return story_data
+    except Exception as e:
+        logger.error(f"Failed to inject speaker tags retroactively: {e}", exc_info=True)
+        return story_data
+

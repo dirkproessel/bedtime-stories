@@ -344,6 +344,7 @@ async def generate_tts_chunk(
     previous_text: str | None = None,
     on_chunk_progress: callable = None,
     direct_fish_id: str | None = None,
+    multi_voice: bool = False,
 ) -> tuple[Path, str]:
     """
     Convert text to speech and save as MP3.
@@ -440,7 +441,7 @@ async def generate_tts_chunk(
     # Cleanup emotion and speaker tags based on engine support
     if engine not in ["fish", "xai"]:
         clean_text = strip_emotion_tags(clean_text)
-    if engine != "fish":
+    if engine != "fish" or not multi_voice:
         clean_text = strip_speaker_tags(clean_text)
 
     try:
@@ -749,6 +750,7 @@ async def chapters_to_audio(
     on_progress: callable = None,
     synopsis: str | None = None,
     title: str | None = None,
+    multi_voice: bool = False,
 ) -> tuple[list[Path], str]:
     """
     Convert all chapters to individual MP3 chunks.
@@ -790,6 +792,7 @@ async def chapters_to_audio(
                 rate,
                 genre=genre,
                 previous_text=prev,
+                multi_voice=multi_voice,
             )
             if realized_voice != voice_key: actual_voice = realized_voice
             completed_chunks += 1
@@ -844,7 +847,8 @@ async def chapters_to_audio(
                 audio_files[file_idx], 
                 voice_key, 
                 rate, 
-                genre=genre
+                genre=genre,
+                multi_voice=multi_voice,
             )
             if realized_voice != voice_key: actual_voice = realized_voice
             completed_chunks += 1

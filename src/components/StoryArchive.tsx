@@ -389,6 +389,30 @@ export default function StoryArchive({ filterOverride }: { filterOverride?: 'my'
     const [confirmRevoice, setConfirmRevoice] = useState(false);
     const [revoicingId, setRevoicingId] = useState<string | null>(null);
     const [previewVoice, setPreviewVoice] = useState<string | null>(null);
+    const [revoiceMultiVoice, setRevoiceMultiVoice] = useState(false);
+
+    // Filter voices based on multi-voice setting
+    const filteredRevoiceVoices = useMemo(() => {
+        const list = voices.filter(v => v.key !== 'none');
+        if (revoiceMultiVoice) {
+            return list.filter(v => v.engine === 'fish');
+        }
+        return list;
+    }, [voices, revoiceMultiVoice]);
+
+    // Auto-select Fish voice if multi-voice toggled on
+    useEffect(() => {
+        if (revoiceMultiVoice) {
+            const selectedVoiceObj = voices.find(v => v.key === selectedVoice);
+            if (selectedVoiceObj?.engine !== 'fish') {
+                const firstFish = voices.find(v => v.engine === 'fish');
+                if (firstFish) {
+                    setSelectedVoice(firstFish.key);
+                }
+            }
+        }
+    }, [revoiceMultiVoice, selectedVoice, voices]);
+
     const [kindleEmail, setKindleEmail] = useState<string>(() => user?.kindle_email || localStorage.getItem('kindle_email') || 'dirk.proessel.runthaler@kindle.com');
     const [isExporting, setIsExporting] = useState<string | null>(null);
     const [showKindleModal, setShowKindleModal] = useState<string | null>(null);
@@ -1152,9 +1176,28 @@ export default function StoryArchive({ filterOverride }: { filterOverride?: 'my'
 
                             {!confirmRevoice ? (
                                 <>
+                                     <div className="flex items-center justify-between p-3 bg-slate-900 border border-slate-800 rounded-xl mb-4">
+                                         <div className="flex items-center gap-3">
+                                             <div className={`p-1.5 rounded-lg ${revoiceMultiVoice ? 'bg-primary/20 text-primary' : 'bg-slate-800 text-slate-500'}`}>
+                                                 <Sparkles className="w-4 h-4" />
+                                             </div>
+                                             <div>
+                                                 <h4 className="text-xs font-bold text-slate-200">Hörspiel-Modus (Mehrere Sprecher)</h4>
+                                                 <p className="text-[10px] text-slate-500">Verteilt Rollen automatisch auf verschiedene Stimmen</p>
+                                             </div>
+                                         </div>
+                                         <button
+                                             type="button"
+                                             onClick={() => setRevoiceMultiVoice(!revoiceMultiVoice)}
+                                             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${revoiceMultiVoice ? 'bg-primary' : 'bg-slate-800 border border-slate-700/50'}`}
+                                         >
+                                             <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${revoiceMultiVoice ? 'translate-x-6' : 'translate-x-1'}`} />
+                                         </button>
+                                     </div>
+
                                     <p className="text-sm text-slate-400 mb-4">Wähle eine neue Stimme für diese Geschichte:</p>
                                     <div className="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto mb-6 pr-1 custom-scrollbar">
-                                        {voices.filter(v => v.key !== 'none').map(v => (
+                                        {filteredRevoiceVoices.map(v => (
                                             <div
                                                 key={v.key}
                                                 className={`p-3 rounded-xl transition-all border-2 cursor-pointer flex items-center justify-between ${selectedVoice === v.key
@@ -1219,7 +1262,7 @@ export default function StoryArchive({ filterOverride }: { filterOverride?: 'my'
                                                 if (!revoiceStoryId) return;
                                                 setRevoicingId(revoiceStoryId);
                                                 try {
-                                                    await revoiceStory(revoiceStoryId, selectedVoice);
+                                                    await revoiceStory(revoiceStoryId, selectedVoice, '0%', revoiceMultiVoice);
                                                     toast.success('Neuvertonung gestartet!');
                                                     setRevoiceStoryId(null);
                                                     setConfirmRevoice(false);
@@ -1457,7 +1500,13 @@ export default function StoryArchive({ filterOverride }: { filterOverride?: 'my'
                                         </button>
 
                                         <button 
-                                            onClick={() => { setRevoiceStoryId(activeToolboxStory.id); setConfirmRevoice(false); setShowToolbox(null); }}
+                                             onClick={() => {
+                                                 setRevoiceStoryId(activeToolboxStory.id);
+                                                 setRevoiceMultiVoice(activeToolboxStory.multi_voice || false);
+                                                 setSelectedVoice(activeToolboxStory.voice_key || 'seraphina');
+                                                 setConfirmRevoice(false);
+                                                 setShowToolbox(null);
+                                             }}
                                             className="w-full flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-white/5 transition-all outline-none"
                                         >
                                             <div className="w-8 h-8 bg-[#064e3b] rounded-[0.4rem] flex items-center justify-center shrink-0 text-[#34d399]">

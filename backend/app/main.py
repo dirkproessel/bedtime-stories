@@ -466,6 +466,7 @@ async def start_generation(req: StoryRequest, current_user: User = Depends(get_c
 class RevoiceRequest(BaseModel):
     voice_key: str
     speech_rate: str = "0%"
+    multi_voice: bool = False
 
 
 @app.post("/api/stories/{story_id}/revoice")
@@ -494,6 +495,7 @@ async def start_revoice(
             story_id=story_id,
             voice_key=req.voice_key,
             speech_rate=req.speech_rate,
+            multi_voice=req.multi_voice,
         )
     )
 

@@ -112,6 +112,7 @@ class StoryService:
         parent_text: dict | None = None,
         alexa_user_id: str | None = None,
         multi_voice: bool = False,
+        parent_meta: any = None,
     ):
         """Full pipeline: text → TTS → merge → save."""
         logger.info(f"!!! STARTING PIPELINE for story {story_id} (Alexa: {alexa_user_id}) !!!")
@@ -291,6 +292,7 @@ class StoryService:
                 on_progress=tts_progress_wrapper,
                 synopsis=story_data.get("synopsis"),
                 title=story_data.get("title"),
+                multi_voice=multi_voice,
             )
 
             await on_progress("processing", "Finalisierung", points=total_points - 10, is_absolute_points=True)
@@ -329,7 +331,7 @@ class StoryService:
             logger.error(f"Pipeline error for {story_id}: {e}", exc_info=True)
             await on_progress("error", f"Fehler: {str(e)}")
 
-    async def run_revoice_pipeline(self, story_id: str, voice_key: str, speech_rate: str):
+    async def run_revoice_pipeline(self, story_id: str, voice_key: str, speech_rate: str, multi_voice: bool = False):
         """Revoice pipeline: load text → TTS → merge → save."""
         story_dir = settings.AUDIO_OUTPUT_DIR / story_id
         text_path = story_dir / "story.json"
@@ -339,6 +341,27 @@ class StoryService:
             return
 
         story_data = json.loads(text_path.read_text(encoding="utf-8"))
+        
+        # Check if the story already has speaker tags
+        has_speaker_tags = any("<|speaker:" in c.get("text", "") for c in story_data.get("chapters", []))
+        
+        # If multi-voice is requested, but the story lacks speaker tags, analyze it retroactively.
+        if multi_voice and not has_speaker_tags:
+            from app.services.story_generator import inject_speaker_tags_to_story
+            _generation_status[story_id] = {
+                "status": "generating_text",
+                "progress": "Analysiere Geschichte...",
+                "title": story_data.get("title"),
+            }
+            curr = store.get_by_id(story_id)
+            if curr:
+                curr.status = "generating"
+                curr.progress = "Analysiere Geschichte..."
+                store.add_story(curr)
+                
+            story_data = await inject_speaker_tags_to_story(story_data, supports_emotions=True)
+            text_path.write_text(json.dumps(story_data, ensure_ascii=False, indent=2), encoding="utf-8")
+            
         num_chapters = len(story_data["chapters"])
         
         # Recalculate word count from existing story.json
@@ -405,6 +428,7 @@ class StoryService:
                 on_progress=tts_progress_wrapper,
                 synopsis=story_data.get("synopsis"),
                 title=story_data.get("title"),
+                multi_voice=multi_voice,
             )
 
             await on_progress("processing", "Finalisierung", points=10 * num_chapters, is_absolute_points=True)
@@ -428,6 +452,7 @@ class StoryService:
                 curr.status = "done"
                 curr.progress = "Fertig!"
                 curr.progress_pct = 100
+                curr.multi_voice = multi_voice
                 store.add_story(curr)
 
         except Exception as e:

@@ -72,10 +72,22 @@ export default function StoryCreator() {
     }, [voices, voiceKey]);
 
     useEffect(() => {
-        if (!isAudioEnabled || !isFishVoiceSelected) {
+        if (!isAudioEnabled) {
             setGeneratorMultiVoice(false);
         }
-    }, [isAudioEnabled, isFishVoiceSelected, setGeneratorMultiVoice]);
+    }, [isAudioEnabled, setGeneratorMultiVoice]);
+
+    useEffect(() => {
+        if (generatorMultiVoice) {
+            const selectedVoiceObj = voices.find(v => v.key === voiceKey);
+            if (selectedVoiceObj?.engine !== 'fish') {
+                const firstFish = voices.find(v => v.engine === 'fish');
+                if (firstFish) {
+                    setVoiceKey(firstFish.key);
+                }
+            }
+        }
+    }, [generatorMultiVoice, voiceKey, voices, setVoiceKey]);
 
     const toggleAuthor = (id: string) => {
         setSelectedAuthors(
@@ -118,16 +130,21 @@ export default function StoryCreator() {
         return sortByPopularity(voices, popularity?.voices || [], v => v.key);
     }, [voices, popularity]);
 
-    const standardVoicesList = useMemo(() => 
-        voices
+    const standardVoicesList = useMemo(() => {
+        if (generatorMultiVoice) return []; // Multi-voice requires Fish engine
+        return voices
             .filter(v => STANDARD_VOICE_KEYS.includes(v.key))
             .filter(v => !isAudioEnabled || v.key !== 'none')
-            .sort((a, b) => STANDARD_VOICE_KEYS.indexOf(a.key) - STANDARD_VOICE_KEYS.indexOf(b.key))
-    , [voices, isAudioEnabled]);
+            .sort((a, b) => STANDARD_VOICE_KEYS.indexOf(a.key) - STANDARD_VOICE_KEYS.indexOf(b.key));
+    }, [voices, isAudioEnabled, generatorMultiVoice]);
 
-    const premiumVoicesList = useMemo(() => 
-        sortedVoices.filter(v => !isStandardVoice(v.key))
-    , [sortedVoices]);
+    const premiumVoicesList = useMemo(() => {
+        const list = sortedVoices.filter(v => !isStandardVoice(v.key));
+        if (generatorMultiVoice) {
+            return list.filter(v => v.engine === 'fish');
+        }
+        return list;
+    }, [sortedVoices, generatorMultiVoice]);
 
     const showVoiceHeadings = standardVoicesList.length > 0 && premiumVoicesList.length > 0;
 
@@ -460,7 +477,7 @@ export default function StoryCreator() {
                                 </button>
                             </div>
 
-                            {isAudioEnabled && isFishVoiceSelected && (
+                            {isAudioEnabled && (
                                 <div className="flex items-center justify-between p-4 bg-slate-800/40 border-2 border-slate-700/50 rounded-2xl animate-in slide-in-from-top-2 duration-200">
                                     <div className="flex items-center gap-3">
                                         <div className={`p-2 rounded-lg ${generatorMultiVoice ? 'bg-primary/20 text-primary' : 'bg-slate-700/50 text-slate-500'}`}>

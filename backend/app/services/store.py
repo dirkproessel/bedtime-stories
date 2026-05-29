@@ -111,9 +111,6 @@ class StoryStore:
                     return 1
                 else:
                     updated = False
-                    if not existing.is_active:
-                        existing.is_active = True
-                        updated = True
                     if existing.name != name:
                         existing.name = name
                         updated = True
