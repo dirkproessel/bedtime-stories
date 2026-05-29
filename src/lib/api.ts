@@ -88,6 +88,7 @@ export interface StoryMeta {
     updated_at: string;
     highlights?: string;
     is_favorite: boolean;
+    multi_voice?: boolean;
 }
 
 export interface StoryDetail extends StoryMeta {

@@ -66,11 +66,6 @@ export default function StoryCreator() {
 
     const [isAudioEnabled, setIsAudioEnabled] = useState(false);
 
-    const isFishVoiceSelected = useMemo(() => {
-        const selectedVoice = voices.find(v => v.key === voiceKey);
-        return selectedVoice?.engine === 'fish';
-    }, [voices, voiceKey]);
-
     useEffect(() => {
         if (!isAudioEnabled) {
             setGeneratorMultiVoice(false);
