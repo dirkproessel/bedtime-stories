@@ -933,6 +933,7 @@ REGELN:
 3. Füge den jeweiligen Sprecher-Tag IMMER direkt vor dem Textabsatz oder dem gesprochenen Satz ein. Ändere den Sprecher-Tag nur, wenn ein anderer Charakter spricht oder der Erzähler fortfährt. Jede wörtliche Rede MUSS mit dem passenden Sprecher-Tag versehen werden.
 4. Ändere den eigentlichen Text der Geschichte (Wortlaut, Handlung) NICHT. Füge nur die Sprecher-Tags ein.
 5. Falls emotions_enabled True ist, kannst du optionale emotionale Ausdrücke in eckigen Klammern (z.B. [whispering], [laughing], [excited], [sad], [sighing]) am Satzanfang einfügen. Verwende diese sehr sparsam (maximal 1-2 pro Kapitel).
+6. WICHTIG - ABSÄTZE & ZEILENUMBRÜCHE: Behalte alle Zeilenumbrüche und Absätze (insbesondere doppelte Zeilenumbrüche zwischen Absätzen) exakt bei. Die Struktur der Absätze darf keinesfalls zusammengezogen oder in eine einzelne Zeile konvertiert werden! Jeder Absatz muss durch einen doppelten Zeilenumbruch (\\n\\n) getrennt bleiben.
 
 emotions_enabled: {str(supports_emotions)}
 
