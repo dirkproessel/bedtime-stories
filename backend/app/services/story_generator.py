@@ -919,28 +919,68 @@ Antworte EXKLUSIV im JSON-Format:
         }
 
 
+class TaggedChapter(BaseModel):
+    title: str
+    text: str
+
+class SpeakerAnalysis(BaseModel):
+    all_characters_in_story: list[str]
+    actually_speaking_characters: list[str]
+    silent_characters_to_exclude: list[str]
+
+class SpeakerMappingItem(BaseModel):
+    speaker_id: int
+    character_name: str
+
+class TaggedStoryResponse(BaseModel):
+    analysis: SpeakerAnalysis
+    speaker_mapping: list[SpeakerMappingItem]
+    chapters: list[TaggedChapter]
+
+
 async def inject_speaker_tags_to_story(story_data: dict, supports_emotions: bool = False) -> dict:
     """Analyze the story text and inject speaker tags (and optional emotion tags) using Gemini."""
     # Convert story_data to a clean JSON string
     input_json = json.dumps(story_data, ensure_ascii=False, indent=2)
     
     prompt = f"""Du bist ein Lektor und Hörspiel-Produzent. Deine Aufgabe ist es, eine bestehende Geschichte so aufzubereiten, dass sie mit mehreren Stimmen (S2-Pro Format) vertont werden kann.
-Dazu musst du den Erzähler und alle sprechenden Charaktere identifizieren, ihnen feste Sprecher-IDs zuweisen und die entsprechenden S2-Pro Sprecher-Tags (<|speaker:X|>) in den Text einfügen.
+Dazu musst du den Erzähler und alle tatsächlich sprechenden Charaktere identifizieren, ihnen feste Sprecher-IDs zuweisen und die entsprechenden S2-Pro Sprecher-Tags (<|speaker:X|>) in den Text einfügen.
 
 REGELN:
-1. `<|speaker:0|>` ist IMMER der Erzähler (Narrator).
-2. `<|speaker:1|>`, `<|speaker:2|>`, `<|speaker:3|>` etc. sind die sprechenden Charaktere. Weise jedem Charakter eine feste, konsistente ID über alle Kapitel hinweg zu.
-3. Füge den jeweiligen Sprecher-Tag IMMER direkt vor dem Textabsatz oder dem gesprochenen Satz ein. Ändere den Sprecher-Tag nur, wenn ein anderer Charakter spricht oder der Erzähler fortfährt. Jede wörtliche Rede MUSS mit dem passenden Sprecher-Tag versehen werden.
-4. Ändere den eigentlichen Text der Geschichte (Wortlaut, Handlung) NICHT. Füge nur die Sprecher-Tags ein.
-5. Falls emotions_enabled True ist, kannst du optionale emotionale Ausdrücke in eckigen Klammern (z.B. [whispering], [laughing], [excited], [sad], [sighing]) am Satzanfang einfügen. Verwende diese sehr sparsam (maximal 1-2 pro Kapitel).
-6. WICHTIG - ABSÄTZE & ZEILENUMBRÜCHE: Behalte alle Zeilenumbrüche und Absätze (insbesondere doppelte Zeilenumbrüche zwischen Absätzen) exakt bei. Die Struktur der Absätze darf keinesfalls zusammengezogen oder in eine einzelne Zeile konvertiert werden! Jeder Absatz muss durch einen doppelten Zeilenumbruch (\\n\\n) getrennt bleiben.
+1. NARRATOR & ICH-PERSPEKTIVE (<|speaker:0|>):
+   - `<|speaker:0|>` ist IMMER der Erzähler (Narrator).
+   - WICHTIG: Wenn die Geschichte aus der Ich-Perspektive erzählt wird (z.B. "Ich stehe in der Küche...", "sage ich laut zu mir selbst"), gehört die direkte Rede der Hauptfigur ("Ich") ebenfalls zu `<|speaker:0|>`. Sie darf NIEMALS eine eigene Sprecher-ID wie `<|speaker:1|>` erhalten! Die Hauptfigur und der Erzähler sind dieselbe physische Person und Stimme, daher müssen beide `<|speaker:0|>` nutzen.
+
+2. SPRECHENDE CHARAKTERE:
+   - `<|speaker:1|>`, `<|speaker:2|>`, `<|speaker:3|>` etc. sind die IDs für die anderen Charaktere, die in der Geschichte TATSÄCHLICH sprechen.
+   - Weise jedem Charakter eine feste, konsistente ID über alle Kapitel hinweg zu.
+
+3. SPRECHER-TAGS EINFÜGEN:
+   - Füge den jeweiligen Sprecher-Tag IMMER direkt vor dem Textabsatz oder dem gesprochenen Satz ein.
+   - Ändere den Sprecher-Tag nur, wenn ein anderer Charakter spricht oder der Erzähler fortfährt.
+   - Jede wörtliche Rede MUSS mit dem passenden Sprecher-Tag versehen werden.
+
+4. TEXT NICHT VERÄNDERN:
+   - Ändere den eigentlichen Text der Geschichte (Wortlaut, Zeichensetzung, Handlung) NICHT. Füge nur die Sprecher-Tags ein.
+
+5. EMOTIONEN (OPTIONAL):
+   - Falls emotions_enabled True ist, kannst du optionale emotionale Ausdrücke in eckigen Klammern (z.B. [whispering], [laughing], [excited], [sad], [sighing]) direkt nach dem Sprecher-Tag einfügen. Verwende diese sehr sparsam (maximal 1-2 pro Kapitel).
+
+6. ABSÄTZE & ZEILENUMBRÜCHE (SEHR WICHTIG):
+   - Behalte alle Zeilenumbrüche und Absätze (insbesondere doppelte Zeilenumbrüche zwischen Absätzen) exakt bei.
+   - Die Struktur der Absätze darf keinesfalls zusammengezogen oder in eine einzelne Zeile konvertiert werden! Jeder Absatz muss durch einen doppelten Zeilenumbruch (\\n\\n) getrennt bleiben.
+
+7. NUR TATSÄCHLICH SPRECHENDE ROLLEN (STRIKTE AUSSCHLÜSSE):
+   - Weise Sprecher-Tags (wie <|speaker:1|>, <|speaker:2|>) NUR Absätzen oder Sätzen zu, in denen ein Charakter tatsächlich wörtliche Rede spricht (oder laut im Dialog spricht).
+   - Stumme Charaktere (die anwesend sind, beschrieben werden, aber kein Wort sprechen), erwähnte Personen, Gegenstände, Tiere oder Roboter (die Geräusche machen, aber nicht sprechen) dürfen KEINEN eigenen Sprecher-Tag erhalten!
+   - Jegliche Beschreibungen, Handlungen oder Geräusche dieser stummen/nicht sprechenden Entitäten müssen vom Erzähler (<|speaker:0|>) vorgelesen werden.
+   - Beispiel: Wenn "Mama" in die Küche kommt und keinen Ton herausbringt, spricht sie nicht. Der Absatz wird komplett vom Erzähler (<|speaker:0|>) gelesen.
+   - Beispiel: Wenn "Staubi" fiept, spricht er nicht. Der Absatz wird vom Erzähler (<|speaker:0|>) gelesen.
 
 emotions_enabled: {str(supports_emotions)}
 
 GESCHICHTE (JSON-Format):
-{input_json}
-
-Antworte EXKLUSIV im gleichen JSON-Format wie die Eingabe, wobei in jedem Kapitel das Feld 'text' mit den eingefügten Sprecher-Tags (und optionalen Emotions-Tags) aktualisiert wurde. Keine Erklärungen drumherum!"""
+{input_json}"""
 
     try:
         await rate_limiter.wait_for_capacity("text")
@@ -950,14 +990,14 @@ Antworte EXKLUSIV im gleichen JSON-Format wie die Eingabe, wobei in jedem Kapite
         response_text = await generate_text(
             prompt=prompt,
             model=text_model,
-            temperature=0.3, # Low temperature for strict consistency and JSON formatting
+            temperature=0.1, # Low temperature for strict consistency
             max_tokens=8192,
-            response_mime_type="application/json"
+            response_mime_type="application/json",
+            response_schema=TaggedStoryResponse
         )
         rate_limiter.increment_daily_quota("text")
         
         text = response_text.strip()
-        # Robust JSON extraction
         json_match = re.search(r'\{.*\}', text, re.DOTALL)
         if json_match:
             text = json_match.group(0)
@@ -968,9 +1008,18 @@ Antworte EXKLUSIV im gleichen JSON-Format wie die Eingabe, wobei in jedem Kapite
                 text = text.replace("```", "", 2).strip()
                 
         output_data = json.loads(text)
-        # Ensure format matches original
+        
         if "chapters" in output_data and isinstance(output_data["chapters"], list):
-            return output_data
+            # Merge tagged text back into original story_data
+            for i, chap in enumerate(output_data["chapters"]):
+                if i < len(story_data.get("chapters", [])) and "text" in chap:
+                    story_data["chapters"][i]["text"] = chap["text"]
+            
+            # Save the speaker_mapping in story_data
+            if "speaker_mapping" in output_data:
+                story_data["speaker_mapping"] = output_data["speaker_mapping"]
+                
+            return story_data
         else:
             logger.error("JSON returned by Gemini does not have 'chapters' list.")
             return story_data
@@ -992,6 +1041,32 @@ class SpeakersAnalysisSchema(BaseModel):
 
 async def extract_speakers_from_tagged_story(story_data: dict) -> list[dict]:
     """Analyze the story text and map speaker IDs to character names."""
+    # Check if speaker_mapping was already stored in story_data during tag injection
+    if "speaker_mapping" in story_data:
+        speakers = []
+        for item in story_data["speaker_mapping"]:
+            if isinstance(item, dict):
+                sid = item.get("speaker_id")
+                name = item.get("character_name")
+            else:
+                sid = getattr(item, "speaker_id", None)
+                name = getattr(item, "character_name", None)
+            
+            if sid is not None and name is not None:
+                is_narrator = (sid == 0)
+                role = "narrator" if is_narrator else "character"
+                speakers.append({
+                    "id": sid,
+                    "name": name,
+                    "is_narrator": is_narrator,
+                    "role": role
+                })
+        if speakers:
+            logger.info("Found pre-extracted speaker mapping in story_data. Using it directly.")
+            # Ensure the speakers are sorted by ID
+            speakers.sort(key=lambda s: s["id"])
+            return speakers
+
     full_text = ""
     for idx, c in enumerate(story_data.get("chapters", [])):
         full_text += f"\n\n--- Kapitel {idx + 1} ---\n{c.get('text', '')}"
