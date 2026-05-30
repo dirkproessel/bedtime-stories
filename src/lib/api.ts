@@ -507,6 +507,7 @@ export interface SpeakerInfo {
     name: string;
     is_narrator: boolean;
     role: string;
+    gender?: string;
 }
 
 export async function analyzeStorySpeakers(storyId: string): Promise<{ speakers: SpeakerInfo[] }> {

@@ -432,20 +432,44 @@ export default function StoryArchive({ filterOverride }: { filterOverride?: 'my'
                     
                     initialMap[0] = defaultNarrator;
                     
-                    let fishIndex = 0;
+                    // Filter out defaultNarrator from candidates if possible
+                    const candidates = fishVoices.filter(v => v.key !== defaultNarrator);
+                    const pool = candidates.length > 0 ? candidates : fishVoices;
+                    
+                    const usedKeys = new Set<string>();
+                    usedKeys.add(defaultNarrator);
+                    
                     res.speakers.forEach(sp => {
-                        if (sp.id > 0) {
-                            // Find a distinct fish voice for direct speech roles
-                            const otherVoices = fishVoices.filter(v => v.key !== defaultNarrator);
-                            if (otherVoices.length > 0) {
-                                const chosen = otherVoices[fishIndex % otherVoices.length];
-                                initialMap[sp.id] = chosen.key;
-                                fishIndex++;
-                            } else {
-                                initialMap[sp.id] = defaultNarrator;
-                            }
+                        if (sp.id === 0) return;
+                        
+                        const spGender = (sp.gender || 'neutral').toLowerCase();
+                        
+                        // 1. Try to find an unused voice of matching gender
+                        let chosen = pool.find(v => (v.gender || 'neutral').toLowerCase() === spGender && !usedKeys.has(v.key));
+                        
+                        // 2. Fall back to any voice of matching gender (even if already used)
+                        if (!chosen) {
+                            chosen = pool.find(v => (v.gender || 'neutral').toLowerCase() === spGender);
+                        }
+                        
+                        // 3. Fall back to any unused voice of any gender
+                        if (!chosen) {
+                            chosen = pool.find(v => !usedKeys.has(v.key));
+                        }
+                        
+                        // 4. Fall back to first available in pool
+                        if (!chosen) {
+                            chosen = pool[0];
+                        }
+                        
+                        if (chosen) {
+                            initialMap[sp.id] = chosen.key;
+                            usedKeys.add(chosen.key);
+                        } else {
+                            initialMap[sp.id] = defaultNarrator;
                         }
                     });
+                    
                     setSpeakerVoices(initialMap);
                 })
                 .catch((err) => {

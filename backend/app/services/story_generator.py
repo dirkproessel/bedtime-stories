@@ -919,6 +919,8 @@ Antworte EXKLUSIV im JSON-Format:
         }
 
 
+from pydantic import Field
+
 class TaggedChapter(BaseModel):
     title: str
     text: str
@@ -931,6 +933,7 @@ class SpeakerAnalysis(BaseModel):
 class SpeakerMappingItem(BaseModel):
     speaker_id: int
     character_name: str
+    gender: str = Field(default="neutral", description="Geschlecht der Person/Rolle: 'male' (männlich, z.B. Leo, Herr Kunze), 'female' (weiblich, z.B. Mia, Königin) oder 'neutral' (neutral, Tier, Roboter).")
 
 class TaggedStoryResponse(BaseModel):
     analysis: SpeakerAnalysis
@@ -1033,6 +1036,7 @@ class SpeakerInfo(BaseModel):
     name: str
     is_narrator: bool
     role: str
+    gender: str = "neutral"
 
 
 class SpeakersAnalysisSchema(BaseModel):
@@ -1048,9 +1052,11 @@ async def extract_speakers_from_tagged_story(story_data: dict) -> list[dict]:
             if isinstance(item, dict):
                 sid = item.get("speaker_id")
                 name = item.get("character_name")
+                gender = item.get("gender", "neutral")
             else:
                 sid = getattr(item, "speaker_id", None)
                 name = getattr(item, "character_name", None)
+                gender = getattr(item, "gender", "neutral")
             
             if sid is not None and name is not None:
                 is_narrator = (sid == 0)
@@ -1059,7 +1065,8 @@ async def extract_speakers_from_tagged_story(story_data: dict) -> list[dict]:
                     "id": sid,
                     "name": name,
                     "is_narrator": is_narrator,
-                    "role": role
+                    "role": role,
+                    "gender": gender
                 })
         if speakers:
             logger.info("Found pre-extracted speaker mapping in story_data. Using it directly.")
@@ -1072,12 +1079,12 @@ async def extract_speakers_from_tagged_story(story_data: dict) -> list[dict]:
         full_text += f"\n\n--- Kapitel {idx + 1} ---\n{c.get('text', '')}"
         
     prompt = f"""Du bist ein Hörspiel-Produzent. Analysiere den folgenden Text, der S2-Pro Sprecher-Tags (wie <|speaker:0|>, <|speaker:1|>, etc.) enthält.
-Identifiziere für jeden Sprecher-Tag die Person/Rolle in der Geschichte.
+Identifiziere für jeden Sprecher-Tag die Person/Rolle in der Geschichte und bestimme ihr Geschlecht ('male' für männlich, 'female' für weiblich, 'neutral' für neutral/unbekannt/Tier/Gegenstand).
 
 REGELN:
 1. `<|speaker:0|>` ist immer der Erzähler (Narrator). Finde heraus, ob aus der Ich-Perspektive erzählt wird. Wenn ja, nenne den Namen der Person sowie Erzähler (z.B. "Name / Erzähler"). Wenn aus der dritten Person erzählt wird, nenne es einfach "Erzähler".
 2. Für alle anderen IDs (`<|speaker:1|>, <|speaker:2|>`, etc.), nenne den Namen der jeweiligen Person/Figur aus der Geschichte.
-3. Antworte ausschließlich im JSON-Format gemäß des Schemas.
+3. Bestimme das Geschlecht für jeden Sprecher und antworte im JSON-Format gemäß des Schemas.
 
 TEXT:
 {full_text[:8000]}
@@ -1117,9 +1124,9 @@ TEXT:
         fallback_speakers = []
         for sid in sorted(list(speaker_ids)):
             if sid == 0:
-                fallback_speakers.append({"id": 0, "name": "Erzähler", "is_narrator": True, "role": "narrator"})
+                fallback_speakers.append({"id": 0, "name": "Erzähler", "is_narrator": True, "role": "narrator", "gender": "neutral"})
             else:
-                fallback_speakers.append({"id": sid, "name": f"Person {sid}", "is_narrator": False, "role": "character"})
+                fallback_speakers.append({"id": sid, "name": f"Person {sid}", "is_narrator": False, "role": "character", "gender": "neutral"})
         return fallback_speakers
 
 
