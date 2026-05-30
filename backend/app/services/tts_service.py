@@ -12,7 +12,6 @@ from app.services.rate_limiter import rate_limiter
 from sqlmodel import Session, select
 from app.database import engine as db_engine
 from app.models import User
-from fish_audio_sdk import Session as FishSession, TTSRequest
 
 # Available Edge TTS German voices (Simplified)
 EDGE_VOICES = {
@@ -696,17 +695,9 @@ async def generate_tts_chunk(
                 logger.info(f"TTS Fish S2-Pro: multi-voice enabled. Mapping references: {ref_ids}")
                 await generate_fish_audio(clean_text, output_path, ref_ids, use_s2_pro=True)
             else:
-                # Fish Audio SDK is synchronous, so we run it in a thread to avoid blocking the event loop
-                def _generate_fish():
-                    with open(output_path, "wb") as f:
-                        session = FishSession(apikey=settings.FISH_API_KEY)
-                        for chunk in session.tts(TTSRequest(
-                            text=clean_text,
-                            reference_id=voice_config["id"],
-                            format="mp3"
-                        )):
-                            f.write(chunk)
-                await asyncio.to_thread(_generate_fish)
+                # Use S2 Pro for single voice as well to support [bracket] emotion tags
+                logger.info(f"TTS Fish S2-Pro: single-voice enabled. Reference: {voice_config['id']}")
+                await generate_fish_audio(clean_text, output_path, [voice_config["id"]], use_s2_pro=True)
             return output_path, voice_key
 
     except Exception as e:

@@ -92,6 +92,7 @@ async def main():
     headers = {
         "Authorization": f"Bearer {API_KEY.strip()}",
         "Content-Type": "application/json",
+        "model": "s2-pro",
     }
     payload = {
         "text": TEXT,

@@ -69,6 +69,7 @@ async def generate(text: str, output_path: Path, label: str):
     headers = {
         "Authorization": f"Bearer {API_KEY.strip()}",
         "Content-Type": "application/json",
+        "model": "s2-pro",
     }
     payload = {
         "text": text,
