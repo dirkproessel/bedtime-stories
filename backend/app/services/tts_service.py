@@ -316,12 +316,32 @@ def get_multi_voice_refs(primary_voice_key: str, text: str, user_id: str | None 
                     ref_ids[idx] = get_fish_voice_id(chosen_voice["key"], user_id)
                 else:
                     ref_ids[idx] = primary_id
+
+    # Enforce safety limit of at most 4 unique voice IDs to prevent "Reference audio too long"
+    if len(set(ref_ids)) > 4:
+        unique_ids = []
+        mapped_ids = []
+        for voice_id in ref_ids:
+            if voice_id not in unique_ids:
+                if len(unique_ids) < 4:
+                    unique_ids.append(voice_id)
+                    mapped_ids.append(voice_id)
+                else:
+                    fallback_idx = 1 if len(unique_ids) > 1 else 0
+                    mapped_ids.append(unique_ids[fallback_idx])
+            else:
+                mapped_ids.append(voice_id)
+        ref_ids = mapped_ids
+
     return ref_ids
 
 
 async def generate_fish_audio(text: str, output_path: Path, reference_ids: list[str], use_s2_pro: bool = False):
     """Generate audio using Fish Audio API directly via httpx."""
     import httpx
+    import logging
+    logger = logging.getLogger(__name__)
+
     headers = {
         "Authorization": f"Bearer {settings.FISH_API_KEY.strip()}",
         "Content-Type": "application/json",
@@ -337,12 +357,22 @@ async def generate_fish_audio(text: str, output_path: Path, reference_ids: list[
         payload["reference_id"] = reference_ids[0]
     else:
         payload["reference_id"] = reference_ids
+
     async with httpx.AsyncClient(timeout=120.0) as client:
         async with client.stream("POST", "https://api.fish.audio/v1/tts", headers=headers, json=payload) as response:
-            response.raise_for_status()
+            try:
+                response.raise_for_status()
+            except httpx.HTTPStatusError as e:
+                try:
+                    err_body = await response.aread()
+                    logger.error(f"Fish API Error Details: {err_body.decode('utf-8', errors='ignore')}")
+                except Exception:
+                    pass
+                raise e
             with open(output_path, "wb") as f:
                 async for chunk in response.aiter_bytes():
                     f.write(chunk)
+
 
 
 async def generate_tts_chunk(
@@ -703,15 +733,119 @@ async def generate_tts_chunk(
                             user_id = story_obj.user_id
                 except Exception as db_err:
                     logger.debug(f"Could not resolve user_id for multi-voice references: {db_err}")
-                
-                ref_ids = get_multi_voice_refs(voice_key, clean_text, user_id, speaker_voices)
-                logger.info(f"TTS Fish S2-Pro: multi-voice enabled. Mapping references: {ref_ids}")
-                await generate_fish_audio(clean_text, output_path, ref_ids, use_s2_pro=True)
+
+                # Split text into paragraphs and dynamically group them to avoid exceeding 4 unique voices
+                paragraphs = [p.strip() for p in clean_text.replace("\r\n", "\n").split("\n\n") if p.strip()]
+                sub_chunks = []
+                current_chunk_paragraphs = []
+                current_chunk_speakers = set()
+
+                for p in paragraphs:
+                    p_speakers = set(int(x) for x in re.findall(r'<\|speaker:(\d+)\|>', p))
+                    potential_speakers = current_chunk_speakers.union(p_speakers)
+                    if len(potential_speakers) > 4 and current_chunk_paragraphs:
+                        sub_chunks.append(("\n\n".join(current_chunk_paragraphs), current_chunk_speakers))
+                        current_chunk_paragraphs = [p]
+                        current_chunk_speakers = p_speakers
+                    else:
+                        current_chunk_paragraphs.append(p)
+                        current_chunk_speakers = potential_speakers
+
+                if current_chunk_paragraphs:
+                    sub_chunks.append(("\n\n".join(current_chunk_paragraphs), current_chunk_speakers))
+
+                # Resolve all other fish voices for fallback
+                all_voices = get_available_voices(user_id=user_id)
+                primary_key = (speaker_voices or {}).get("0", voice_key)
+                other_fish_voices = [
+                    v for v in all_voices 
+                    if v.get("engine") == "fish" and v.get("key") != primary_key and v.get("key") != "none"
+                ]
+
+                # Process each sub-chunk
+                sub_chunks_to_process = []
+                for sc_text, sc_speakers in sub_chunks:
+                    # Sort speakers with 0 first
+                    sorted_speakers = sorted(list(sc_speakers), key=lambda x: (x != 0, x))
+                    speaker_map = {old_idx: new_idx for new_idx, old_idx in enumerate(sorted_speakers)}
+
+                    def replace_tag(match):
+                        old_idx = int(match.group(1))
+                        return f"<|speaker:{speaker_map[old_idx]}|>"
+
+                    rewritten_text = re.sub(r'<\|speaker:(\d+)\|>', replace_tag, sc_text)
+
+                    # Resolve reference IDs for this sub-chunk
+                    sc_ref_ids = []
+                    for old_idx in sorted_speakers:
+                        if speaker_voices and str(old_idx) in speaker_voices:
+                            chosen_key = speaker_voices[str(old_idx)]
+                            sc_ref_ids.append(get_fish_voice_id(chosen_key, user_id))
+                        else:
+                            if old_idx == 0:
+                                sc_ref_ids.append(get_fish_voice_id(primary_key, user_id))
+                            else:
+                                if other_fish_voices:
+                                    chosen_voice = other_fish_voices[(old_idx - 1) % len(other_fish_voices)]
+                                    sc_ref_ids.append(get_fish_voice_id(chosen_voice["key"], user_id))
+                                else:
+                                    sc_ref_ids.append(get_fish_voice_id(primary_key, user_id))
+
+                    # Enforce safety limit of 4 unique voice IDs (fallback)
+                    if len(set(sc_ref_ids)) > 4:
+                        unique_ids = []
+                        mapped_ids = []
+                        for voice_id in sc_ref_ids:
+                            if voice_id not in unique_ids:
+                                if len(unique_ids) < 4:
+                                    unique_ids.append(voice_id)
+                                    mapped_ids.append(voice_id)
+                                else:
+                                    fallback_idx = 1 if len(unique_ids) > 1 else 0
+                                    mapped_ids.append(unique_ids[fallback_idx])
+                            else:
+                                mapped_ids.append(voice_id)
+                        sc_ref_ids = mapped_ids
+
+                    sub_chunks_to_process.append((rewritten_text, sc_ref_ids))
+
+                if len(sub_chunks_to_process) == 1:
+                    # Single chunk - run directly
+                    rewritten_text, sc_ref_ids = sub_chunks_to_process[0]
+                    logger.info(f"TTS Fish S2-Pro: single-chunk. Mapping references: {sc_ref_ids}")
+                    await generate_fish_audio(rewritten_text, output_path, sc_ref_ids, use_s2_pro=True)
+                else:
+                    # Multi-chunk - run in parallel and concatenate
+                    logger.info(f"TTS Fish S2-Pro: multi-chunk partitioning into {len(sub_chunks_to_process)} chunks.")
+
+                    async def process_sub_chunk(idx, text, ref_ids):
+                        sub_path = output_path.with_name(f"{output_path.stem}_sub_{idx}.mp3")
+                        await generate_fish_audio(text, sub_path, ref_ids, use_s2_pro=True)
+                        return sub_path
+
+                    tasks = [process_sub_chunk(idx, text, ref_ids) for idx, (text, ref_ids) in enumerate(sub_chunks_to_process)]
+                    sub_paths = await asyncio.gather(*tasks)
+
+                    from pydub import AudioSegment
+                    import io
+
+                    combined = AudioSegment.empty()
+                    for sub_path in sub_paths:
+                        seg = AudioSegment.from_mp3(str(sub_path))
+                        combined += seg
+                        try:
+                            sub_path.unlink(missing_ok=True)
+                        except Exception:
+                            pass
+
+                    combined = combined.set_frame_rate(44100).set_channels(2)
+                    await asyncio.to_thread(combined.export, str(output_path), format="mp3", bitrate="192k")
             else:
                 # Use S2 Pro for single voice as well to support [bracket] emotion tags
                 logger.info(f"TTS Fish S2-Pro: single-voice enabled. Reference: {voice_config['id']}")
                 await generate_fish_audio(clean_text, output_path, [voice_config["id"]], use_s2_pro=True)
             return output_path, voice_key
+
 
     except Exception as e:
         logger.error(f"TTS Error: {e}")
