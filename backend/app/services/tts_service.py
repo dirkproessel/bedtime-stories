@@ -285,27 +285,39 @@ def get_fish_voice_id(voice_key: str, user_id: str | None = None) -> str:
         logging.getLogger(__name__).error(f"Error resolving Fish ID: {e}")
     return voice_key
 
-def get_multi_voice_refs(primary_voice_key: str, text: str, user_id: str | None = None) -> list[str]:
+def get_multi_voice_refs(primary_voice_key: str, text: str, user_id: str | None = None, speaker_voices: dict[str, str] | None = None) -> list[str]:
     """Find unique speaker indices in text and map them to appropriate Fish voice IDs."""
     speaker_indices = [int(x) for x in re.findall(r'<\|speaker:(\d+)\|>', text)]
     if not speaker_indices:
-        return [get_fish_voice_id(primary_voice_key, user_id)]
+        return [get_fish_voice_id((speaker_voices or {}).get("0", primary_voice_key), user_id)]
     max_speaker_idx = max(speaker_indices)
-    primary_id = get_fish_voice_id(primary_voice_key, user_id)
+    
+    primary_key = (speaker_voices or {}).get("0", primary_voice_key)
+    primary_id = get_fish_voice_id(primary_key, user_id)
     ref_ids = [primary_id] * (max_speaker_idx + 1)
-    if max_speaker_idx > 0:
-        all_voices = get_available_voices(user_id=user_id)
-        other_fish_voices = [
-            v for v in all_voices 
-            if v.get("engine") == "fish" and v.get("key") != primary_voice_key and v.get("key") != "none"
-        ]
-        for idx in range(1, max_speaker_idx + 1):
-            if other_fish_voices:
-                chosen_voice = other_fish_voices.pop(0)
-                ref_ids[idx] = get_fish_voice_id(chosen_voice["key"], user_id)
-            else:
+    
+    # Resolve all other fish voices for fallback
+    all_voices = get_available_voices(user_id=user_id)
+    other_fish_voices = [
+        v for v in all_voices 
+        if v.get("engine") == "fish" and v.get("key") != primary_key and v.get("key") != "none"
+    ]
+    
+    for idx in range(0, max_speaker_idx + 1):
+        if speaker_voices and str(idx) in speaker_voices:
+            chosen_key = speaker_voices[str(idx)]
+            ref_ids[idx] = get_fish_voice_id(chosen_key, user_id)
+        else:
+            if idx == 0:
                 ref_ids[idx] = primary_id
+            else:
+                if other_fish_voices:
+                    chosen_voice = other_fish_voices[(idx - 1) % len(other_fish_voices)]
+                    ref_ids[idx] = get_fish_voice_id(chosen_voice["key"], user_id)
+                else:
+                    ref_ids[idx] = primary_id
     return ref_ids
+
 
 async def generate_fish_audio(text: str, output_path: Path, reference_ids: list[str], use_s2_pro: bool = False):
     """Generate audio using Fish Audio API directly via httpx."""
@@ -344,6 +356,7 @@ async def generate_tts_chunk(
     on_chunk_progress: callable = None,
     direct_fish_id: str | None = None,
     multi_voice: bool = False,
+    speaker_voices: dict[str, str] | None = None,
 ) -> tuple[Path, str]:
     """
     Convert text to speech and save as MP3.
@@ -691,7 +704,7 @@ async def generate_tts_chunk(
                 except Exception as db_err:
                     logger.debug(f"Could not resolve user_id for multi-voice references: {db_err}")
                 
-                ref_ids = get_multi_voice_refs(voice_key, clean_text, user_id)
+                ref_ids = get_multi_voice_refs(voice_key, clean_text, user_id, speaker_voices)
                 logger.info(f"TTS Fish S2-Pro: multi-voice enabled. Mapping references: {ref_ids}")
                 await generate_fish_audio(clean_text, output_path, ref_ids, use_s2_pro=True)
             else:
@@ -742,6 +755,7 @@ async def chapters_to_audio(
     synopsis: str | None = None,
     title: str | None = None,
     multi_voice: bool = False,
+    speaker_voices: dict[str, str] | None = None,
 ) -> tuple[list[Path], str]:
     """
     Convert all chapters to individual MP3 chunks.
@@ -784,6 +798,7 @@ async def chapters_to_audio(
                 genre=genre,
                 previous_text=prev,
                 multi_voice=multi_voice,
+                speaker_voices=speaker_voices,
             )
             if realized_voice != voice_key: actual_voice = realized_voice
             completed_chunks += 1
@@ -821,7 +836,8 @@ async def chapters_to_audio(
                 voice_key, 
                 rate, 
                 is_title=True, 
-                genre=genre
+                genre=genre,
+                speaker_voices=speaker_voices,
             )
             if realized_voice != voice_key: actual_voice = realized_voice
             completed_chunks += 1
@@ -840,6 +856,7 @@ async def chapters_to_audio(
                 rate, 
                 genre=genre,
                 multi_voice=multi_voice,
+                speaker_voices=speaker_voices,
             )
             if realized_voice != voice_key: actual_voice = realized_voice
             completed_chunks += 1

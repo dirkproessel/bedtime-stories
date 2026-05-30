@@ -977,3 +977,73 @@ Antworte EXKLUSIV im gleichen JSON-Format wie die Eingabe, wobei in jedem Kapite
         logger.error(f"Failed to inject speaker tags retroactively: {e}", exc_info=True)
         return story_data
 
+
+class SpeakerInfo(BaseModel):
+    id: int
+    name: str
+    is_narrator: bool
+    role: str
+
+
+class SpeakersAnalysisSchema(BaseModel):
+    speakers: list[SpeakerInfo]
+
+
+async def extract_speakers_from_tagged_story(story_data: dict) -> list[dict]:
+    """Analyze the story text and map speaker IDs to character names."""
+    full_text = ""
+    for idx, c in enumerate(story_data.get("chapters", [])):
+        full_text += f"\n\n--- Kapitel {idx + 1} ---\n{c.get('text', '')}"
+        
+    prompt = f"""Du bist ein Hörspiel-Produzent. Analysiere den folgenden Text, der S2-Pro Sprecher-Tags (wie <|speaker:0|>, <|speaker:1|>, etc.) enthält.
+Identifiziere für jeden Sprecher-Tag die Person/Rolle in der Geschichte.
+
+REGELN:
+1. `<|speaker:0|>` ist immer der Erzähler (Narrator). Finde heraus, ob aus der Ich-Perspektive erzählt wird. Wenn ja, nenne den Namen der Person sowie Erzähler (z.B. "Name / Erzähler"). Wenn aus der dritten Person erzählt wird, nenne es einfach "Erzähler".
+2. Für alle anderen IDs (`<|speaker:1|>, <|speaker:2|>`, etc.), nenne den Namen der jeweiligen Person/Figur aus der Geschichte.
+3. Antworte ausschließlich im JSON-Format gemäß des Schemas.
+
+TEXT:
+{full_text[:8000]}
+"""
+
+    try:
+        await rate_limiter.wait_for_capacity("text")
+        text_model = store.get_system_setting("gemini_text_model", settings.GEMINI_TEXT_MODEL)
+        logger.info(f"Extracting speakers with model: {text_model}")
+        
+        response_text = await generate_text(
+            prompt=prompt,
+            model=text_model,
+            temperature=0.2, # Low temperature for accurate mapping
+            max_tokens=1000,
+            response_mime_type="application/json",
+            response_schema=SpeakersAnalysisSchema
+        )
+        rate_limiter.increment_daily_quota("text")
+        
+        text = response_text.strip()
+        json_match = re.search(r'\{.*\}', text, re.DOTALL)
+        if json_match:
+            text = json_match.group(0)
+            
+        data = json.loads(text)
+        return data.get("speakers", [])
+    except Exception as e:
+        logger.error(f"Failed to extract speakers: {e}", exc_info=True)
+        # Fallback parsing of speaker IDs from text directly
+        speaker_ids = set()
+        for c in story_data.get("chapters", []):
+            ids = re.findall(r'<\|speaker:(\d+)\|>', c.get("text", ""))
+            for sid in ids:
+                speaker_ids.add(int(sid))
+                
+        fallback_speakers = []
+        for sid in sorted(list(speaker_ids)):
+            if sid == 0:
+                fallback_speakers.append({"id": 0, "name": "Erzähler", "is_narrator": True, "role": "narrator"})
+            else:
+                fallback_speakers.append({"id": sid, "name": f"Person {sid}", "is_narrator": False, "role": "character"})
+        return fallback_speakers
+
+

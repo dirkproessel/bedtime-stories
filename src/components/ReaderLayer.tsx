@@ -2,7 +2,8 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useStore } from '../store/useStore';
 import { 
     fetchStory, getThumbUrl, type StoryDetail, exportStoryToKindle, 
-    getVoicePreviewUrl, type VoiceProfile
+    getVoicePreviewUrl, type VoiceProfile, analyzeStorySpeakers,
+    type SpeakerInfo
 } from '../lib/api';
 import { 
     Moon, BookOpen, Send, Loader2, MessageCircle, Headphones, Heart, 
@@ -45,6 +46,9 @@ export default function ReaderLayer() {
     const [confirmRevoice, setConfirmRevoice] = useState(false);
     const [isRevoicing, setIsRevoicing] = useState(false);
     const [revoiceMultiVoice, setRevoiceMultiVoice] = useState(false);
+    const [speakers, setSpeakers] = useState<SpeakerInfo[]>([]);
+    const [isAnalyzingSpeakers, setIsAnalyzingSpeakers] = useState(false);
+    const [speakerVoices, setSpeakerVoices] = useState<Record<number, string>>({});
 
     // Filter voices based on multi-voice setting
     const filteredRevoiceVoices = useMemo(() => {
@@ -67,6 +71,48 @@ export default function ReaderLayer() {
             }
         }
     }, [revoiceMultiVoice, selectedVoice, voices]);
+
+    // Fetch and analyze speakers for multi-voice revoicing
+    useEffect(() => {
+        if (showRevoiceModal && revoiceMultiVoice && story) {
+            setIsAnalyzingSpeakers(true);
+            analyzeStorySpeakers(story.id)
+                .then(res => {
+                    setSpeakers(res.speakers);
+                    // Initialize speaker voices map
+                    const fishVoices = voices.filter(v => v.engine === 'fish' && v.key !== 'none');
+                    const initialMap: Record<number, string> = {};
+                    const defaultNarrator = selectedVoice && voices.some(v => v.key === selectedVoice && v.engine === 'fish') 
+                        ? selectedVoice 
+                        : (voices.find(v => v.engine === 'fish')?.key || 'jenny');
+                    
+                    initialMap[0] = defaultNarrator;
+                    
+                    let fishIndex = 0;
+                    res.speakers.forEach(sp => {
+                        if (sp.id > 0) {
+                            // Find a distinct fish voice for direct speech roles
+                            const otherVoices = fishVoices.filter(v => v.key !== defaultNarrator);
+                            if (otherVoices.length > 0) {
+                                const chosen = otherVoices[fishIndex % otherVoices.length];
+                                initialMap[sp.id] = chosen.key;
+                                fishIndex++;
+                            } else {
+                                initialMap[sp.id] = defaultNarrator;
+                            }
+                        }
+                    });
+                    setSpeakerVoices(initialMap);
+                })
+                .catch((err) => {
+                    toast.error(err.message || 'Fehler bei der Sprecher-Analyse');
+                    setRevoiceMultiVoice(false);
+                })
+                .finally(() => {
+                    setIsAnalyzingSpeakers(false);
+                });
+        }
+    }, [showRevoiceModal, revoiceMultiVoice, story, voices]);
 
     // Image Regeneration Modal
     const [showImageRegenModal, setShowImageRegenModal] = useState(false);
@@ -195,7 +241,8 @@ export default function ReaderLayer() {
         if (!readerStoryId) return;
         setIsRevoicing(true);
         try {
-            await revoiceStory(readerStoryId, selectedVoice, '0%', revoiceMultiVoice);
+            const narratorVoice = revoiceMultiVoice ? (speakerVoices[0] || selectedVoice) : selectedVoice;
+            await revoiceStory(readerStoryId, narratorVoice, '0%', revoiceMultiVoice, revoiceMultiVoice ? speakerVoices : undefined);
             toast.success('Neuvertonung gestartet!');
             setShowRevoiceModal(false);
             setConfirmRevoice(false);
@@ -778,63 +825,151 @@ export default function ReaderLayer() {
                                          </button>
                                      </div>
 
-                                     <p className="text-sm text-slate-400 mb-4">Wähle eine neue Stimme für diese Geschichte:</p>
-                                     <div className="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto mb-6 pr-1 custom-scrollbar">
-                                         {filteredRevoiceVoices.map((v: VoiceProfile) => (
-                                            <div
-                                                key={v.key}
-                                                className={`p-3 rounded-xl transition-all border-2 cursor-pointer flex items-center justify-between ${selectedVoice === v.key
-                                                    ? 'border-primary bg-accent/20 shadow-sm'
-                                                    : 'border-slate-800 bg-surface hover:border-slate-700'
-                                                    }`}
-                                                onClick={() => setSelectedVoice(v.key)}
-                                            >
-                                                <div className="flex items-center gap-3">
-                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${selectedVoice === v.key ? 'bg-primary/20 text-primary' : 'bg-slate-900 text-slate-700'}`}>
-                                                        <User className="w-4 h-4" />
-                                                    </div>
-                                                    <div>
-                                                        <div className={`text-xs font-bold ${selectedVoice === v.key ? 'text-text' : 'text-slate-400'}`}>
-                                                            {voiceName(v.key) !== v.key ? voiceName(v.key) : v.name}
+                                     {revoiceMultiVoice ? (
+                                         isAnalyzingSpeakers ? (
+                                             <div className="flex flex-col items-center justify-center py-12">
+                                                 <div className="w-10 h-10 rounded-full border-4 border-slate-800 border-t-primary animate-spin mb-4" />
+                                                 <p className="text-slate-400 text-xs font-semibold">Analysiere Geschichte und extrahiere Sprecher...</p>
+                                             </div>
+                                         ) : (
+                                             <>
+                                                 <p className="text-xs text-slate-400 mb-3 uppercase tracking-wider font-bold">Rollenverteilung (Fish Stimmen):</p>
+                                                 <div className="flex flex-col gap-2 max-h-[250px] overflow-y-auto mb-6 pr-1 custom-scrollbar">
+                                                     {speakers.map((sp) => (
+                                                         <div 
+                                                             key={sp.id}
+                                                             className="p-3 rounded-2xl border border-slate-800 bg-surface flex items-center justify-between gap-3 transition-colors hover:border-slate-700/80"
+                                                         >
+                                                             <div className="flex items-center gap-2 min-w-0">
+                                                                 <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${sp.is_narrator ? 'bg-primary/20 text-primary' : 'bg-slate-900 text-slate-500'}`}>
+                                                                     <User className="w-4 h-4" />
+                                                                 </div>
+                                                                 <div className="min-w-0">
+                                                                     <div className="text-xs font-bold text-text truncate">
+                                                                         {sp.name}
+                                                                     </div>
+                                                                     <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                                                                         {sp.is_narrator ? 'Erzähler' : 'Rolle'}
+                                                                     </div>
+                                                                 </div>
+                                                             </div>
+                                                             <div className="flex items-center gap-1.5 shrink-0">
+                                                                 <select
+                                                                     value={speakerVoices[sp.id] || ''}
+                                                                     onChange={(e) => setSpeakerVoices({ ...speakerVoices, [sp.id]: e.target.value })}
+                                                                     className="bg-background border border-slate-850 text-text rounded-xl px-2.5 py-1.5 text-xs outline-none focus:border-primary shrink-0 max-w-[120px] font-medium"
+                                                                 >
+                                                                     {voices.filter(v => v.engine === 'fish' && v.key !== 'none').map(v => (
+                                                                         <option key={v.key} value={v.key}>
+                                                                             {voiceName(v.key) !== v.key ? voiceName(v.key) : v.name}
+                                                                         </option>
+                                                                     ))}
+                                                                 </select>
+                                                                 <button
+                                                                     type="button"
+                                                                     onClick={(e) => { 
+                                                                         e.stopPropagation(); 
+                                                                         const vKey = speakerVoices[sp.id];
+                                                                         if (vKey) handlePreviewVoice(vKey); 
+                                                                     }}
+                                                                     className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 transition-all ${
+                                                                         previewVoice === speakerVoices[sp.id]
+                                                                             ? 'bg-primary text-white scale-105 shadow-md shadow-primary/20'
+                                                                             : 'bg-slate-800 text-slate-500 hover:bg-slate-700 hover:text-white'
+                                                                     }`}
+                                                                 >
+                                                                     {previewVoice === speakerVoices[sp.id] ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3 ml-0.5" />}
+                                                                 </button>
+                                                             </div>
+                                                         </div>
+                                                     ))}
+                                                 </div>
+                                             </>
+                                         )
+                                     ) : (
+                                         <>
+                                             <p className="text-sm text-slate-400 mb-4">Wähle eine neue Stimme für diese Geschichte:</p>
+                                             <div className="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto mb-6 pr-1 custom-scrollbar">
+                                                 {filteredRevoiceVoices.map((v: VoiceProfile) => (
+                                                    <div
+                                                        key={v.key}
+                                                        className={`p-3 rounded-xl transition-all border-2 cursor-pointer flex items-center justify-between ${selectedVoice === v.key
+                                                            ? 'border-primary bg-accent/20 shadow-sm'
+                                                            : 'border-slate-800 bg-surface hover:border-slate-700'
+                                                            }`}
+                                                        onClick={() => setSelectedVoice(v.key)}
+                                                    >
+                                                        <div className="flex items-center gap-3">
+                                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${selectedVoice === v.key ? 'bg-primary/20 text-primary' : 'bg-slate-900 text-slate-700'}`}>
+                                                                <User className="w-4 h-4" />
+                                                            </div>
+                                                            <div>
+                                                                <div className={`text-xs font-bold ${selectedVoice === v.key ? 'text-text' : 'text-slate-400'}`}>
+                                                                    {voiceName(v.key) !== v.key ? voiceName(v.key) : v.name}
+                                                                </div>
+                                                            </div>
                                                         </div>
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); handlePreviewVoice(v.key); }}
+                                                            className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${previewVoice === v.key
+                                                                ? 'bg-primary text-white'
+                                                                : 'bg-slate-800 text-slate-500 hover:bg-slate-700'
+                                                                }`}
+                                                        >
+                                                            {previewVoice === v.key ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3 ml-0.5" />}
+                                                        </button>
                                                     </div>
-                                                </div>
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); handlePreviewVoice(v.key); }}
-                                                    className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${previewVoice === v.key
-                                                        ? 'bg-primary text-white'
-                                                        : 'bg-slate-800 text-slate-500 hover:bg-slate-700'
-                                                        }`}
-                                                >
-                                                    {previewVoice === v.key ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3 ml-0.5" />}
-                                                </button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <div className="flex gap-3">
-                                        <button
-                                            onClick={() => setShowRevoiceModal(false)}
-                                            className="flex-1 px-4 py-3 border-2 border-slate-800 rounded-xl font-bold text-slate-500 hover:bg-surface transition-all"
-                                        >
-                                            Abbrechen
-                                        </button>
-                                        <button
-                                            onClick={() => setConfirmRevoice(true)}
-                                            className="btn-primary flex-1 px-4 py-3 shadow-lg shadow-primary/20"
-                                        >
-                                            Weiter
-                                        </button>
-                                    </div>
+                                                ))}
+                                             </div>
+                                         </>
+                                     )}
+                                     <div className="flex gap-3">
+                                         <button
+                                             onClick={() => setShowRevoiceModal(false)}
+                                             className="flex-1 px-4 py-3 border-2 border-slate-800 rounded-xl font-bold text-slate-500 hover:bg-surface transition-all"
+                                         >
+                                             Abbrechen
+                                         </button>
+                                         <button
+                                             onClick={() => setConfirmRevoice(true)}
+                                             disabled={revoiceMultiVoice && isAnalyzingSpeakers}
+                                             className="btn-primary flex-1 px-4 py-3 shadow-lg shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                                         >
+                                             Weiter
+                                         </button>
+                                     </div>
                                 </>
                             ) : (
                                 <div className="text-center py-4">
-                                    <div className="w-16 h-16 rounded-2xl bg-accent/20 text-primary flex items-center justify-center mx-auto mb-4">
-                                        <Play className="w-8 h-8 fill-current" />
-                                    </div>
-                                    <h3 className="text-lg font-bold text-text mb-2">Bereit?</h3>
-                                    <p className="text-sm text-slate-400 mb-8 px-4">
-                                        Die Geschichte wird mit der Stimme <strong>{voiceName(selectedVoice)}</strong> neu vertont.
-                                    </p>
+                                    {revoiceMultiVoice ? (
+                                         <>
+                                             <div className="w-16 h-16 rounded-2xl bg-accent/20 text-primary flex items-center justify-center mx-auto mb-4">
+                                                 <Sparkles className="w-8 h-8" />
+                                             </div>
+                                             <h3 className="text-lg font-bold text-text mb-2">Hörspiel bereit?</h3>
+                                             <p className="text-sm text-slate-400 mb-4 px-4">
+                                                 Die Geschichte wird im Hörspiel-Modus mit folgenden verteilten Stimmen neu vertont:
+                                             </p>
+                                             <div className="max-h-[180px] overflow-y-auto border border-slate-800/50 rounded-2xl p-4 bg-slate-900/50 mb-6 text-left max-w-xs mx-auto custom-scrollbar flex flex-col gap-2">
+                                                 {speakers.map((sp) => (
+                                                     <div key={sp.id} className="flex justify-between py-1 text-xs border-b border-slate-800/30 last:border-0">
+                                                         <span className="text-slate-400 font-medium truncate pr-2">{sp.name}:</span>
+                                                         <span className="text-primary font-bold shrink-0">{voiceName(speakerVoices[sp.id] || selectedVoice)}</span>
+                                                     </div>
+                                                 ))}
+                                             </div>
+                                         </>
+                                     ) : (
+                                         <>
+                                             <div className="w-16 h-16 rounded-2xl bg-accent/20 text-primary flex items-center justify-center mx-auto mb-4">
+                                                 <Play className="w-8 h-8 fill-current" />
+                                             </div>
+                                             <h3 className="text-lg font-bold text-text mb-2">Bereit?</h3>
+                                             <p className="text-sm text-slate-400 mb-8 px-4">
+                                                 Die Geschichte wird mit der Stimme <strong>{voiceName(selectedVoice)}</strong> neu vertont.
+                                             </p>
+                                         </>
+                                     )}
                                     <div className="flex flex-col gap-3">
                                         <button
                                             onClick={handleRevoice}

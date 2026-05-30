@@ -331,7 +331,7 @@ class StoryService:
             logger.error(f"Pipeline error for {story_id}: {e}", exc_info=True)
             await on_progress("error", f"Fehler: {str(e)}")
 
-    async def run_revoice_pipeline(self, story_id: str, voice_key: str, speech_rate: str, multi_voice: bool = False):
+    async def run_revoice_pipeline(self, story_id: str, voice_key: str, speech_rate: str, multi_voice: bool = False, speaker_voices: dict[str, str] | None = None):
         """Revoice pipeline: load text → TTS → merge → save."""
         story_dir = settings.AUDIO_OUTPUT_DIR / story_id
         text_path = story_dir / "story.json"
@@ -429,6 +429,7 @@ class StoryService:
                 synopsis=story_data.get("synopsis"),
                 title=story_data.get("title"),
                 multi_voice=multi_voice,
+                speaker_voices=speaker_voices,
             )
 
             await on_progress("processing", "Finalisierung", points=10 * num_chapters, is_absolute_points=True)

@@ -502,11 +502,41 @@ export async function exportStoryToKindle(id: string, email: string): Promise<an
     return response.json();
 }
 
-export async function revoiceStory(storyId: string, voiceKey: string, speechRate: string = '0%', multiVoice: boolean = false): Promise<{ id: string }> {
+export interface SpeakerInfo {
+    id: number;
+    name: string;
+    is_narrator: boolean;
+    role: string;
+}
+
+export async function analyzeStorySpeakers(storyId: string): Promise<{ speakers: SpeakerInfo[] }> {
+    const res = await fetch(`${API_BASE}/api/stories/${storyId}/analyze-speakers`, {
+        method: 'POST',
+        headers: getAuthHeaders()
+    });
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.detail || 'Fehler bei der Sprecher-Analyse');
+    }
+    return res.json();
+}
+
+export async function revoiceStory(
+    storyId: string, 
+    voiceKey: string, 
+    speechRate: string = '0%', 
+    multiVoice: boolean = false,
+    speakerVoices?: Record<number, string>
+): Promise<{ id: string }> {
     const res = await fetch(`${API_BASE}/api/stories/${storyId}/revoice`, {
         method: 'POST',
         headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
-        body: JSON.stringify({ voice_key: voiceKey, speech_rate: speechRate, multi_voice: multiVoice }),
+        body: JSON.stringify({ 
+            voice_key: voiceKey, 
+            speech_rate: speechRate, 
+            multi_voice: multiVoice,
+            speaker_voices: speakerVoices 
+        }),
     });
     if (!res.ok) throw new Error('Failed to start re-voicing');
     return res.json();

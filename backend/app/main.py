@@ -469,6 +469,7 @@ class RevoiceRequest(BaseModel):
     voice_key: str
     speech_rate: str = "0%"
     multi_voice: bool = False
+    speaker_voices: dict[str, str] | None = None
 
 
 @app.post("/api/stories/{story_id}/revoice")
@@ -477,13 +478,13 @@ async def start_revoice(
     req: RevoiceRequest,
     current_user: User = Depends(get_current_active_user)
 ):
-    """Start async re-voicing of an existing story (Admin only)."""
-    if not current_user.is_admin:
-        raise HTTPException(status_code=403, detail="Nur Admins dürfen neu vertonen.")
-
+    """Start async re-voicing of an existing story (Owner or Admin)."""
     meta = store.get_by_id(story_id)
     if not meta:
         raise HTTPException(status_code=404, detail="Story not found")
+
+    if not current_user.is_admin and meta.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Keine Berechtigung diese Geschichte neu zu vertonen.")
 
     meta.status = "generating"
     meta.progress = "Starte Neuvertonung..."
@@ -498,10 +499,55 @@ async def start_revoice(
             voice_key=req.voice_key,
             speech_rate=req.speech_rate,
             multi_voice=req.multi_voice,
+            speaker_voices=req.speaker_voices,
         )
     )
 
     return {"id": story_id, "status": "revoicing"}
+
+
+@app.post("/api/stories/{story_id}/analyze-speakers")
+async def analyze_story_speakers(
+    story_id: str,
+    current_user: User = Depends(get_current_active_user)
+):
+    """Analyze story speakers (and inject speaker tags retroactively if missing)."""
+    meta = store.get_by_id(story_id)
+    if not meta:
+        raise HTTPException(status_code=404, detail="Story not found")
+
+    if not current_user.is_admin and meta.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Keine Berechtigung diese Geschichte zu analysieren.")
+
+    story_dir = settings.AUDIO_OUTPUT_DIR / story_id
+    text_path = story_dir / "story.json"
+    if not text_path.exists():
+        raise HTTPException(status_code=404, detail="Story text file missing")
+
+    try:
+        story_data = json.loads(text_path.read_text(encoding="utf-8"))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to read story JSON: {e}")
+
+    # 1. Check if the story already has speaker tags
+    has_speaker_tags = any("<|speaker:" in c.get("text", "") for c in story_data.get("chapters", []))
+
+    if not has_speaker_tags:
+        # Inject speaker tags retroactively
+        from app.services.story_generator import inject_speaker_tags_to_story
+        story_data = await inject_speaker_tags_to_story(story_data, supports_emotions=True)
+        text_path.write_text(json.dumps(story_data, ensure_ascii=False, indent=2), encoding="utf-8")
+
+        # Also update story meta to reflect multi_voice
+        meta.multi_voice = True
+        store.add_story(meta)
+
+    # 2. Extract speaker IDs and roles
+    from app.services.story_generator import extract_speakers_from_tagged_story
+    speakers = await extract_speakers_from_tagged_story(story_data)
+
+    return {"speakers": speakers}
+
 
 class RegenerateImageRequest(BaseModel):
     image_hints: str | None = None

@@ -128,7 +128,7 @@ interface AppState {
     // Global Modal States
     revoiceStoryId: string | null;
     setRevoiceStoryId: (id: string | null) => void;
-    revoiceStory: (id: string, voiceKey: string, speechRate?: string, multiVoice?: boolean) => Promise<void>;
+    revoiceStory: (id: string, voiceKey: string, speechRate?: string, multiVoice?: boolean, speakerVoices?: Record<number, string>) => Promise<void>;
     toggleFavorite: (id: string) => Promise<void>;
     deleteStory: (id: string) => Promise<void>;
     regenerateStoryImage: (id: string, imageHints?: string) => Promise<void>;
@@ -542,10 +542,10 @@ export const useStore = create<AppState>((set, get) => {
     },
     revoiceStoryId: null,
     setRevoiceStoryId: (id) => set({ revoiceStoryId: id }),
-    revoiceStory: async (id, voiceKey, speechRate = '0%', multiVoice = false) => {
+    revoiceStory: async (id, voiceKey, speechRate = '0%', multiVoice = false, speakerVoices?: Record<number, string>) => {
         set({ error: null });
         try {
-            await apiRevoiceStory(id, voiceKey, speechRate, multiVoice);
+            await apiRevoiceStory(id, voiceKey, speechRate, multiVoice, speakerVoices);
             // Update local story status to "generating" to show progress UI
             set((state) => ({
                 stories: state.stories.map((s) =>
