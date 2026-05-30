@@ -685,3 +685,30 @@ export async function adminAddVoice(data: {
     }
     return res.json();
 }
+
+export async function adminUpdateVoice(
+    type: 'system' | 'clone',
+    id: string,
+    data: {
+        name?: string;
+        engine?: string;
+        gender?: string;
+        description?: string;
+        fish_voice_id?: string;
+        is_public?: boolean;
+    }
+): Promise<any> {
+    const res = await fetch(`${API_BASE}/api/admin/voices/${type}/${id}`, {
+        method: 'PATCH',
+        headers: {
+            ...getAuthHeaders(),
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Fehler beim Aktualisieren der Stimme');
+    }
+    return res.json();
+}

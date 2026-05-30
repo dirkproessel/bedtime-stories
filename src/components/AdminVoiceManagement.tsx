@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useStore } from '../store/useStore';
-import { Mic, Globe, Lock, Play, Loader2, User, Plus, X } from 'lucide-react';
+import { Mic, Globe, Lock, Play, Loader2, User, Plus, X, Edit2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { getVoicePreviewUrl } from '../lib/api';
 
@@ -11,10 +11,22 @@ export default function AdminVoiceManagement() {
         loadAdminVoices, 
         toggleAdminVoice, 
         addAdminVoice,
+        updateAdminVoice,
         isLoading 
     } = useStore();
 
     const [showModal, setShowModal] = useState(false);
+    const [editingVoice, setEditingVoice] = useState<{
+        type: 'system' | 'clone';
+        id: string;
+        name: string;
+        engine?: string;
+        gender?: string;
+        description?: string;
+        fish_voice_id?: string;
+        is_public?: boolean;
+    } | null>(null);
+
     const [name, setName] = useState('');
     const [engine, setEngine] = useState('fish');
     const [gender, setGender] = useState('neutral');
@@ -43,24 +55,83 @@ export default function AdminVoiceManagement() {
         });
     };
 
+    const handleEditSystem = (voice: any) => {
+        setEditingVoice({
+            type: 'system',
+            id: voice.id,
+            name: voice.name,
+            engine: voice.engine,
+            gender: voice.gender,
+            description: voice.description || '',
+            fish_voice_id: voice.fish_voice_id || '',
+        });
+        setName(voice.name);
+        setEngine(voice.engine);
+        setGender(voice.gender);
+        setDescription(voice.description || '');
+        setFishVoiceId(voice.fish_voice_id || '');
+        setShowModal(true);
+    };
+
+    const handleEditClone = (voice: any) => {
+        setEditingVoice({
+            type: 'clone',
+            id: voice.id,
+            name: voice.name,
+            engine: 'fish',
+            gender: voice.gender || 'neutral',
+            description: voice.description || '',
+            fish_voice_id: voice.fish_voice_id || '',
+            is_public: voice.is_public,
+        });
+        setName(voice.name);
+        setEngine('fish');
+        setGender(voice.gender || 'neutral');
+        setDescription(voice.description || '');
+        setFishVoiceId(voice.fish_voice_id || '');
+        setShowModal(true);
+    };
+
+    const handleAddClick = () => {
+        setEditingVoice(null);
+        setName('');
+        setEngine('fish');
+        setGender('neutral');
+        setDescription('');
+        setFishVoiceId('');
+        setShowModal(true);
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!name.trim() || !fishVoiceId.trim()) {
-            toast.error('Bitte alle Pflichtfelder ausfüllen');
+        if (!name.trim()) {
+            toast.error('Bitte einen Namen eingeben');
             return;
         }
 
         setSubmitting(true);
         try {
-            await addAdminVoice({
-                name: name.trim(),
-                engine,
-                gender,
-                description: description.trim() || undefined,
-                fish_voice_id: fishVoiceId.trim()
-            });
-            toast.success('System-Stimme erfolgreich hinzugefügt');
+            if (editingVoice) {
+                await updateAdminVoice(editingVoice.type, editingVoice.id, {
+                    name: name.trim(),
+                    engine: editingVoice.type === 'system' ? engine : undefined,
+                    gender,
+                    description: description.trim() || undefined,
+                    fish_voice_id: fishVoiceId.trim() || undefined,
+                });
+                toast.success('Stimme erfolgreich aktualisiert');
+            } else {
+                await addAdminVoice({
+                    name: name.trim(),
+                    engine,
+                    gender,
+                    description: description.trim() || undefined,
+                    fish_voice_id: fishVoiceId.trim() || undefined
+                });
+                toast.success('System-Stimme erfolgreich hinzugefügt');
+            }
             setShowModal(false);
+            setEditingVoice(null);
             // Reset form
             setName('');
             setEngine('fish');
@@ -68,7 +139,7 @@ export default function AdminVoiceManagement() {
             setDescription('');
             setFishVoiceId('');
         } catch (e: any) {
-            toast.error(e.message || 'Fehler beim Erstellen der Stimme');
+            toast.error(e.message || 'Fehler beim Speichern der Stimme');
         } finally {
             setSubmitting(false);
         }
@@ -97,7 +168,7 @@ export default function AdminVoiceManagement() {
                             {adminSystemVoices.length} Verfügbar
                         </span>
                         <button 
-                            onClick={() => setShowModal(true)}
+                            onClick={handleAddClick}
                             className="flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-600 text-slate-950 text-xs font-bold px-3.5 py-2 rounded-xl transition-all shadow-lg shadow-emerald-500/10 hover:shadow-emerald-500/20"
                         >
                             <Plus className="w-4 h-4" />
@@ -138,6 +209,13 @@ export default function AdminVoiceManagement() {
                                     title="Vorschau abspielen"
                                 >
                                     <Play className="w-4 h-4" />
+                                </button>
+                                <button 
+                                    onClick={() => handleEditSystem(voice)}
+                                    className="p-2 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition-all"
+                                    title="Stimme bearbeiten"
+                                >
+                                    <Edit2 className="w-4 h-4" />
                                 </button>
                                 <button
                                     onClick={() => handleToggle('system', voice.id)}
@@ -201,10 +279,17 @@ export default function AdminVoiceManagement() {
                                 <button 
                                     onClick={() => playPreview(voice.id)}
                                     className="p-2 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition-all"
+                                    title="Vorschau abspielen"
                                 >
                                     <Play className="w-4 h-4" />
                                 </button>
-                                
+                                <button 
+                                    onClick={() => handleEditClone(voice)}
+                                    className="p-2 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition-all"
+                                    title="Stimme bearbeiten"
+                                >
+                                    <Edit2 className="w-4 h-4" />
+                                </button>
                                 <button
                                     onClick={() => handleToggle('clone', voice.id)}
                                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
@@ -234,11 +319,14 @@ export default function AdminVoiceManagement() {
                     <div className="glass-panel w-full max-w-md rounded-3xl overflow-hidden shadow-2xl border border-white/10 animate-in fade-in zoom-in-95 duration-200">
                         <div className="px-6 py-5 border-b border-white/5 flex items-center justify-between">
                             <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                                <Plus className="w-5 h-5 text-emerald-400" />
-                                Neue System-Stimme
+                                {editingVoice ? <Edit2 className="w-5 h-5 text-emerald-400" /> : <Plus className="w-5 h-5 text-emerald-400" />}
+                                {editingVoice ? 'Stimme bearbeiten' : 'Neue System-Stimme'}
                             </h3>
                             <button 
-                                onClick={() => setShowModal(false)}
+                                onClick={() => {
+                                    setShowModal(false);
+                                    setEditingVoice(null);
+                                }}
                                 className="p-1.5 text-slate-400 hover:text-white hover:bg-white/5 rounded-xl transition-all"
                             >
                                 <X className="w-5 h-5" />
@@ -259,19 +347,21 @@ export default function AdminVoiceManagement() {
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Anbieter</label>
-                                    <select 
-                                        value={engine}
-                                        onChange={(e) => setEngine(e.target.value)}
-                                        className="w-full bg-slate-900 border border-white/10 rounded-2xl px-4 py-3 text-white focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all text-sm"
-                                    >
-                                        <option value="fish">Fish Audio</option>
-                                        <option value="xai">xAI</option>
-                                    </select>
-                                </div>
+                                {(!editingVoice || editingVoice.type === 'system') && (
+                                    <div className="space-y-1.5">
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Anbieter</label>
+                                        <select 
+                                            value={engine}
+                                            onChange={(e) => setEngine(e.target.value)}
+                                            className="w-full bg-slate-900 border border-white/10 rounded-2xl px-4 py-3 text-white focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all text-sm"
+                                        >
+                                            <option value="fish">Fish Audio</option>
+                                            <option value="xai">xAI</option>
+                                        </select>
+                                    </div>
+                                )}
 
-                                <div className="space-y-1.5">
+                                <div className={`space-y-1.5 ${editingVoice?.type === 'clone' ? 'col-span-2' : ''}`}>
                                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Geschlecht</label>
                                     <select 
                                         value={gender}
@@ -291,7 +381,6 @@ export default function AdminVoiceManagement() {
                                 </label>
                                 <input 
                                     type="text" 
-                                    required
                                     value={fishVoiceId}
                                     onChange={(e) => setFishVoiceId(e.target.value)}
                                     placeholder={engine === 'fish' ? 'z.B. bbe1ddaa9dfc4f5187e8ba527c1595c6' : 'z.B. 458705c07139'}
@@ -313,7 +402,10 @@ export default function AdminVoiceManagement() {
                             <div className="pt-4 flex gap-3">
                                 <button 
                                     type="button"
-                                    onClick={() => setShowModal(false)}
+                                    onClick={() => {
+                                        setShowModal(false);
+                                        setEditingVoice(null);
+                                    }}
                                     className="flex-1 bg-white/5 hover:bg-white/10 text-white font-bold py-3.5 rounded-2xl border border-white/10 transition-all text-sm"
                                 >
                                     Abbrechen
@@ -329,7 +421,7 @@ export default function AdminVoiceManagement() {
                                             Wird gespeichert...
                                         </>
                                     ) : (
-                                        'Hinzufügen'
+                                        editingVoice ? 'Speichern' : 'Hinzufügen'
                                     )}
                                 </button>
                             </div>

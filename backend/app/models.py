@@ -165,6 +165,14 @@ class SystemVoiceCreate(BaseModel):
     description: Optional[str] = None
     fish_voice_id: Optional[str] = None
 
+class VoiceUpdate(BaseModel):
+    name: Optional[str] = None
+    engine: Optional[str] = None
+    gender: Optional[str] = None
+    description: Optional[str] = None
+    fish_voice_id: Optional[str] = None
+    is_public: Optional[bool] = None
+
 class StoryRequest(BaseModel):
     """Request to generate a new story."""
     prompt: str  # The raw user idea

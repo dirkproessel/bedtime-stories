@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef, useMemo, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { getVoicePreviewUrl, generateHook, fetchPopularity, type PopularityData } from '../lib/api';
 import { Mic, MicOff, Play, Pause, Venus, Mars, Users, Loader2, ChevronDown, RefreshCw, Dices, Sparkles } from 'lucide-react';

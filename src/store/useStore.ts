@@ -17,6 +17,7 @@ import {
     adminListVoices,
     adminToggleVoice,
     adminAddVoice,
+    adminUpdateVoice,
     toggleStoryFavorite,
     revoiceStory as apiRevoiceStory,
     regenerateStoryImage as apiRegenerateStoryImage,
@@ -83,6 +84,7 @@ interface AppState {
     loadAdminVoices: () => Promise<void>;
     toggleAdminVoice: (type: 'system' | 'clone', id: string) => Promise<void>;
     addAdminVoice: (data: { name: string, engine: string, gender: string, description?: string, fish_voice_id?: string }) => Promise<void>;
+    updateAdminVoice: (type: 'system' | 'clone', id: string, data: { name?: string, engine?: string, gender?: string, description?: string, fish_voice_id?: string, is_public?: boolean }) => Promise<void>;
     selectedStoryId: string | null;
     setSelectedStoryId: (id: string | null) => void;
     adminSubView: 'users' | 'stories' | 'voices' | 'experiment';
@@ -639,6 +641,18 @@ export const useStore = create<AppState>((set, get) => {
         set({ isLoading: true, error: null });
         try {
             await adminAddVoice(data);
+            await get().loadAdminVoices();
+        } catch (e: any) {
+            set({ error: e.message });
+            throw e;
+        } finally {
+            set({ isLoading: false });
+        }
+    },
+    updateAdminVoice: async (type, id, data) => {
+        set({ isLoading: true, error: null });
+        try {
+            await adminUpdateVoice(type, id, data);
             await get().loadAdminVoices();
         } catch (e: any) {
             set({ error: e.message });

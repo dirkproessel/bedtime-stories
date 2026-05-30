@@ -68,10 +68,12 @@ from app.models import (
     KindleExportRequest,
     User,
     UserResponse,
+    UserVoice,
     SystemSettingResponse,
     SystemSettingUpdate,
     SystemVoice,
     SystemVoiceCreate,
+    VoiceUpdate,
 )
 from app.auth_utils import get_current_active_user, get_optional_user
 from fastapi import Depends
@@ -750,6 +752,81 @@ async def admin_toggle_voice(
         raise HTTPException(status_code=404, detail="Stimme nicht gefunden.")
     
     return {"new_state": new_state}
+
+
+@app.patch("/api/admin/voices/{voice_type}/{voice_id}")
+async def admin_update_voice(
+    voice_type: str,
+    voice_id: str,
+    data: VoiceUpdate,
+    current_user: User = Depends(get_current_active_user)
+):
+    """Update a system voice or a user voice clone (Admin only)."""
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Nur Admins dürfen Stimmen verwalten.")
+    
+    from app.database import get_session
+    
+    with next(get_session()) as session:
+        if voice_type == "system":
+            voice = session.get(SystemVoice, voice_id)
+            if not voice:
+                raise HTTPException(status_code=404, detail="System-Stimme nicht gefunden.")
+            
+            if data.name is not None:
+                voice.name = data.name.strip()
+            if data.gender is not None:
+                voice.gender = data.gender
+            if data.description is not None:
+                voice.description = data.description.strip()
+            if data.fish_voice_id is not None:
+                voice.fish_voice_id = data.fish_voice_id.strip() if data.fish_voice_id else None
+            if data.engine is not None:
+                voice.engine = data.engine
+                
+            session.add(voice)
+            session.commit()
+            session.refresh(voice)
+            
+            # Delete cached preview to force regeneration
+            preview_path = settings.AUDIO_OUTPUT_DIR / "previews" / f"{voice_id}.mp3"
+            try:
+                preview_path.unlink(missing_ok=True)
+            except Exception as pe:
+                logger.warning(f"Could not delete preview file {preview_path}: {pe}")
+            
+            return voice
+            
+        elif voice_type == "clone" or voice_type == "user":
+            voice = session.get(UserVoice, voice_id)
+            if not voice:
+                raise HTTPException(status_code=404, detail="Nutzer-Stimme nicht gefunden.")
+                
+            if data.name is not None:
+                voice.name = data.name.strip()
+            if data.gender is not None:
+                voice.gender = data.gender
+            if data.description is not None:
+                voice.description = data.description.strip()
+            if data.fish_voice_id is not None:
+                voice.fish_voice_id = data.fish_voice_id.strip()
+            if data.is_public is not None:
+                voice.is_public = data.is_public
+                
+            session.add(voice)
+            session.commit()
+            session.refresh(voice)
+            
+            # Delete cached preview to force regeneration
+            preview_path = settings.AUDIO_OUTPUT_DIR / "previews" / f"{voice_id}.mp3"
+            try:
+                preview_path.unlink(missing_ok=True)
+            except Exception as pe:
+                logger.warning(f"Could not delete preview file {preview_path}: {pe}")
+            
+            return voice
+        else:
+            raise HTTPException(status_code=400, detail="Ungültiger Stimmentyp.")
 
 
 @app.post("/api/admin/voices", response_model=VoiceProfile)
