@@ -317,13 +317,13 @@ def get_multi_voice_refs(primary_voice_key: str, text: str, user_id: str | None 
                 else:
                     ref_ids[idx] = primary_id
 
-    # Enforce safety limit of at most 4 unique voice IDs to prevent "Reference audio too long"
-    if len(set(ref_ids)) > 4:
+    # Enforce safety limit of at most 3 unique voice IDs to prevent "Reference audio too long"
+    if len(set(ref_ids)) > 3:
         unique_ids = []
         mapped_ids = []
         for voice_id in ref_ids:
             if voice_id not in unique_ids:
-                if len(unique_ids) < 4:
+                if len(unique_ids) < 3:
                     unique_ids.append(voice_id)
                     mapped_ids.append(voice_id)
                 else:
@@ -743,7 +743,7 @@ async def generate_tts_chunk(
                 for p in paragraphs:
                     p_speakers = set(int(x) for x in re.findall(r'<\|speaker:(\d+)\|>', p))
                     potential_speakers = current_chunk_speakers.union(p_speakers)
-                    if len(potential_speakers) > 4 and current_chunk_paragraphs:
+                    if len(potential_speakers) > 3 and current_chunk_paragraphs:
                         sub_chunks.append(("\n\n".join(current_chunk_paragraphs), current_chunk_speakers))
                         current_chunk_paragraphs = [p]
                         current_chunk_speakers = p_speakers
@@ -791,13 +791,13 @@ async def generate_tts_chunk(
                                 else:
                                     sc_ref_ids.append(get_fish_voice_id(primary_key, user_id))
 
-                    # Enforce safety limit of 4 unique voice IDs (fallback)
-                    if len(set(sc_ref_ids)) > 4:
+                    # Enforce safety limit of 3 unique voice IDs (fallback)
+                    if len(set(sc_ref_ids)) > 3:
                         unique_ids = []
                         mapped_ids = []
                         for voice_id in sc_ref_ids:
                             if voice_id not in unique_ids:
-                                if len(unique_ids) < 4:
+                                if len(unique_ids) < 3:
                                     unique_ids.append(voice_id)
                                     mapped_ids.append(voice_id)
                                 else:
