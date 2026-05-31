@@ -336,8 +336,17 @@ def get_multi_voice_refs(primary_voice_key: str, text: str, user_id: str | None 
     return ref_ids
 
 
+_fish_semaphore = None
+
+def get_fish_semaphore():
+    global _fish_semaphore
+    if _fish_semaphore is None:
+        _fish_semaphore = asyncio.Semaphore(2)  # Limit concurrent Fish API calls to 2 to prevent 429
+    return _fish_semaphore
+
+
 async def generate_fish_audio(text: str, output_path: Path, reference_ids: list[str], use_s2_pro: bool = False):
-    """Generate audio using Fish Audio API directly via httpx."""
+    """Generate audio using Fish Audio API directly via httpx with retry and rate limiting."""
     import httpx
     import logging
     logger = logging.getLogger(__name__)
@@ -358,20 +367,47 @@ async def generate_fish_audio(text: str, output_path: Path, reference_ids: list[
     else:
         payload["reference_id"] = reference_ids
 
-    async with httpx.AsyncClient(timeout=120.0) as client:
-        async with client.stream("POST", "https://api.fish.audio/v1/tts", headers=headers, json=payload) as response:
+    max_retries = 5
+    base_delay = 2.0
+
+    async with get_fish_semaphore():
+        for attempt in range(max_retries):
             try:
-                response.raise_for_status()
-            except httpx.HTTPStatusError as e:
-                try:
-                    err_body = await response.aread()
-                    logger.error(f"Fish API Error Details: {err_body.decode('utf-8', errors='ignore')}")
-                except Exception:
-                    pass
-                raise e
-            with open(output_path, "wb") as f:
-                async for chunk in response.aiter_bytes():
-                    f.write(chunk)
+                async with httpx.AsyncClient(timeout=120.0) as client:
+                    async with client.stream("POST", "https://api.fish.audio/v1/tts", headers=headers, json=payload) as response:
+                        if response.status_code == 429:
+                            delay = base_delay * (2 ** attempt)
+                            logger.warning(f"Fish API returned 429 Too Many Requests. Retrying in {delay:.1f}s (Attempt {attempt + 1}/{max_retries})...")
+                            await asyncio.sleep(delay)
+                            continue
+
+                        try:
+                            response.raise_for_status()
+                        except httpx.HTTPStatusError as e:
+                            try:
+                                err_body = await response.aread()
+                                logger.error(f"Fish API Error Details: {err_body.decode('utf-8', errors='ignore')}")
+                            except Exception:
+                                pass
+                            
+                            if attempt == max_retries - 1:
+                                raise e
+                            
+                            delay = base_delay * (2 ** attempt)
+                            logger.warning(f"Fish API error: {e}. Retrying in {delay:.1f}s...")
+                            await asyncio.sleep(delay)
+                            continue
+
+                        with open(output_path, "wb") as f:
+                            async for chunk in response.aiter_bytes():
+                                f.write(chunk)
+                        return # Success
+            except Exception as e:
+                if attempt == max_retries - 1:
+                    raise e
+                delay = base_delay * (2 ** attempt)
+                logger.warning(f"Network error or exception during Fish API call: {e}. Retrying in {delay:.1f}s...")
+                await asyncio.sleep(delay)
 
 
 
