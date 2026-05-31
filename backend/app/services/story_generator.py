@@ -963,6 +963,8 @@ REGELN:
    - Füge den jeweiligen Sprecher-Tag IMMER direkt vor dem Textabsatz oder dem gesprochenen Satz ein.
    - Ändere den Sprecher-Tag nur, wenn ein anderer Charakter spricht oder der Erzähler fortfährt.
    - Jede wörtliche Rede MUSS mit dem passenden Sprecher-Tag versehen werden.
+   - WICHTIG: Alles, was NICHT die eigentliche direkte Rede (der gesprochene Text in Anführungszeichen) eines Charakters ist (wie Beschreibungen, Handlungen, Begleitsätze/Inquit-Formeln wie „sagte sie“, „fragte er“), MUSS zwingend dem Erzähler-Tag (<|speaker:0|>) zugeordnet sein. Charakter-Tags (<|speaker:1|>, <|speaker:2|> etc.) dürfen ausschließlich die wörtliche Rede umschließen!
+     Beispiel: <|speaker:1|>„Eistee“, <|speaker:0|> sagte sie. <|speaker:1|>„Selbst gemacht. Mit Minze...“
 
 4. TEXT NICHT VERÄNDERN:
    - Ändere den eigentlichen Text der Geschichte (Wortlaut, Zeichensetzung, Handlung) NICHT. Füge nur die Sprecher-Tags ein.
