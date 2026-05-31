@@ -510,8 +510,8 @@ export interface SpeakerInfo {
     gender?: string;
 }
 
-export async function analyzeStorySpeakers(storyId: string): Promise<{ speakers: SpeakerInfo[] }> {
-    const res = await fetch(`${API_BASE}/api/stories/${storyId}/analyze-speakers`, {
+export async function analyzeStorySpeakers(storyId: string, force: boolean = false): Promise<{ speakers: SpeakerInfo[] }> {
+    const res = await fetch(`${API_BASE}/api/stories/${storyId}/analyze-speakers${force ? '?force=true' : ''}`, {
         method: 'POST',
         headers: getAuthHeaders()
     });

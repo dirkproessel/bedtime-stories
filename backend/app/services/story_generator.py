@@ -950,9 +950,10 @@ async def inject_speaker_tags_to_story(story_data: dict, supports_emotions: bool
 Dazu musst du den Erzähler und alle tatsächlich sprechenden Charaktere identifizieren, ihnen feste Sprecher-IDs zuweisen und die entsprechenden S2-Pro Sprecher-Tags (<|speaker:X|>) in den Text einfügen.
 
 REGELN:
-1. NARRATOR & ICH-PERSPEKTIVE (<|speaker:0|>):
+1. NARRATOR & PERSPEKTIVEN (<|speaker:0|>):
    - `<|speaker:0|>` ist IMMER der Erzähler (Narrator).
    - WICHTIG: Wenn die Geschichte aus der Ich-Perspektive erzählt wird (z.B. "Ich stehe in der Küche...", "sage ich laut zu mir selbst"), gehört die direkte Rede der Hauptfigur ("Ich") ebenfalls zu `<|speaker:0|>`. Sie darf NIEMALS eine eigene Sprecher-ID wie `<|speaker:1|>` erhalten! Die Hauptfigur und der Erzähler sind dieselbe physische Person und Stimme, daher müssen beide `<|speaker:0|>` nutzen.
+   - WICHTIG: Wenn die Geschichte in der dritten Person erzählt wird (Er-/Sie-Perspektive, z.B. "Dirk stellte die Kühltasche...", "er fragte...", "Mia sagte..."), dann ist der Erzähler (<|speaker:0|>) eine eigenständige, neutrale Stimme. Jede direkte Rede der Charaktere (auch der Hauptfiguren wie Dirk, Gisie, Leo, etc.) MUSS in diesem Fall eine eigene Sprecher-ID erhalten (z.B. <|speaker:1|>, <|speaker:2|>, etc.) und darf NICHT mit <|speaker:0|> vertont werden!
 
 2. SPRECHENDE CHARAKTERE:
    - `<|speaker:1|>`, `<|speaker:2|>`, `<|speaker:3|>` etc. sind die IDs für die anderen Charaktere, die in der Geschichte TATSÄCHLICH sprechen.

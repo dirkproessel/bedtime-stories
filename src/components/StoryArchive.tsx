@@ -2,7 +2,7 @@ import { useStore } from '../store/useStore';
 import { getVoicePreviewUrl, exportStoryToKindle, getThumbUrl, type VoiceProfile, analyzeStorySpeakers, type SpeakerInfo } from '../lib/api';
 import { Play, Trash2, Heart, BookOpen, Loader2, Mic, X, XCircle, Venus, Mars, Users, Pause, Send, Image as ImageIcon, RefreshCw, Sparkles, Settings2, MessageCircle, Search, ChevronLeft, ChevronRight, ArrowLeft, Wand2, User as UserIcon, Edit2, Music } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { useEffect, useState, useRef, useMemo } from 'react';
+import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import ConfirmModal from './ConfirmModal';
 
 
@@ -417,70 +417,75 @@ export default function StoryArchive({ filterOverride }: { filterOverride?: 'my'
     }, [revoiceMultiVoice, selectedVoice, voices]);
 
     // Fetch and analyze speakers for multi-voice revoicing
+    const triggerAnalysis = useCallback((force: boolean = false) => {
+        if (!revoiceStoryId) return;
+        setIsAnalyzingSpeakers(true);
+        analyzeStorySpeakers(revoiceStoryId, force)
+            .then(res => {
+                setSpeakers(res.speakers);
+                // Initialize speaker voices map
+                const fishVoices = voices.filter(v => v.engine === 'fish' && v.key !== 'none');
+                const initialMap: Record<number, string> = {};
+                const defaultNarrator = selectedVoice && voices.some(v => v.key === selectedVoice && v.engine === 'fish') 
+                    ? selectedVoice 
+                    : (voices.find(v => v.engine === 'fish')?.key || 'jenny');
+                
+                initialMap[0] = defaultNarrator;
+                
+                // Filter out defaultNarrator from candidates if possible
+                const candidates = fishVoices.filter(v => v.key !== defaultNarrator);
+                const pool = candidates.length > 0 ? candidates : fishVoices;
+                
+                const usedKeys = new Set<string>();
+                usedKeys.add(defaultNarrator);
+                
+                res.speakers.forEach(sp => {
+                    if (sp.id === 0) return;
+                    
+                    const spGender = (sp.gender || 'neutral').toLowerCase();
+                    
+                    // 1. Try to find an unused voice of matching gender
+                    let chosen = pool.find(v => (v.gender || 'neutral').toLowerCase() === spGender && !usedKeys.has(v.key));
+                    
+                    // 2. Fall back to any voice of matching gender (even if already used)
+                    if (!chosen) {
+                        chosen = pool.find(v => (v.gender || 'neutral').toLowerCase() === spGender);
+                    }
+                    
+                    // 3. Fall back to any unused voice of any gender
+                    if (!chosen) {
+                        chosen = pool.find(v => !usedKeys.has(v.key));
+                    }
+                    
+                    // 4. Fall back to first available in pool
+                    if (!chosen) {
+                        chosen = pool[0];
+                    }
+                    
+                    if (chosen) {
+                        initialMap[sp.id] = chosen.key;
+                        usedKeys.add(chosen.key);
+                    } else {
+                        initialMap[sp.id] = defaultNarrator;
+                    }
+                });
+                
+                setSpeakerVoices(initialMap);
+            })
+            .catch((err) => {
+                toast.error(err.message || 'Fehler bei der Sprecher-Analyse');
+                setRevoiceMultiVoice(false);
+            })
+            .finally(() => {
+                setIsAnalyzingSpeakers(false);
+            });
+    }, [revoiceStoryId, voices, selectedVoice]);
+
     useEffect(() => {
         if (revoiceStoryId && revoiceMultiVoice) {
-            setIsAnalyzingSpeakers(true);
-            analyzeStorySpeakers(revoiceStoryId)
-                .then(res => {
-                    setSpeakers(res.speakers);
-                    // Initialize speaker voices map
-                    const fishVoices = voices.filter(v => v.engine === 'fish' && v.key !== 'none');
-                    const initialMap: Record<number, string> = {};
-                    const defaultNarrator = selectedVoice && voices.some(v => v.key === selectedVoice && v.engine === 'fish') 
-                        ? selectedVoice 
-                        : (voices.find(v => v.engine === 'fish')?.key || 'jenny');
-                    
-                    initialMap[0] = defaultNarrator;
-                    
-                    // Filter out defaultNarrator from candidates if possible
-                    const candidates = fishVoices.filter(v => v.key !== defaultNarrator);
-                    const pool = candidates.length > 0 ? candidates : fishVoices;
-                    
-                    const usedKeys = new Set<string>();
-                    usedKeys.add(defaultNarrator);
-                    
-                    res.speakers.forEach(sp => {
-                        if (sp.id === 0) return;
-                        
-                        const spGender = (sp.gender || 'neutral').toLowerCase();
-                        
-                        // 1. Try to find an unused voice of matching gender
-                        let chosen = pool.find(v => (v.gender || 'neutral').toLowerCase() === spGender && !usedKeys.has(v.key));
-                        
-                        // 2. Fall back to any voice of matching gender (even if already used)
-                        if (!chosen) {
-                            chosen = pool.find(v => (v.gender || 'neutral').toLowerCase() === spGender);
-                        }
-                        
-                        // 3. Fall back to any unused voice of any gender
-                        if (!chosen) {
-                            chosen = pool.find(v => !usedKeys.has(v.key));
-                        }
-                        
-                        // 4. Fall back to first available in pool
-                        if (!chosen) {
-                            chosen = pool[0];
-                        }
-                        
-                        if (chosen) {
-                            initialMap[sp.id] = chosen.key;
-                            usedKeys.add(chosen.key);
-                        } else {
-                            initialMap[sp.id] = defaultNarrator;
-                        }
-                    });
-                    
-                    setSpeakerVoices(initialMap);
-                })
-                .catch((err) => {
-                    toast.error(err.message || 'Fehler bei der Sprecher-Analyse');
-                    setRevoiceMultiVoice(false);
-                })
-                .finally(() => {
-                    setIsAnalyzingSpeakers(false);
-                });
+            triggerAnalysis(false);
         }
-    }, [revoiceStoryId, revoiceMultiVoice, voices]);
+    }, [revoiceStoryId, revoiceMultiVoice, triggerAnalysis]);
 
     const [kindleEmail, setKindleEmail] = useState<string>(() => user?.kindle_email || localStorage.getItem('kindle_email') || 'dirk.proessel.runthaler@kindle.com');
     const [isExporting, setIsExporting] = useState<string | null>(null);
@@ -1271,7 +1276,18 @@ export default function StoryArchive({ filterOverride }: { filterOverride?: 'my'
                                             </div>
                                         ) : (
                                             <>
-                                                <p className="text-xs text-slate-400 mb-3 uppercase tracking-wider font-bold">Rollenverteilung (Fish Stimmen):</p>
+                                                 <div className="flex items-center justify-between mb-3">
+                                                     <p className="text-xs text-slate-400 uppercase tracking-wider font-bold">Rollenverteilung (Fish Stimmen):</p>
+                                                     <button
+                                                         onClick={() => triggerAnalysis(true)}
+                                                         className="text-[10px] text-primary hover:text-primary-hover flex items-center gap-1 font-bold bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 transition-all"
+                                                         title="Rollen neu analysieren"
+                                                         type="button"
+                                                     >
+                                                         <RefreshCw className="w-3.5 h-3.5" />
+                                                         Neu analysieren
+                                                     </button>
+                                                 </div>
                                                 <div className="flex flex-col gap-2 max-h-[250px] overflow-y-auto mb-6 pr-1 custom-scrollbar">
                                                     {speakers.map((sp) => (
                                                         <div 

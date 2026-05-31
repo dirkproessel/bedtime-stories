@@ -509,6 +509,7 @@ async def start_revoice(
 @app.post("/api/stories/{story_id}/analyze-speakers")
 async def analyze_story_speakers(
     story_id: str,
+    force: bool = False,
     current_user: User = Depends(get_current_active_user)
 ):
     """Analyze story speakers (and inject speaker tags retroactively if missing)."""
@@ -528,6 +529,15 @@ async def analyze_story_speakers(
         story_data = json.loads(text_path.read_text(encoding="utf-8"))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to read story JSON: {e}")
+
+    # If force is True, clear cached mapping and strip all existing speaker and emotion tags
+    if force:
+        story_data.pop("speaker_mapping", None)
+        import re
+        for c in story_data.get("chapters", []):
+            if "text" in c:
+                c["text"] = re.sub(r'<\|speaker:\d+\|>(?:\s*\[\w+\])?', '', c["text"])
+        text_path.write_text(json.dumps(story_data, ensure_ascii=False, indent=2), encoding="utf-8")
 
     # 1. Check if the story already has speaker tags
     has_speaker_tags = any("<|speaker:" in c.get("text", "") for c in story_data.get("chapters", []))
@@ -1245,6 +1255,10 @@ async def update_story(
             except Exception as e:
                 logger.error(f"Error reading story.json for update: {e}")
                 story_data = {"title": meta.title, "chapters": req.chapters}
+        
+        # Clear cached speaker mapping since text changed
+        story_data.pop("speaker_mapping", None)
+        meta.multi_voice = False
         
         # Save updated text
         story_dir.mkdir(parents=True, exist_ok=True)
