@@ -807,7 +807,10 @@ async def generate_tts_chunk(
 
                     def replace_tag(match):
                         old_idx = int(match.group(1))
-                        return f"<|speaker:{speaker_map[old_idx]}|>"
+                        # Prepend newline for inline tags (not at the very start) to help S2-Pro switch voices
+                        if match.start() == 0 or sc_text[:match.start()].strip() == "":
+                            return f"<|speaker:{speaker_map[old_idx]}|>"
+                        return f"\n<|speaker:{speaker_map[old_idx]}|>"
 
                     rewritten_text = re.sub(r'<\|speaker:(\d+)\|>', replace_tag, sc_text)
 
