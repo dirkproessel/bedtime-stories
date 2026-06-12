@@ -949,3 +949,12 @@ export async function fetchProKdpMetadata(id: string, model?: string): Promise<K
     if (!res.ok) throw new Error('Fehler beim Generieren der KDP-Metadaten');
     return res.json();
 }
+
+export async function cancelProBookGeneration(id: string): Promise<{ status: string }> {
+    const res = await fetch(`${API_BASE}/api/pro/books/${id}/cancel`, {
+        method: 'POST',
+        headers: getAuthHeaders()
+    });
+    if (!res.ok) throw new Error('Fehler beim Abbrechen der Generierung');
+    return res.json();
+}

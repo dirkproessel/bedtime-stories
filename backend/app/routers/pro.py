@@ -638,3 +638,34 @@ async def export_book_kdp_metadata(
         
     metadata = await generate_kdp_metadata(project, chapters, model=model)
     return metadata
+
+
+@router.post("/books/{id}/cancel")
+async def api_cancel_project_generation(
+    id: str,
+    current_user: User = Depends(get_current_active_user)
+):
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin-Zugang verweigert.")
+    with Session(engine) as session:
+        project = session.get(BookProject, id)
+        if not project:
+            raise HTTPException(status_code=404, detail="Buchprojekt nicht gefunden.")
+        project.status = "draft"
+        project.progress = None
+        project.progress_pct = 0
+        
+        # Reset any chapter in generating status back to draft
+        generating_chapters = session.exec(
+            select(BookChapter)
+            .where(BookChapter.book_project_id == id)
+            .where(BookChapter.status == "generating")
+        ).all()
+        for ch in generating_chapters:
+            ch.status = "draft"
+            session.add(ch)
+            
+        session.add(project)
+        session.commit()
+        return {"status": "success", "message": "Generierung abgebrochen und Status zurückgesetzt."}
+

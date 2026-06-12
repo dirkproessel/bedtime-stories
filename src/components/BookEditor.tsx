@@ -17,7 +17,8 @@ import {
     generateProCover,
     getProCoverUrl, 
     getProEpubUrl,
-    fetchProKdpMetadata
+    fetchProKdpMetadata,
+    cancelProBookGeneration
 } from '../lib/api';
 import { 
     ArrowLeft, 
@@ -270,6 +271,19 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
         }
     };
 
+    const handleCancelGeneration = async () => {
+        setIsSaving(true);
+        try {
+            await cancelProBookGeneration(activeProject.id);
+            toast.success('Generierung abgebrochen!');
+            await loadProProjectDetail(activeProject.id);
+        } catch (e: any) {
+            toast.error('Fehler beim Abbrechen: ' + e.message);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
 
     // --- Step 4 Actions ---
 
@@ -373,16 +387,24 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
 
                 {/* Info Progress Panel */}
                 {activeProject.status === 'generating' && (
-                    <div className="bg-surface/50 px-4 py-3 rounded-2xl border border-slate-800/80 flex items-center gap-3 w-full sm:w-auto">
-                        <Loader2 className="w-5 h-5 text-primary animate-spin shrink-0" />
-                        <div className="text-xs">
-                            <div className="font-semibold text-slate-200">
-                                {activeProject.progress || 'KI arbeitet...'}
-                            </div>
-                            <div className="text-[10px] text-text-muted mt-0.5">
-                                Fortschritt: {activeProject.progress_pct}%
+                    <div className="bg-surface/50 px-4 py-3 rounded-2xl border border-slate-800/80 flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-start">
+                        <div className="flex items-center gap-3">
+                            <Loader2 className="w-5 h-5 text-primary animate-spin shrink-0" />
+                            <div className="text-xs">
+                                <div className="font-semibold text-slate-200">
+                                    {activeProject.progress || 'KI arbeitet...'}
+                                </div>
+                                <div className="text-[10px] text-text-muted mt-0.5">
+                                    Fortschritt: {activeProject.progress_pct}%
+                                </div>
                             </div>
                         </div>
+                        <button
+                            onClick={handleCancelGeneration}
+                            className="text-[10px] uppercase font-mono tracking-wider bg-red-500/10 hover:bg-red-500/20 text-red-400 px-3 py-1.5 rounded-lg border border-red-500/20 font-bold transition-colors"
+                        >
+                            Abbrechen
+                        </button>
                     </div>
                 )}
             </div>
