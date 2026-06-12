@@ -262,7 +262,7 @@ async def get_book_project(id: str, current_user: User = Depends(get_current_act
         project = session.get(BookProject, id)
         if not project:
             raise HTTPException(status_code=404, detail="Buchprojekt nicht gefunden.")
-        return project
+        return BookProjectDetailResponse.model_validate(project)
 
 
 @router.put("/books/{id}", response_model=BookProjectResponse)
@@ -386,7 +386,7 @@ async def api_generate_outline(
             
         session.commit()
         session.refresh(project)
-        return project
+        return BookProjectDetailResponse.model_validate(project)
 
 
 @router.put("/books/{id}/outline", response_model=BookProjectDetailResponse)
@@ -437,7 +437,7 @@ async def api_update_outline_manually(
                 
         session.commit()
         session.refresh(project)
-        return project
+        return BookProjectDetailResponse.model_validate(project)
 
 
 @router.post("/books/{id}/chapters/{num}/generate")
