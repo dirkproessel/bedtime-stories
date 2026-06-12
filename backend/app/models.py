@@ -271,6 +271,7 @@ class BookProject(SQLModel, table=True):
     
     # Store JSON strings for structure
     characters_bible: Optional[str] = Field(default=None)  # JSON list of characters
+    style_bible: Optional[str] = Field(default=None)  # Detailed style guidelines (custom/editable)
     outline: Optional[str] = Field(default=None)  # JSON outline structure of chapters
     
     cover_image_url: Optional[str] = Field(default=None)
@@ -320,6 +321,7 @@ class BookProjectCreate(BaseModel):
 class BookProjectUpdate(BaseModel):
     title: Optional[str] = None
     characters_bible: Optional[str] = None
+    style_bible: Optional[str] = None
     outline: Optional[str] = None
     cover_prompt: Optional[str] = None
     status: Optional[str] = None
@@ -354,6 +356,7 @@ class BookProjectResponse(BaseModel):
     genre: str
     style: str
     characters_bible: Optional[str] = None
+    style_bible: Optional[str] = None
     outline: Optional[str] = None
     cover_image_url: Optional[str] = None
     cover_prompt: Optional[str] = None

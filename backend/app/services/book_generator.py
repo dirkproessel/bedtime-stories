@@ -166,8 +166,10 @@ async def generate_chapter_content(
     """Generate prose for a chapter utilizing compressed running summaries of past chapters."""
     # Build character bible string
     chars_str = project.characters_bible or "Keine Angabe"
-    from app.services.story_generator import generate_modular_prompt
-    style_resolved = generate_modular_prompt(project.style)
+    style_resolved = getattr(project, "style_bible", None) or None
+    if not style_resolved:
+        from app.services.story_generator import generate_modular_prompt
+        style_resolved = generate_modular_prompt(project.style)
     
     # Build outline context
     outline_data = json.loads(project.outline) if project.outline else {}
@@ -326,3 +328,116 @@ async def proofread_chapter(
     except Exception as e:
         logger.error(f"Error in proofread_chapter: {e}")
         return []
+
+
+async def proofread_book_globally(
+    chapters: List[BookChapter], 
+    characters_bible: str, 
+    outline: str, 
+    model: str = "gemini-3.5-flash"
+) -> List[Dict[str, Any]]:
+    """Analyze the complete book manuscript for plot holes, character inconsistencies, and style breaks."""
+    system_instruction = (
+        "Du bist ein leitender Bestseller-Lektor. "
+        "Analysiere das gesamte Manuskript auf inhaltliche Widersprüche, Logikfehler, "
+        "Charakter-Konsistenz und Stilbrüche zwischen den Kapiteln. "
+        "Antworte ausschließlich im JSON-Format."
+    )
+    
+    # Concatenate all chapters with clear headers
+    manuscript_parts = []
+    for c in chapters:
+        content_text = c.content or "[Kapitel wurde noch nicht geschrieben]"
+        manuscript_parts.append(f"=== Kapitel {c.chapter_number}: {c.title} ===\n{content_text}")
+    manuscript_text = "\n\n".join(manuscript_parts)
+    
+    prompt = f"""
+    Hier sind die Referenzdaten für das Buch:
+    - Charakter-Bible: {characters_bible}
+    - Gliederung (Outline): {outline}
+    
+    Analysiere das folgende gesamte Manuskript auf übergeordnete Probleme (Logikfehler, Charakter-Inkonsistenzen, Stilbrüche):
+    
+    MANUSKRIPT:
+    \"\"\"
+    {manuscript_text}
+    \"\"\"
+    
+    Kategorisiere die Probleme in:
+    - 'consistency' (z. B. Augenfarbe ändert sich, Figur taucht auf obwohl tot, Gegenstand wechselt den Besitzer ohne Grund, Zeitachsensprung)
+    - 'style' (z. B. Kapitel 3 klingt modern, Kapitel 4 plötzlich altertümlich; Tonwechsel; extreme Wortwiederholungen über Kapitel hinweg)
+    - 'pacing' (Pacing-Probleme, sprunghafte Entwicklungen im Plotfluss)
+    
+    Gib eine Liste von Problemen zurück. Jedes Problem muss folgende Felder haben:
+    - category (eine der 3 Kategorien oben)
+    - description (Beschreibung des Fehlers auf Deutsch)
+    - chapters_involved (eine Liste von Integers der Kapitelnummern, die von diesem Problem betroffen sind, z.B. [2, 5])
+    - suggested_fix (Konkreter Vorschlag für die Korrektur auf Deutsch)
+    
+    Format:
+    [
+      {{
+        "category": "consistency",
+        "description": "...",
+        "chapters_involved": [2, 5],
+        "suggested_fix": "..."
+      }}
+    ]
+    """
+    
+    try:
+        from app.services.text_generator import generate_text
+        response = await generate_text(
+            prompt=prompt,
+            model=model,
+            temperature=0.3,
+            response_mime_type="application/json",
+            system_instruction=system_instruction
+        )
+        cleaned = clean_json_string(response)
+        return json.loads(cleaned)
+    except Exception as e:
+        logger.error(f"Error in proofread_book_globally: {e}")
+        return []
+
+
+async def suggest_cover_prompt(
+    title: str,
+    prompt: str,
+    genre: str,
+    style: str,
+    model: str = "gemini-3.1-flash-lite"
+) -> str:
+    """Generate an image generation prompt for the book cover based on project details."""
+    system_instruction = (
+        "Du bist ein erfahrener Buch-Cover-Designer und Prompt-Engineer. "
+        "Erstelle einen detaillierten, bildhaften Prompt für ein KDP-Buchcover auf Englisch, "
+        "der für Bildgenerierungsmodelle wie Imagen/Midjourney geeignet ist. "
+        "Antworte ausschließlich mit dem reinen Prompt-Text ohne Einleitung, Anführungszeichen oder Erklärung."
+    )
+    
+    prompt_content = f"""
+    Erstelle einen Cover-Bild-Prompt für folgendes Buch:
+    - Titel: {title}
+    - Genre: {genre}
+    - Stil: {style}
+    - Buchidee/Konzept: {prompt}
+    
+    Der Prompt sollte sehr beschreibend sein (Lichtstimmung, Komposition, Stilmittel, Motive, Detailreichtum).
+    Schreibe den gesamten Bild-Prompt auf ENGLISCH.
+    Verwende KEINEN Text oder Buchtitel im Bild-Prompt (no text, no letters).
+    """
+    
+    try:
+        from app.services.text_generator import generate_text
+        response = await generate_text(
+            prompt=prompt_content,
+            model=model,
+            temperature=0.7,
+            system_instruction=system_instruction
+        )
+        return response.strip().strip('"').strip("'")
+    except Exception as e:
+        logger.error(f"Error in suggest_cover_prompt: {e}")
+        return "A cinematic, beautifully composed book cover art representing the theme of the book."
+

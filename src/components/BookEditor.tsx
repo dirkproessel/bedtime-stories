@@ -3,7 +3,8 @@ import { useStore } from '../store/useStore';
 import type { 
     BookProjectDetail, 
     LektoratFinding, 
-    KdpMetadata
+    KdpMetadata,
+    GlobalLektoratFinding
 } from '../lib/api';
 import { formatAuthorStyles } from '../lib/authors';
 import { 
@@ -14,11 +15,14 @@ import {
     generateProChapter, 
     updateProChapter,
     proofreadProChapter, 
+    proofreadProBookGlobally,
     generateProCover,
     getProCoverUrl, 
     getProEpubUrl,
     fetchProKdpMetadata,
-    cancelProBookGeneration
+    cancelProBookGeneration,
+    suggestProStyleRefinement,
+    suggestProCoverPrompt
 } from '../lib/api';
 import { 
     ArrowLeft, 
@@ -50,6 +54,12 @@ const TEXT_MODELS = [
     { value: 'deepseek-v4-pro', label: 'DeepSeek V4 Pro (High-End Reasoning)' },
 ];
 
+const IMAGE_MODELS = [
+    { value: 'gemini-3.1-flash-image-preview', label: 'Gemini 3.1 Flash (512px - Günstig)' },
+    { value: 'gemini-3-pro-image-preview', label: 'Gemini 3.0 Pro (Premium Qualität)' },
+    { value: 'fal-ai/flux/schnell', label: 'Flux/schnell (fal.ai)' }
+];
+
 export default function BookEditor({ project, onBack }: BookEditorProps) {
     const { loadProProjectDetail, currentProProject } = useStore();
     const activeProject = currentProProject || project;
@@ -61,6 +71,9 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
     // Step 1 State: Concept & Characters
     const [charBible, setCharBible] = useState(activeProject.characters_bible || '');
     const [charModel, setCharModel] = useState('gemini-3.1-flash-lite');
+    const [styleBible, setStyleBible] = useState(activeProject.style_bible || '');
+    const [styleModel, setStyleModel] = useState('gemini-3.1-flash-lite');
+    const [activeConceptTab, setActiveConceptTab] = useState<'characters' | 'style'>('characters');
 
     // Step 2 State: Outline
     const [numChapters, setNumChapters] = useState(activeProject.chapters.length || 8);
@@ -77,11 +90,16 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
     const [targetWords, setTargetWords] = useState<number>(2000);
 
     // Step 4 State: Lektorat
+    const [lektoratTab, setLektoratTab] = useState<'chapter' | 'global'>('chapter');
     const [lektoratModel, setLektoratModel] = useState('gemini-3.5-flash');
+    const [globalLektoratModel, setGlobalLektoratModel] = useState('gemini-3.5-flash');
     const [findings, setFindings] = useState<LektoratFinding[]>([]);
+    const [globalFindings, setGlobalFindings] = useState<GlobalLektoratFinding[]>([]);
 
     // Step 5 State: Export & Cover
     const [coverPrompt, setCoverPrompt] = useState(activeProject.cover_prompt || '');
+    const [coverPromptModel, setCoverPromptModel] = useState('gemini-3.1-flash-lite');
+    const [coverImageModel, setCoverImageModel] = useState('fal-ai/flux/schnell');
     const [coverVersion, setCoverVersion] = useState(Date.now().toString());
     const [kdpMetadata, setKdpMetadata] = useState<KdpMetadata | null>(null);
     const [kdpModel, setKdpModel] = useState('gemini-3.1-flash-lite');
@@ -113,6 +131,13 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
             })));
         }
     }, [activeProject]);
+
+    // Sync character bible, style bible and cover prompt when project details load
+    useEffect(() => {
+        setCharBible(activeProject.characters_bible || '');
+        setStyleBible(activeProject.style_bible || '');
+        setCoverPrompt(activeProject.cover_prompt || '');
+    }, [activeProject.id, activeProject.characters_bible, activeProject.style_bible, activeProject.cover_prompt]);
 
     // Sync selected chapter content when selected chapter changes
     useEffect(() => {
@@ -187,6 +212,32 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
             
             setCharBible(prev => (prev ? prev + '\n\n' : '') + formatted);
             toast.success('Vorschläge generiert und unten angehängt!', { id: 'ai' });
+        } catch (e: any) {
+            toast.error('Fehler: ' + e.message, { id: 'ai' });
+        } finally {
+            setIsAiLoading(false);
+        }
+    };
+
+    const handleSaveStyle = async () => {
+        setIsSaving(true);
+        try {
+            await updateProBook(activeProject.id, { style_bible: styleBible });
+            toast.success('Stil-Bible gespeichert!');
+        } catch (e: any) {
+            toast.error('Fehler beim Speichern: ' + e.message);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleSuggestStyle = async () => {
+        setIsAiLoading(true);
+        try {
+            toast.loading('Generiere Stil-Verfeinerung...', { id: 'ai' });
+            const res = await suggestProStyleRefinement(activeProject.id, styleModel);
+            setStyleBible(res.suggested_style);
+            toast.success('Stil erfolgreich verfeinert!', { id: 'ai' });
         } catch (e: any) {
             toast.error('Fehler: ' + e.message, { id: 'ai' });
         } finally {
@@ -321,8 +372,40 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
         toast.success('Korrektur im Editor angewendet. Speichern nicht vergessen!');
     };
 
+    const handleRunGlobalLektorat = async () => {
+        setIsAiLoading(true);
+        try {
+            toast.loading('Globales Lektorat läuft über das gesamte Manuskript...', { id: 'ai' });
+            const res = await proofreadProBookGlobally(activeProject.id, globalLektoratModel);
+            setGlobalFindings(res.findings);
+            if (res.findings.length === 0) {
+                toast.success('Keine globalen Widersprüche oder Probleme gefunden!', { id: 'ai' });
+            } else {
+                toast.success(`${res.findings.length} globale Befunde gefunden!`, { id: 'ai' });
+            }
+        } catch (e: any) {
+            toast.error('Fehler beim globalen Lektorat: ' + e.message, { id: 'ai' });
+        } finally {
+            setIsAiLoading(false);
+        }
+    };
+
 
     // --- Step 5 Actions ---
+
+    const handleSuggestCoverPrompt = async () => {
+        setIsAiLoading(true);
+        try {
+            toast.loading('Generiere Cover-Vorschlag...', { id: 'ai' });
+            const res = await suggestProCoverPrompt(activeProject.id, coverPromptModel);
+            setCoverPrompt(res.suggested_prompt);
+            toast.success('Cover-Prompt erfolgreich generiert!', { id: 'ai' });
+        } catch (e: any) {
+            toast.error('Fehler: ' + e.message, { id: 'ai' });
+        } finally {
+            setIsAiLoading(false);
+        }
+    };
 
     const handleGenerateCover = async () => {
         if (!coverPrompt.trim()) {
@@ -332,7 +415,7 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
         setIsAiLoading(true);
         try {
             toast.loading('Cover-Erstellung läuft im Hintergrund...', { id: 'ai' });
-            await generateProCover(activeProject.id, coverPrompt);
+            await generateProCover(activeProject.id, coverPrompt, coverImageModel);
             toast.success('Generierung gestartet!', { id: 'ai' });
         } catch (e: any) {
             toast.error('Fehler: ' + e.message, { id: 'ai' });
@@ -459,49 +542,126 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                         </div>
                     </div>
 
-                    <div className="lg:col-span-2 bg-surface p-5 rounded-3xl border border-slate-800 space-y-4">
-                        <div className="flex justify-between items-center">
-                            <h3 className="font-semibold text-white text-sm">Charakter-Bible</h3>
-                            
-                            <div className="flex items-center gap-2">
-                                <select 
-                                    value={charModel}
-                                    onChange={(e) => setCharModel(e.target.value)}
-                                    className="bg-background border border-slate-800 text-xs text-slate-300 rounded-lg px-2 py-1 focus:outline-none"
-                                >
-                                    {TEXT_MODELS.map(m => (
-                                        <option key={m.value} value={m.value}>{m.label}</option>
-                                    ))}
-                                </select>
-                                <button 
-                                    onClick={handleSuggestCharacters}
-                                    disabled={isAiLoading}
-                                    className="text-xs bg-slate-800 hover:bg-slate-700 text-primary border border-slate-700/50 rounded-lg px-3 py-1 flex items-center gap-1 transition-colors"
-                                >
-                                    <Sparkles className="w-3 h-3" />
-                                    KI-Vorschlag
-                                </button>
-                            </div>
-                        </div>
-
-                        <textarea 
-                            value={charBible}
-                            onChange={(e) => setCharBible(e.target.value)}
-                            rows={12}
-                            className="w-full bg-background border border-slate-800 rounded-2xl px-4 py-3 text-xs text-white focus:outline-none focus:border-primary font-mono leading-relaxed"
-                            placeholder="Definiere die Charaktere für dein Buch. Du kannst manuell schreiben oder den KI-Vorschlag nutzen, um Figuren und ihre Beziehungen festzuhalten..."
-                        />
-
-                        <div className="flex justify-end pt-2">
+                    <div className="lg:col-span-2 bg-surface p-5 rounded-3xl border border-slate-800 flex flex-col space-y-4">
+                        {/* Tab-Header */}
+                        <div className="flex border-b border-slate-800/80 pb-2.5 gap-4 shrink-0">
                             <button 
-                                onClick={handleSaveCharacters}
-                                disabled={isSaving}
-                                className="btn-primary py-2 px-5 text-xs flex items-center gap-1.5 rounded-xl"
+                                onClick={() => setActiveConceptTab('characters')}
+                                className={`pb-2 text-xs font-bold transition-all relative ${
+                                    activeConceptTab === 'characters' 
+                                    ? 'text-white after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:bg-primary' 
+                                    : 'text-slate-400 hover:text-slate-200'
+                                }`}
                             >
-                                {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                                Charakter-Bible speichern
+                                Charakter-Bible
+                            </button>
+                            <button 
+                                onClick={() => setActiveConceptTab('style')}
+                                className={`pb-2 text-xs font-bold transition-all relative ${
+                                    activeConceptTab === 'style' 
+                                    ? 'text-white after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:bg-primary' 
+                                    : 'text-slate-400 hover:text-slate-200'
+                                }`}
+                            >
+                                Stil-Bible (Schreibstil)
                             </button>
                         </div>
+
+                        {/* TAB 1: CHARACTERS */}
+                        {activeConceptTab === 'characters' && (
+                            <div className="flex-1 flex flex-col space-y-4">
+                                <div className="flex justify-between items-center shrink-0">
+                                    <span className="text-[10px] text-slate-500 font-semibold uppercase font-mono">Figuren & Beziehungen</span>
+                                    
+                                    <div className="flex items-center gap-2">
+                                        <select 
+                                            value={charModel}
+                                            onChange={(e) => setCharModel(e.target.value)}
+                                            className="bg-background border border-slate-800 text-[10px] text-slate-300 rounded-lg px-2 py-1 focus:outline-none"
+                                        >
+                                            {TEXT_MODELS.map(m => (
+                                                <option key={m.value} value={m.value}>{m.label}</option>
+                                            ))}
+                                        </select>
+                                        <button 
+                                            onClick={handleSuggestCharacters}
+                                            disabled={isAiLoading}
+                                            className="text-[10px] bg-slate-800 hover:bg-slate-700 text-primary border border-slate-700/50 rounded-lg px-3 py-1 flex items-center gap-1 transition-colors"
+                                        >
+                                            <Sparkles className="w-3.5 h-3.5" />
+                                            KI-Vorschlag
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <textarea 
+                                    value={charBible}
+                                    onChange={(e) => setCharBible(e.target.value)}
+                                    rows={12}
+                                    className="w-full flex-1 bg-background border border-slate-800 rounded-2xl px-4 py-3 text-xs text-white focus:outline-none focus:border-primary font-mono leading-relaxed resize-y min-h-[300px]"
+                                    placeholder="Definiere die Charaktere für dein Buch. Du kannst manuell schreiben oder den KI-Vorschlag nutzen, um Figuren und ihre Beziehungen festzuhalten..."
+                                />
+
+                                <div className="flex justify-end pt-1 shrink-0">
+                                    <button 
+                                        onClick={handleSaveCharacters}
+                                        disabled={isSaving}
+                                        className="btn-primary py-2 px-5 text-xs flex items-center gap-1.5 rounded-xl"
+                                    >
+                                        {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                                        Charakter-Bible speichern
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* TAB 2: STYLE BIBLE */}
+                        {activeConceptTab === 'style' && (
+                            <div className="flex-1 flex flex-col space-y-4">
+                                <div className="flex justify-between items-center shrink-0">
+                                    <span className="text-[10px] text-slate-500 font-semibold uppercase font-mono">Schreibregeln & Tonalität</span>
+                                    
+                                    <div className="flex items-center gap-2">
+                                        <select 
+                                            value={styleModel}
+                                            onChange={(e) => setStyleModel(e.target.value)}
+                                            className="bg-background border border-slate-800 text-[10px] text-slate-300 rounded-lg px-2 py-1 focus:outline-none"
+                                        >
+                                            {TEXT_MODELS.map(m => (
+                                                <option key={m.value} value={m.value}>{m.label}</option>
+                                            ))}
+                                        </select>
+                                        <button 
+                                            onClick={handleSuggestStyle}
+                                            disabled={isAiLoading}
+                                            className="text-[10px] bg-slate-800 hover:bg-slate-700 text-primary border border-slate-700/50 rounded-lg px-3 py-1 flex items-center gap-1 transition-colors"
+                                        >
+                                            <Sparkles className="w-3.5 h-3.5" />
+                                            Stil verfeinern
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <textarea 
+                                    value={styleBible}
+                                    onChange={(e) => setStyleBible(e.target.value)}
+                                    rows={12}
+                                    className="w-full flex-1 bg-background border border-slate-800 rounded-2xl px-4 py-3 text-xs text-white focus:outline-none focus:border-primary font-mono leading-relaxed resize-y min-h-[300px]"
+                                    placeholder="Definiere die Stil-Vorgaben für das Buch. Diese wurden mit dem Autorenmix initialisiert, können aber beliebig angepasst und verfeinert werden..."
+                                />
+
+                                <div className="flex justify-end pt-1 shrink-0">
+                                    <button 
+                                        onClick={handleSaveStyle}
+                                        disabled={isSaving}
+                                        className="btn-primary py-2 px-5 text-xs flex items-center gap-1.5 rounded-xl"
+                                    >
+                                        {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                                        Stil-Bible speichern
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
@@ -740,147 +900,263 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
 
             {/* STEP 4: CROSS-LLM LEKTORAT */}
             {activeStep === 'lektorat' && (
-                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                    {/* Chapter selector */}
-                    <div className="lg:col-span-1 bg-surface p-4 rounded-3xl border border-slate-800 space-y-3">
-                        <h3 className="font-semibold text-white text-xs">Kapitelauswahl</h3>
-                        <div className="space-y-1">
-                            {activeProject.chapters.map((c) => (
-                                <button
-                                    key={c.id}
-                                    onClick={() => setSelectedChapterNum(c.chapter_number)}
-                                    className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs flex justify-between items-center gap-2 border transition-all ${
-                                        selectedChapterNum === c.chapter_number 
-                                        ? 'bg-slate-800 border-slate-700/50 text-white font-semibold' 
-                                        : 'bg-transparent border-transparent hover:bg-slate-800/10 text-slate-400'
-                                    }`}
-                                >
-                                    <span className="truncate">Kapitel {c.chapter_number}: {c.title}</span>
-                                    <span className={`text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded-md ${
-                                        c.content ? 'bg-primary/10 text-primary' : 'bg-slate-800 text-slate-500'
-                                    }`}>
-                                        {c.content ? 'Text da' : 'Leer'}
-                                    </span>
-                                </button>
-                            ))}
-                        </div>
+                <div className="space-y-6">
+                    {/* Sub-tab selection */}
+                    <div className="flex border-b border-slate-800/80 pb-2.5 gap-4">
+                        <button 
+                            onClick={() => setLektoratTab('chapter')}
+                            className={`pb-2 text-xs font-bold transition-all relative ${
+                                lektoratTab === 'chapter' 
+                                ? 'text-white after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:bg-primary' 
+                                : 'text-slate-400 hover:text-slate-200'
+                            }`}
+                        >
+                            Kapitel-Lektorat (Einzelprüfung)
+                        </button>
+                        <button 
+                            onClick={() => setLektoratTab('global')}
+                            className={`pb-2 text-xs font-bold transition-all relative ${
+                                lektoratTab === 'global' 
+                                ? 'text-white after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:bg-primary' 
+                                : 'text-slate-400 hover:text-slate-200'
+                            }`}
+                        >
+                            Globales Lektorat (Gesamtes Werk)
+                        </button>
                     </div>
 
-                    {/* Proofread results */}
-                    <div className="lg:col-span-3 bg-surface p-5 rounded-3xl border border-slate-800 space-y-5">
-                        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b border-slate-800 pb-3">
-                            <div className="space-y-1">
-                                <h3 className="font-semibold text-white text-sm">
-                                    Lektoratsprüfung (Kapitel {selectedChapterNum})
-                                </h3>
-                                <p className="text-xs text-text-muted">Gemini prüft den von DeepSeek geschriebenen Kapiteltext auf Logik und Fehler.</p>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                                <select 
-                                    value={lektoratModel}
-                                    onChange={(e) => setLektoratModel(e.target.value)}
-                                    className="bg-background border border-slate-800 text-xs text-slate-300 rounded-lg px-2 py-1.5 focus:outline-none"
-                                >
-                                    {TEXT_MODELS.map(m => (
-                                        <option key={m.value} value={m.value}>{m.label}</option>
+                    {lektoratTab === 'chapter' ? (
+                        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 animate-fadeIn">
+                            {/* Chapter selector */}
+                            <div className="lg:col-span-1 bg-surface p-4 rounded-3xl border border-slate-800 space-y-3">
+                                <h3 className="font-semibold text-white text-xs">Kapitelauswahl</h3>
+                                <div className="space-y-1">
+                                    {activeProject.chapters.map((c) => (
+                                        <button
+                                            key={c.id}
+                                            onClick={() => setSelectedChapterNum(c.chapter_number)}
+                                            className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs flex justify-between items-center gap-2 border transition-all ${
+                                                selectedChapterNum === c.chapter_number 
+                                                ? 'bg-slate-800 border-slate-700/50 text-white font-semibold' 
+                                                : 'bg-transparent border-transparent hover:bg-slate-800/10 text-slate-400'
+                                            }`}
+                                        >
+                                            <span className="truncate">Kapitel {c.chapter_number}: {c.title}</span>
+                                            <span className={`text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded-md ${
+                                                c.content ? 'bg-primary/10 text-primary' : 'bg-slate-800 text-slate-500'
+                                            }`}>
+                                                {c.content ? 'Text da' : 'Leer'}
+                                            </span>
+                                        </button>
                                     ))}
-                                </select>
-                                <button 
-                                    onClick={handleRunLektorat}
-                                    disabled={isAiLoading || !chapterText}
-                                    className="btn-primary py-1.5 px-4 text-xs flex items-center gap-1 rounded-xl"
-                                >
-                                    <Sparkles className="w-3.5 h-3.5" />
-                                    Prüfung starten
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Editor reference block */}
-                        {chapterText && (
-                            <div className="bg-background p-3 rounded-2xl border border-slate-800">
-                                <h4 className="text-xs font-semibold text-slate-400 mb-1.5">Geladener Kapiteltext (Vorschau):</h4>
-                                <div className="text-[11px] text-slate-300 font-serif line-clamp-3 leading-relaxed">
-                                    {chapterText}
                                 </div>
                             </div>
-                        )}
 
-                        {/* Findings layout */}
-                        {findings.length === 0 ? (
-                            <div className="text-center py-12 text-slate-500 text-xs space-y-2">
-                                <CheckCircle className="w-8 h-8 mx-auto text-slate-600" />
-                                <p>Keine ungelösten Lektorat-Befunde. Starte die Prüfung über den Button oben.</p>
-                            </div>
-                        ) : (
-                            <div className="space-y-4">
-                                <h4 className="text-xs font-semibold text-white flex items-center gap-2">
-                                    <AlertTriangle className="w-4 h-4 text-amber-500" />
-                                    Korrektur-Empfehlungen ({findings.length})
-                                </h4>
+                            {/* Proofread results */}
+                            <div className="lg:col-span-3 bg-surface p-5 rounded-3xl border border-slate-800 space-y-5">
+                                <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b border-slate-800 pb-3">
+                                    <div className="space-y-1">
+                                        <h3 className="font-semibold text-white text-sm">
+                                            Lektoratsprüfung (Kapitel {selectedChapterNum})
+                                        </h3>
+                                        <p className="text-xs text-text-muted">Gemini prüft den von DeepSeek geschriebenen Kapiteltext auf Logik und Fehler.</p>
+                                    </div>
 
-                                <div className="space-y-3 max-h-[40vh] overflow-y-auto pr-1 custom-scrollbar">
-                                    {findings.map((f, idx) => (
-                                        <div key={idx} className="bg-background p-4.5 rounded-2xl border border-slate-800 space-y-3 text-xs">
-                                            <div className="flex justify-between items-start gap-3">
-                                                <span className={`px-2 py-0.5 rounded-md font-mono text-[9px] uppercase tracking-wider font-bold ${
-                                                    f.category === 'consistency' 
-                                                    ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' 
-                                                    : f.category === 'style'
-                                                    ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
-                                                    : 'bg-red-500/10 text-red-400 border border-red-500/20'
-                                                }`}>
-                                                    {f.category}
-                                                </span>
-                                                <span className="text-[10px] text-slate-500 font-semibold">Empfehlung</span>
-                                            </div>
+                                    <div className="flex items-center gap-2">
+                                        <select 
+                                            value={lektoratModel}
+                                            onChange={(e) => setLektoratModel(e.target.value)}
+                                            className="bg-background border border-slate-800 text-xs text-slate-300 rounded-lg px-2 py-1.5 focus:outline-none"
+                                        >
+                                            {TEXT_MODELS.map(m => (
+                                                <option key={m.value} value={m.value}>{m.label}</option>
+                                            ))}
+                                        </select>
+                                        <button 
+                                            onClick={handleRunLektorat}
+                                            disabled={isAiLoading || !chapterText}
+                                            className="btn-primary py-1.5 px-4 text-xs flex items-center gap-1 rounded-xl"
+                                        >
+                                            <Sparkles className="w-3.5 h-3.5" />
+                                            Prüfung starten
+                                        </button>
+                                    </div>
+                                </div>
 
-                                            <div className="text-slate-300 font-semibold">
-                                                {f.description}
-                                            </div>
-
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
-                                                <div className="bg-red-500/5 p-2 rounded-xl border border-red-500/10 space-y-1">
-                                                    <span className="text-[9px] font-mono uppercase text-red-400 font-bold">Original:</span>
-                                                    <p className="text-[11px] text-slate-400 font-serif leading-relaxed italic">"{f.original_snippet}"</p>
-                                                </div>
-                                                <div className="bg-primary/5 p-2 rounded-xl border border-primary/10 space-y-1">
-                                                    <span className="text-[9px] font-mono uppercase text-primary font-bold">Korrektur:</span>
-                                                    <p className="text-[11px] text-slate-300 font-serif leading-relaxed italic">"{f.suggested_rewrite}"</p>
-                                                </div>
-                                            </div>
-
-                                            {chapterText.includes(f.original_snippet) ? (
-                                                <div className="flex justify-end">
-                                                    <button
-                                                        onClick={() => handleApplyFinding(f)}
-                                                        className="bg-primary/15 hover:bg-primary/20 text-primary border border-primary/30 text-[10px] px-3.5 py-1.5 rounded-xl transition-colors font-medium flex items-center gap-1"
-                                                    >
-                                                        <Check className="w-3.5 h-3.5" />
-                                                        Original im Editor ersetzen
-                                                    </button>
-                                                </div>
-                                            ) : (
-                                                <div className="text-right text-[10px] text-slate-500 italic">
-                                                    Bereits im Kapitel-Editor angepasst oder ersetzt.
-                                                </div>
-                                            )}
+                                {/* Editor reference block */}
+                                {chapterText && (
+                                    <div className="bg-background p-3 rounded-2xl border border-slate-800">
+                                        <h4 className="text-xs font-semibold text-slate-400 mb-1.5">Geladener Kapiteltext (Vorschau):</h4>
+                                        <div className="text-[11px] text-slate-300 font-serif line-clamp-3 leading-relaxed">
+                                            {chapterText}
                                         </div>
-                                    ))}
+                                    </div>
+                                )}
+
+                                {/* Findings layout */}
+                                {findings.length === 0 ? (
+                                    <div className="text-center py-12 text-slate-500 text-xs space-y-2">
+                                        <CheckCircle className="w-8 h-8 mx-auto text-slate-600" />
+                                        <p>Keine ungelösten Lektorat-Befunde. Starte die Prüfung über den Button oben.</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-4">
+                                        <h4 className="text-xs font-semibold text-white flex items-center gap-2">
+                                            <AlertTriangle className="w-4 h-4 text-amber-500" />
+                                            Korrektur-Empfehlungen ({findings.length})
+                                        </h4>
+
+                                        <div className="space-y-3 max-h-[40vh] overflow-y-auto pr-1 custom-scrollbar">
+                                            {findings.map((f, idx) => (
+                                                <div key={idx} className="bg-background p-4.5 rounded-2xl border border-slate-800 space-y-3 text-xs animate-fadeIn">
+                                                    <div className="flex justify-between items-start gap-3">
+                                                        <span className={`px-2 py-0.5 rounded-md font-mono text-[9px] uppercase tracking-wider font-bold ${
+                                                            f.category === 'consistency' 
+                                                            ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' 
+                                                            : f.category === 'style'
+                                                            ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                                                            : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                                                        }`}>
+                                                            {f.category}
+                                                        </span>
+                                                        <span className="text-[10px] text-slate-500 font-semibold">Empfehlung</span>
+                                                    </div>
+
+                                                    <div className="text-slate-300 font-semibold">
+                                                        {f.description}
+                                                    </div>
+
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                                                        <div className="bg-red-500/5 p-2 rounded-xl border border-red-500/10 space-y-1">
+                                                            <span className="text-[9px] font-mono uppercase text-red-400 font-bold">Original:</span>
+                                                            <p className="text-[11px] text-slate-400 font-serif leading-relaxed italic">"{f.original_snippet}"</p>
+                                                        </div>
+                                                        <div className="bg-primary/5 p-2 rounded-xl border border-primary/10 space-y-1">
+                                                            <span className="text-[9px] font-mono uppercase text-primary font-bold">Korrektur:</span>
+                                                            <p className="text-[11px] text-slate-300 font-serif leading-relaxed italic">"{f.suggested_rewrite}"</p>
+                                                        </div>
+                                                    </div>
+
+                                                    {chapterText.includes(f.original_snippet) ? (
+                                                        <div className="flex justify-end">
+                                                            <button
+                                                                onClick={() => handleApplyFinding(f)}
+                                                                className="bg-primary/15 hover:bg-primary/20 text-primary border border-primary/30 text-[10px] px-3.5 py-1.5 rounded-xl transition-colors font-medium flex items-center gap-1"
+                                                            >
+                                                                <Check className="w-3.5 h-3.5" />
+                                                                Original im Editor ersetzen
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="text-right text-[10px] text-slate-500 italic">
+                                                            Bereits im Kapitel-Editor angepasst oder ersetzt.
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        <div className="bg-amber-500/5 p-3.5 rounded-2xl border border-amber-500/15 flex items-start gap-3">
+                                            <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                                            <p className="text-[10px] text-slate-400 leading-normal">
+                                                <b>Wichtiger Hinweis:</b> Wenn du Korrekturen mit 'Original im Editor ersetzen' anwendest, 
+                                                musst du danach im Tab <b>"3. Kapitel schreiben"</b> auf <b>"Kapitel-Änderungen speichern"</b> klicken, 
+                                                um die Änderungen fest in der Datenbank zu hinterlegen!
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="bg-surface p-5 rounded-3xl border border-slate-800 space-y-5 animate-fadeIn">
+                            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b border-slate-800 pb-3">
+                                <div className="space-y-1">
+                                    <h3 className="font-semibold text-white text-sm">
+                                        Globales Lektorat (Gesamtes Werk)
+                                    </h3>
+                                    <p className="text-xs text-text-muted">Analysiert das gesamte Manuskript auf Logikfehler, Stilbrüche und Charakterkonsistenz.</p>
                                 </div>
 
-                                <div className="bg-amber-500/5 p-3.5 rounded-2xl border border-amber-500/15 flex items-start gap-3">
-                                    <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
-                                    <p className="text-[10px] text-slate-400 leading-normal">
-                                        <b>Wichtiger Hinweis:</b> Wenn du Korrekturen mit 'Original im Editor ersetzen' anwendest, 
-                                        musst du danach im Tab <b>"3. Kapitel schreiben"</b> auf <b>"Kapitel-Änderungen speichern"</b> klicken, 
-                                        um die Änderungen fest in der Datenbank zu hinterlegen!
-                                    </p>
+                                <div className="flex items-center gap-2">
+                                    <select 
+                                        value={globalLektoratModel}
+                                        onChange={(e) => setGlobalLektoratModel(e.target.value)}
+                                        className="bg-background border border-slate-800 text-xs text-slate-300 rounded-lg px-2 py-1.5 focus:outline-none"
+                                    >
+                                        {TEXT_MODELS.map(m => (
+                                            <option key={m.value} value={m.value}>{m.label}</option>
+                                        ))}
+                                    </select>
+                                    <button 
+                                        onClick={handleRunGlobalLektorat}
+                                        disabled={isAiLoading}
+                                        className="btn-primary py-1.5 px-4 text-xs flex items-center gap-1 rounded-xl"
+                                    >
+                                        <Sparkles className="w-3.5 h-3.5" />
+                                        Globales Lektorat starten
+                                    </button>
                                 </div>
                             </div>
-                        )}
-                    </div>
+
+                            {/* Global findings display */}
+                            {globalFindings.length === 0 ? (
+                                <div className="text-center py-12 text-slate-500 text-xs space-y-2">
+                                    <CheckCircle className="w-8 h-8 mx-auto text-slate-600" />
+                                    <p>Keine ungelösten globalen Lektorat-Befunde. Starte das globale Lektorat über den Button oben.</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    <h4 className="text-xs font-semibold text-white flex items-center gap-2">
+                                        <AlertTriangle className="w-4 h-4 text-amber-500" />
+                                        Globale Befunde ({globalFindings.length})
+                                    </h4>
+
+                                    <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-1 custom-scrollbar">
+                                        {globalFindings.map((gf, idx) => (
+                                            <div key={idx} className="bg-background p-4.5 rounded-2xl border border-slate-800 space-y-3 text-xs animate-fadeIn">
+                                                <div className="flex justify-between items-start gap-3">
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <span className={`px-2 py-0.5 rounded-md font-mono text-[9px] uppercase tracking-wider font-bold ${
+                                                            gf.category === 'consistency' 
+                                                            ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' 
+                                                            : gf.category === 'style'
+                                                            ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                                                            : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                                                        }`}>
+                                                            {gf.category}
+                                                        </span>
+                                                        <span className="text-[10px] text-slate-400 font-semibold">
+                                                            Kapitel: {gf.chapters_involved.join(', ') || 'Alle'}
+                                                        </span>
+                                                    </div>
+                                                    <span className="text-[10px] text-slate-500 font-semibold">Globaler Befund</span>
+                                                </div>
+
+                                                <div className="text-slate-300 font-semibold font-sans">
+                                                    {gf.description}
+                                                </div>
+
+                                                <div className="bg-primary/5 p-3 rounded-xl border border-primary/10 space-y-1">
+                                                    <span className="text-[9px] font-mono uppercase text-primary font-bold">Lösungsvorschlag:</span>
+                                                    <p className="text-[11px] text-slate-300 font-serif leading-relaxed italic">{gf.suggested_fix}</p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    
+                                    <div className="bg-slate-800/40 p-3.5 rounded-2xl border border-slate-800 flex items-start gap-3">
+                                        <AlertTriangle className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                                        <p className="text-[10px] text-slate-400 leading-normal">
+                                            <b>Hinweis:</b> Globale Befunde betreffen oft mehrere Kapitel oder die Struktur des Buchs. 
+                                            Nutze diese Liste als Arbeitszettel, um im Tab <b>"3. Kapitel schreiben"</b> die jeweiligen 
+                                            Kapiteltexte gezielt manuell zu editieren oder mit Feedback neu zu generieren.
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
             )}
 
@@ -921,7 +1197,29 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                         )}
 
                         <div className="space-y-2">
-                            <label className="text-xs font-semibold text-slate-300">Bild-Prompt (Editierbar):</label>
+                            <div className="flex justify-between items-center">
+                                <label className="text-xs font-semibold text-slate-300">Bild-Prompt (Editierbar):</label>
+                                
+                                <div className="flex items-center gap-2">
+                                    <select 
+                                        value={coverPromptModel}
+                                        onChange={(e) => setCoverPromptModel(e.target.value)}
+                                        className="bg-background border border-slate-800 text-[10px] text-slate-300 rounded-lg px-2 py-1 focus:outline-none"
+                                    >
+                                        {TEXT_MODELS.map(m => (
+                                            <option key={m.value} value={m.value}>{m.label}</option>
+                                        ))}
+                                    </select>
+                                    <button 
+                                        onClick={handleSuggestCoverPrompt}
+                                        disabled={isAiLoading || activeProject.status === 'generating'}
+                                        className="text-[10px] bg-slate-800 hover:bg-slate-700 text-primary border border-slate-700/50 rounded-lg px-2.5 py-1 flex items-center gap-1 transition-colors"
+                                    >
+                                        <Sparkles className="w-3 h-3" />
+                                        KI-Vorschlag
+                                    </button>
+                                </div>
+                            </div>
                             <textarea 
                                 value={coverPrompt}
                                 onChange={(e) => setCoverPrompt(e.target.value)}
@@ -929,6 +1227,19 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                                 className="w-full bg-background border border-slate-800 rounded-2xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-primary resize-none font-serif leading-relaxed"
                                 placeholder="z. B. Ein mystischer Wald im Mondlicht, Ölgemälde, weiches Licht, hoher Kontrast..."
                             />
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-xs font-semibold text-slate-300">Bild API / Modell:</label>
+                            <select 
+                                value={coverImageModel}
+                                onChange={(e) => setCoverImageModel(e.target.value)}
+                                className="w-full bg-background border border-slate-800 text-xs text-slate-300 rounded-xl px-3 py-2.5 focus:outline-none focus:border-primary"
+                            >
+                                {IMAGE_MODELS.map(m => (
+                                    <option key={m.value} value={m.value}>{m.label}</option>
+                                ))}
+                            </select>
                         </div>
 
                         <button 

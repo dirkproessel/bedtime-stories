@@ -123,7 +123,7 @@ async def _generate_deepseek(prompt, model, temperature, max_tokens, response_mi
             prompt += " (Respond in JSON format)"
             messages[-1]["content"] = prompt
 
-    async with httpx.AsyncClient(timeout=60.0) as client:
+    async with httpx.AsyncClient(timeout=300.0) as client:
         try:
             resp = await client.post(url, headers=headers, json=payload)
             resp.raise_for_status()

@@ -128,6 +128,15 @@ def on_startup():
             except Exception as e:
                 # Column likely already exists
                 pass
+
+            # Check if style_bible exists on bookproject, if not add it
+            try:
+                conn.execute(text("ALTER TABLE bookproject ADD COLUMN style_bible TEXT"))
+                conn.commit()
+                logger.info("Database Migration: Added style_bible column to bookproject table.")
+            except Exception as e:
+                # Column likely already exists
+                pass
     except Exception as e:
         logger.error(f"Migration error: {e}")
     logger.info("Bedtime Stories API starting up - Running database initialization...")

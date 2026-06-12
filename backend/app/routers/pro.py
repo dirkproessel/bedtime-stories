@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query, Header
 from fastapi.responses import FileResponse, Response
 from sqlmodel import Session, select
 from google import genai
@@ -15,7 +15,7 @@ from google.genai import types
 
 from app.database import engine
 from app.config import settings
-from app.auth_utils import get_current_active_user
+from app.auth_utils import get_current_active_user, SECRET_KEY, ALGORITHM
 from app.models import (
     User,
     BookProject,
@@ -32,7 +32,9 @@ from app.services.book_generator import (
     generate_outline,
     generate_chapter_content,
     generate_chapter_summary,
-    proofread_chapter
+    proofread_chapter,
+    proofread_book_globally,
+    suggest_cover_prompt
 )
 from app.services.book_export_service import (
     generate_book_epub,
@@ -43,6 +45,39 @@ from app.services.store import store
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/pro", tags=["pro"])
+
+
+async def get_admin_user_from_request(
+    token: Optional[str] = Query(None),
+    authorization: Optional[str] = Header(None)
+) -> User:
+    jwt_token = None
+    if authorization and authorization.startswith("Bearer "):
+        jwt_token = authorization.split(" ")[1]
+    elif token:
+        jwt_token = token
+        
+    if not jwt_token:
+        raise HTTPException(status_code=401, detail="Authentication token required")
+        
+    try:
+        payload = jwt.decode(jwt_token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id: str = payload.get("sub")
+        if user_id is None:
+            raise HTTPException(status_code=401, detail="Invalid token")
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+        
+    with Session(engine) as session:
+        user = session.get(User, user_id)
+        if user is None:
+            raise HTTPException(status_code=401, detail="User not found")
+        if not user.is_active:
+            raise HTTPException(status_code=400, detail="Inactive user")
+        if not user.is_admin:
+            raise HTTPException(status_code=403, detail="Admin-Zugang verweigert.")
+        return user
+
 
 # Re-use Safety settings for Image Gen from image_generator
 from app.services.image_generator import SAFETY_SETTINGS_CONFIG
@@ -132,7 +167,7 @@ async def bg_generate_chapter(project_id: str, chapter_id: str, model: str, feed
             session.commit()
 
 
-async def bg_generate_cover(project_id: str, cover_prompt: str):
+async def bg_generate_cover(project_id: str, cover_prompt: str, model: Optional[str] = None):
     """Generates the book cover image in the background using Fal.ai or Imagen."""
     with Session(engine) as session:
         project = session.get(BookProject, project_id)
@@ -149,7 +184,7 @@ async def bg_generate_cover(project_id: str, cover_prompt: str):
         output_path = settings.AUDIO_OUTPUT_DIR / "books" / output_filename
         output_path.parent.mkdir(parents=True, exist_ok=True)
         
-        model_id = store.get_system_setting("gemini_image_model", settings.GEMINI_IMAGE_MODEL)
+        model_id = model or store.get_system_setting("gemini_image_model", settings.GEMINI_IMAGE_MODEL)
         
         # Enhanced prompt instructions (no typography, KDP spec)
         enhanced_prompt = (
@@ -238,6 +273,9 @@ async def create_book_project(req: BookProjectCreate, current_user: User = Depen
     if not current_user.is_admin:
         raise HTTPException(status_code=403, detail="Nur Administratoren dürfen Pro-Buchprojekte erstellen.")
         
+    from app.services.story_generator import generate_modular_prompt
+    initial_style = generate_modular_prompt(req.style)
+    
     project_id = str(uuid.uuid4())[:8]
     project = BookProject(
         id=project_id,
@@ -246,6 +284,7 @@ async def create_book_project(req: BookProjectCreate, current_user: User = Depen
         prompt=req.prompt,
         genre=req.genre,
         style=req.style,
+        style_bible=initial_style,
         status="draft"
     )
     
@@ -553,11 +592,83 @@ async def api_proofread_chapter(
     return {"findings": findings}
 
 
+@router.post("/books/{id}/proofread/global")
+async def api_proofread_book_globally(
+    id: str, 
+    model: str = "gemini-3.5-flash",
+    current_user: User = Depends(get_current_active_user)
+):
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin-Zugang verweigert.")
+        
+    with Session(engine) as session:
+        project = session.get(BookProject, id)
+        if not project:
+            raise HTTPException(status_code=404, detail="Buchprojekt nicht gefunden.")
+            
+        chapters = session.exec(
+            select(BookChapter)
+            .where(BookChapter.book_project_id == id)
+            .order_by(BookChapter.chapter_number)
+        ).all()
+        
+        bible = project.characters_bible or "Keine Angabe"
+        outline = project.outline or "{}"
+        
+        # Snapshot chapters to avoid DetachedInstanceError outside the session block
+        chapters_snapshot = []
+        for c in chapters:
+            chapters_snapshot.append(BookChapter(
+                chapter_number=c.chapter_number,
+                title=c.title,
+                content=c.content or ""
+            ))
+            
+    findings = await proofread_book_globally(
+        chapters=chapters_snapshot,
+        characters_bible=bible,
+        outline=outline,
+        model=model
+    )
+    return {"findings": findings}
+
+
+
+@router.post("/books/{id}/cover/suggest")
+async def api_suggest_book_cover_prompt(
+    id: str,
+    model: str = "gemini-3.1-flash-lite",
+    current_user: User = Depends(get_current_active_user)
+):
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin-Zugang verweigert.")
+        
+    with Session(engine) as session:
+        project = session.get(BookProject, id)
+        if not project:
+            raise HTTPException(status_code=404, detail="Buchprojekt nicht gefunden.")
+            
+        title = project.title
+        prompt = project.prompt
+        genre = project.genre
+        style = project.style
+        
+    suggested = await suggest_cover_prompt(
+        title=title,
+        prompt=prompt,
+        genre=genre,
+        style=style,
+        model=model
+    )
+    return {"suggested_prompt": suggested}
+
+
 @router.post("/books/{id}/cover")
 async def api_generate_book_cover(
     id: str,
     bg_tasks: BackgroundTasks,
     cover_prompt: str = Query(..., description="Prompt für das Cover-Bild"),
+    model: Optional[str] = Query(None, description="Modell für die Cover-Generierung"),
     current_user: User = Depends(get_current_active_user)
 ):
     if not current_user.is_admin:
@@ -572,16 +683,13 @@ async def api_generate_book_cover(
             raise HTTPException(status_code=400, detail="Das Projekt generiert bereits einen Inhalt.")
             
     # Trigger background cover generation
-    bg_tasks.add_task(bg_generate_cover, id, cover_prompt)
+    bg_tasks.add_task(bg_generate_cover, id, cover_prompt, model)
     return {"status": "started", "message": "Cover-Generierung im Hintergrund gestartet."}
 
 
 @router.get("/books/{id}/cover.jpg")
-async def get_book_cover_image(id: str, current_user: User = Depends(get_current_active_user)):
+async def get_book_cover_image(id: str, current_user: User = Depends(get_admin_user_from_request)):
     """Serves the generated book cover image."""
-    if not current_user.is_admin:
-        raise HTTPException(status_code=403, detail="Admin-Zugang verweigert.")
-        
     with Session(engine) as session:
         project = session.get(BookProject, id)
         if not project or not project.cover_image_url:
@@ -597,10 +705,7 @@ async def get_book_cover_image(id: str, current_user: User = Depends(get_current
 # --- Export Endpoints ---
 
 @router.get("/books/{id}/export/epub")
-async def export_book_epub_download(id: str, current_user: User = Depends(get_current_active_user)):
-    if not current_user.is_admin:
-        raise HTTPException(status_code=403, detail="Admin-Zugang verweigert.")
-        
+async def export_book_epub_download(id: str, current_user: User = Depends(get_admin_user_from_request)):
     with Session(engine) as session:
         project = session.get(BookProject, id)
         if not project:
@@ -649,6 +754,64 @@ async def export_book_kdp_metadata(
         
     metadata = await generate_kdp_metadata(project, chapters, model=model)
     return metadata
+
+
+@router.post("/books/{id}/style/suggest")
+async def api_suggest_style_refinement(
+    id: str,
+    model: str = "gemini-3.1-flash-lite",
+    current_user: User = Depends(get_current_active_user)
+):
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin-Zugang verweigert.")
+        
+    with Session(engine) as session:
+        project = session.get(BookProject, id)
+        if not project:
+            raise HTTPException(status_code=404, detail="Buchprojekt nicht gefunden.")
+            
+        current_style = project.style_bible
+        if not current_style:
+            from app.services.story_generator import generate_modular_prompt
+            current_style = generate_modular_prompt(project.style)
+            
+        genre = project.genre
+        prompt = project.prompt
+        
+    # Ask the LLM to refine the style guidelines into more detailed, professional instructions
+    system_instruction = (
+        "Du bist ein erfahrener Schreibcoach und Lektor. "
+        "Optimiere und verfeinere die Stil-Vorgaben für ein Buchprojekt. "
+        "Füge konkrete, professionelle Schreibtipps hinzu, die zum gewünschten Autorenstil passen."
+    )
+    
+    prompt_content = f"""
+    Hier sind die aktuellen Stil-Vorgaben für das Buch:
+    \"\"\"
+    {current_style}
+    \"\"\"
+    
+    Das Buch hat das Genre: {genre}
+    Ursprungsidee: {prompt}
+    
+    Aufgabe:
+    Erweitere diese Stil-Vorgaben um konkrete, umsetzbare Tipps (z.B. Satzbau, Atmosphäre, Wortwahl, Dialoge).
+    Halte die Struktur übersichtlich (z.B. mit Stichpunkten). 
+    Schreibe auf Deutsch. Antworte direkt mit den neuen Stil-Vorgaben. Verwende keine einleitenden Floskeln.
+    """
+    
+    try:
+        from app.services.text_generator import generate_text
+        refined = await generate_text(
+            prompt=prompt_content,
+            model=model,
+            temperature=0.7,
+            system_instruction=system_instruction
+        )
+        return {"suggested_style": refined.strip()}
+    except Exception as e:
+        logger.error(f"Failed to suggest style refinement: {e}")
+        raise HTTPException(status_code=500, detail=f"Fehler bei KI-Generierung: {str(e)}")
 
 
 @router.post("/books/{id}/cancel")

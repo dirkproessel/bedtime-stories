@@ -768,6 +768,7 @@ export interface BookProject {
     genre: string;
     style: string;
     characters_bible: string | null;
+    style_bible: string | null;
     outline: string | null;
     cover_image_url: string | null;
     cover_prompt: string | null;
@@ -917,8 +918,9 @@ export async function proofreadProChapter(id: string, num: number, model?: strin
     return res.json();
 }
 
-export async function generateProCover(id: string, coverPrompt: string): Promise<{ status: string }> {
-    const url = `${API_BASE}/api/pro/books/${id}/cover?cover_prompt=${encodeURIComponent(coverPrompt)}`;
+export async function generateProCover(id: string, coverPrompt: string, model?: string): Promise<{ status: string }> {
+    let url = `${API_BASE}/api/pro/books/${id}/cover?cover_prompt=${encodeURIComponent(coverPrompt)}`;
+    if (model) url += `&model=${encodeURIComponent(model)}`;
     const res = await fetch(url, {
         method: 'POST',
         headers: getAuthHeaders()
@@ -958,3 +960,44 @@ export async function cancelProBookGeneration(id: string): Promise<{ status: str
     if (!res.ok) throw new Error('Fehler beim Abbrechen der Generierung');
     return res.json();
 }
+
+export async function suggestProStyleRefinement(id: string, model?: string): Promise<{ suggested_style: string }> {
+    let url = `${API_BASE}/api/pro/books/${id}/style/suggest`;
+    if (model) url += `?model=${encodeURIComponent(model)}`;
+    const res = await fetch(url, {
+        method: 'POST',
+        headers: getAuthHeaders()
+    });
+    if (!res.ok) throw new Error('Fehler beim Generieren des Stil-Vorschlags');
+    return res.json();
+}
+
+export interface GlobalLektoratFinding {
+    category: 'consistency' | 'style' | 'pacing';
+    description: string;
+    chapters_involved: number[];
+    suggested_fix: string;
+}
+
+export async function proofreadProBookGlobally(id: string, model?: string): Promise<{ findings: GlobalLektoratFinding[] }> {
+    let url = `${API_BASE}/api/pro/books/${id}/proofread/global`;
+    if (model) url += `?model=${encodeURIComponent(model)}`;
+    const res = await fetch(url, {
+        method: 'POST',
+        headers: getAuthHeaders()
+    });
+    if (!res.ok) throw new Error('Fehler beim globalen Lektorat des Buchs');
+    return res.json();
+}
+
+export async function suggestProCoverPrompt(id: string, model?: string): Promise<{ suggested_prompt: string }> {
+    let url = `${API_BASE}/api/pro/books/${id}/cover/suggest`;
+    if (model) url += `?model=${encodeURIComponent(model)}`;
+    const res = await fetch(url, {
+        method: 'POST',
+        headers: getAuthHeaders()
+    });
+    if (!res.ok) throw new Error('Fehler beim Generieren des Cover-Prompts');
+    return res.json();
+}
+
