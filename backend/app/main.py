@@ -137,6 +137,16 @@ def on_startup():
             except Exception as e:
                 # Column likely already exists
                 pass
+
+            # Check if epub fields exist on bookproject, if not add them
+            for col in ["epub_author", "epub_dedication", "epub_afterword", "epub_imprint"]:
+                try:
+                    conn.execute(text(f"ALTER TABLE bookproject ADD COLUMN {col} TEXT"))
+                    conn.commit()
+                    logger.info(f"Database Migration: Added {col} column to bookproject table.")
+                except Exception as e:
+                    # Column likely already exists
+                    pass
     except Exception as e:
         logger.error(f"Migration error: {e}")
     logger.info("Bedtime Stories API starting up - Running database initialization...")

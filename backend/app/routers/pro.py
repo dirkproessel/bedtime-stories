@@ -846,3 +846,77 @@ async def api_cancel_project_generation(
         session.commit()
         return {"status": "success", "message": "Generierung abgebrochen und Status zurückgesetzt."}
 
+
+@router.post("/books/{id}/epub/suggest")
+async def api_suggest_epub_metadata(
+    id: str,
+    model: str = "gemini-3.1-flash-lite",
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Generate AI-suggested content for EPUB front/back matter:
+    - epub_author: default author display name
+    - epub_dedication: poetic dedication text
+    - epub_afterword: short afterword / Nachwort
+    - epub_imprint: optional extra imprint paragraph
+    """
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin-Zugang verweigert.")
+
+    with Session(engine) as session:
+        project = session.get(BookProject, id)
+        if not project:
+            raise HTTPException(status_code=404, detail="Buchprojekt nicht gefunden.")
+        title = project.title
+        genre = project.genre
+        style = project.style
+        prompt_idea = project.prompt
+
+    from app.services.text_generator import generate_text
+
+    system_instruction = (
+        "Du bist ein erfahrener Buchautor und Verlags-Lektor. "
+        "Erstelle kurze, professionelle Texte für ein Buchprojekt. "
+        "Antworte ausschließlich im JSON-Format."
+    )
+
+    ai_prompt = f"""
+Hier sind die Daten des Buchprojekts:
+- Titel: {title}
+- Genre: {genre}
+- Stil: {style}
+- Buchidee / Prämisse: {prompt_idea}
+
+Erstelle ein JSON-Objekt mit folgenden Feldern auf Deutsch:
+
+1. "epub_author": Ein Autorenname / Pseudonym für das Buch (Vorschlag: "Stanzwerk Pro" oder ein passender Künstlername, max 30 Zeichen)
+2. "epub_dedication": Eine kurze, poetische Widmung (2–4 Zeilen, passend zum Genre/Thema)  
+3. "epub_afterword": Ein kurzes Nachwort (100–150 Wörter), das das Thema und die Entstehungsgeschichte des Buches reflektiert
+4. "epub_imprint": Ein optionaler Impressums-Zusatz (z.B. ein Datenschutzhinweis oder Haftungsausschluss, 1–2 Sätze, oder leer lassen)
+
+Format:
+{{
+  "epub_author": "...",
+  "epub_dedication": "...",
+  "epub_afterword": "...",
+  "epub_imprint": "..."
+}}
+"""
+
+    try:
+        from app.services.book_generator import clean_json_string
+        raw = await generate_text(
+            prompt=ai_prompt,
+            model=model,
+            temperature=0.8,
+            response_mime_type="application/json",
+            system_instruction=system_instruction
+        )
+        cleaned = clean_json_string(raw)
+        result = json.loads(cleaned)
+        return result
+    except Exception as e:
+        logger.error(f"Failed to suggest EPUB metadata: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"KI-Generierung fehlgeschlagen: {str(e)}")
+
+

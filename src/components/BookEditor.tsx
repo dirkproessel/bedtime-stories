@@ -22,7 +22,8 @@ import {
     fetchProKdpMetadata,
     cancelProBookGeneration,
     suggestProStyleRefinement,
-    suggestProCoverPrompt
+    suggestProCoverPrompt,
+    suggestProEpubMetadata
 } from '../lib/api';
 import { 
     ArrowLeft, 
@@ -104,6 +105,14 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
     const [kdpMetadata, setKdpMetadata] = useState<KdpMetadata | null>(null);
     const [kdpModel, setKdpModel] = useState('gemini-3.1-flash-lite');
 
+    // Step 5 State: EPUB Metadata
+    const [epubTab, setEpubTab] = useState<'cover' | 'metadata' | 'export'>('cover');
+    const [epubAuthor, setEpubAuthor] = useState(activeProject.epub_author || '');
+    const [epubDedication, setEpubDedication] = useState(activeProject.epub_dedication || '');
+    const [epubAfterword, setEpubAfterword] = useState(activeProject.epub_afterword || '');
+    const [epubImprint, setEpubImprint] = useState(activeProject.epub_imprint || '');
+    const [epubMetaModel, setEpubMetaModel] = useState('gemini-3.1-flash-lite');
+
     // Reload active project context when step changes to keep it fresh
     useEffect(() => {
         loadProProjectDetail(activeProject.id);
@@ -132,12 +141,17 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
         }
     }, [activeProject]);
 
-    // Sync character bible, style bible and cover prompt when project details load
+    // Sync character bible, style bible, cover prompt and epub metadata when project details load
     useEffect(() => {
         setCharBible(activeProject.characters_bible || '');
         setStyleBible(activeProject.style_bible || '');
         setCoverPrompt(activeProject.cover_prompt || '');
-    }, [activeProject.id, activeProject.characters_bible, activeProject.style_bible, activeProject.cover_prompt]);
+        setEpubAuthor(activeProject.epub_author || '');
+        setEpubDedication(activeProject.epub_dedication || '');
+        setEpubAfterword(activeProject.epub_afterword || '');
+        setEpubImprint(activeProject.epub_imprint || '');
+    }, [activeProject.id, activeProject.characters_bible, activeProject.style_bible, activeProject.cover_prompt,
+        activeProject.epub_author, activeProject.epub_dedication, activeProject.epub_afterword, activeProject.epub_imprint]);
 
     // Sync selected chapter content when selected chapter changes
     useEffect(() => {
@@ -404,6 +418,54 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
             toast.error('Fehler: ' + e.message, { id: 'ai' });
         } finally {
             setIsAiLoading(false);
+        }
+    };
+
+    const handleSaveCoverPrompt = async () => {
+        setIsSaving(true);
+        try {
+            await updateProBook(activeProject.id, { cover_prompt: coverPrompt });
+            toast.success('Cover-Prompt gespeichert!');
+            await loadProProjectDetail(activeProject.id);
+        } catch (e: any) {
+            toast.error('Fehler beim Speichern: ' + e.message);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleSuggestEpubMetadata = async () => {
+        setIsAiLoading(true);
+        try {
+            toast.loading('Generiere EPUB-Metadaten...', { id: 'ai' });
+            const res = await suggestProEpubMetadata(activeProject.id, epubMetaModel);
+            if (res.epub_author) setEpubAuthor(res.epub_author);
+            if (res.epub_dedication) setEpubDedication(res.epub_dedication);
+            if (res.epub_afterword) setEpubAfterword(res.epub_afterword);
+            if (res.epub_imprint) setEpubImprint(res.epub_imprint);
+            toast.success('EPUB-Metadaten generiert!', { id: 'ai' });
+        } catch (e: any) {
+            toast.error('Fehler: ' + e.message, { id: 'ai' });
+        } finally {
+            setIsAiLoading(false);
+        }
+    };
+
+    const handleSaveEpubMetadata = async () => {
+        setIsSaving(true);
+        try {
+            await updateProBook(activeProject.id, {
+                epub_author: epubAuthor,
+                epub_dedication: epubDedication,
+                epub_afterword: epubAfterword,
+                epub_imprint: epubImprint,
+            });
+            toast.success('EPUB-Metadaten gespeichert!');
+            await loadProProjectDetail(activeProject.id);
+        } catch (e: any) {
+            toast.error('Fehler beim Speichern: ' + e.message);
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -1162,39 +1224,62 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
 
             {/* STEP 5: COVER & EXPORT */}
             {activeStep === 'export' && (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* Cover Generator Panel */}
-                    <div className="lg:col-span-1 bg-surface p-5 rounded-3xl border border-slate-800 space-y-4">
-                        <h3 className="font-semibold text-white text-sm">Cover-Erstellung (KDP-Format)</h3>
+                <div className="space-y-5">
+                    {/* Sub-tab nav */}
+                    <div className="flex border-b border-slate-800/80 pb-2.5 gap-5">
+                        {[
+                            { id: 'cover', label: 'Cover-Erstellung' },
+                            { id: 'metadata', label: 'Buch-Metadaten (EPUB)' },
+                            { id: 'export', label: 'Export & KDP' },
+                        ].map(tab => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setEpubTab(tab.id as any)}
+                                className={`pb-2 text-xs font-bold transition-all relative ${
+                                    epubTab === tab.id
+                                    ? 'text-white after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:bg-primary'
+                                    : 'text-slate-400 hover:text-slate-200'
+                                }`}
+                            >
+                                {tab.label}
+                            </button>
+                        ))}
+                    </div>
+                    {/* ===== TAB: COVER ===== */}
+                    {epubTab === 'cover' && (
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fadeIn">
+                            {/* Cover Generator Panel */}
+                            <div className="lg:col-span-1 bg-surface p-5 rounded-3xl border border-slate-800 space-y-4">
+                                <h3 className="font-semibold text-white text-sm">Cover-Erstellung (KDP-Format)</h3>
                         
-                        {activeProject.cover_image_url ? (
-                            <div className="space-y-3">
-                                <div className="aspect-[2/3] w-full bg-background rounded-2xl border border-slate-800 overflow-hidden shadow-inner flex items-center justify-center relative group">
-                                    <img 
-                                        src={getProCoverUrl(activeProject.id, coverVersion)}
-                                        alt="Buch Cover"
-                                        className="w-full h-full object-cover"
-                                    />
-                                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <a 
-                                            href={getProCoverUrl(activeProject.id, coverVersion)}
-                                            target="_blank" 
-                                            rel="noreferrer"
-                                            className="p-3 bg-slate-800 rounded-xl hover:bg-slate-700 text-white flex items-center gap-1.5 text-xs transition-colors"
-                                        >
-                                            <Maximize2 className="w-4 h-4" />
-                                            Vollbild öffnen
-                                        </a>
+                                {activeProject.cover_image_url ? (
+                                    <div className="space-y-3">
+                                    <div className="aspect-[2/3] w-full bg-background rounded-2xl border border-slate-800 overflow-hidden shadow-inner flex items-center justify-center relative group">
+                                        <img 
+                                            src={getProCoverUrl(activeProject.id, coverVersion)}
+                                            alt="Buch Cover"
+                                            className="w-full h-full object-cover"
+                                        />
+                                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <a 
+                                                href={getProCoverUrl(activeProject.id, coverVersion)}
+                                                target="_blank" 
+                                                rel="noreferrer"
+                                                className="p-3 bg-slate-800 rounded-xl hover:bg-slate-700 text-white flex items-center gap-1.5 text-xs transition-colors"
+                                            >
+                                                <Maximize2 className="w-4 h-4" />
+                                                Vollbild öffnen
+                                            </a>
+                                        </div>
                                     </div>
+                                    <p className="text-[10px] text-center text-slate-500 italic">Aspect Ratio: 2:3 (Für Amazon 6x9" optimal)</p>
                                 </div>
-                                <p className="text-[10px] text-center text-slate-500 italic">Aspect Ratio: 2:3 (Für Amazon 6x9" optimal)</p>
-                            </div>
-                        ) : (
-                            <div className="aspect-[2/3] w-full bg-background/50 rounded-2xl border border-slate-800 border-dashed flex flex-col items-center justify-center p-6 text-center text-slate-600 space-y-2">
-                                <BookOpen className="w-8 h-8" />
-                                <p className="text-xs">Noch kein Cover generiert.</p>
-                            </div>
-                        )}
+                                ) : (
+                                    <div className="aspect-[2/3] w-full bg-background/50 rounded-2xl border border-slate-800 border-dashed flex flex-col items-center justify-center p-6 text-center text-slate-600 space-y-2">
+                                        <BookOpen className="w-8 h-8" />
+                                        <p className="text-xs">Noch kein Cover generiert.</p>
+                                    </div>
+                                )}
 
                         <div className="space-y-2">
                             <div className="flex justify-between items-center">
@@ -1227,6 +1312,16 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                                 className="w-full bg-background border border-slate-800 rounded-2xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-primary resize-none font-serif leading-relaxed"
                                 placeholder="z. B. Ein mystischer Wald im Mondlicht, Ölgemälde, weiches Licht, hoher Kontrast..."
                             />
+                            <div className="flex justify-end mt-1">
+                                <button 
+                                    onClick={handleSaveCoverPrompt}
+                                    disabled={isSaving}
+                                    className="bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-[10px] px-3 py-1.5 rounded-lg transition-colors border border-slate-700/50 flex items-center gap-1"
+                                >
+                                    {isSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+                                    Prompt speichern
+                                </button>
+                            </div>
                         </div>
 
                         <div className="space-y-2">
@@ -1242,19 +1337,114 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                             </select>
                         </div>
 
-                        <button 
-                            onClick={handleGenerateCover}
-                            disabled={isAiLoading || activeProject.status === 'generating'}
-                            className="w-full btn-primary py-2.5 text-xs flex items-center justify-center gap-2 rounded-xl"
-                        >
-                            <Sparkles className="w-4 h-4" />
-                            Cover generieren
-                        </button>
-                    </div>
+                                <button 
+                                    onClick={handleGenerateCover}
+                                    disabled={isAiLoading || activeProject.status === 'generating'}
+                                    className="w-full btn-primary py-2.5 text-xs flex items-center justify-center gap-2 rounded-xl"
+                                >
+                                    <Sparkles className="w-4 h-4" />
+                                    Cover generieren
+                                </button>
+                            </div>
+                        </div>
+                    )}
 
-                    {/* Metadata & EPUB export panel */}
-                    <div className="lg:col-span-2 space-y-6">
-                        {/* EPUB Download box */}
+                    {/* ===== TAB: EPUB METADATEN ===== */}
+                    {epubTab === 'metadata' && (
+                        <div className="bg-surface p-5 rounded-3xl border border-slate-800 space-y-5 animate-fadeIn">
+                            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b border-slate-800/80 pb-3">
+                                <div className="space-y-1">
+                                    <h3 className="font-semibold text-white text-sm">Buch-Metadaten für EPUB</h3>
+                                    <p className="text-xs text-text-muted">Diese Texte erscheinen im EPUB als Titelblatt, Widmung, Impressum und Nachwort.</p>
+                                </div>
+                                <div className="flex items-center gap-2 shrink-0">
+                                    <select
+                                        value={epubMetaModel}
+                                        onChange={(e) => setEpubMetaModel(e.target.value)}
+                                        className="bg-background border border-slate-800 text-[10px] text-slate-300 rounded-lg px-2 py-1 focus:outline-none"
+                                    >
+                                        {TEXT_MODELS.map(m => (
+                                            <option key={m.value} value={m.value}>{m.label}</option>
+                                        ))}
+                                    </select>
+                                    <button
+                                        onClick={handleSuggestEpubMetadata}
+                                        disabled={isAiLoading}
+                                        className="bg-slate-800 hover:bg-slate-700 text-primary border border-slate-700/50 text-xs px-3 py-1.5 rounded-xl transition-colors flex items-center gap-1.5"
+                                    >
+                                        {isAiLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                                        KI-Vorschlag (alle Felder)
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                                {/* Autor */}
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] uppercase font-mono text-slate-500 font-semibold">Autor / Pseudonym</label>
+                                    <input
+                                        type="text"
+                                        value={epubAuthor}
+                                        onChange={(e) => setEpubAuthor(e.target.value)}
+                                        className="w-full bg-background border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-primary"
+                                        placeholder="z. B. Stanzwerk Pro oder ein Künstlername"
+                                    />
+                                </div>
+
+                                {/* Widmung */}
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] uppercase font-mono text-slate-500 font-semibold">Widmung (optional)</label>
+                                    <textarea
+                                        value={epubDedication}
+                                        onChange={(e) => setEpubDedication(e.target.value)}
+                                        rows={3}
+                                        className="w-full bg-background border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-primary resize-none font-serif"
+                                        placeholder="Für alle, die träumen ..."
+                                    />
+                                </div>
+
+                                {/* Nachwort */}
+                                <div className="space-y-1.5 lg:col-span-2">
+                                    <label className="text-[10px] uppercase font-mono text-slate-500 font-semibold">Nachwort / Afterword (optional)</label>
+                                    <textarea
+                                        value={epubAfterword}
+                                        onChange={(e) => setEpubAfterword(e.target.value)}
+                                        rows={5}
+                                        className="w-full bg-background border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-primary resize-y leading-relaxed font-serif"
+                                        placeholder="Dieses Buch entstand aus der Idee ..."
+                                    />
+                                </div>
+
+                                {/* Impressum extra */}
+                                <div className="space-y-1.5 lg:col-span-2">
+                                    <label className="text-[10px] uppercase font-mono text-slate-500 font-semibold">Impressum-Zusatz (optional)</label>
+                                    <textarea
+                                        value={epubImprint}
+                                        onChange={(e) => setEpubImprint(e.target.value)}
+                                        rows={2}
+                                        className="w-full bg-background border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-primary resize-none"
+                                        placeholder="z. B. Haftungsausschluss oder Datenschutzhinweis ..."
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end pt-1">
+                                <button
+                                    onClick={handleSaveEpubMetadata}
+                                    disabled={isSaving}
+                                    className="btn-primary py-2 px-5 text-xs flex items-center gap-1.5 rounded-xl"
+                                >
+                                    {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                                    EPUB-Metadaten speichern
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ===== TAB: EXPORT & KDP ===== */}
+                    {epubTab === 'export' && (
+                        <div className="space-y-6 animate-fadeIn">
+                            {/* EPUB Download box */}
                         <div className="bg-surface p-5 rounded-3xl border border-slate-800 space-y-4">
                             <h3 className="font-semibold text-white text-sm">Dateiexport</h3>
                             <p className="text-xs text-text-muted">Exportiere dein fertiges Buch als Kindle-kompatible EPUB-Datei.</p>
@@ -1392,6 +1582,7 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                             )}
                         </div>
                     </div>
+                    )}
                 </div>
             )}
         </div>

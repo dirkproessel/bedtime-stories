@@ -772,6 +772,11 @@ export interface BookProject {
     outline: string | null;
     cover_image_url: string | null;
     cover_prompt: string | null;
+    // EPUB front/back matter (editable)
+    epub_author: string | null;
+    epub_dedication: string | null;
+    epub_afterword: string | null;
+    epub_imprint: string | null;
     status: 'draft' | 'generating' | 'proofreading' | 'completed' | 'error';
     progress: string | null;
     progress_pct: number;
@@ -1001,3 +1006,20 @@ export async function suggestProCoverPrompt(id: string, model?: string): Promise
     return res.json();
 }
 
+export interface EpubMetadataSuggestion {
+    epub_author: string;
+    epub_dedication: string;
+    epub_afterword: string;
+    epub_imprint: string;
+}
+
+export async function suggestProEpubMetadata(id: string, model?: string): Promise<EpubMetadataSuggestion> {
+    let url = `${API_BASE}/api/pro/books/${id}/epub/suggest`;
+    if (model) url += `?model=${encodeURIComponent(model)}`;
+    const res = await fetch(url, {
+        method: 'POST',
+        headers: getAuthHeaders()
+    });
+    if (!res.ok) throw new Error('Fehler beim Generieren der EPUB-Metadaten');
+    return res.json();
+}

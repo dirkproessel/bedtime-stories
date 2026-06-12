@@ -276,6 +276,12 @@ class BookProject(SQLModel, table=True):
     
     cover_image_url: Optional[str] = Field(default=None)
     cover_prompt: Optional[str] = Field(default=None)
+
+    # Editable EPUB front/back matter
+    epub_author: Optional[str] = Field(default=None)  # Author name shown on title page
+    epub_dedication: Optional[str] = Field(default=None)  # Dedication page text
+    epub_afterword: Optional[str] = Field(default=None)  # Afterword / Nachwort
+    epub_imprint: Optional[str] = Field(default=None)  # Extra imprint / copyright text
     
     status: str = Field(default="draft")  # "draft", "generating", "proofreading", "completed", "error"
     progress: Optional[str] = Field(default=None)
@@ -325,6 +331,10 @@ class BookProjectUpdate(BaseModel):
     outline: Optional[str] = None
     cover_prompt: Optional[str] = None
     status: Optional[str] = None
+    epub_author: Optional[str] = None
+    epub_dedication: Optional[str] = None
+    epub_afterword: Optional[str] = None
+    epub_imprint: Optional[str] = None
 
 
 class BookChapterUpdate(BaseModel):
@@ -360,6 +370,10 @@ class BookProjectResponse(BaseModel):
     outline: Optional[str] = None
     cover_image_url: Optional[str] = None
     cover_prompt: Optional[str] = None
+    epub_author: Optional[str] = None
+    epub_dedication: Optional[str] = None
+    epub_afterword: Optional[str] = None
+    epub_imprint: Optional[str] = None
     status: str
     progress: Optional[str] = None
     progress_pct: int
