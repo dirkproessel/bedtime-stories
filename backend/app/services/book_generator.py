@@ -166,7 +166,8 @@ async def generate_chapter_content(
     """Generate prose for a chapter utilizing compressed running summaries of past chapters."""
     # Build character bible string
     chars_str = project.characters_bible or "Keine Angabe"
-    style_resolved = get_author_names_improved(project.style)
+    from app.services.story_generator import generate_modular_prompt
+    style_resolved = generate_modular_prompt(project.style)
     
     # Build outline context
     outline_data = json.loads(project.outline) if project.outline else {}
@@ -190,9 +191,9 @@ async def generate_chapter_content(
     feedback_clause = ""
     if feedback:
         feedback_clause = f"\n**WICHTIGE ÄNDERUNGSANWEISUNG VOM USER (Für diesen Rewrite):**\n\"{feedback}\"\nBitte überarbeite das Kapitel und beachte diese Anweisung unbedingt!"
-
+ 
     system_instruction = (
-        f"Du bist ein preisgekrönter Romanautor. Dein Schreibstil ist inspiriert von: {style_resolved}.\n"
+        f"Du bist ein preisgekrönter Romanautor. Dein Schreibstil folgt diesen Vorgaben:\n{style_resolved}\n\n"
         f"Du schreibst im Genre: {project.genre}.\n"
         "Schreibe ausschließlich die Romanprosa für das angeforderte Kapitel. Schreib flüssig, "
         "atmosphärisch und detailreich. Benutze KEINE Meta-Kommentare, Überschriften oder Einleitungen wie 'Kapitel 1'. "
