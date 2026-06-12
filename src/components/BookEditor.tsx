@@ -1171,13 +1171,13 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                             <div className="space-y-3">
                                 <div className="aspect-[2/3] w-full bg-background rounded-2xl border border-slate-800 overflow-hidden shadow-inner flex items-center justify-center relative group">
                                     <img 
-                                        src={`${getProCoverUrl(activeProject.id)}?v=${coverVersion}`}
+                                        src={getProCoverUrl(activeProject.id, coverVersion)}
                                         alt="Buch Cover"
                                         className="w-full h-full object-cover"
                                     />
                                     <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                         <a 
-                                            href={`${getProCoverUrl(activeProject.id)}?v=${coverVersion}`}
+                                            href={getProCoverUrl(activeProject.id, coverVersion)}
                                             target="_blank" 
                                             rel="noreferrer"
                                             className="p-3 bg-slate-800 rounded-xl hover:bg-slate-700 text-white flex items-center gap-1.5 text-xs transition-colors"

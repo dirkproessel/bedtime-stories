@@ -158,7 +158,7 @@ async def generate_book_epub(project: BookProject, chapters: List[BookChapter], 
     # Setup Navigation / TOC
     book.toc = (
         epub.Link('intro.xhtml', 'Titelblatt', 'intro'),
-        tuple(epub_chapters)
+        *epub_chapters
     )
 
     book.add_item(epub.EpubNcx())
