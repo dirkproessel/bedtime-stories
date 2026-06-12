@@ -56,9 +56,14 @@ async def bg_generate_chapter(project_id: str, chapter_id: str, model: str, feed
         chapter = session.get(BookChapter, chapter_id)
         if not (project and chapter):
             return
+        
+        # Capture needed properties immediately to avoid DetachedInstanceError later
+        chapter_number = chapter.chapter_number
+        chapter_title = chapter.title
+        
         project.status = "generating"
-        project.progress = f"Schreibe Kapitel {chapter.chapter_number}: {chapter.title}..."
-        project.progress_pct = 10 + chapter.chapter_number * 10
+        project.progress = f"Schreibe Kapitel {chapter_number}: {chapter_title}..."
+        project.progress_pct = 10 + chapter_number * 10
         chapter.status = "generating"
         session.add(project)
         session.add(chapter)
@@ -67,16 +72,22 @@ async def bg_generate_chapter(project_id: str, chapter_id: str, model: str, feed
     try:
         # Load previous chapters that are completed
         with Session(engine) as session:
+            db_project = session.get(BookProject, project_id)
+            db_chapter = session.get(BookChapter, chapter_id)
+            if not (db_project and db_chapter):
+                return
+                
             prev_chapters = session.exec(
                 select(BookChapter)
                 .where(BookChapter.book_project_id == project_id)
-                .where(BookChapter.chapter_number < chapter.chapter_number)
+                .where(BookChapter.chapter_number < chapter_number)
                 .order_by(BookChapter.chapter_number)
             ).all()
-            # De-reference/validate models for background safety
+            
+            # De-reference/validate models for background safety while session is active
             prev_chapters_list = [BookChapter.model_validate(c) for c in prev_chapters]
-            project_validated = BookProject.model_validate(project)
-            chapter_validated = BookChapter.model_validate(chapter)
+            project_validated = BookProject.model_validate(db_project)
+            chapter_validated = BookChapter.model_validate(db_chapter)
 
         # Generate the chapter text
         content = await generate_chapter_content(
@@ -104,10 +115,10 @@ async def bg_generate_chapter(project_id: str, chapter_id: str, model: str, feed
             session.add(db_chapter)
             session.add(db_project)
             session.commit()
-            logger.info(f"Background: Chapter {chapter.chapter_number} written successfully.")
+            logger.info(f"Background: Chapter {chapter_number} written successfully.")
             
     except Exception as e:
-        logger.error(f"Background: Chapter {chapter.chapter_number} failed: {e}", exc_info=True)
+        logger.error(f"Background: Chapter {chapter_number} failed: {e}", exc_info=True)
         with Session(engine) as session:
             db_chapter = session.get(BookChapter, chapter_id)
             db_project = session.get(BookProject, project_id)
@@ -116,7 +127,7 @@ async def bg_generate_chapter(project_id: str, chapter_id: str, model: str, feed
                 session.add(db_chapter)
             if db_project:
                 db_project.status = "error"
-                db_project.progress = f"Fehler bei Kapitel {chapter.chapter_number}: {str(e)}"
+                db_project.progress = f"Fehler bei Kapitel {chapter_number}: {str(e)}"
                 session.add(db_project)
             session.commit()
 
