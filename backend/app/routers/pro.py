@@ -187,11 +187,10 @@ async def bg_generate_cover(project_id: str, cover_prompt: str, model: Optional[
         
         model_id = model or store.get_system_setting("gemini_image_model", settings.GEMINI_IMAGE_MODEL)
         
-        # Enhanced prompt instructions (no typography, KDP spec)
+        # Enhanced prompt instructions (KDP spec)
         enhanced_prompt = (
-            f"STRICT RULE: NO TEXT, NO WORDS, NO LETTERS, NO SIGNATURES, NO WATERMARKS. "
-            f"{cover_prompt}. Beautiful high-quality book cover art. Portrait orientation (2:3 aspect ratio). "
-            f"Edge-to-edge full-bleed composition."
+            f"{cover_prompt}. Beautiful high-quality book cover design layout. "
+            f"Portrait orientation (2:3 aspect ratio). Edge-to-edge full-bleed composition."
         )
 
         image_path = None

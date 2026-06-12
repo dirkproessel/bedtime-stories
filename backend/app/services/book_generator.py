@@ -411,21 +411,24 @@ async def suggest_cover_prompt(
     """Generate an image generation prompt for the book cover based on project details."""
     system_instruction = (
         "Du bist ein erfahrener Buch-Cover-Designer und Prompt-Engineer. "
-        "Erstelle einen detaillierten, bildhaften Prompt für ein KDP-Buchcover auf Englisch, "
+        "Erstelle einen detaillierten Prompt für ein professionelles Buchcover auf Englisch, "
         "der für Bildgenerierungsmodelle wie Imagen/Midjourney geeignet ist. "
         "Antworte ausschließlich mit dem reinen Prompt-Text ohne Einleitung, Anführungszeichen oder Erklärung."
     )
     
     prompt_content = f"""
-    Erstelle einen Cover-Bild-Prompt für folgendes Buch:
+    Erstelle einen professionellen Buch-Cover-Bild-Prompt für folgendes Buch:
     - Titel: {title}
     - Genre: {genre}
     - Stil: {style}
     - Buchidee/Konzept: {prompt}
     
-    Der Prompt sollte sehr beschreibend sein (Lichtstimmung, Komposition, Stilmittel, Motive, Detailreichtum).
-    Schreibe den gesamten Bild-Prompt auf ENGLISCH.
-    Verwende KEINEN Text oder Buchtitel im Bild-Prompt (no text, no letters).
+    Anweisungen:
+    1. Der Prompt muss auf ENGLISCH sein.
+    2. Der Prompt MUSS anweisen, den Buchtitel "{title}" in großer, stylischer Typografie prominent im oberen oder mittleren Drittel zu platzieren. Die Schriftart und Farbe müssen zum Genre ({genre}) und zur Stimmung passen.
+    3. Der Prompt MUSS anweisen, den Autorennamen "Dirk Proessel" in einer kleineren, passenden Typografie unten auf dem Cover zu platzieren.
+    4. Beschreibe das Hintergrundbild detailreich (Lichtstimmung, Komposition, Motive, Stilmittel), sodass Typografie und Grafik wie bei einem echten Verlagsbuch verschmelzen.
+    5. Verwende Begriffe wie 'professional book cover design layout', 'bold typography title', 'author name'.
     """
     
     try:
