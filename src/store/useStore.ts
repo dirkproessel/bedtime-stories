@@ -27,6 +27,13 @@ import {
     clearPlaylist as apiClearPlaylist,
 } from '../lib/api';
 import { type UserVoice, type SystemVoice } from '../lib/api';
+import { 
+    type BookProject, 
+    type BookProjectDetail, 
+    type BookChapter,
+    fetchProBooks, 
+    fetchProBookDetail 
+} from '../lib/api';
 
 interface AppState {
     // Auth
@@ -70,8 +77,15 @@ interface AppState {
     updateStorySpotify: (id: string, enabled: boolean) => Promise<void>;
 
     // UI
-    activeView: 'discover' | 'create' | 'library' | 'favorites' | 'profile' | 'login' | 'admin' | 'landing';
-    setActiveView: (view: 'discover' | 'create' | 'library' | 'favorites' | 'profile' | 'login' | 'admin' | 'landing') => void;
+    activeView: 'discover' | 'create' | 'library' | 'favorites' | 'profile' | 'login' | 'admin' | 'landing' | 'pro';
+    setActiveView: (view: 'discover' | 'create' | 'library' | 'favorites' | 'profile' | 'login' | 'admin' | 'landing' | 'pro') => void;
+
+    // Pro State & Actions
+    proProjects: BookProject[];
+    currentProProject: BookProjectDetail | null;
+    loadProProjects: () => Promise<void>;
+    loadProProjectDetail: (id: string) => Promise<void>;
+    setCurrentProProject: (project: BookProjectDetail | null) => void;
     
     // Admin
     adminUsers: User[];
@@ -172,6 +186,8 @@ export const useStore = create<AppState>((set, get) => {
     })),
     setArchiveSearch: (search) => set({ archiveSearch: search }),
     activeView: initialToken ? 'create' : 'landing',
+    proProjects: [],
+    currentProProject: null,
     adminUsers: [],
     adminClonedVoices: [],
     adminSystemVoices: [],
@@ -514,8 +530,33 @@ export const useStore = create<AppState>((set, get) => {
         
         if (['library', 'discover', 'favorites', 'admin'].includes(view)) {
             get().loadStories(1);
+        } else if (view === 'pro') {
+            get().loadProProjects();
         }
     },
+    loadProProjects: async () => {
+        set({ isLoading: true, error: null });
+        try {
+            const proProjects = await fetchProBooks();
+            set({ proProjects });
+        } catch (e: any) {
+            set({ error: e.message });
+        } finally {
+            set({ isLoading: false });
+        }
+    },
+    loadProProjectDetail: async (id) => {
+        set({ isLoading: true, error: null });
+        try {
+            const currentProProject = await fetchProBookDetail(id);
+            set({ currentProProject });
+        } catch (e: any) {
+            set({ error: e.message });
+        } finally {
+            set({ isLoading: false });
+        }
+    },
+    setCurrentProProject: (project) => set({ currentProProject: project }),
     setSelectedStoryId: (id) => set({ selectedStoryId: id }),
     setAdminSubView: (view) => set({ adminSubView: view }),
     setReaderOpen: (open, storyId = null) => set({ 

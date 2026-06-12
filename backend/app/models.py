@@ -257,3 +257,112 @@ class SystemSettingResponse(BaseModel):
 class SystemSettingUpdate(BaseModel):
     value: str
 
+
+# --- Pro Book Models ---
+
+class BookProject(SQLModel, table=True):
+    """Represents a long-form book project (novella/short book)."""
+    id: Optional[str] = Field(default=None, primary_key=True)
+    user_id: str = Field(foreign_key="user.id", index=True)
+    title: str
+    prompt: str  # Original idea / concept prompt
+    genre: str = Field(default="Realismus")
+    style: str = Field(default="Douglas Adams")
+    
+    # Store JSON strings for structure
+    characters_bible: Optional[str] = Field(default=None)  # JSON list of characters
+    outline: Optional[str] = Field(default=None)  # JSON outline structure of chapters
+    
+    cover_image_url: Optional[str] = Field(default=None)
+    cover_prompt: Optional[str] = Field(default=None)
+    
+    status: str = Field(default="draft")  # "draft", "generating", "proofreading", "completed", "error"
+    progress: Optional[str] = Field(default=None)
+    progress_pct: int = Field(default=0)
+    
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    
+    chapters: list["BookChapter"] = Relationship(
+        back_populates="project",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan", "order_by": "BookChapter.chapter_number"}
+    )
+
+
+class BookChapter(SQLModel, table=True):
+    """Represents a single chapter of a book project."""
+    id: Optional[str] = Field(default=None, primary_key=True)
+    book_project_id: str = Field(foreign_key="bookproject.id", index=True)
+    chapter_number: int
+    title: str
+    plot_outline: str
+    
+    content: Optional[str] = Field(default=None)  # Written text
+    running_summary: Optional[str] = Field(default=None)  # Small summary of this chapter for next chapters' context
+    feedback: Optional[str] = Field(default=None)  # User input for regeneration
+    status: str = Field(default="draft")  # "draft", "generating", "done", "error"
+    
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    
+    project: BookProject = Relationship(back_populates="chapters")
+
+
+# --- Pro API Request / Response schemas ---
+
+class BookProjectCreate(BaseModel):
+    title: str
+    prompt: str
+    genre: str
+    style: str
+
+
+class BookProjectUpdate(BaseModel):
+    title: Optional[str] = None
+    characters_bible: Optional[str] = None
+    outline: Optional[str] = None
+    cover_prompt: Optional[str] = None
+    status: Optional[str] = None
+
+
+class BookChapterUpdate(BaseModel):
+    title: Optional[str] = None
+    plot_outline: Optional[str] = None
+    content: Optional[str] = None
+    feedback: Optional[str] = None
+
+
+class BookChapterResponse(BaseModel):
+    id: str
+    book_project_id: str
+    chapter_number: int
+    title: str
+    plot_outline: str
+    content: Optional[str] = None
+    running_summary: Optional[str] = None
+    feedback: Optional[str] = None
+    status: str
+    created_at: datetime
+    updated_at: datetime
+
+
+class BookProjectResponse(BaseModel):
+    id: str
+    user_id: str
+    title: str
+    prompt: str
+    genre: str
+    style: str
+    characters_bible: Optional[str] = None
+    outline: Optional[str] = None
+    cover_image_url: Optional[str] = None
+    cover_prompt: Optional[str] = None
+    status: str
+    progress: Optional[str] = None
+    progress_pct: int
+    created_at: datetime
+    updated_at: datetime
+
+
+class BookProjectDetailResponse(BookProjectResponse):
+    chapters: list[BookChapterResponse] = []

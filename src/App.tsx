@@ -10,6 +10,7 @@ import ReaderLayer from './components/ReaderLayer';
 import AudioCompanion from './components/AudioCompanion';
 import AdminDashboard from './components/AdminDashboard';
 import LandingScreen from './components/LandingScreen';
+import BookDashboard from './components/BookDashboard';
 const NAV_ITEMS = [
   { key: 'create' as const, label: 'Erstellen', icon: PenTool },
   { key: 'library' as const, label: 'Entwürfe', icon: BookOpen },
@@ -93,6 +94,11 @@ function App() {
         return;
       }
 
+      if (hash.startsWith('/pro')) {
+        setActiveView('pro');
+        return;
+      }
+
       if (hash === '/create' || hash === '') {
         setActiveView('create');
         return;
@@ -129,6 +135,8 @@ function App() {
       desiredHash = `#/favorites`;
     } else if (activeView === 'admin') {
       desiredHash = `#/admin`;
+    } else if (activeView === 'pro') {
+      desiredHash = `#/pro`;
     } else if (activeView === 'login' || activeView === 'landing') {
       desiredHash = ``;
     }
@@ -302,6 +310,7 @@ function App() {
                  )}
                  {activeView === 'profile' && 'Mein Profil'}
                  {activeView === 'admin' && 'Adminbereich'}
+                 {activeView === 'pro' && 'Stanzwerk Pro - Buch-Labor'}
                  {activeView === 'login' && (localStorage.getItem('is_registering') === 'true' ? 'Konto erstellen' : 'Willkommen zurück')}
                </h1>
              </div>
@@ -316,6 +325,7 @@ function App() {
                 {activeView === 'favorites' && <StoryArchive key="favorites" filterOverride="favorites" />}
                 {activeView === 'profile' && <AccountScreen />}
                 {activeView === 'admin' && <AdminDashboard />}
+                {activeView === 'pro' && <BookDashboard />}
              </div>
            </main>
 

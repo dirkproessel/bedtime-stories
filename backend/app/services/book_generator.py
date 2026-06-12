@@ -1,0 +1,300 @@
+import logging
+import json
+import uuid
+from datetime import datetime, timezone
+from typing import List, Dict, Any, Optional
+from sqlmodel import Session, select
+from app.database import engine
+from app.models import BookProject, BookChapter
+from app.services.text_generator import generate_text
+
+logger = logging.getLogger(__name__)
+
+def clean_json_string(s: str) -> str:
+    """Strip markdown code blocks around JSON if present."""
+    s = s.strip()
+    if s.startswith("```json"):
+        s = s[7:]
+    elif s.startswith("```"):
+        s = s[3:]
+    if s.endswith("```"):
+        s = s[:-3]
+    return s.strip()
+
+async def suggest_characters(prompt: str, genre: str, style: str, model: str = "gemini-3.1-flash-lite") -> List[Dict[str, Any]]:
+    """Generate 3-5 character suggestions based on a book idea."""
+    system_instruction = (
+        "Du bist ein erfahrener Romanautor und Charakter-Designer. "
+        "Erstelle 3 bis 5 vielschichtige Charaktere für ein neues Buchprojekt. "
+        "Antworte ausschließlich im JSON-Format."
+    )
+    
+    prompt_content = f"""
+    Buchidee: {prompt}
+    Genre: {genre}
+    Autorenstil: {style}
+    
+    Gib eine Liste von Charakteren zurück. Jeder Charakter muss folgende Felder haben:
+    - name (Name des Charakters)
+    - role (z. B. Protagonist, Antagonist, Mentor, Begleiter)
+    - description (Beschreibung von Aussehen, Hintergrund und Motivation)
+    - traits (eine Liste von 3-4 Charaktereigenschaften als Strings)
+    
+    Format:
+    [
+      {{
+        "name": "...",
+        "role": "...",
+        "description": "...",
+        "traits": ["...", "..."]
+      }}
+    ]
+    """
+    
+    try:
+        response = await generate_text(
+            prompt=prompt_content,
+            model=model,
+            temperature=0.7,
+            response_mime_type="application/json",
+            system_instruction=system_instruction
+        )
+        cleaned = clean_json_string(response)
+        return json.loads(cleaned)
+    except Exception as e:
+        logger.error(f"Error in suggest_characters: {e}")
+        # Return empty list or basic structure on error
+        return []
+
+async def generate_outline(
+    prompt: str, 
+    genre: str, 
+    style: str, 
+    characters_bible: str, 
+    num_chapters: int = 8, 
+    model: str = "gemini-3.1-flash-lite"
+) -> Dict[str, Any]:
+    """Generate a chapter outline for the book."""
+    system_instruction = (
+        "Du bist ein Bestseller-Autor. Entwerfe eine spannende, kapitelweise Gliederung (Outline) "
+        "für eine Novelle. Antworte ausschließlich im JSON-Format."
+    )
+    
+    prompt_content = f"""
+    Buchidee: {prompt}
+    Genre: {genre}
+    Autorenstil: {style}
+    Charaktere: {characters_bible}
+    Anzahl Kapitel: {num_chapters}
+    
+    Entwerfe eine Gliederung mit genau {num_chapters} Kapiteln.
+    Gib ein JSON-Objekt mit folgenden Feldern zurück:
+    - title (Ein passender Buchtitel)
+    - chapters (Liste von Kapiteln, jedes mit 'chapter_number', 'title', 'plot_outline' [ausführliche Beschreibung des Inhalts des Kapitels, ca. 100-150 Wörter])
+    
+    Format:
+    {{
+      "title": "...",
+      "chapters": [
+        {{
+          "chapter_number": 1,
+          "title": "...",
+          "plot_outline": "..."
+        }}
+      ]
+    }}
+    """
+    
+    try:
+        response = await generate_text(
+            prompt=prompt_content,
+            model=model,
+            temperature=0.7,
+            response_mime_type="application/json",
+            system_instruction=system_instruction
+        )
+        cleaned = clean_json_string(response)
+        return json.loads(cleaned)
+    except Exception as e:
+        logger.error(f"Error in generate_outline: {e}")
+        # Minimal fallback outline
+        fallback = {
+            "title": "Unbenanntes Werk",
+            "chapters": [
+                {
+                    "chapter_number": i,
+                    "title": f"Kapitel {i}",
+                    "plot_outline": "Kapitel-Outline konnte nicht generiert werden."
+                } for i in range(1, num_chapters + 1)
+            ]
+        }
+        return fallback
+
+async def generate_chapter_content(
+    project: BookProject, 
+    chapter: BookChapter, 
+    previous_chapters: List[BookChapter], 
+    model: str = "deepseek-v4-pro",
+    feedback: Optional[str] = None
+) -> str:
+    """Generate prose for a chapter utilizing compressed running summaries of past chapters."""
+    # Build character bible string
+    chars_str = project.characters_bible or "Keine Angabe"
+    
+    # Build outline context
+    outline_data = json.loads(project.outline) if project.outline else {}
+    outline_chapters = outline_data.get("chapters", [])
+    outline_str = "\n".join([f"Kapitel {c.get('chapter_number')}: {c.get('title')} - {c.get('plot_outline')}" for c in outline_chapters])
+    
+    # Build running summaries of past chapters
+    past_summaries = []
+    for c in previous_chapters:
+        past_summaries.append(f"Kapitel {c.chapter_number} ({c.title}): {c.running_summary or 'Inhalt geschrieben.'}")
+    past_summaries_str = "\n".join(past_summaries) if past_summaries else "Erstes Kapitel. Keine vorherigen Ereignisse."
+    
+    # Build exact content of IMMEDIATELY PRECEDING chapter
+    prev_chapter_text = ""
+    if previous_chapters:
+        last_chap = previous_chapters[-1]
+        prev_chapter_text = f"VOLLTEXT KAPITEL {last_chap.chapter_number} (Zuletzt geschrieben):\n{last_chap.content or 'Kein Inhalt vorhanden.'}"
+    else:
+        prev_chapter_text = "Dies ist das erste Kapitel des Buches. Es gibt keinen vorherigen Kapitel-Text."
+        
+    feedback_clause = ""
+    if feedback:
+        feedback_clause = f"\n**WICHTIGE ÄNDERUNGSANWEISUNG VOM USER (Für diesen Rewrite):**\n\"{feedback}\"\nBitte überarbeite das Kapitel und beachte diese Anweisung unbedingt!"
+
+    system_instruction = (
+        f"Du bist ein preisgekrönter Romanautor. Dein Schreibstil ist inspiriert von: {project.style}.\n"
+        f"Du schreibst im Genre: {project.genre}.\n"
+        "Schreibe ausschließlich die Romanprosa für das angeforderte Kapitel. Schreib flüssig, "
+        "atmosphärisch und detailreich. Benutze KEINE Meta-Kommentare, Überschriften oder Einleitungen wie 'Kapitel 1'. "
+        "Beginne sofort mit der Geschichte."
+    )
+    
+    prompt = f"""
+    Hier sind die Rahmendaten für das Buchprojekt:
+    - Buchtitel: {project.title}
+    - Ursprungsidee: {project.prompt}
+    - Charakter-Übersicht: {chars_str}
+    - Gesamte Gliederung des Buches:
+    {outline_str}
+    
+    ---
+    
+    Bisheriger Handlungsverlauf (Zusammenfassungen):
+    {past_summaries_str}
+    
+    ---
+    
+    {prev_chapter_text}
+    
+    ---
+    
+    Aufgabe:
+    Schreibe jetzt das gesamte Kapitel {chapter.chapter_number} mit dem Titel: \"{chapter.title}\"
+    Kapitel-Plot (Was passieren soll): {chapter.plot_outline}
+    {feedback_clause}
+    
+    Schreibe ein langes, literarisch hochwertiges Kapitel (mindestens 1500 bis 2500 Wörter). 
+    Achte auf lebendige Dialoge, tiefe Charaktereinblicke und ein angemessenes Pacing passend zum gewählten Stil.
+    Gib ausschließlich die Kapitelprosa zurück.
+    """
+    
+    try:
+        response = await generate_text(
+            prompt=prompt,
+            model=model,
+            temperature=0.8,
+            max_tokens=8192,
+            system_instruction=system_instruction
+        )
+        return response.strip()
+    except Exception as e:
+        logger.error(f"Error generating chapter {chapter.chapter_number}: {e}")
+        raise e
+
+async def generate_chapter_summary(chapter_content: str, model: str = "gemini-3.1-flash-lite") -> str:
+    """Generate a 50-80 word summary of the chapter content."""
+    prompt = f"""
+    Fasse das folgende Buchkapitel in genau 50 bis 80 Wörtern zusammen.
+    Konzentriere dich auf Handlungsfortschritte, wichtige Entscheidungen und Charakterentwicklungen.
+    
+    Kapitelinhalt:
+    {chapter_content}
+    
+    Gib ausschließlich die Zusammenfassung zurück. Keine Einleitung, kein 'Zusammenfassung:'.
+    """
+    try:
+        response = await generate_text(
+            prompt=prompt,
+            model=model,
+            temperature=0.5,
+            max_tokens=300
+        )
+        return response.strip()
+    except Exception as e:
+        logger.error(f"Error in generate_chapter_summary: {e}")
+        return "Kapitel wurde geschrieben."
+
+async def proofread_chapter(
+    chapter_content: str, 
+    characters_bible: str, 
+    outline: str, 
+    chapter_num: int, 
+    model: str = "gemini-3.5-flash"
+) -> List[Dict[str, Any]]:
+    """Proofread the chapter content for consistency, style, and grammar, returning structured findings."""
+    system_instruction = (
+        "Du bist ein professioneller Lektor und Korrektor. "
+        "Analysiere das gegebene Buchkapitel auf logische Konsistenz, Stilfehler, Pacing-Schwächen und Grammatik/Rechtschreibung. "
+        "Antworte ausschließlich im JSON-Format."
+    )
+    
+    prompt = f"""
+    Hier sind die Referenzdaten für das Buch:
+    - Charakter-Bible: {characters_bible}
+    - Gliederung: {outline}
+    
+    Analysiere Kapitel {chapter_num} auf Probleme:
+    
+    Kapitelinhalt:
+    \"\"\"
+    {chapter_content}
+    \"\"\"
+    
+    Kategorisiere die Probleme in:
+    - 'consistency' (Logikfehler, falsche Augenfarben, Plot-Widersprüche)
+    - 'style' (Wortwiederholungen, holpriger Satzbau, Pacing-Fehler)
+    - 'grammar' (Tippfehler, Grammatikfehler)
+    
+    Gib eine Liste von Problemen zurück. Jedes Problem muss folgende Felder haben:
+    - category (eine der 3 Kategorien oben)
+    - description (Beschreibung des Fehlers auf Deutsch)
+    - original_snippet (der genaue fehlerhafte Satz/Absatz aus dem Text)
+    - suggested_rewrite (Vorschlag für die Korrektur auf Deutsch, passend zum Kontext)
+    
+    Format:
+    [
+      {{
+        "category": "consistency",
+        "description": "...",
+        "original_snippet": "...",
+        "suggested_rewrite": "..."
+      }}
+    ]
+    """
+    
+    try:
+        response = await generate_text(
+            prompt=prompt,
+            model=model,
+            temperature=0.3,
+            response_mime_type="application/json",
+            system_instruction=system_instruction
+        )
+        cleaned = clean_json_string(response)
+        return json.loads(cleaned)
+    except Exception as e:
+        logger.error(f"Error in proofread_chapter: {e}")
+        return []

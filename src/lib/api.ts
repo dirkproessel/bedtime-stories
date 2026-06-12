@@ -743,3 +743,202 @@ export async function adminUpdateVoice(
     }
     return res.json();
 }
+
+// --- Pro Book Types ---
+
+export interface BookChapter {
+    id: string;
+    book_project_id: string;
+    chapter_number: number;
+    title: string;
+    plot_outline: string;
+    content: string | null;
+    running_summary: string | null;
+    feedback: string | null;
+    status: 'draft' | 'generating' | 'done' | 'error';
+    created_at: string;
+    updated_at: string;
+}
+
+export interface BookProject {
+    id: string;
+    user_id: string;
+    title: string;
+    prompt: string;
+    genre: string;
+    style: string;
+    characters_bible: string | null;
+    outline: string | null;
+    cover_image_url: string | null;
+    cover_prompt: string | null;
+    status: 'draft' | 'generating' | 'proofreading' | 'completed' | 'error';
+    progress: string | null;
+    progress_pct: number;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface BookProjectDetail extends BookProject {
+    chapters: BookChapter[];
+}
+
+export interface KdpMetadata {
+    suggested_subtitle: string;
+    description_kdp: string;
+    search_keywords: string[];
+    recommended_bisac_categories: string[];
+    pricing_recommendation: {
+        price: string;
+        reason: string;
+    };
+}
+
+export interface LektoratFinding {
+    category: 'consistency' | 'style' | 'grammar';
+    description: string;
+    original_snippet: string;
+    suggested_rewrite: string;
+}
+
+// --- Pro Book Endpoints ---
+
+export async function fetchProBooks(): Promise<BookProject[]> {
+    const res = await fetch(`${API_BASE}/api/pro/books`, { headers: getAuthHeaders() });
+    if (!res.ok) throw new Error('Fehler beim Laden der Pro-Buchprojekte');
+    return res.json();
+}
+
+export async function fetchProBookDetail(id: string): Promise<BookProjectDetail> {
+    const res = await fetch(`${API_BASE}/api/pro/books/${id}`, { headers: getAuthHeaders() });
+    if (!res.ok) throw new Error('Fehler beim Laden des Buchprojekts');
+    return res.json();
+}
+
+export async function createProBook(req: { title: string, prompt: string, genre: string, style: string }): Promise<BookProject> {
+    const res = await fetch(`${API_BASE}/api/pro/books`, {
+        method: 'POST',
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify(req),
+    });
+    if (!res.ok) throw new Error('Fehler beim Erstellen des Buchprojekts');
+    return res.json();
+}
+
+export async function updateProBook(id: string, data: Partial<BookProject>): Promise<BookProject> {
+    const res = await fetch(`${API_BASE}/api/pro/books/${id}`, {
+        method: 'PUT',
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error('Fehler beim Aktualisieren des Buchprojekts');
+    return res.json();
+}
+
+export async function deleteProBook(id: string): Promise<void> {
+    const res = await fetch(`${API_BASE}/api/pro/books/${id}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
+    });
+    if (!res.ok) throw new Error('Fehler beim Löschen des Buchprojekts');
+}
+
+export async function suggestProCharacters(id: string, model?: string): Promise<{ suggestions: any[] }> {
+    let url = `${API_BASE}/api/pro/books/${id}/characters/suggest`;
+    if (model) url += `?model=${encodeURIComponent(model)}`;
+    const res = await fetch(url, {
+        method: 'POST',
+        headers: getAuthHeaders()
+    });
+    if (!res.ok) throw new Error('Fehler beim Generieren der Charakter-Vorschläge');
+    return res.json();
+}
+
+export async function generateProOutline(id: string, numChapters: number = 8, model?: string): Promise<BookProjectDetail> {
+    let url = `${API_BASE}/api/pro/books/${id}/outline?num_chapters=${numChapters}`;
+    if (model) url += `&model=${encodeURIComponent(model)}`;
+    const res = await fetch(url, {
+        method: 'POST',
+        headers: getAuthHeaders()
+    });
+    if (!res.ok) throw new Error('Fehler beim Generieren der Gliederung');
+    return res.json();
+}
+
+export async function updateProOutline(id: string, chapters: any[]): Promise<BookProjectDetail> {
+    const res = await fetch(`${API_BASE}/api/pro/books/${id}/outline`, {
+        method: 'PUT',
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify(chapters)
+    });
+    if (!res.ok) throw new Error('Fehler beim Speichern der Gliederung');
+    return res.json();
+}
+
+export async function generateProChapter(id: string, num: number, model?: string, feedback?: string): Promise<{ status: string }> {
+    let url = `${API_BASE}/api/pro/books/${id}/chapters/${num}/generate`;
+    const params = [];
+    if (model) params.push(`model=${encodeURIComponent(model)}`);
+    if (feedback) params.push(`feedback=${encodeURIComponent(feedback)}`);
+    if (params.length > 0) url += `?${params.join('&')}`;
+    
+    const res = await fetch(url, {
+        method: 'POST',
+        headers: getAuthHeaders()
+    });
+    if (!res.ok) throw new Error(`Fehler beim Generieren von Kapitel ${num}`);
+    return res.json();
+}
+
+export async function updateProChapter(id: string, num: number, data: { title?: string, plot_outline?: string, content?: string, feedback?: string }): Promise<BookChapter> {
+    const res = await fetch(`${API_BASE}/api/pro/books/${id}/chapters/${num}`, {
+        method: 'PUT',
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error(`Fehler beim Aktualisieren von Kapitel ${num}`);
+    return res.json();
+}
+
+export async function proofreadProChapter(id: string, num: number, model?: string): Promise<{ findings: LektoratFinding[] }> {
+    let url = `${API_BASE}/api/pro/books/${id}/chapters/${num}/proofread`;
+    if (model) url += `?model=${encodeURIComponent(model)}`;
+    const res = await fetch(url, {
+        method: 'POST',
+        headers: getAuthHeaders()
+    });
+    if (!res.ok) throw new Error(`Fehler beim Lektorat von Kapitel ${num}`);
+    return res.json();
+}
+
+export async function generateProCover(id: string, coverPrompt: string): Promise<{ status: string }> {
+    const url = `${API_BASE}/api/pro/books/${id}/cover?cover_prompt=${encodeURIComponent(coverPrompt)}`;
+    const res = await fetch(url, {
+        method: 'POST',
+        headers: getAuthHeaders()
+    });
+    if (!res.ok) throw new Error('Fehler beim Starten der Cover-Generierung');
+    return res.json();
+}
+
+export function getProCoverUrl(id: string, version?: string): string {
+    const token = localStorage.getItem('auth_token');
+    const url = new URL(`${API_BASE}/api/pro/books/${id}/cover.jpg`);
+    if (token) url.searchParams.append('token', token);
+    if (version) url.searchParams.append('v', version);
+    return url.toString();
+}
+
+export function getProEpubUrl(id: string): string {
+    const token = localStorage.getItem('auth_token');
+    const url = new URL(`${API_BASE}/api/pro/books/${id}/export/epub`);
+    if (token) url.searchParams.append('token', token);
+    return url.toString();
+}
+
+export async function fetchProKdpMetadata(id: string, model?: string): Promise<KdpMetadata> {
+    let url = `${API_BASE}/api/pro/books/${id}/export/metadata`;
+    if (model) url += `?model=${encodeURIComponent(model)}`;
+    const res = await fetch(url, { headers: getAuthHeaders() });
+    if (!res.ok) throw new Error('Fehler beim Generieren der KDP-Metadaten');
+    return res.json();
+}

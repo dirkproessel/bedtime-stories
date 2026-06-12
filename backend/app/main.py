@@ -141,10 +141,11 @@ app.add_middleware(
 )
 
 # Register Authentication Router
-from app.routers import auth, alexa, playlist
+from app.routers import auth, alexa, playlist, pro
 app.include_router(auth.router)
 app.include_router(alexa.router)
 app.include_router(playlist.router)
+app.include_router(pro.router)
 
 
 # Mount Static Files (for Legal Docs / Images)
