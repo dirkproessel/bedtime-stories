@@ -5,6 +5,7 @@ import type {
     LektoratFinding, 
     KdpMetadata
 } from '../lib/api';
+import { formatAuthorStyles } from '../lib/authors';
 import { 
     updateProBook, 
     suggestProCharacters,
@@ -401,7 +402,7 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                                 </div>
                                 <div>
                                     <span className="text-slate-500 block uppercase font-mono text-[9px]">Schreibstil</span>
-                                    <span className="text-slate-300 font-medium">{activeProject.style}</span>
+                                    <span className="text-slate-300 font-medium">{formatAuthorStyles(activeProject.style)}</span>
                                 </div>
                                 <div>
                                     <span className="text-slate-500 block uppercase font-mono text-[9px]">Buchidee</span>

@@ -2,6 +2,7 @@ import logging
 import asyncio
 import httpx
 import uuid
+import re
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timezone

@@ -21,8 +21,32 @@ def clean_json_string(s: str) -> str:
         s = s[:-3]
     return s.strip()
 
+def get_author_names_improved(style_string: str) -> str:
+    if not style_string:
+        return "Neutraler Autor"
+    selected_ids = [s.strip() for s in style_string.split(",")]
+    try:
+        from app.services.story_generator import STANZWERK_BIBLIOTHEK
+        id_to_name = {a['id']: a['name'] for category in STANZWERK_BIBLIOTHEK.values() for a in category}
+    except Exception as e:
+        logger.error(f"Failed to import STANZWERK_BIBLIOTHEK: {e}")
+        return style_string
+        
+    resolved_names = []
+    for s in selected_ids:
+        if s in id_to_name:
+            resolved_names.append(id_to_name[s])
+        elif s.lower() in [name.lower() for name in id_to_name.values()]:
+            matched = [name for name in id_to_name.values() if name.lower() == s.lower()][0]
+            resolved_names.append(matched)
+        else:
+            resolved_names.append(s)
+            
+    return ", ".join(resolved_names)
+
 async def suggest_characters(prompt: str, genre: str, style: str, model: str = "gemini-3.1-flash-lite") -> List[Dict[str, Any]]:
     """Generate 3-5 character suggestions based on a book idea."""
+    style_resolved = get_author_names_improved(style)
     system_instruction = (
         "Du bist ein erfahrener Romanautor und Charakter-Designer. "
         "Erstelle 3 bis 5 vielschichtige Charaktere für ein neues Buchprojekt. "
@@ -32,7 +56,7 @@ async def suggest_characters(prompt: str, genre: str, style: str, model: str = "
     prompt_content = f"""
     Buchidee: {prompt}
     Genre: {genre}
-    Autorenstil: {style}
+    Autorenstil: {style_resolved}
     
     Gib eine Liste von Charakteren zurück. Jeder Charakter muss folgende Felder haben:
     - name (Name des Charakters)
@@ -75,6 +99,7 @@ async def generate_outline(
     model: str = "gemini-3.1-flash-lite"
 ) -> Dict[str, Any]:
     """Generate a chapter outline for the book."""
+    style_resolved = get_author_names_improved(style)
     system_instruction = (
         "Du bist ein Bestseller-Autor. Entwerfe eine spannende, kapitelweise Gliederung (Outline) "
         "für eine Novelle. Antworte ausschließlich im JSON-Format."
@@ -83,7 +108,7 @@ async def generate_outline(
     prompt_content = f"""
     Buchidee: {prompt}
     Genre: {genre}
-    Autorenstil: {style}
+    Autorenstil: {style_resolved}
     Charaktere: {characters_bible}
     Anzahl Kapitel: {num_chapters}
     
@@ -140,6 +165,7 @@ async def generate_chapter_content(
     """Generate prose for a chapter utilizing compressed running summaries of past chapters."""
     # Build character bible string
     chars_str = project.characters_bible or "Keine Angabe"
+    style_resolved = get_author_names_improved(project.style)
     
     # Build outline context
     outline_data = json.loads(project.outline) if project.outline else {}
@@ -165,7 +191,7 @@ async def generate_chapter_content(
         feedback_clause = f"\n**WICHTIGE ÄNDERUNGSANWEISUNG VOM USER (Für diesen Rewrite):**\n\"{feedback}\"\nBitte überarbeite das Kapitel und beachte diese Anweisung unbedingt!"
 
     system_instruction = (
-        f"Du bist ein preisgekrönter Romanautor. Dein Schreibstil ist inspiriert von: {project.style}.\n"
+        f"Du bist ein preisgekrönter Romanautor. Dein Schreibstil ist inspiriert von: {style_resolved}.\n"
         f"Du schreibst im Genre: {project.genre}.\n"
         "Schreibe ausschließlich die Romanprosa für das angeforderte Kapitel. Schreib flüssig, "
         "atmosphärisch und detailreich. Benutze KEINE Meta-Kommentare, Überschriften oder Einleitungen wie 'Kapitel 1'. "

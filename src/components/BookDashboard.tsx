@@ -4,6 +4,8 @@ import { Plus, BookOpen, Trash2, ArrowRight, Loader2, RefreshCw } from 'lucide-r
 import BookEditor from './BookEditor';
 import { createProBook, deleteProBook } from '../lib/api';
 import toast from 'react-hot-toast';
+import { AUTHORS, formatAuthorStyles } from '../lib/authors';
+import { GENRES } from './StoryCreator';
 
 export default function BookDashboard() {
     const { 
@@ -19,7 +21,7 @@ export default function BookDashboard() {
     const [title, setTitle] = useState('');
     const [prompt, setPrompt] = useState('');
     const [genre, setGenre] = useState('Fantasy');
-    const [style, setStyle] = useState('Douglas Adams');
+    const [style, setStyle] = useState('adams');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Initial load and periodic polling for generating status
@@ -163,7 +165,7 @@ export default function BookDashboard() {
                                 <div className="mt-4 border-t border-slate-800/80 pt-4 flex justify-between items-center text-xs">
                                     <div className="flex flex-col gap-1">
                                         <span className="text-[10px] uppercase font-mono text-slate-500">
-                                            {p.genre} &bull; {p.style}
+                                            {p.genre} &bull; {formatAuthorStyles(p.style)}
                                         </span>
                                         {isGenerating ? (
                                             <span className="text-primary font-medium flex items-center gap-1.5">
@@ -231,8 +233,8 @@ export default function BookDashboard() {
                                         onChange={(e) => setGenre(e.target.value)}
                                         className="w-full bg-background border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-primary"
                                     >
-                                        {['Fantasy', 'Sci-Fi', 'Krimi', 'Abenteuer', 'Realismus', 'Grusel', 'Dystopie', 'Satire'].map(g => (
-                                            <option key={g} value={g}>{g}</option>
+                                        {GENRES.map(g => (
+                                            <option key={g.value} value={g.value}>{g.label}</option>
                                         ))}
                                     </select>
                                 </div>
@@ -243,8 +245,8 @@ export default function BookDashboard() {
                                         onChange={(e) => setStyle(e.target.value)}
                                         className="w-full bg-background border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-primary"
                                     >
-                                        {['Douglas Adams', 'Stephen King', 'J.K. Rowling', 'Thomas Mann', 'Sebastian Fitzek', 'Erich Kästner'].map(s => (
-                                            <option key={s} value={s}>{s}</option>
+                                        {AUTHORS.map(s => (
+                                            <option key={s.id} value={s.id}>{s.name} ({s.desc})</option>
                                         ))}
                                     </select>
                                 </div>
