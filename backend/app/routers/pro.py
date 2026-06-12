@@ -49,7 +49,7 @@ from app.services.image_generator import SAFETY_SETTINGS_CONFIG
 
 # --- Background Task Helpers ---
 
-async def bg_generate_chapter(project_id: str, chapter_id: str, model: str, feedback: Optional[str] = None):
+async def bg_generate_chapter(project_id: str, chapter_id: str, model: str, feedback: Optional[str] = None, target_words: int = 2000):
     """Generates the chapter prose in the background."""
     with Session(engine) as session:
         project = session.get(BookProject, project_id)
@@ -84,7 +84,8 @@ async def bg_generate_chapter(project_id: str, chapter_id: str, model: str, feed
             chapter=chapter_validated,
             previous_chapters=prev_chapters_list,
             model=model,
-            feedback=feedback
+            feedback=feedback,
+            target_words=target_words
         )
 
         # Generate a summary
@@ -448,6 +449,7 @@ async def api_generate_chapter_prose(
     bg_tasks: BackgroundTasks,
     model: str = "deepseek-v4-pro",
     feedback: Optional[str] = None,
+    target_words: int = Query(2000, description="Zielwortzahl für das Kapitel"),
     current_user: User = Depends(get_current_active_user)
 ):
     if not current_user.is_admin:
@@ -468,7 +470,7 @@ async def api_generate_chapter_prose(
             raise HTTPException(status_code=400, detail="Das Projekt generiert bereits einen Inhalt.")
             
     # Trigger background task
-    bg_tasks.add_task(bg_generate_chapter, id, chapter.id, model, feedback)
+    bg_tasks.add_task(bg_generate_chapter, id, chapter.id, model, feedback, target_words)
     return {"status": "started", "message": f"Kapitel {num} Generierung gestartet."}
 
 

@@ -41,6 +41,14 @@ interface BookEditorProps {
 
 type StepType = 'concept' | 'outline' | 'writing' | 'lektorat' | 'export';
 
+const TEXT_MODELS = [
+    { value: 'gemini-3.5-flash', label: 'Gemini 3.5 Flash (Neueste Generation)' },
+    { value: 'gemini-3.1-flash-lite', label: 'Gemini 3.1 Flash (Effizient & Schnell)' },
+    { value: 'gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro (Meisterhafte Lyrik)' },
+    { value: 'deepseek-v4-flash', label: 'DeepSeek V4 Flash (Neu & Schnell)' },
+    { value: 'deepseek-v4-pro', label: 'DeepSeek V4 Pro (High-End Reasoning)' },
+];
+
 export default function BookEditor({ project, onBack }: BookEditorProps) {
     const { loadProProjectDetail, currentProProject } = useStore();
     const activeProject = currentProProject || project;
@@ -65,6 +73,7 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
     const [chapterTitle, setChapterTitle] = useState('');
     const [chapterOutline, setChapterOutline] = useState('');
     const [feedback, setFeedback] = useState('');
+    const [targetWords, setTargetWords] = useState<number>(2000);
 
     // Step 4 State: Lektorat
     const [lektoratModel, setLektoratModel] = useState('gemini-3.5-flash');
@@ -111,10 +120,25 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
             setChapterText(chap.content || '');
             setChapterTitle(chap.title || '');
             setChapterOutline(chap.plot_outline || '');
+            
+            // Calculate a default suggestion for target words based on outline length
+            const outlineLen = (chap.plot_outline || '').trim().length;
+            let suggestion = 2000;
+            if (outlineLen > 0) {
+                if (outlineLen < 150) {
+                    suggestion = 1200;
+                } else if (outlineLen < 350) {
+                    suggestion = 1800;
+                } else {
+                    suggestion = 2500;
+                }
+            }
+            setTargetWords(suggestion);
         } else {
             setChapterText('');
             setChapterTitle('');
             setChapterOutline('');
+            setTargetWords(2000);
         }
         setFindings([]); // Clear proofread findings when switching chapters
     }, [selectedChapterNum, activeProject]);
@@ -216,7 +240,8 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                 activeProject.id, 
                 selectedChapterNum, 
                 writingModel, 
-                useFeedback ? feedback : undefined
+                useFeedback ? feedback : undefined,
+                targetWords
             );
             toast.success('Erstellung läuft im Hintergrund!', { id: 'ai' });
             if (useFeedback) setFeedback('');
@@ -422,8 +447,9 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                                     onChange={(e) => setCharModel(e.target.value)}
                                     className="bg-background border border-slate-800 text-xs text-slate-300 rounded-lg px-2 py-1 focus:outline-none"
                                 >
-                                    <option value="gemini-3.1-flash-lite">Gemini Flash Lite</option>
-                                    <option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
+                                    {TEXT_MODELS.map(m => (
+                                        <option key={m.value} value={m.value}>{m.label}</option>
+                                    ))}
                                 </select>
                                 <button 
                                     onClick={handleSuggestCharacters}
@@ -484,8 +510,9 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                                     onChange={(e) => setOutlineModel(e.target.value)}
                                     className="bg-background border border-slate-800 text-xs text-slate-300 rounded-lg px-2 py-1.5 focus:outline-none"
                                 >
-                                    <option value="gemini-3.1-flash-lite">Gemini Flash Lite</option>
-                                    <option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
+                                    {TEXT_MODELS.map(m => (
+                                        <option key={m.value} value={m.value}>{m.label}</option>
+                                    ))}
                                 </select>
                                 <button 
                                     onClick={handleGenerateOutline}
@@ -601,14 +628,25 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                             </div>
 
                             <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-1.5 bg-background border border-slate-800 rounded-lg px-2.5 py-1 text-xs text-slate-300">
+                                    <span>Zielwörter:</span>
+                                    <input 
+                                        type="number" 
+                                        value={targetWords} 
+                                        onChange={(e) => setTargetWords(parseInt(e.target.value) || 2000)}
+                                        className="w-14 bg-transparent text-white font-bold outline-none text-right"
+                                        step={100}
+                                        min={200}
+                                    />
+                                </div>
                                 <select 
                                     value={writingModel}
                                     onChange={(e) => setWritingModel(e.target.value)}
                                     className="bg-background border border-slate-800 text-xs text-slate-300 rounded-lg px-2 py-1.5 focus:outline-none"
                                 >
-                                    <option value="deepseek-v4-pro">DeepSeek V4 Pro (Default)</option>
-                                    <option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
-                                    <option value="deepseek-v4-flash">DeepSeek V4 Flash</option>
+                                    {TEXT_MODELS.map(m => (
+                                        <option key={m.value} value={m.value}>{m.label}</option>
+                                    ))}
                                 </select>
                                 <button 
                                     onClick={() => handleGenerateChapter(false)}
@@ -722,8 +760,9 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                                     onChange={(e) => setLektoratModel(e.target.value)}
                                     className="bg-background border border-slate-800 text-xs text-slate-300 rounded-lg px-2 py-1.5 focus:outline-none"
                                 >
-                                    <option value="gemini-3.5-flash">Gemini 3.5 Flash (Beste)</option>
-                                    <option value="gemini-3.1-flash-lite">Gemini Flash Lite</option>
+                                    {TEXT_MODELS.map(m => (
+                                        <option key={m.value} value={m.value}>{m.label}</option>
+                                    ))}
                                 </select>
                                 <button 
                                     onClick={handleRunLektorat}
@@ -912,8 +951,9 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                                         onChange={(e) => setKdpModel(e.target.value)}
                                         className="bg-background border border-slate-800 text-xs text-slate-300 rounded-lg px-2 py-1.5 focus:outline-none"
                                     >
-                                        <option value="gemini-3.1-flash-lite">Gemini Flash Lite</option>
-                                        <option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
+                                        {TEXT_MODELS.map(m => (
+                                            <option key={m.value} value={m.value}>{m.label}</option>
+                                        ))}
                                     </select>
                                     <button 
                                         onClick={handleFetchKdpMetadata}

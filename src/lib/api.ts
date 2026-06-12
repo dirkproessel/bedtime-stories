@@ -874,11 +874,18 @@ export async function updateProOutline(id: string, chapters: any[]): Promise<Boo
     return res.json();
 }
 
-export async function generateProChapter(id: string, num: number, model?: string, feedback?: string): Promise<{ status: string }> {
+export async function generateProChapter(
+    id: string, 
+    num: number, 
+    model?: string, 
+    feedback?: string, 
+    targetWords?: number
+): Promise<{ status: string }> {
     let url = `${API_BASE}/api/pro/books/${id}/chapters/${num}/generate`;
     const params = [];
     if (model) params.push(`model=${encodeURIComponent(model)}`);
     if (feedback) params.push(`feedback=${encodeURIComponent(feedback)}`);
+    if (targetWords) params.push(`target_words=${targetWords}`);
     if (params.length > 0) url += `?${params.join('&')}`;
     
     const res = await fetch(url, {

@@ -160,7 +160,8 @@ async def generate_chapter_content(
     chapter: BookChapter, 
     previous_chapters: List[BookChapter], 
     model: str = "deepseek-v4-pro",
-    feedback: Optional[str] = None
+    feedback: Optional[str] = None,
+    target_words: int = 2000
 ) -> str:
     """Generate prose for a chapter utilizing compressed running summaries of past chapters."""
     # Build character bible string
@@ -222,7 +223,7 @@ async def generate_chapter_content(
     Kapitel-Plot (Was passieren soll): {chapter.plot_outline}
     {feedback_clause}
     
-    Schreibe ein langes, literarisch hochwertiges Kapitel (mindestens 1500 bis 2500 Wörter). 
+    Schreibe ein langes, literarisch hochwertiges Kapitel (Ziel-Wortanzahl: ca. {target_words} Wörter). 
     Achte auf lebendige Dialoge, tiefe Charaktereinblicke und ein angemessenes Pacing passend zum gewählten Stil.
     Gib ausschließlich die Kapitelprosa zurück.
     """
