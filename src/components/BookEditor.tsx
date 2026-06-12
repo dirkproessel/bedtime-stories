@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
-import { 
+import type { 
     BookProjectDetail, 
-    BookChapter, 
     LektoratFinding, 
-    KdpMetadata,
+    KdpMetadata
+} from '../lib/api';
+import { 
     updateProBook, 
     suggestProCharacters,
     generateProOutline, 
@@ -21,7 +22,6 @@ import {
     ArrowLeft, 
     Save, 
     Sparkles, 
-    FileText, 
     BookOpen, 
     Clipboard, 
     Download, 
@@ -29,8 +29,7 @@ import {
     Loader2, 
     AlertTriangle,
     CheckCircle,
-    Maximize2,
-    VolumeX
+    Maximize2
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 

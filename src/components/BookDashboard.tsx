@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { Plus, BookOpen, Trash2, ArrowRight, Loader2, RefreshCw } from 'lucide-react';
 import BookEditor from './BookEditor';
-import { createProBook, deleteProBook, fetchProBooks } from '../lib/api';
+import { createProBook, deleteProBook } from '../lib/api';
 import toast from 'react-hot-toast';
 
 export default function BookDashboard() {

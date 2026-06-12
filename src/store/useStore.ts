@@ -30,7 +30,6 @@ import { type UserVoice, type SystemVoice } from '../lib/api';
 import { 
     type BookProject, 
     type BookProjectDetail, 
-    type BookChapter,
     fetchProBooks, 
     fetchProBookDetail 
 } from '../lib/api';

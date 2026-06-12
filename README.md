@@ -18,9 +18,11 @@ A modern, production-ready starter template for React applications.
 3. Copy `.env.example` to `.env.local` and add your Supabase details
 4. Run `npm run dev` to start developing locally
 
-## Deployment (Coolify)
-If you deploy this repository on Coolify:
-- Check **"Is it a static site?"** in the settings.
-- Set **"Publish Directory"** to `dist`.
-- Set **"Build command"** to `npm run build`.
-- The included `nixpacks.toml` will automatically configure the server to support React Router SPA routing.
+## Deployment (Coolify & VPS Live-Setup)
+Dieses Projekt läuft live auf einem **VPS** und wird automatisch bei Pushs auf GitHub über **Coolify** neu gebaut und deployed.
+
+Konfiguration in Coolify:
+- Check **"Is it a static site?"** in den Einstellungen.
+- Setze **"Publish Directory"** auf `dist`.
+- Setze **"Build command"** auf `npm run build`.
+- Die im Projekt enthaltene `nixpacks.toml` sorgt automatisch dafür, dass das SPA-Routing korrekt funktioniert.
