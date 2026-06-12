@@ -1,4 +1,5 @@
 import logging
+from jose import jwt, JWTError
 import asyncio
 import httpx
 import uuid
@@ -695,7 +696,10 @@ async def get_book_cover_image(id: str, current_user: User = Depends(get_admin_u
         if not project or not project.cover_image_url:
             raise HTTPException(status_code=404, detail="Cover nicht vorhanden.")
             
-        cover_path = Path(project.cover_image_url)
+        # Robust path resolution to handle Windows vs Linux path differences in database
+        filename = Path(project.cover_image_url).name
+        cover_path = settings.AUDIO_OUTPUT_DIR / "books" / filename
+        
         if not cover_path.exists():
             raise HTTPException(status_code=404, detail="Cover-Datei existiert nicht lokal.")
             

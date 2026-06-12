@@ -46,7 +46,8 @@ async def generate_book_epub(project: BookProject, chapters: List[BookChapter], 
     # Add Cover
     cover_loaded = False
     if project.cover_image_url:
-        cover_path = Path(project.cover_image_url)
+        filename = Path(project.cover_image_url).name
+        cover_path = settings.AUDIO_OUTPUT_DIR / "books" / filename
         if cover_path.exists():
             try:
                 with Image.open(cover_path) as img:
