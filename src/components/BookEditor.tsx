@@ -514,7 +514,7 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                             <p>Noch keine Gliederung vorhanden. Wähle die Kapitelanzahl und generiere die Outline.</p>
                         </div>
                     ) : (
-                        <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
+                        <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar">
                             {editableChapters.map((chap, i) => (
                                 <div key={i} className="bg-background p-4 rounded-2xl border border-slate-800 space-y-3">
                                     <div className="flex items-center gap-3">
@@ -533,8 +533,8 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                                     <textarea 
                                         value={chap.plot_outline}
                                         onChange={(e) => updateEditableChapterField(chap.chapter_number, 'plot_outline', e.target.value)}
-                                        rows={2}
-                                        className="w-full bg-surface border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-primary resize-none leading-relaxed"
+                                        rows={6}
+                                        className="w-full bg-surface border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-primary resize-y leading-relaxed"
                                         placeholder="Handlungsstrang und Ereignisse für dieses Kapitel..."
                                     />
                                 </div>
