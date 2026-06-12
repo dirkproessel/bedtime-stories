@@ -61,6 +61,11 @@ function App() {
         }
       }
 
+      if (lowerPath === '/pro' || lowerPath.startsWith('/pro/')) {
+        setActiveView('pro');
+        return;
+      }
+
       // If hash is not a story hash but reader is open, close it (e.g. via browser back)
       if (useStore.getState().isReaderOpen) {
         useStore.getState().setReaderOpen(false);
