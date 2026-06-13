@@ -10,6 +10,50 @@ from app.services.text_generator import generate_text
 
 logger = logging.getLogger(__name__)
 
+from pydantic import BaseModel, Field
+
+# --- Pydantic Schemas for Structured Output ---
+
+class CharacterSchema(BaseModel):
+    name: str = Field(description="Name des Charakters")
+    role: str = Field(description="Rolle im Buch (z. B. Protagonist, Antagonist, Mentor, Begleiter)")
+    description: str = Field(description="Beschreibung von Aussehen, Hintergrund und Motivation")
+    traits: List[str] = Field(description="Eine Liste von 3-4 Charaktereigenschaften")
+
+class CharacterSuggestionsSchema(BaseModel):
+    suggestions: List[CharacterSchema] = Field(description="Liste der vorgeschlagenen Charaktere")
+
+class ChapterOutlineSchema(BaseModel):
+    chapter_number: int = Field(description="Die fortlaufende Nummer des Kapitels (1-basiert)")
+    title: str = Field(description="Der Titel des Kapitels")
+    plot_outline: str = Field(description="Ausführliche Beschreibung des Inhalts des Kapitels (ca. 100-150 Wörter)")
+
+class BookOutlineSchema(BaseModel):
+    title: str = Field(description="Ein passender, kreativer Buchtitel")
+    chapters: List[ChapterOutlineSchema] = Field(description="Die Gliederung aller Kapitel")
+
+class ImprovedChapterOutlineSchema(BaseModel):
+    title: str = Field(description="Der neue oder beibehaltene Kapitel-Titel")
+    plot_outline: str = Field(description="Der überarbeitete Inhalt des Kapitels (ca. 100-150 Wörter)")
+
+class ProofreadChapterFindingSchema(BaseModel):
+    category: str = Field(description="Die Kategorie des Fehlers ('consistency', 'style' oder 'grammar')")
+    description: str = Field(description="Beschreibung des Fehlers auf Deutsch")
+    original_snippet: str = Field(description="Der genaue fehlerhafte Satz/Absatz aus dem Kapiteltext")
+    suggested_rewrite: str = Field(description="Konkreter Vorschlag für die Korrektur auf Deutsch, passend zum Kontext")
+
+class ProofreadChapterResponseSchema(BaseModel):
+    findings: List[ProofreadChapterFindingSchema] = Field(description="Die Liste aller gefundenen Fehler und Korrekturen")
+
+class ProofreadGlobalFindingSchema(BaseModel):
+    category: str = Field(description="Die Kategorie des Fehlers ('consistency', 'style' oder 'pacing')")
+    description: str = Field(description="Beschreibung des Fehlers auf Deutsch")
+    chapters_involved: List[int] = Field(description="Eine Liste der Kapitelnummern, die von diesem Problem betroffen sind")
+    suggested_fix: str = Field(description="Konkreter Vorschlag für die Korrektur auf Deutsch")
+
+class ProofreadGlobalResponseSchema(BaseModel):
+    findings: List[ProofreadGlobalFindingSchema] = Field(description="Die Liste aller globalen Fehler und Widersprüche im gesamten Manuskript")
+
 def clean_json_string(s: str) -> str:
     """Strip markdown code blocks around JSON if present."""
     s = s.strip()
@@ -81,10 +125,15 @@ async def suggest_characters(prompt: str, genre: str, style: str, model: str = "
             model=model,
             temperature=0.7,
             response_mime_type="application/json",
-            system_instruction=system_instruction
+            system_instruction=system_instruction,
+            response_schema=CharacterSuggestionsSchema
         )
         cleaned = clean_json_string(response)
-        return json.loads(cleaned)
+        data = json.loads(cleaned)
+        # Handle dict or list root fallback
+        if isinstance(data, dict):
+            return data.get("suggestions", [])
+        return data
     except Exception as e:
         logger.error(f"Error in suggest_characters: {e}")
         # Return empty list or basic structure on error
@@ -139,7 +188,8 @@ async def generate_outline(
             model=model,
             temperature=0.7,
             response_mime_type="application/json",
-            system_instruction=system_instruction
+            system_instruction=system_instruction,
+            response_schema=BookOutlineSchema
         )
         cleaned = clean_json_string(response)
         return json.loads(cleaned)
@@ -324,10 +374,14 @@ async def proofread_chapter(
             model=model,
             temperature=0.3,
             response_mime_type="application/json",
-            system_instruction=system_instruction
+            system_instruction=system_instruction,
+            response_schema=ProofreadChapterResponseSchema
         )
         cleaned = clean_json_string(response)
-        return json.loads(cleaned)
+        data = json.loads(cleaned)
+        if isinstance(data, dict):
+            return data.get("findings", [])
+        return data
     except Exception as e:
         logger.error(f"Error in proofread_chapter: {e}")
         return []
@@ -395,10 +449,14 @@ async def proofread_book_globally(
             model=model,
             temperature=0.3,
             response_mime_type="application/json",
-            system_instruction=system_instruction
+            system_instruction=system_instruction,
+            response_schema=ProofreadGlobalResponseSchema
         )
         cleaned = clean_json_string(response)
-        return json.loads(cleaned)
+        data = json.loads(cleaned)
+        if isinstance(data, dict):
+            return data.get("findings", [])
+        return data
     except Exception as e:
         logger.error(f"Error in proofread_book_globally: {e}")
         return []
@@ -504,7 +562,8 @@ async def improve_chapter_outline(
             model=model,
             temperature=0.75,
             response_mime_type="application/json",
-            system_instruction=system_instruction
+            system_instruction=system_instruction,
+            response_schema=ImprovedChapterOutlineSchema
         )
         cleaned = clean_json_string(response)
         return json.loads(cleaned)

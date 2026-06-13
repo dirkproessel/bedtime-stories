@@ -916,6 +916,15 @@ async def api_cancel_project_generation(
         return {"status": "success", "message": "Generierung abgebrochen und Status zurückgesetzt."}
 
 
+from pydantic import BaseModel, Field
+
+class EpubMetadataSuggestionSchema(BaseModel):
+    epub_author: str = Field(description="Ein Autorenname / Pseudonym für das Buch (Vorschlag: 'Stanzwerk Pro' oder ein passender Künstlername, max 30 Zeichen)")
+    epub_dedication: str = Field(description="Eine kurze, poetische Widmung (2-4 Zeilen)")
+    epub_afterword: str = Field(description="Ein kurzes Nachwort (100-150 Wörter)")
+    epub_imprint: str = Field(description="Ein optionaler Impressums-Zusatz (z. B. Datenschutzhinweis oder Haftungsausschluss, oder leer lassen)")
+
+
 @router.post("/books/{id}/epub/suggest")
 async def api_suggest_epub_metadata(
     id: str,
@@ -979,7 +988,8 @@ Format:
             model=model,
             temperature=0.8,
             response_mime_type="application/json",
-            system_instruction=system_instruction
+            system_instruction=system_instruction,
+            response_schema=EpubMetadataSuggestionSchema
         )
         cleaned = clean_json_string(raw)
         result = json.loads(cleaned)
