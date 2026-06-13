@@ -358,21 +358,7 @@ async def generate_book_epub(project: BookProject, chapters: List[BookChapter], 
     # --- Helper: create a well-formed XHTML page ---
     def make_page(uid: str, filename: str, title: str, body_html: str) -> epub.EpubHtml:
         page = epub.EpubHtml(title=title, file_name=filename, lang='de')
-        page.content = (
-            '<?xml version="1.0" encoding="UTF-8"?>\n'
-            '<!DOCTYPE html>\n'
-            '<html xmlns="http://www.w3.org/1999/xhtml" '
-            'xmlns:epub="http://www.idpf.org/2007/ops" lang="de">\n'
-            '<head>\n'
-            '  <meta charset="UTF-8"/>\n'
-            f'  <title>{title}</title>\n'
-            '  <link rel="stylesheet" type="text/css" href="../style/main.css"/>\n'
-            '</head>\n'
-            '<body>\n'
-            f'{body_html}\n'
-            '</body>\n'
-            '</html>'
-        )
+        page.content = body_html
         page.add_item(css_item)
         return page
 

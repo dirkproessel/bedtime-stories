@@ -11,6 +11,7 @@ import {
     updateProBook, 
     suggestProCharacters,
     generateProOutline, 
+    improveProChapterOutline,
     updateProOutline,
     generateProChapter, 
     updateProChapter,
@@ -80,6 +81,8 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
     const [numChapters, setNumChapters] = useState(activeProject.chapters.length || 8);
     const [outlineModel, setOutlineModel] = useState('gemini-3.1-flash-lite');
     const [editableChapters, setEditableChapters] = useState<any[]>([]);
+    const [outlineFeedback, setOutlineFeedback] = useState('');
+    const [chapterFeedbacks, setChapterFeedbacks] = useState<{ [key: number]: string }>({});
 
     // Step 3 State: Writing
     const [selectedChapterNum, setSelectedChapterNum] = useState<number>(1);
@@ -262,12 +265,33 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
 
     // --- Step 2 Actions ---
 
-    const handleGenerateOutline = async () => {
+    const handleGenerateOutline = async (useFeedback: boolean = false) => {
         setIsAiLoading(true);
         try {
             toast.loading('Gliederung wird erstellt...', { id: 'ai' });
-            await generateProOutline(activeProject.id, numChapters, outlineModel);
+            await generateProOutline(activeProject.id, numChapters, outlineModel, useFeedback ? outlineFeedback : undefined);
             toast.success('Outline erfolgreich erstellt!', { id: 'ai' });
+            if (useFeedback) setOutlineFeedback('');
+            await loadProProjectDetail(activeProject.id);
+        } catch (e: any) {
+            toast.error('Fehler: ' + e.message, { id: 'ai' });
+        } finally {
+            setIsAiLoading(false);
+        }
+    };
+
+    const handleImproveChapterOutline = async (num: number) => {
+        const instr = chapterFeedbacks[num] || '';
+        if (!instr.trim()) {
+            toast.error('Bitte gib erst eine Verbesserungsanweisung für dieses Kapitel ein.');
+            return;
+        }
+        setIsAiLoading(true);
+        try {
+            toast.loading(`Kapitel ${num} Gliederung wird überarbeitet...`, { id: 'ai' });
+            await improveProChapterOutline(activeProject.id, num, outlineModel, instr);
+            toast.success(`Kapitel ${num} erfolgreich überarbeitet!`, { id: 'ai' });
+            setChapterFeedbacks(prev => ({ ...prev, [num]: '' }));
             await loadProProjectDetail(activeProject.id);
         } catch (e: any) {
             toast.error('Fehler: ' + e.message, { id: 'ai' });
@@ -727,23 +751,33 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                     </div>
                 </div>
             )}
-
             {/* STEP 2: OUTLINE EDITOR */}
             {activeStep === 'outline' && (
                 <div className="bg-surface p-5 rounded-3xl border border-slate-800 space-y-5">
-                    <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b border-slate-800/80 pb-4">
+                    <div className="flex flex-col xl:flex-row justify-between xl:items-center gap-4 border-b border-slate-800/80 pb-4">
                         <div className="space-y-1">
                             <h3 className="font-semibold text-white text-sm">Buchgliederung & Kapitel</h3>
                             <p className="text-xs text-text-muted">Plane und verfeinere den Handlungsstrang deines Buches vor dem Schreiben.</p>
                         </div>
 
-                        {activeProject.chapters.length === 0 ? (
-                            <div className="flex items-center gap-3">
-                                <label className="text-xs text-slate-300">Kapitelanzahl:</label>
+                        <div className="flex items-center gap-3 flex-wrap">
+                            {editableChapters.length > 0 && (
+                                <button 
+                                    onClick={handleSaveOutline}
+                                    disabled={isSaving}
+                                    className="bg-slate-800 hover:bg-slate-700 text-white border border-slate-705 py-1.5 px-4 text-xs flex items-center gap-1.5 rounded-xl transition-all"
+                                >
+                                    {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                                    Gliederung speichern
+                                </button>
+                            )}
+
+                            <div className="flex items-center gap-2">
+                                <label className="text-xs text-slate-400">Kapitel:</label>
                                 <select 
                                     value={numChapters} 
                                     onChange={(e) => setNumChapters(parseInt(e.target.value))}
-                                    className="bg-background border border-slate-800 text-xs text-slate-300 rounded-lg px-2 py-1.5 focus:outline-none"
+                                    className="bg-background border border-slate-800 text-xs text-slate-300 rounded-lg px-2 py-1 focus:outline-none"
                                 >
                                     {[3, 4, 5, 6, 7, 8, 9, 10, 12].map(n => (
                                         <option key={n} value={n}>{n} Kapitel</option>
@@ -752,28 +786,40 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                                 <select 
                                     value={outlineModel} 
                                     onChange={(e) => setOutlineModel(e.target.value)}
-                                    className="bg-background border border-slate-800 text-xs text-slate-300 rounded-lg px-2 py-1.5 focus:outline-none"
+                                    className="bg-background border border-slate-800 text-xs text-slate-300 rounded-lg px-2 py-1 focus:outline-none"
                                 >
                                     {TEXT_MODELS.map(m => (
                                         <option key={m.value} value={m.value}>{m.label}</option>
                                     ))}
                                 </select>
                                 <button 
-                                    onClick={handleGenerateOutline}
+                                    onClick={() => handleGenerateOutline(!!outlineFeedback.trim())}
                                     disabled={isAiLoading}
-                                    className="btn-primary py-1.5 px-4 text-xs flex items-center gap-1 rounded-xl"
+                                    className="btn-primary py-1.5 px-4 text-xs flex items-center gap-1 rounded-xl shrink-0"
                                 >
-                                    Gliederung generieren
+                                    <Sparkles className="w-3.5 h-3.5" />
+                                    {editableChapters.length === 0 ? 'Gliederung generieren' : 'Komplett neu generieren'}
                                 </button>
                             </div>
-                        ) : (
-                            <button 
-                                onClick={handleSaveOutline}
-                                disabled={isSaving}
-                                className="btn-primary py-1.5 px-5 text-xs flex items-center gap-1 rounded-xl"
+                        </div>
+                    </div>
+
+                    {/* Feedback box for full outline regeneration */}
+                    <div className="bg-background/40 p-3 rounded-2xl border border-slate-800 flex gap-2 items-center text-xs">
+                        <span className="text-slate-500 font-mono text-[10px] uppercase font-bold shrink-0">KI-Feedback:</span>
+                        <input
+                            type="text"
+                            value={outlineFeedback}
+                            onChange={(e) => setOutlineFeedback(e.target.value)}
+                            placeholder="Anweisung für die gesamte Gliederung (z.B. 'Mach die Story düsterer' oder 'Füge ein Happy End hinzu')"
+                            className="bg-transparent border-none text-xs text-white placeholder-slate-600 focus:outline-none w-full"
+                        />
+                        {outlineFeedback && (
+                            <button
+                                onClick={() => setOutlineFeedback('')}
+                                className="text-slate-500 hover:text-white shrink-0 text-xs"
                             >
-                                {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                                Gliederung speichern
+                                Zurücksetzen
                             </button>
                         )}
                     </div>
@@ -808,6 +854,25 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                                         className="w-full bg-surface border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-primary resize-y leading-relaxed"
                                         placeholder="Handlungsstrang und Ereignisse für dieses Kapitel..."
                                     />
+
+                                    {/* Feedback for improving this single chapter's outline */}
+                                    <div className="flex gap-2 items-center bg-surface p-2 rounded-xl border border-slate-800">
+                                        <input
+                                            type="text"
+                                            value={chapterFeedbacks[chap.chapter_number] || ''}
+                                            onChange={(e) => setChapterFeedbacks(prev => ({ ...prev, [chap.chapter_number]: e.target.value }))}
+                                            placeholder="Kapitel-Anweisung (z.B. 'Füge Charakter Y hinzu' oder 'Mache es spannender')"
+                                            className="bg-transparent border-none text-[11px] text-white placeholder-slate-600 focus:outline-none w-full px-2"
+                                        />
+                                        <button
+                                            onClick={() => handleImproveChapterOutline(chap.chapter_number)}
+                                            disabled={isAiLoading || !(chapterFeedbacks[chap.chapter_number] || '').trim()}
+                                            className="bg-slate-800 hover:bg-slate-700 text-amber-400 text-[10px] px-3.5 py-1.5 rounded-lg transition-colors border border-slate-700/50 shrink-0 font-medium flex items-center gap-1"
+                                        >
+                                            <Sparkles className="w-3 h-3" />
+                                            KI-Verbessern
+                                        </button>
+                                    </div>
                                 </div>
                             ))}
                         </div>

@@ -859,14 +859,40 @@ export async function suggestProCharacters(id: string, model?: string): Promise<
     return res.json();
 }
 
-export async function generateProOutline(id: string, numChapters: number = 8, model?: string): Promise<BookProjectDetail> {
+export async function generateProOutline(
+    id: string, 
+    numChapters: number = 8, 
+    model?: string,
+    instruction?: string
+): Promise<BookProjectDetail> {
     let url = `${API_BASE}/api/pro/books/${id}/outline?num_chapters=${numChapters}`;
     if (model) url += `&model=${encodeURIComponent(model)}`;
+    if (instruction) url += `&instruction=${encodeURIComponent(instruction)}`;
     const res = await fetch(url, {
         method: 'POST',
         headers: getAuthHeaders()
     });
     if (!res.ok) throw new Error('Fehler beim Generieren der Gliederung');
+    return res.json();
+}
+
+export async function improveProChapterOutline(
+    id: string,
+    num: number,
+    model?: string,
+    instruction?: string
+): Promise<BookProjectDetail> {
+    let url = `${API_BASE}/api/pro/books/${id}/chapters/${num}/outline/improve`;
+    const params = [];
+    if (model) params.push(`model=${encodeURIComponent(model)}`);
+    if (instruction) params.push(`instruction=${encodeURIComponent(instruction)}`);
+    if (params.length > 0) url += `?${params.join('&')}`;
+    
+    const res = await fetch(url, {
+        method: 'POST',
+        headers: getAuthHeaders()
+    });
+    if (!res.ok) throw new Error('Fehler beim Verbessern des Kapitelentwurfs');
     return res.json();
 }
 

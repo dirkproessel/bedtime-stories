@@ -96,7 +96,8 @@ async def generate_outline(
     style: str, 
     characters_bible: str, 
     num_chapters: int = 8, 
-    model: str = "gemini-3.1-flash-lite"
+    model: str = "gemini-3.1-flash-lite",
+    instruction: Optional[str] = None
 ) -> Dict[str, Any]:
     """Generate a chapter outline for the book."""
     style_resolved = get_author_names_improved(style)
@@ -105,13 +106,15 @@ async def generate_outline(
         "für eine Novelle. Antworte ausschließlich im JSON-Format."
     )
     
+    instruction_str = f"\nNutzer-Anweisung/Kritik zur Berücksichtigung für diese Gliederung:\n\"{instruction}\"\n" if instruction else ""
+    
     prompt_content = f"""
     Buchidee: {prompt}
     Genre: {genre}
     Autorenstil: {style_resolved}
     Charaktere: {characters_bible}
     Anzahl Kapitel: {num_chapters}
-    
+    {instruction_str}
     Entwerfe eine Gliederung mit genau {num_chapters} Kapiteln.
     Gib ein JSON-Objekt mit folgenden Feldern zurück:
     - title (Ein passender Buchtitel)
@@ -443,4 +446,72 @@ async def suggest_cover_prompt(
     except Exception as e:
         logger.error(f"Error in suggest_cover_prompt: {e}")
         return "A cinematic, beautifully composed book cover art representing the theme of the book."
+
+
+async def improve_chapter_outline(
+    project_prompt: str,
+    genre: str,
+    style: str,
+    characters_bible: str,
+    full_outline: str,
+    chapter_number: int,
+    current_title: str,
+    current_plot_outline: str,
+    instruction: str,
+    model: str = "gemini-3.1-flash-lite"
+) -> Dict[str, Any]:
+    """Improve / rewrite a single chapter outline based on feedback/instructions."""
+    style_resolved = get_author_names_improved(style)
+    system_instruction = (
+        "Du bist ein Bestseller-Autor. Du hilfst dabei, ein einzelnes Kapitel einer Buchgliederung (Outline) "
+        "zu überarbeiten und zu verbessern. Antworte ausschließlich im JSON-Format."
+    )
+    
+    prompt_content = f"""
+    Hier sind die Rahmendaten des Buches:
+    - Buchidee/Plot: {project_prompt}
+    - Genre: {genre}
+    - Autorenstil: {style_resolved}
+    - Charaktere: {characters_bible}
+    
+    Gesamt-Gliederung des Buches:
+    {full_outline}
+    
+    Wir überarbeiten gerade Kapitel {chapter_number}:
+    - Aktueller Titel: {current_title}
+    - Aktueller Inhalt/Gliederung: {current_plot_outline}
+    
+    Kritik / Anweisung des Nutzers zur Verbesserung dieses Kapitels:
+    "{instruction}"
+    
+    Bitte überarbeite dieses Kapitel basierend auf der Anweisung und dem Gesamtkontext des Buches. 
+    Achte darauf, dass es logisch in die restliche Gliederung passt.
+    
+    Gib ein JSON-Objekt mit exakt diesen Feldern zurück:
+    - title (Der neue oder beibehaltene Kapitel-Titel)
+    - plot_outline (Der überarbeitete Inhalt des Kapitels, ca. 100-150 Wörter)
+    
+    Format:
+    {{
+      "title": "...",
+      "plot_outline": "..."
+    }}
+    """
+    
+    try:
+        response = await generate_text(
+            prompt=prompt_content,
+            model=model,
+            temperature=0.75,
+            response_mime_type="application/json",
+            system_instruction=system_instruction
+        )
+        cleaned = clean_json_string(response)
+        return json.loads(cleaned)
+    except Exception as e:
+        logger.error(f"Error in improve_chapter_outline: {e}")
+        return {
+            "title": current_title,
+            "plot_outline": current_plot_outline
+        }
 

@@ -31,6 +31,7 @@ from app.models import (
 from app.services.book_generator import (
     suggest_characters,
     generate_outline,
+    improve_chapter_outline,
     generate_chapter_content,
     generate_chapter_summary,
     proofread_chapter,
@@ -392,6 +393,7 @@ async def api_generate_outline(
     id: str, 
     num_chapters: int = 8, 
     model: str = "gemini-3.1-flash-lite", 
+    instruction: Optional[str] = Query(None, description="Nutzer-Anweisung zur Anpassung der gesamten Gliederung"),
     current_user: User = Depends(get_current_active_user)
 ):
     if not current_user.is_admin:
@@ -410,7 +412,8 @@ async def api_generate_outline(
             style=project.style,
             characters_bible=bible,
             num_chapters=num_chapters,
-            model=model
+            model=model,
+            instruction=instruction
         )
         
         # Save outline structure to project
@@ -553,6 +556,72 @@ async def api_update_chapter_manually(
         session.commit()
         session.refresh(chapter)
         return chapter
+
+
+@router.post("/books/{id}/chapters/{num}/outline/improve", response_model=BookProjectDetailResponse)
+async def api_improve_chapter_outline(
+    id: str,
+    num: int,
+    instruction: str = Query(..., description="Anweisung zur Verbesserung des Kapitels"),
+    model: str = "gemini-3.1-flash-lite",
+    current_user: User = Depends(get_current_active_user)
+):
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin-Zugang verweigert.")
+        
+    with Session(engine) as session:
+        project = session.get(BookProject, id)
+        chapter = session.exec(
+            select(BookChapter)
+            .where(BookChapter.book_project_id == id)
+            .where(BookChapter.chapter_number == num)
+        ).first()
+        
+        if not (project and chapter):
+            raise HTTPException(status_code=404, detail="Projekt oder Kapitel nicht gefunden.")
+            
+        bible = project.characters_bible or "Keine Angabe"
+        full_outline = project.outline or "{}"
+        
+        # Improve single chapter outline
+        improved = await improve_chapter_outline(
+            project_prompt=project.prompt,
+            genre=project.genre,
+            style=project.style,
+            characters_bible=bible,
+            full_outline=full_outline,
+            chapter_number=num,
+            current_title=chapter.title,
+            current_plot_outline=chapter.plot_outline,
+            instruction=instruction,
+            model=model
+        )
+        
+        # Save back to database chapter
+        chapter.title = improved.get("title", chapter.title)
+        chapter.plot_outline = improved.get("plot_outline", chapter.plot_outline)
+        chapter.updated_at = datetime.now(timezone.utc)
+        session.add(chapter)
+        
+        # Synchronize project outline JSON
+        try:
+            outline_data = json.loads(project.outline) if project.outline else {"title": project.title}
+            chaps = outline_data.get("chapters", [])
+            for c_data in chaps:
+                if c_data.get("chapter_number") == num:
+                    c_data["title"] = chapter.title
+                    c_data["plot_outline"] = chapter.plot_outline
+                    break
+            outline_data["chapters"] = chaps
+            project.outline = json.dumps(outline_data)
+            project.updated_at = datetime.now(timezone.utc)
+            session.add(project)
+        except Exception as e:
+            logger.error(f"Error syncing project outline during single chapter improvement: {e}")
+            
+        session.commit()
+        session.refresh(project)
+        return BookProjectDetailResponse.model_validate(project, from_attributes=True)
 
 
 @router.post("/books/{id}/chapters/{num}/proofread")
