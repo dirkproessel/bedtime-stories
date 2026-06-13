@@ -75,7 +75,24 @@ async def _generate_gemini(prompt, model, temperature, max_tokens, response_mime
             contents=formatted_contents,
             config=config
         )
-        return response.text.strip()
+        if response.text is not None:
+            return response.text.strip()
+
+        # Gather diagnostic info for None response.text
+        finish_reason = "UNKNOWN"
+        safety_info = ""
+        if response.candidates:
+            cand = response.candidates[0]
+            if cand.finish_reason:
+                finish_reason = str(cand.finish_reason)
+            if cand.safety_ratings:
+                blocked = [f"{r.category}: {r.probability}" for r in cand.safety_ratings if getattr(r, "blocked", False) or r.probability in ["MEDIUM", "HIGH"]]
+                if blocked:
+                    safety_info = f" | Blocked: {', '.join(blocked)}"
+        
+        err_msg = f"Gemini API returned empty/None text (Finish Reason: {finish_reason}{safety_info})"
+        logger.error(f"{err_msg}. Full candidates structure: {response.candidates}")
+        raise ValueError(err_msg)
     except Exception as e:
         logger.error(f"Gemini generation failed: {e}")
         raise e
