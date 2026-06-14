@@ -24,7 +24,11 @@ import {
     cancelProBookGeneration,
     suggestProStyleRefinement,
     suggestProCoverPrompt,
-    suggestProEpubMetadata
+    suggestProEpubMetadata,
+    importProOutline,
+    expandProChapterOutline,
+    expandProOutline,
+    generateAllProChapters
 } from '../lib/api';
 import { 
     ArrowLeft, 
@@ -81,6 +85,17 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
     const [activeStep, setActiveStep] = useState<StepType>('concept');
     const [isSaving, setIsSaving] = useState(false);
     const [isAiLoading, setIsAiLoading] = useState(false);
+
+    // Import Outline State
+    const [showImportModal, setShowImportModal] = useState(false);
+    const [importText, setImportText] = useState('');
+    const [importModel, setImportModel] = useState('gemini-3.1-flash-lite');
+
+    // Custom Generation Modes State
+    const [showGenerateModal, setShowGenerateModal] = useState(false);
+    const [generateMode, setGenerateMode] = useState<'missing' | 'all' | 'custom'>('missing');
+    const [customChaptersInput, setCustomChaptersInput] = useState('');
+
 
     // Step 1 State: Concept & Characters
     const [charBible, setCharBible] = useState(activeProject.characters_bible || '');
@@ -243,6 +258,81 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
             setIsSaving(false);
         }
     };
+
+    const handleImportOutline = async () => {
+        if (!importText.trim()) {
+            toast.error('Bitte füge zuerst einen Text zum Importieren ein.');
+            return;
+        }
+        setIsAiLoading(true);
+        try {
+            toast.loading('Analysiere und strukturiere Text...', { id: 'ai' });
+            await importProOutline(activeProject.id, importText, importModel);
+            toast.success('Gliederung erfolgreich importiert!', { id: 'ai' });
+            setImportText('');
+            setShowImportModal(false);
+            await loadProProjectDetail(activeProject.id);
+        } catch (e: any) {
+            toast.error('Fehler: ' + e.message, { id: 'ai' });
+        } finally {
+            setIsAiLoading(false);
+        }
+    };
+
+    const handleExpandAllOutlines = async () => {
+        setIsAiLoading(true);
+        try {
+            toast.loading('Arbeite alle Kapitelentwürfe detailliert aus... Dies kann ca. 10–20 Sekunden dauern.', { id: 'ai' });
+            await expandProOutline(activeProject.id, outlineModel);
+            toast.success('Alle Kapitelentwürfe erfolgreich ausgearbeitet!', { id: 'ai' });
+            await loadProProjectDetail(activeProject.id);
+        } catch (e: any) {
+            toast.error('Fehler: ' + e.message, { id: 'ai' });
+        } finally {
+            setIsAiLoading(false);
+        }
+    };
+
+    const handleExpandChapterOutline = async (num: number) => {
+        setIsAiLoading(true);
+        try {
+            toast.loading(`Arbeite Kapitelentwurf ${num} detailliert aus...`, { id: 'ai' });
+            await expandProChapterOutline(activeProject.id, num, outlineModel);
+            toast.success(`Kapitelentwurf ${num} erfolgreich ausgearbeitet!`, { id: 'ai' });
+            await loadProProjectDetail(activeProject.id);
+        } catch (e: any) {
+            toast.error('Fehler: ' + e.message, { id: 'ai' });
+        } finally {
+            setIsAiLoading(false);
+        }
+    };
+
+    const handleGenerateAllChapters = async () => {
+        if (generateMode === 'custom' && !customChaptersInput.trim()) {
+            toast.error('Bitte gib die gewünschten Kapitel an (z. B. 4-8 oder 9;11).');
+            return;
+        }
+        setShowGenerateModal(false);
+        setIsAiLoading(true);
+        try {
+            toast.loading('Starte automatische Generierung...', { id: 'ai' });
+            await generateAllProChapters(
+                activeProject.id, 
+                writingModel, 
+                targetWords, 
+                generateMode, 
+                generateMode === 'custom' ? customChaptersInput : undefined
+            );
+            toast.success('Generierung gestartet! Das Buch wird im Hintergrund geschrieben.', { id: 'ai' });
+            await loadProProjectDetail(activeProject.id);
+        } catch (e: any) {
+            toast.error('Fehler: ' + e.message, { id: 'ai' });
+        } finally {
+            setIsAiLoading(false);
+        }
+    };
+
+
 
 
     // --- Step 1 Actions ---
@@ -934,6 +1024,25 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                                     <Sparkles className="w-3.5 h-3.5" />
                                     {editableChapters.length === 0 ? 'Gliederung generieren' : 'Komplett neu generieren'}
                                 </button>
+                                <button 
+                                    onClick={() => setShowImportModal(true)}
+                                    disabled={isAiLoading}
+                                    className="bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 py-1.5 px-4 text-xs flex items-center gap-1.5 rounded-xl transition-all shrink-0"
+                                    type="button"
+                                >
+                                    <Clipboard className="w-3.5 h-3.5" />
+                                    Importieren
+                                </button>
+                                <button 
+                                    onClick={handleExpandAllOutlines}
+                                    disabled={isAiLoading || editableChapters.length === 0}
+                                    className="bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 py-1.5 px-4 text-xs flex items-center gap-1.5 rounded-xl transition-all shrink-0"
+                                    type="button"
+                                    title="Arbeitet alle Kapitelentwürfe gleichzeitig detailliert aus"
+                                >
+                                    <Sparkles className="w-3.5 h-3.5" />
+                                    Alle Entwürfe ausarbeiten
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -1037,6 +1146,16 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                                             <Sparkles className="w-3 h-3" />
                                             KI-Verbessern
                                         </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleExpandChapterOutline(chap.chapter_number)}
+                                            disabled={isAiLoading}
+                                            className="bg-slate-800 hover:bg-slate-700 text-primary text-[10px] px-3.5 py-1.5 rounded-lg transition-colors border border-slate-700/50 shrink-0 font-medium flex items-center gap-1"
+                                            title="Erweitert diese Kurz-Gliederung auf 3-4 Absätze für ein besseres Schreibergebnis"
+                                        >
+                                            <Sparkles className="w-3 h-3" />
+                                            Detailliert ausarbeiten
+                                        </button>
                                     </div>
                                 </div>
                             ))}
@@ -1062,7 +1181,21 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                     {/* Chapter selection sidebar */}
                     <div className="lg:col-span-1 space-y-4">
                         <div className="bg-surface p-4 rounded-3xl border border-slate-800 space-y-3">
-                            <h3 className="font-semibold text-white text-xs">Kapitelliste</h3>
+                            <div className="flex justify-between items-center pb-1 border-b border-slate-800/60">
+                                <h3 className="font-semibold text-white text-xs">Kapitelliste</h3>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowGenerateModal(true)}
+                                    disabled={isAiLoading || activeProject.status === 'generating'}
+                                    className="bg-slate-800 hover:bg-slate-700 text-primary hover:text-white border border-slate-700/50 py-1 px-2 rounded-lg transition-all text-[10px] font-semibold flex items-center gap-1"
+                                    title="Schreibt alle noch offenen Kapitel automatisch hintereinander weg im Hintergrund"
+                                >
+                                    <Sparkles className="w-3 h-3" />
+                                    Alle generieren
+                                </button>
+
+                            </div>
+
                             <div className="space-y-1 max-h-[45vh] overflow-y-auto custom-scrollbar">
                                 {activeProject.chapters.map((c) => (
                                     <button
@@ -1836,6 +1969,188 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                         </div>
                     </div>
                     )}
+                </div>
+            )}
+
+            {/* Import Outline Modal */}
+            {showImportModal && (
+                <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-[1000] flex items-center justify-center p-4 animate-in fade-in duration-200">
+                    <div className="bg-surface border border-slate-800 w-full max-w-2xl rounded-3xl p-6 shadow-2xl relative space-y-4 animate-in zoom-in duration-200">
+                        <div className="flex justify-between items-center border-b border-slate-800/80 pb-3">
+                            <div>
+                                <h3 className="text-lg font-bold text-white">Gliederung importieren</h3>
+                                <p className="text-xs text-text-muted mt-1">Kopiere deine Gliederung (z. B. aus ChatGPT oder Gemini) hier hinein. Die KI teilt den Text automatisch auf die Kapitel auf.</p>
+                            </div>
+                            <button
+                                onClick={() => setShowImportModal(false)}
+                                className="text-slate-500 hover:text-white p-1 hover:bg-slate-800 rounded-lg transition-colors"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-3 justify-between">
+                                <label className="text-xs text-slate-400">Analysierendes KI-Modell:</label>
+                                <select 
+                                    value={importModel} 
+                                    onChange={(e) => setImportModel(e.target.value)}
+                                    className="bg-background border border-slate-800 text-xs text-slate-300 rounded-lg px-2.5 py-1.5 focus:outline-none"
+                                >
+                                    {TEXT_MODELS.map(m => (
+                                        <option key={m.value} value={m.value}>{m.label}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <textarea
+                                value={importText}
+                                onChange={(e) => setImportText(e.target.value)}
+                                rows={12}
+                                className="w-full bg-background border border-slate-800 rounded-2xl px-4 py-3 text-xs text-white focus:outline-none focus:border-primary font-mono leading-relaxed"
+                                placeholder={`Beispiel-Text:\n\nBuchtitel: Die Legende des magischen Waldes\n\nKapitel 1: Das geheimnisvolle Portal\nLara findet ein altes Portal im Keller ihrer Großmutter. Als sie es öffnet, strömt ein bläuliches Licht heraus...\n\nKapitel 2: Erste Schritte im Wald\nLara geht durch das Portal und trifft ein sprechendes Eichhörnchen...`}
+                            />
+
+                            <div className="flex justify-end gap-2 pt-2">
+                                <button
+                                    onClick={() => setShowImportModal(false)}
+                                    className="px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-slate-800 text-slate-400"
+                                >
+                                    Abbrechen
+                                </button>
+                                <button
+                                    onClick={handleImportOutline}
+                                    disabled={isAiLoading || !importText.trim()}
+                                    className="btn-primary py-2.5 px-6 rounded-xl text-sm flex items-center gap-2"
+                                >
+                                    {isAiLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                                    Text analysieren & importieren
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Batch Generation Options Modal */}
+            {showGenerateModal && (
+                <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-[1000] flex items-center justify-center p-4 animate-in fade-in duration-200">
+                    <div className="bg-surface border border-slate-800 w-full max-w-md rounded-3xl p-6 shadow-2xl relative space-y-5 animate-in zoom-in duration-200">
+                        <div className="flex justify-between items-center border-b border-slate-800/80 pb-3">
+                            <div>
+                                <h3 className="text-lg font-bold text-white">Kapitel generieren</h3>
+                                <p className="text-xs text-text-muted mt-1">Wähle aus, welche Kapitel geschrieben werden sollen.</p>
+                            </div>
+                            <button
+                                onClick={() => setShowGenerateModal(false)}
+                                className="text-slate-500 hover:text-white p-1 hover:bg-slate-800 rounded-lg transition-colors"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <div className="space-y-4">
+                            {/* Mode Options */}
+                            <div className="space-y-2.5">
+                                <label 
+                                    onClick={() => setGenerateMode('missing')}
+                                    className={`flex items-start gap-3 p-3.5 rounded-2xl border cursor-pointer transition-all ${
+                                        generateMode === 'missing' 
+                                        ? 'bg-primary/5 border-primary text-white' 
+                                        : 'bg-background/40 border-slate-800 hover:border-slate-700 text-slate-300'
+                                    }`}
+                                >
+                                    <input 
+                                        type="radio" 
+                                        name="genMode" 
+                                        checked={generateMode === 'missing'} 
+                                        onChange={() => setGenerateMode('missing')} 
+                                        className="mt-0.5 accent-primary"
+                                    />
+                                    <div className="space-y-0.5">
+                                        <div className="text-xs font-semibold">Nur ungeschriebene Kapitel schreiben</div>
+                                        <div className="text-[10px] text-slate-500">Ergänzt oder setzt das Buch bei noch leeren Kapiteln fort. Bereits geschriebener Text bleibt unberührt.</div>
+                                    </div>
+                                </label>
+
+                                <label 
+                                    onClick={() => setGenerateMode('all')}
+                                    className={`flex items-start gap-3 p-3.5 rounded-2xl border cursor-pointer transition-all ${
+                                        generateMode === 'all' 
+                                        ? 'bg-primary/5 border-primary text-white' 
+                                        : 'bg-background/40 border-slate-800 hover:border-slate-700 text-slate-300'
+                                    }`}
+                                >
+                                    <input 
+                                        type="radio" 
+                                        name="genMode" 
+                                        checked={generateMode === 'all'} 
+                                        onChange={() => setGenerateMode('all')} 
+                                        className="mt-0.5 accent-primary"
+                                    />
+                                    <div className="space-y-0.5">
+                                        <div className="text-xs font-semibold">Alle Kapitel neu generieren (Überschreiben)</div>
+                                        <div className="text-[10px] text-slate-500 text-red-400/90">Achtung: Überschreibt den gesamten Text aller Kapitel komplett neu.</div>
+                                    </div>
+                                </label>
+
+                                <label 
+                                    onClick={() => setGenerateMode('custom')}
+                                    className={`flex items-start gap-3 p-3.5 rounded-2xl border cursor-pointer transition-all ${
+                                        generateMode === 'custom' 
+                                        ? 'bg-primary/5 border-primary text-white' 
+                                        : 'bg-background/40 border-slate-800 hover:border-slate-700 text-slate-300'
+                                    }`}
+                                >
+                                    <input 
+                                        type="radio" 
+                                        name="genMode" 
+                                        checked={generateMode === 'custom'} 
+                                        onChange={() => setGenerateMode('custom')} 
+                                        className="mt-0.5 accent-primary"
+                                    />
+                                    <div className="space-y-0.5">
+                                        <div className="text-xs font-semibold">Spezifische Kapitel angeben</div>
+                                        <div className="text-[10px] text-slate-500">Generiert gezielt ausgewählte Kapitelnummern oder Bereiche neu.</div>
+                                    </div>
+                                </label>
+                            </div>
+
+                            {/* Custom Chapters input */}
+                            {generateMode === 'custom' && (
+                                <div className="space-y-1.5 animate-fadeIn">
+                                    <label className="text-[10px] uppercase font-mono text-slate-500 font-semibold">Kapitelnummern oder Bereiche:</label>
+                                    <input 
+                                        type="text" 
+                                        value={customChaptersInput}
+                                        onChange={(e) => setCustomChaptersInput(e.target.value)}
+                                        className="w-full bg-background border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-primary font-mono"
+                                        placeholder="z. B. 4-8 oder 9;11;13;14"
+                                    />
+                                    <div className="text-[9px] text-slate-500 leading-normal">
+                                        Erlaubt sind Zahlen, Bereiche mit Bindestrich (z. B. 4-8) und Trenner wie Komma oder Semikolon.
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="flex justify-end gap-2 pt-2 border-t border-slate-800/80">
+                                <button
+                                    onClick={() => setShowGenerateModal(false)}
+                                    className="px-4 py-2.5 rounded-xl text-xs font-medium hover:bg-slate-800 text-slate-400"
+                                >
+                                    Abbrechen
+                                </button>
+                                <button
+                                    onClick={handleGenerateAllChapters}
+                                    disabled={isAiLoading}
+                                    className="btn-primary py-2.5 px-5 rounded-xl text-xs flex items-center gap-1.5"
+                                >
+                                    <Sparkles className="w-3.5 h-3.5" />
+                                    Generierung starten
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

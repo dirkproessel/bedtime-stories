@@ -23,6 +23,7 @@ from app.models import (
     BookChapter,
     BookProjectCreate,
     BookProjectUpdate,
+    BookOutlineImport,
     BookChapterUpdate,
     BookProjectResponse,
     BookProjectDetailResponse,
@@ -36,7 +37,9 @@ from app.services.book_generator import (
     generate_chapter_summary,
     proofread_chapter,
     proofread_book_globally,
-    suggest_cover_prompt
+    suggest_cover_prompt,
+    parse_imported_outline,
+    expand_chapter_outline
 )
 from app.services.book_export_service import (
     generate_book_epub,
@@ -79,6 +82,47 @@ async def get_admin_user_from_request(
         if not user.is_admin:
             raise HTTPException(status_code=403, detail="Admin-Zugang verweigert.")
         return user
+
+
+
+def parse_chapter_selection(selection_str: str, max_chapters: int) -> List[int]:
+    """
+    Parses a string like '4-8', '9;11;13;14', '1,3,5' or combinations and returns a list of chapter numbers.
+    Supports comma, semicolon, space as separators.
+    """
+    if not selection_str or not selection_str.strip():
+        return []
+        
+    # Standardize separators to commas
+    s = selection_str.replace(";", ",").replace(" ", ",")
+    parts = s.split(",")
+    
+    selected = set()
+    for part in parts:
+        part = part.strip()
+        if not part:
+            continue
+        if "-" in part:
+            try:
+                start_str, end_str = part.split("-")
+                start = int(start_str.strip())
+                end = int(end_str.strip())
+                if start > end:
+                    start, end = end, start
+                for num in range(start, end + 1):
+                    if 1 <= num <= max_chapters:
+                        selected.add(num)
+            except ValueError:
+                continue
+        else:
+            try:
+                num = int(part)
+                if 1 <= num <= max_chapters:
+                    selected.add(num)
+            except ValueError:
+                continue
+                
+    return sorted(list(selected))
 
 
 # Re-use Safety settings for Image Gen from image_generator
@@ -167,6 +211,121 @@ async def bg_generate_chapter(project_id: str, chapter_id: str, model: str, feed
                 db_project.progress = f"Fehler bei Kapitel {chapter_number}: {str(e)}"
                 session.add(db_project)
             session.commit()
+
+
+async def bg_generate_all_chapters(
+    project_id: str, 
+    model: str = "deepseek-v4-pro", 
+    target_words: int = 2000,
+    chapter_numbers: Optional[List[int]] = None
+):
+    """Generates chapters sequentially in the background."""
+    with Session(engine) as session:
+        project = session.get(BookProject, project_id)
+        if not project:
+            return
+        project.status = "generating"
+        project.progress = "Starte automatische Generierung..."
+        project.progress_pct = 10
+        session.add(project)
+        session.commit()
+        
+    try:
+        while True:
+            # 1. Fetch next draft/error chapter
+            with Session(engine) as session:
+                project = session.get(BookProject, project_id)
+                if not project or project.status != "generating":
+                    # Cancelled by user or deleted
+                    logger.info("Background: Generation cancelled or project modified.")
+                    return
+                
+                query = select(BookChapter).where(BookChapter.book_project_id == project_id)
+                if chapter_numbers is not None:
+                    query = query.where(BookChapter.chapter_number.in_(chapter_numbers))
+                    
+                query = query.where(BookChapter.status.in_(["draft", "error"])).order_by(BookChapter.chapter_number)
+                next_chapter = session.exec(query).first()
+                
+                if not next_chapter:
+                    # All target chapters written!
+                    break
+                
+                # Pre-load/verify status
+                num = next_chapter.chapter_number
+                all_chaps = session.exec(
+                    select(BookChapter)
+                    .where(BookChapter.book_project_id == project_id)
+                ).all()
+                total_count = len(all_chaps)
+                
+                project.progress = f"Schreibe Kapitel {num} von {total_count}: {next_chapter.title}..."
+                project.progress_pct = int(10 + (num / max(1, total_count)) * 80)
+                next_chapter.status = "generating"
+                session.add(project)
+                session.add(next_chapter)
+                session.commit()
+                
+                # Fetch completed chapters before this one
+                prev_chapters = session.exec(
+                    select(BookChapter)
+                    .where(BookChapter.book_project_id == project_id)
+                    .where(BookChapter.chapter_number < num)
+                    .order_by(BookChapter.chapter_number)
+                ).all()
+                prev_chapters_list = [BookChapter.model_validate(c) for c in prev_chapters]
+                project_validated = BookProject.model_validate(project)
+                chapter_validated = BookChapter.model_validate(next_chapter)
+                chapter_id = next_chapter.id
+
+            # 2. Write the chapter
+            content = await generate_chapter_content(
+                project=project_validated,
+                chapter=chapter_validated,
+                previous_chapters=prev_chapters_list,
+                model=model,
+                feedback=None,
+                target_words=target_words
+            )
+            
+            # 3. Generate summary
+            summary = await generate_chapter_summary(content)
+            
+            # 4. Save to DB
+            with Session(engine) as session:
+                db_chapter = session.get(BookChapter, chapter_id)
+                db_project = session.get(BookProject, project_id)
+                if not db_project or db_project.status != "generating":
+                    # Interrupted during generation
+                    return
+                
+                db_chapter.content = content
+                db_chapter.running_summary = summary
+                db_chapter.status = "done"
+                session.add(db_chapter)
+                session.commit()
+                logger.info(f"Background: Chapter {num} written sequentially.")
+        
+        # All chapters generated!
+        with Session(engine) as session:
+            db_project = session.get(BookProject, project_id)
+            if db_project and db_project.status == "generating":
+                db_project.status = "draft"
+                db_project.progress = None
+                db_project.progress_pct = 0
+                session.add(db_project)
+                session.commit()
+                
+    except Exception as e:
+        logger.error(f"Background sequential write failed: {e}", exc_info=True)
+        with Session(engine) as session:
+            db_project = session.get(BookProject, project_id)
+            if db_project:
+                db_project.status = "error"
+                db_project.progress = f"Fehler bei automatischer Generierung: {str(e)}"
+                session.add(db_project)
+            session.commit()
+
 
 
 def resize_and_crop_cover(image_bytes: bytes) -> bytes:
@@ -483,6 +642,53 @@ async def api_generate_outline(
         return BookProjectDetailResponse.model_validate(project, from_attributes=True)
 
 
+@router.post("/books/{id}/outline/import", response_model=BookProjectDetailResponse)
+async def api_import_outline(
+    id: str,
+    req: BookOutlineImport,
+    current_user: User = Depends(get_current_active_user)
+):
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin-Zugang verweigert.")
+        
+    with Session(engine) as session:
+        project = session.get(BookProject, id)
+        if not project:
+            raise HTTPException(status_code=404, detail="Buchprojekt nicht gefunden.")
+            
+        try:
+            outline_res = await parse_imported_outline(req.text, req.model)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=str(e))
+            
+        project.title = outline_res.get("title", project.title)
+        project.outline = json.dumps(outline_res)
+        project.status = "draft"
+        project.updated_at = datetime.now(timezone.utc)
+        session.add(project)
+        
+        # Remove any existing chapters
+        existing_chaps = session.exec(select(BookChapter).where(BookChapter.book_project_id == id)).all()
+        for ch in existing_chaps:
+            session.delete(ch)
+            
+        # Create new chapters in draft state
+        for ch_data in outline_res.get("chapters", []):
+            chapter = BookChapter(
+                id=str(uuid.uuid4())[:8],
+                book_project_id=id,
+                chapter_number=ch_data.get("chapter_number"),
+                title=ch_data.get("title", f"Kapitel {ch_data.get('chapter_number')}"),
+                plot_outline=ch_data.get("plot_outline", ""),
+                status="draft"
+            )
+            session.add(chapter)
+            
+        session.commit()
+        session.refresh(project)
+        return BookProjectDetailResponse.model_validate(project, from_attributes=True)
+
+
 @router.put("/books/{id}/outline", response_model=BookProjectDetailResponse)
 async def api_update_outline_manually(
     id: str, 
@@ -575,6 +781,74 @@ async def api_generate_chapter_prose(
     # Trigger background task
     bg_tasks.add_task(bg_generate_chapter, id, chapter.id, model, feedback, target_words)
     return {"status": "started", "message": f"Kapitel {num} Generierung gestartet."}
+
+
+@router.post("/books/{id}/generate-all")
+async def api_generate_all_chapters_prose(
+    id: str,
+    bg_tasks: BackgroundTasks,
+    mode: str = Query("missing", description="Modus: 'all' (alles neu), 'missing' (nur ungeschriebene), 'custom' (spezifische Kapitel)"),
+    custom_chapters: Optional[str] = Query(None, description="Kapitelliste für custom Modus, z.B. '4-8' oder '9;11'"),
+    model: str = "deepseek-v4-pro",
+    target_words: int = Query(2000, description="Zielwortzahl pro Kapitel"),
+    current_user: User = Depends(get_current_active_user)
+):
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin-Zugang verweigert.")
+        
+    with Session(engine) as session:
+        project = session.get(BookProject, id)
+        if not project:
+            raise HTTPException(status_code=404, detail="Projekt nicht gefunden.")
+            
+        if project.status == "generating":
+            raise HTTPException(status_code=400, detail="Das Projekt generiert bereits einen Inhalt.")
+            
+        chapters = session.exec(
+            select(BookChapter)
+            .where(BookChapter.book_project_id == id)
+            .order_by(BookChapter.chapter_number)
+        ).all()
+        total_count = len(chapters)
+        
+        if total_count == 0:
+            raise HTTPException(status_code=400, detail="Keine Kapitel im Projekt vorhanden.")
+            
+        target_nums = []
+        if mode == "all":
+            target_nums = [c.chapter_number for c in chapters]
+            # Reset all chapters to draft
+            for c in chapters:
+                c.status = "draft"
+                c.content = None
+                c.running_summary = None
+                session.add(c)
+        elif mode == "missing":
+            target_nums = [c.chapter_number for c in chapters if c.status != "done"]
+            if not target_nums:
+                raise HTTPException(status_code=400, detail="Alle Kapitel sind bereits generiert.")
+        elif mode == "custom":
+            if not custom_chapters:
+                raise HTTPException(status_code=400, detail="Bitte gib die gewünschten Kapitel an.")
+            target_nums = parse_chapter_selection(custom_chapters, total_count)
+            if not target_nums:
+                raise HTTPException(status_code=400, detail=f"Ungültige Kapitel-Auswahl. Erlaubt sind Werte von 1 bis {total_count}.")
+            # Reset specified chapters to draft
+            for c in chapters:
+                if c.chapter_number in target_nums:
+                    c.status = "draft"
+                    c.content = None
+                    c.running_summary = None
+                    session.add(c)
+        else:
+            raise HTTPException(status_code=400, detail="Ungültiger Modus.")
+            
+        session.commit()
+
+    bg_tasks.add_task(bg_generate_all_chapters, id, model, target_words, target_nums)
+    return {"status": "started", "message": f"Automatische Generierung gestartet für Kapitel: {target_nums}."}
+
+
 
 
 @router.put("/books/{id}/chapters/{num}", response_model=BookChapterResponse)
@@ -672,6 +946,155 @@ async def api_improve_chapter_outline(
         session.commit()
         session.refresh(project)
         return BookProjectDetailResponse.model_validate(project, from_attributes=True)
+
+
+@router.post("/books/{id}/chapters/{num}/outline/expand", response_model=BookProjectDetailResponse)
+async def api_expand_chapter_outline(
+    id: str,
+    num: int,
+    model: str = "gemini-3.1-flash-lite",
+    current_user: User = Depends(get_current_active_user)
+):
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin-Zugang verweigert.")
+        
+    with Session(engine) as session:
+        project = session.get(BookProject, id)
+        chapter = session.exec(
+            select(BookChapter)
+            .where(BookChapter.book_project_id == id)
+            .where(BookChapter.chapter_number == num)
+        ).first()
+        
+        if not (project and chapter):
+            raise HTTPException(status_code=404, detail="Projekt oder Kapitel nicht gefunden.")
+            
+        bible = project.characters_bible or "Keine Angabe"
+        full_outline = project.outline or "{}"
+        
+        # Expand single chapter outline
+        expanded = await expand_chapter_outline(
+            project_prompt=project.prompt,
+            genre=project.genre,
+            style=project.style,
+            characters_bible=bible,
+            full_outline=full_outline,
+            chapter_number=num,
+            current_title=chapter.title,
+            current_plot_outline=chapter.plot_outline,
+            model=model
+        )
+        
+        chapter.title = expanded.get("title", chapter.title)
+        chapter.plot_outline = expanded.get("plot_outline", chapter.plot_outline)
+        chapter.updated_at = datetime.now(timezone.utc)
+        session.add(chapter)
+        
+        # Sync to project.outline
+        try:
+            outline_data = json.loads(project.outline) if project.outline else {"title": project.title}
+            chaps = outline_data.get("chapters", [])
+            for c_data in chaps:
+                if c_data.get("chapter_number") == num:
+                    c_data["title"] = chapter.title
+                    c_data["plot_outline"] = chapter.plot_outline
+                    break
+            outline_data["chapters"] = chaps
+            project.outline = json.dumps(outline_data)
+            project.updated_at = datetime.now(timezone.utc)
+            session.add(project)
+        except Exception as e:
+            logger.error(f"Error syncing project outline: {e}")
+            
+        session.commit()
+        session.refresh(project)
+        return BookProjectDetailResponse.model_validate(project, from_attributes=True)
+
+
+@router.post("/books/{id}/outline/expand", response_model=BookProjectDetailResponse)
+async def api_expand_all_outlines(
+    id: str,
+    model: str = "gemini-3.1-flash-lite",
+    current_user: User = Depends(get_current_active_user)
+):
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin-Zugang verweigert.")
+        
+    with Session(engine) as session:
+        project = session.get(BookProject, id)
+        chapters = session.exec(
+            select(BookChapter)
+            .where(BookChapter.book_project_id == id)
+            .order_by(BookChapter.chapter_number)
+        ).all()
+        
+        if not project:
+            raise HTTPException(status_code=404, detail="Projekt nicht gefunden.")
+            
+        if not chapters:
+            raise HTTPException(status_code=400, detail="Keine Kapitel vorhanden, die erweitert werden können.")
+            
+        bible = project.characters_bible or "Keine Angabe"
+        full_outline = project.outline or "{}"
+        
+        # Build concurrent tasks for each chapter
+        tasks = []
+        for ch in chapters:
+            tasks.append(
+                expand_chapter_outline(
+                    project_prompt=project.prompt,
+                    genre=project.genre,
+                    style=project.style,
+                    characters_bible=bible,
+                    full_outline=full_outline,
+                    chapter_number=ch.chapter_number,
+                    current_title=ch.title,
+                    current_plot_outline=ch.plot_outline,
+                    model=model
+                )
+            )
+            
+        # Execute concurrently
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        # Update database with results
+        outline_chaps = []
+        for ch, res in zip(chapters, results):
+            if isinstance(res, Exception):
+                logger.error(f"Failed to expand chapter {ch.chapter_number}: {res}")
+                # Keep original on failure
+                outline_chaps.append({
+                    "chapter_number": ch.chapter_number,
+                    "title": ch.title,
+                    "plot_outline": ch.plot_outline
+                })
+                continue
+                
+            ch.title = res.get("title", ch.title)
+            ch.plot_outline = res.get("plot_outline", ch.plot_outline)
+            ch.updated_at = datetime.now(timezone.utc)
+            session.add(ch)
+            
+            outline_chaps.append({
+                "chapter_number": ch.chapter_number,
+                "title": ch.title,
+                "plot_outline": ch.plot_outline
+            })
+            
+        # Update project outline JSON
+        try:
+            outline_data = json.loads(project.outline) if project.outline else {"title": project.title}
+            outline_data["chapters"] = outline_chaps
+            project.outline = json.dumps(outline_data)
+            project.updated_at = datetime.now(timezone.utc)
+            session.add(project)
+        except Exception as e:
+            logger.error(f"Error syncing project outline during bulk expand: {e}")
+            
+        session.commit()
+        session.refresh(project)
+        return BookProjectDetailResponse.model_validate(project, from_attributes=True)
+
 
 
 @router.post("/books/{id}/chapters/{num}/proofread")

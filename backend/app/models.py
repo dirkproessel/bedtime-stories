@@ -337,6 +337,11 @@ class BookProjectUpdate(BaseModel):
     epub_imprint: Optional[str] = None
 
 
+class BookOutlineImport(BaseModel):
+    text: str
+    model: Optional[str] = "gemini-3.1-flash-lite"
+
+
 class BookChapterUpdate(BaseModel):
     title: Optional[str] = None
     plot_outline: Optional[str] = None

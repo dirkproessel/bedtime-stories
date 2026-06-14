@@ -576,3 +576,123 @@ async def improve_chapter_outline(
             "plot_outline": current_plot_outline
         }
 
+
+async def parse_imported_outline(
+    import_text: str,
+    model: str = "gemini-3.1-flash-lite"
+) -> Dict[str, Any]:
+    """Parse unstructured user-provided text into a structured book outline JSON."""
+    system_instruction = (
+        "Du bist ein präziser Daten-Parser und Literatur-Strukturierer. "
+        "Deine Aufgabe ist es, einen vom Benutzer bereitgestellten Entwurf, Kapitel-Plots oder "
+        "Ideen-Texte zu analysieren und strukturiert im JSON-Format auszugeben. "
+        "Falls der Text keinen klaren Buchtitel enthält, erfinde einen passenden, kreativen Titel basierend auf dem Thema. "
+        "Identifiziere alle Kapitel, ihre Nummern, Titel und deren Inhaltsbeschreibungen (Plot-Outlines) aus dem Text. "
+        "Falls ein Kapitel im Text keinen klaren Titel hat, benenne es passend. "
+        "Gib das Ergebnis ausschließlich im JSON-Format zurück."
+    )
+    
+    prompt = f"""
+    Hier ist der zu analysierende und zu strukturierende Text:
+    \"\"\"
+    {import_text}
+    \"\"\"
+    
+    Strukturiere diesen Text in das vorgegebene Schema. Jedes gefundene Kapitel muss 'chapter_number', 'title' und 'plot_outline' haben.
+    Falls Beschreibungen zu kurz oder unvollständig sind, übernehme sie so gut wie möglich aus dem Text.
+    
+    Gib ein JSON-Objekt mit folgenden Feldern zurück:
+    - title (Der gefundene oder passende Buchtitel)
+    - chapters (Liste von Kapiteln, jedes mit 'chapter_number', 'title', 'plot_outline')
+    """
+    
+    try:
+        from app.services.text_generator import generate_text
+        response = await generate_text(
+            prompt=prompt,
+            model=model,
+            temperature=0.2,
+            response_mime_type="application/json",
+            system_instruction=system_instruction,
+            response_schema=BookOutlineSchema
+        )
+        cleaned = clean_json_string(response)
+        return json.loads(cleaned)
+    except Exception as e:
+        logger.error(f"Error in parse_imported_outline: {e}")
+        raise ValueError(f"Fehler beim Strukturieren des Imports: {str(e)}")
+
+
+async def expand_chapter_outline(
+    project_prompt: str,
+    genre: str,
+    style: str,
+    characters_bible: str,
+    full_outline: str,
+    chapter_number: int,
+    current_title: str,
+    current_plot_outline: str,
+    model: str = "gemini-3.1-flash-lite"
+) -> Dict[str, Any]:
+    """Expands a single chapter outline into a detailed 3-4 paragraph blueprint."""
+    style_resolved = get_author_names_improved(style)
+    system_instruction = (
+        "Du bist ein Bestseller-Autor. Deine Aufgabe ist es, eine kurze Kapitelgliederung (Outline) "
+        "zu einem hochdetaillierten, schlüssigen und konsistenten Kapitel-Entwurf (Blueprint) auszuarbeiten. "
+        "Dieser Entwurf soll ca. 3 bis 4 Absätze umfassen, die den exakten Handlungsablauf, Schlüsselszenen, "
+        "Interaktionen und Emotionen beschreiben, damit das Kapitel danach perfekt geschrieben werden kann. "
+        "Antworte ausschließlich im JSON-Format."
+    )
+    
+    prompt_content = f"""
+    Hier sind die Rahmendaten des Buches:
+    - Buchidee/Plot: {project_prompt}
+    - Genre: {genre}
+    - Autorenstil: {style_resolved}
+    - Charaktere: {characters_bible}
+    
+    Gesamt-Gliederung des Buches:
+    {full_outline}
+    
+    Wir arbeiten gerade Kapitel {chapter_number} aus:
+    - Aktueller Titel: {current_title}
+    - Aktuelle Kurz-Gliederung: {current_plot_outline}
+    
+    Bitte verfeinere und vergrößere diese Kurz-Gliederung zu einem detaillierten Kapitel-Blueprint.
+    Der Blueprint muss:
+    - Etwa 3 bis 4 Absätze lang sein.
+    - Die genaue Szenenfolge, wichtige Gesprächsthemen, Gefühle der Charaktere und den roten Faden des Kapitels beschreiben.
+    - Vollkommen konsistent mit den vorherigen und nachfolgenden Kapiteln sein.
+    - Keine Platzhalter enthalten.
+    
+    Gib ein JSON-Objekt mit exakt diesen Feldern zurück:
+    - title (Der Kapitel-Titel)
+    - plot_outline (Der detaillierte Blueprint, 3-4 Absätze lang)
+    
+    Format:
+    {{
+      "title": "...",
+      "plot_outline": "..."
+    }}
+    """
+    
+    try:
+        response = await generate_text(
+            prompt=prompt_content,
+            model=model,
+            temperature=0.75,
+            response_mime_type="application/json",
+            system_instruction=system_instruction,
+            response_schema=ImprovedChapterOutlineSchema
+        )
+        cleaned = clean_json_string(response)
+        return json.loads(cleaned)
+    except Exception as e:
+        logger.error(f"Error in expand_chapter_outline for chapter {chapter_number}: {e}")
+        return {
+            "title": current_title,
+            "plot_outline": current_plot_outline
+        }
+
+
+

@@ -1049,3 +1049,74 @@ export async function suggestProEpubMetadata(id: string, model?: string): Promis
     if (!res.ok) throw new Error('Fehler beim Generieren der EPUB-Metadaten');
     return res.json();
 }
+
+
+export async function importProOutline(id: string, text: string, model?: string): Promise<BookProjectDetail> {
+    let url = `${API_BASE}/api/pro/books/${id}/outline/import`;
+    const res = await fetch(url, {
+        method: 'POST',
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, model })
+    });
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.detail || 'Fehler beim Importieren der Gliederung');
+    }
+    return res.json();
+}
+
+export async function expandProChapterOutline(id: string, num: number, model?: string): Promise<BookProjectDetail> {
+    let url = `${API_BASE}/api/pro/books/${id}/chapters/${num}/outline/expand`;
+    if (model) url += `?model=${encodeURIComponent(model)}`;
+    const res = await fetch(url, {
+        method: 'POST',
+        headers: getAuthHeaders()
+    });
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.detail || 'Fehler beim Erweitern des Kapitels');
+    }
+    return res.json();
+}
+
+export async function expandProOutline(id: string, model?: string): Promise<BookProjectDetail> {
+    let url = `${API_BASE}/api/pro/books/${id}/outline/expand`;
+    if (model) url += `?model=${encodeURIComponent(model)}`;
+    const res = await fetch(url, {
+        method: 'POST',
+        headers: getAuthHeaders()
+    });
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.detail || 'Fehler beim Erweitern aller Kapitel');
+    }
+    return res.json();
+}
+
+export async function generateAllProChapters(
+    id: string, 
+    model?: string, 
+    targetWords?: number,
+    mode?: string,
+    customChapters?: string
+): Promise<any> {
+    let url = `${API_BASE}/api/pro/books/${id}/generate-all`;
+    const params = [];
+    if (model) params.push(`model=${encodeURIComponent(model)}`);
+    if (targetWords) params.push(`target_words=${targetWords}`);
+    if (mode) params.push(`mode=${encodeURIComponent(mode)}`);
+    if (customChapters) params.push(`custom_chapters=${encodeURIComponent(customChapters)}`);
+    if (params.length > 0) url += `?${params.join('&')}`;
+    
+    const res = await fetch(url, {
+        method: 'POST',
+        headers: getAuthHeaders()
+    });
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.detail || 'Fehler beim Starten der Gesamt-Generierung');
+    }
+    return res.json();
+}
+
+
