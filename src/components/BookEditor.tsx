@@ -39,7 +39,9 @@ import {
     CheckCircle,
     Maximize2,
     Plus,
-    Trash2
+    Trash2,
+    Edit2,
+    X
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -67,6 +69,14 @@ const IMAGE_MODELS = [
 export default function BookEditor({ project, onBack }: BookEditorProps) {
     const { loadProProjectDetail, currentProProject } = useStore();
     const activeProject = currentProProject || project;
+
+    const [isEditingTitle, setIsEditingTitle] = useState(false);
+    const [editedTitle, setEditedTitle] = useState(activeProject.title);
+
+    // Sync editedTitle when project title changes from database
+    useEffect(() => {
+        setEditedTitle(activeProject.title);
+    }, [activeProject.title]);
 
     const [activeStep, setActiveStep] = useState<StepType>('concept');
     const [isSaving, setIsSaving] = useState(false);
@@ -215,6 +225,24 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
 
         return () => clearInterval(timer);
     }, [activeProject.status, activeProject.id, activeProject.progress, loadProProjectDetail]);
+
+    const handleSaveTitle = async () => {
+        if (!editedTitle.trim()) {
+            toast.error('Titel darf nicht leer sein.');
+            return;
+        }
+        setIsSaving(true);
+        try {
+            await updateProBook(activeProject.id, { title: editedTitle });
+            await loadProProjectDetail(activeProject.id);
+            toast.success('Buchtitel aktualisiert!');
+            setIsEditingTitle(false);
+        } catch (e: any) {
+            toast.error('Fehler beim Aktualisieren des Titels: ' + e.message);
+        } finally {
+            setIsSaving(false);
+        }
+    };
 
 
     // --- Step 1 Actions ---
@@ -610,7 +638,53 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                                 </span>
                             )}
                         </div>
-                        <h2 className="text-xl font-bold text-white mt-1.5">{activeProject.title}</h2>
+                        {isEditingTitle ? (
+                            <div className="flex items-center gap-2 mt-1.5">
+                                <input
+                                    type="text"
+                                    value={editedTitle}
+                                    onChange={(e) => setEditedTitle(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') handleSaveTitle();
+                                        if (e.key === 'Escape') {
+                                            setEditedTitle(activeProject.title);
+                                            setIsEditingTitle(false);
+                                        }
+                                    }}
+                                    className="bg-background border border-slate-700 rounded-xl px-3 py-1 text-sm text-white focus:outline-none focus:border-primary w-full max-w-sm"
+                                    autoFocus
+                                />
+                                <button
+                                    onClick={handleSaveTitle}
+                                    disabled={isSaving}
+                                    className="p-1.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-lg transition-colors shrink-0"
+                                    title="Speichern"
+                                >
+                                    {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setEditedTitle(activeProject.title);
+                                        setIsEditingTitle(false);
+                                    }}
+                                    className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-400 rounded-lg transition-colors shrink-0"
+                                    title="Abbrechen"
+                                >
+                                    <X className="w-3.5 h-3.5" />
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-2 mt-1.5 group">
+                                <h2 className="text-xl font-bold text-white">{activeProject.title}</h2>
+                                <button
+                                    onClick={() => setIsEditingTitle(true)}
+                                    className="p-1 bg-slate-800/40 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg transition-colors border border-slate-700/20 opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                    title="Titel bearbeiten"
+                                >
+                                    <Edit2 className="w-3 h-3" />
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -839,7 +913,7 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                                     onChange={(e) => setNumChapters(parseInt(e.target.value))}
                                     className="bg-background border border-slate-800 text-xs text-slate-300 rounded-lg px-2 py-1 focus:outline-none"
                                 >
-                                    {Array.from(new Set([3, 4, 5, 6, 7, 8, 9, 10, 12, numChapters])).sort((a, b) => a - b).map(n => (
+                                    {Array.from(new Set([3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, numChapters])).sort((a, b) => a - b).map(n => (
                                         <option key={n} value={n}>{n} Kapitel</option>
                                     ))}
                                 </select>
