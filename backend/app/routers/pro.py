@@ -169,6 +169,42 @@ async def bg_generate_chapter(project_id: str, chapter_id: str, model: str, feed
             session.commit()
 
 
+def resize_and_crop_cover(image_bytes: bytes) -> bytes:
+    """
+    Crops the image from the center to a standard 5:8 book cover aspect ratio (0.625)
+    and ensures the minimum height is 1000px and width is 625px.
+    """
+    from PIL import Image
+    import io
+    
+    img = Image.open(io.BytesIO(image_bytes))
+    img = img.convert("RGB")
+    w, h = img.size
+    
+    target_ratio = 0.625
+    current_ratio = w / h
+    
+    if current_ratio > target_ratio:
+        # Image is too wide, crop horizontally
+        new_w = int(h * target_ratio)
+        offset = (w - new_w) // 2
+        img = img.crop((offset, 0, offset + new_w, h))
+    else:
+        # Image is too tall, crop vertically
+        new_h = int(w / target_ratio)
+        offset = (h - new_h) // 2
+        img = img.crop((0, offset, w, offset + new_h))
+        
+    new_w, new_h = img.size
+    if new_w < 625 or new_h < 1000:
+        # Scale up to exactly 625x1000
+        img = img.resize((625, 1000), Image.Resampling.LANCZOS)
+        
+    out_buf = io.BytesIO()
+    img.save(out_buf, format='JPEG', quality=95)
+    return out_buf.getvalue()
+
+
 async def bg_generate_cover(project_id: str, cover_prompt: str, model: Optional[str] = None):
     """Generates the book cover image in the background using Fal.ai or Imagen."""
     with Session(engine) as session:
@@ -210,13 +246,15 @@ async def bg_generate_cover(project_id: str, cover_prompt: str, model: Optional[
                 async with httpx.AsyncClient() as client:
                     resp = await client.get(image_url)
                     if resp.status_code == 200:
-                        output_path.write_bytes(resp.content)
+                        processed_bytes = resize_and_crop_cover(resp.content)
+                        output_path.write_bytes(processed_bytes)
                         image_path = output_path
         
         # Fallback to Imagen (GenAI client)
         if not image_path and settings.GEMINI_API_KEY:
             client = genai.Client(api_key=settings.GEMINI_API_KEY)
-            image_cfg = types.ImageConfig(aspect_ratio="3:4") if "pro" in model_id.lower() else types.ImageConfig(image_size="512")
+            # In Pro Mode, do not limit image size to 512px. Always use aspect_ratio="3:4" to get high-resolution portrait.
+            image_cfg = types.ImageConfig(aspect_ratio="3:4")
             
             response = await asyncio.to_thread(
                 client.models.generate_content,
@@ -239,7 +277,8 @@ async def bg_generate_cover(project_id: str, cover_prompt: str, model: Optional[
                                 break
                                 
             if image_bytes:
-                output_path.write_bytes(image_bytes)
+                processed_bytes = resize_and_crop_cover(image_bytes)
+                output_path.write_bytes(processed_bytes)
                 image_path = output_path
 
         if image_path:

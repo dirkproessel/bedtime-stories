@@ -59,7 +59,7 @@ const TEXT_MODELS = [
 ];
 
 const IMAGE_MODELS = [
-    { value: 'gemini-3.1-flash-image-preview', label: 'Gemini 3.1 Flash (512px - Günstig)' },
+    { value: 'gemini-3.1-flash-image-preview', label: 'Gemini 3.1 Flash (Günstig)' },
     { value: 'gemini-3-pro-image-preview', label: 'Gemini 3.0 Pro (Premium Qualität)' },
     { value: 'fal-ai/flux/schnell', label: 'Flux/schnell (fal.ai)' }
 ];
