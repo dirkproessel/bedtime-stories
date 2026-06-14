@@ -170,16 +170,17 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
     }, [activeProject.id, activeProject.characters_bible, activeProject.style_bible, activeProject.cover_prompt,
         activeProject.epub_author, activeProject.epub_dedication, activeProject.epub_afterword, activeProject.epub_imprint]);
 
+    const dbChapter = activeProject.chapters.find(c => c.chapter_number === selectedChapterNum);
+
     // Sync selected chapter content when selected chapter changes
     useEffect(() => {
-        const chap = activeProject.chapters.find(c => c.chapter_number === selectedChapterNum);
-        if (chap) {
-            setChapterText(chap.content || '');
-            setChapterTitle(chap.title || '');
-            setChapterOutline(chap.plot_outline || '');
+        if (dbChapter) {
+            setChapterText(dbChapter.content || '');
+            setChapterTitle(dbChapter.title || '');
+            setChapterOutline(dbChapter.plot_outline || '');
             
             // Calculate a default suggestion for target words based on outline length
-            const outlineLen = (chap.plot_outline || '').trim().length;
+            const outlineLen = (dbChapter.plot_outline || '').trim().length;
             let suggestion = 2000;
             if (outlineLen > 0) {
                 if (outlineLen < 150) {
@@ -198,7 +199,7 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
             setTargetWords(2000);
         }
         setFindings([]); // Clear proofread findings when switching chapters
-    }, [selectedChapterNum, activeProject]);
+    }, [selectedChapterNum, dbChapter?.id, dbChapter?.status]);
 
     // Handle project status polling during background tasks
     useEffect(() => {
@@ -1201,8 +1202,20 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
 
                                 {/* Editor reference block */}
                                 {chapterText && (
-                                    <div className="bg-background p-3 rounded-2xl border border-slate-800">
-                                        <h4 className="text-xs font-semibold text-slate-400 mb-1.5">Geladener Kapiteltext (Vorschau):</h4>
+                                    <div className="bg-background p-3 rounded-2xl border border-slate-800 space-y-2">
+                                        <div className="flex justify-between items-center">
+                                            <h4 className="text-xs font-semibold text-slate-400">Geladener Kapiteltext (Vorschau):</h4>
+                                            {chapterText !== (dbChapter?.content || '') && (
+                                                <button
+                                                    onClick={handleSaveChapterContent}
+                                                    disabled={isSaving}
+                                                    className="bg-slate-800 hover:bg-slate-700 text-white border border-slate-705 py-1.5 px-3 rounded-xl flex items-center gap-1.5 transition-all text-[10px] font-medium"
+                                                >
+                                                    {isSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+                                                    Änderungen speichern
+                                                </button>
+                                            )}
+                                        </div>
                                         <div className="text-[11px] text-slate-300 font-serif line-clamp-3 leading-relaxed">
                                             {chapterText}
                                         </div>
