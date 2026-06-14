@@ -492,6 +492,7 @@ Vermeide jegliche Floskeln, pädagogische Zeigefinger oder moralische Zusammenfa
 3. Show, don't tell: Erkläre nicht, wie sich Charaktere fühlen – zeige es durch ihre Handlungen und Reaktionen.
 4. Pacing & Detail: Hetze nicht durch die Handlung. Entwickle Szenen durch konkrete Details, aber halte die Syntax (Satzbau) einfach.
 5. UMFANG: ZIELGRÖßE: ca. {word_count} Wörter. Nutze eine präzise Wortwahl statt vieler Adjektive. Die neue sprachliche Freiheit darf NICHT zu unnötiger Länge führen. Vermeide Abschweifungen.
+6. KEIN MARKDOWN: Benutze unter keinen Umständen Markdown-Sternchen (*) oder Unterstriche (_), um Gedanken, Betonungen oder wörtliche Rede hervorzuheben. Nutze für wörtliche Rede stattdessen klassische deutsche Anführungszeichen (z. B. „...“ oder »...«).
 
 Rahmenbedingungen:
 Schreibe eine Geschichte im Genre {genre_data['name']}. Der Kern der Handlung (Nutzer-Wunsch) ist: {user_hook}{char_text}. Folge dem Narrativ: {genre_data['ziel']} unter Verwendung von {genre_data['tropen']}.
@@ -552,6 +553,7 @@ Antworte EXKLUSIV im validen JSON-Format. WICHTIG: Entwerte (escape) alle Anfüh
         story_content = data.get("full_text", "")
         if isinstance(story_content, dict):
             story_content = story_content.get("full_text", str(story_content))
+        story_content = story_content.replace("*", "")
             
         return {
             "title": data.get("title", "Eine neue Geschichte"),
@@ -564,13 +566,14 @@ Antworte EXKLUSIV im validen JSON-Format. WICHTIG: Entwerte (escape) alle Anfüh
         return {
             "title": "Anomalie im Labor", 
             "synopsis": "Die Geschichte konnte nicht korrekt formatiert werden.", 
-            "chapters": [{"title": "Text", "text": text}]
+            "chapters": [{"title": "Text", "text": text.replace("*", "")}]
         }
     
     # Handle success case (where json.loads succeeded)
     story_content = data.get("full_text", "")
     if isinstance(story_content, dict):
         story_content = story_content.get("full_text", str(story_content))
+    story_content = story_content.replace("*", "")
         
     return {
         "title": data.get("title", "Eine neue Geschichte"),
@@ -814,6 +817,7 @@ Vermeide jegliche Floskeln, pädagogische Zeigefinger oder moralische Zusammenfa
 5. VERMEIDE ÜBEREILTE ENDEN: Hetze nicht zum Schluss. Vermeide Floskeln wie "Und so lernten sie..." oder "Am Ende war alles...". Bleib im Moment der Szene.
 6. Format: Keinerlei Überschriften, Kapitelnummern oder Titel im generierten Text! Nur der reine, fließende Erzähltext.
 7. FORTSCHRITT STATT WIEDERHOLUNG: Wiederhole niemals Phrasen, Metaphern oder innere Monologe aus den vorherigen Kapiteln. Fasse das Bisherige nicht zusammen. Die Handlung MUSS aktiv voranschreiten. Bringe ununterbrochen neue, frische Details ein.
+8. KEIN MARKDOWN: Benutze unter keinen Umständen Markdown-Sternchen (*) oder Unterstriche (_), um Gedanken, Betonungen oder wörtliche Rede hervorzuheben. Nutze für wörtliche Rede stattdessen klassische deutsche Anführungszeichen (z. B. „...“ oder »...«).
 {multi_voice_regel}
 {emotion_regel}
 {f"SPEZIELLE REMIX-ANWEISUNG: {further_instructions}" if further_instructions else ""}
@@ -846,7 +850,7 @@ Vorgaben für DIESES Kapitel:
             frequency_penalty=0.3
         )
         rate_limiter.increment_daily_quota()
-        segment_text = response_text.strip()
+        segment_text = response_text.strip().replace("*", "")
         
         full_chapters.append({
             "title": "",

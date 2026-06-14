@@ -252,6 +252,8 @@ async def generate_chapter_content(
         f"Du schreibst im Genre: {project.genre}.\n"
         "Schreibe ausschließlich die Romanprosa für das angeforderte Kapitel. Schreib flüssig, "
         "atmosphärisch und detailreich. Benutze KEINE Meta-Kommentare, Überschriften oder Einleitungen wie 'Kapitel 1'. "
+        "Benutze unter keinen Umständen Markdown-Sternchen (*) oder Unterstriche (_), um Gedanken, Durchsagen oder wörtliche Rede hervorzuheben. "
+        "Nutze für wörtliche Rede und Durchsagen stattdessen klassische deutsche Anführungszeichen (z. B. „...“ oder »...«). "
         "Beginne sofort mit der Geschichte."
     )
     
@@ -292,7 +294,7 @@ async def generate_chapter_content(
             max_tokens=8192,
             system_instruction=system_instruction
         )
-        return response.strip()
+        return response.strip().replace("*", "")
     except Exception as e:
         logger.error(f"Error generating chapter {chapter.chapter_number}: {e}")
         raise e
