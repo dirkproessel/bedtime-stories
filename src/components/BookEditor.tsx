@@ -1716,7 +1716,7 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
 
                                     <div className="flex justify-end pt-1">
                                         <button
-                                            onClick={handleApplyGlobalFeedback}
+                                            onClick={() => handleApplyGlobalFeedback()}
                                             disabled={isAiLoading || globalFindings.length === 0}
                                             className="bg-primary hover:bg-primary/90 disabled:bg-slate-800 disabled:text-slate-500 text-white font-medium text-xs py-2 px-4 rounded-xl transition-all flex items-center gap-1.5 shadow-lg shadow-primary/10 hover:shadow-primary/20 shrink-0"
                                             title="Fügt die Lektorats-Korrekturen automatisch in die Kapitel-Gliederungen (Blueprints) ein"
