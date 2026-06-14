@@ -37,7 +37,9 @@ import {
     Loader2, 
     AlertTriangle,
     CheckCircle,
-    Maximize2
+    Maximize2,
+    Plus,
+    Trash2
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -126,10 +128,21 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
         if (activeProject.outline) {
             try {
                 const data = JSON.parse(activeProject.outline);
-                setEditableChapters(data.chapters || []);
+                const list = data.chapters || [];
+                const merged = list.map((c: any) => {
+                    const dbChap = activeProject.chapters.find((dc: any) => dc.chapter_number === c.chapter_number);
+                    return {
+                        id: dbChap?.id,
+                        chapter_number: c.chapter_number,
+                        title: c.title || dbChap?.title || '',
+                        plot_outline: c.plot_outline || dbChap?.plot_outline || ''
+                    };
+                });
+                setEditableChapters(merged);
             } catch (e) {
                 // Fallback
                 setEditableChapters(activeProject.chapters.map(c => ({
+                    id: c.id,
                     chapter_number: c.chapter_number,
                     title: c.title,
                     plot_outline: c.plot_outline
@@ -137,6 +150,7 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
             }
         } else {
             setEditableChapters(activeProject.chapters.map(c => ({
+                id: c.id,
                 chapter_number: c.chapter_number,
                 title: c.title,
                 plot_outline: c.plot_outline
@@ -313,10 +327,43 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
         }
     };
 
-    const updateEditableChapterField = (num: number, field: string, value: string) => {
-        setEditableChapters(prev => prev.map(c => 
-            c.chapter_number === num ? { ...c, [field]: value } : c
+    const updateEditableChapterField = (index: number, field: string, value: string) => {
+        setEditableChapters(prev => prev.map((c, i) => 
+            i === index ? { ...c, [field]: value } : c
         ));
+    };
+
+    const reindexChapters = (chapters: any[]) => {
+        return chapters.map((c, idx) => ({
+            ...c,
+            chapter_number: idx + 1
+        }));
+    };
+
+    const handleInsertChapter = (index: number) => {
+        const newChap = {
+            title: `Neues Kapitel`,
+            plot_outline: '',
+        };
+        const newChapters = [...editableChapters];
+        newChapters.splice(index, 0, newChap);
+        const reindexed = reindexChapters(newChapters);
+        setEditableChapters(reindexed);
+        setNumChapters(reindexed.length);
+    };
+
+    const handleDeleteChapter = (index: number) => {
+        if (editableChapters.length <= 1) {
+            toast.error('Ein Buch muss mindestens ein Kapitel haben.');
+            return;
+        }
+        if (!window.confirm('Möchtest du dieses Kapitel wirklich aus der Gliederung entfernen?')) return;
+        
+        const newChapters = [...editableChapters];
+        newChapters.splice(index, 1);
+        const reindexed = reindexChapters(newChapters);
+        setEditableChapters(reindexed);
+        setNumChapters(reindexed.length);
     };
 
 
@@ -779,7 +826,7 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                                     onChange={(e) => setNumChapters(parseInt(e.target.value))}
                                     className="bg-background border border-slate-800 text-xs text-slate-300 rounded-lg px-2 py-1 focus:outline-none"
                                 >
-                                    {[3, 4, 5, 6, 7, 8, 9, 10, 12].map(n => (
+                                    {Array.from(new Set([3, 4, 5, 6, 7, 8, 9, 10, 12, numChapters])).sort((a, b) => a - b).map(n => (
                                         <option key={n} value={n}>{n} Kapitel</option>
                                     ))}
                                 </select>
@@ -833,23 +880,54 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                     ) : (
                         <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar">
                             {editableChapters.map((chap, i) => (
-                                <div key={i} className="bg-background p-4 rounded-2xl border border-slate-800 space-y-3">
-                                    <div className="flex items-center gap-3">
-                                        <span className="w-6 h-6 rounded-lg bg-slate-800 flex items-center justify-center font-mono text-xs text-slate-300 shrink-0 font-bold">
-                                            {chap.chapter_number}
-                                        </span>
-                                        <input 
-                                            type="text" 
-                                            value={chap.title}
-                                            onChange={(e) => updateEditableChapterField(chap.chapter_number, 'title', e.target.value)}
-                                            className="bg-surface border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-primary w-full max-w-sm"
-                                            placeholder="Kapiteltitel"
-                                        />
+                                <div key={i} className="bg-background p-4 rounded-2xl border border-slate-800 space-y-3 animate-fadeIn">
+                                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-800 pb-2">
+                                        <div className="flex items-center gap-3 flex-1">
+                                            <span className="w-6 h-6 rounded-lg bg-slate-800 flex items-center justify-center font-mono text-xs text-slate-300 shrink-0 font-bold">
+                                                {chap.chapter_number}
+                                            </span>
+                                            <input 
+                                                type="text" 
+                                                value={chap.title}
+                                                onChange={(e) => updateEditableChapterField(i, 'title', e.target.value)}
+                                                className="bg-surface border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-primary w-full max-w-sm"
+                                                placeholder="Kapiteltitel"
+                                            />
+                                        </div>
+                                        
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => handleInsertChapter(i)}
+                                                className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg transition-colors border border-slate-700/50 text-[10px] flex items-center gap-1 font-medium"
+                                                title="Kapitel davor einfügen"
+                                            >
+                                                <Plus className="w-3.5 h-3.5 text-primary" />
+                                                Davor einfügen
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleInsertChapter(i + 1)}
+                                                className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg transition-colors border border-slate-700/50 text-[10px] flex items-center gap-1 font-medium"
+                                                title="Kapitel danach einfügen"
+                                            >
+                                                <Plus className="w-3.5 h-3.5 text-primary" />
+                                                Danach einfügen
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleDeleteChapter(i)}
+                                                className="p-1.5 bg-slate-800 hover:bg-red-500/20 text-slate-400 hover:text-red-400 rounded-lg transition-colors border border-slate-700/50"
+                                                title="Kapitel löschen"
+                                            >
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                            </button>
+                                        </div>
                                     </div>
 
                                     <textarea 
                                         value={chap.plot_outline}
-                                        onChange={(e) => updateEditableChapterField(chap.chapter_number, 'plot_outline', e.target.value)}
+                                        onChange={(e) => updateEditableChapterField(i, 'plot_outline', e.target.value)}
                                         rows={6}
                                         className="w-full bg-surface border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-primary resize-y leading-relaxed"
                                         placeholder="Handlungsstrang und Ereignisse für dieses Kapitel..."
@@ -875,6 +953,17 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                                     </div>
                                 </div>
                             ))}
+                            
+                            <div className="flex justify-center pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => handleInsertChapter(editableChapters.length)}
+                                    className="py-2.5 px-6 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 rounded-xl transition-all text-xs flex items-center gap-2"
+                                >
+                                    <Plus className="w-4 h-4 text-primary" />
+                                    Neues Kapitel am Ende anfügen
+                                </button>
+                            </div>
                         </div>
                     )}
                 </div>

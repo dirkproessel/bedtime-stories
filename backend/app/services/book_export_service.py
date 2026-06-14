@@ -343,7 +343,7 @@ async def generate_book_epub(project: BookProject, chapters: List[BookChapter], 
     book.set_language('de')
     author_name = (project.epub_author or "").strip() or "Stanzwerk Pro"
     book.add_author(author_name)
-    book.add_metadata('DC', 'publisher', 'Stanzwerk Pro – Buch-Labor')
+    book.add_metadata('DC', 'publisher', 'storyja.com')
     book.add_metadata('DC', 'rights', f'© {datetime.date.today().year} {author_name}')
 
     # --- CSS item ---
@@ -396,31 +396,21 @@ async def generate_book_epub(project: BookProject, chapters: List[BookChapter], 
     year = datetime.date.today().year
 
     # -------------------------------------------------------
-    # PAGE 1 – Schmutzblatt (Half-Title)
-    # -------------------------------------------------------
-    half_title_page = make_page(
-        "half_title", "half_title.xhtml", "Titelseite",
-        f'<div class="half-title-page"><h1>{project.title}</h1></div>'
-    )
-    book.add_item(half_title_page)
-
-    # -------------------------------------------------------
-    # PAGE 2 – Titelblatt (Full Title)
+    # PAGE 1 – Titelblatt (Full Title)
     # -------------------------------------------------------
     title_page = make_page(
         "title", "title.xhtml", "Titelblatt",
         f'''<div class="title-page">
   <div class="book-title">{project.title}</div>
-  <div class="book-subtitle">Eine Novelle</div>
   <div class="ornament">&#10022;</div>
   <div class="author">{author_name}</div>
-  <div class="publisher">Stanzwerk Pro &mdash; Buch-Labor &bull; {year}</div>
+  <div class="publisher">storyja.com &bull; {year}</div>
 </div>'''
     )
     book.add_item(title_page)
 
     # -------------------------------------------------------
-    # PAGE 3 – Impressum
+    # PAGE 2 – Impressum
     # -------------------------------------------------------
     custom_imprint = (project.epub_imprint or "").strip()
     imprint_extra = f'<hr/><p>{custom_imprint}</p>' if custom_imprint else ''
@@ -436,17 +426,15 @@ async def generate_book_epub(project: BookProject, chapters: List[BookChapter], 
   &uuml;bertragen werden.</p>
   <hr/>
   <p><em>Dieses Buch wurde mit Unterst&uuml;tzung k&uuml;nstlicher Intelligenz
-  (Stanzwerk Pro &ndash; Buch-Labor) verfasst und von {author_name} kuratiert,
+  (storyja.com) verfasst und von {author_name} kuratiert,
   redigiert und ver&ouml;ffentlicht.</em></p>
   {imprint_extra}
-  <hr/>
-  <p>Genre: {project.genre} &bull; Stil: {project.style}</p>
 </div>'''
     )
     book.add_item(imprint_page)
 
     # -------------------------------------------------------
-    # PAGE 4 – Widmung (optional)
+    # PAGE 3 – Widmung (optional)
     # -------------------------------------------------------
     dedication_page = None
     dedication_text = (project.epub_dedication or "").strip()
@@ -456,24 +444,6 @@ async def generate_book_epub(project: BookProject, chapters: List[BookChapter], 
             f'<div class="dedication-page"><p>{dedication_text}</p></div>'
         )
         book.add_item(dedication_page)
-
-    # -------------------------------------------------------
-    # PAGE 5 – HTML Inhaltsverzeichnis
-    # -------------------------------------------------------
-    toc_items_html = ""
-    for c in chapters:
-        roman = to_roman(c.chapter_number)
-        toc_items_html += (
-            f'  <li>\n'
-            f'    <a href="chap_{c.chapter_number}.xhtml">{c.title}</a>\n'
-            f'    <span class="roman">{roman}</span>\n'
-            f'  </li>\n'
-        )
-    toc_page = make_page(
-        "toc_html", "toc_page.xhtml", "Inhaltsverzeichnis",
-        f'<div class="toc-page">\n  <h2>Inhaltsverzeichnis</h2>\n  <ol>\n{toc_items_html}  </ol>\n</div>'
-    )
-    book.add_item(toc_page)
 
     # -------------------------------------------------------
     # CHAPTERS
@@ -514,13 +484,11 @@ async def generate_book_epub(project: BookProject, chapters: List[BookChapter], 
     # TOC (NCX + EPUB3 nav) and Spine
     # -------------------------------------------------------
     toc_entries: list = [
-        epub.Link('half_title.xhtml', 'Schmutzblatt', 'half_title'),
         epub.Link('title.xhtml', 'Titelblatt', 'title_page'),
         epub.Link('imprint.xhtml', 'Impressum', 'imprint'),
     ]
     if dedication_page:
         toc_entries.append(epub.Link('dedication.xhtml', 'Widmung', 'dedication'))
-    toc_entries.append(epub.Link('toc_page.xhtml', 'Inhaltsverzeichnis', 'toc_html'))
     toc_entries.extend(epub_chapters)
     if afterword_page:
         toc_entries.append(epub.Link('afterword.xhtml', 'Nachwort', 'afterword'))
@@ -530,10 +498,9 @@ async def generate_book_epub(project: BookProject, chapters: List[BookChapter], 
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
 
-    spine: list = ['nav', half_title_page, title_page, imprint_page]
+    spine: list = [title_page, imprint_page]
     if dedication_page:
         spine.append(dedication_page)
-    spine.append(toc_page)
     spine.extend(epub_chapters)
     if afterword_page:
         spine.append(afterword_page)

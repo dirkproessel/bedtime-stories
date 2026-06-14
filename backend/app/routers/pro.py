@@ -466,29 +466,40 @@ async def api_update_outline_manually(
         session.add(project)
         
         # 2. Synchronize chapters in DB
+        active_ids = []
         for ch_data in req_chapters:
-            num = ch_data.get("chapter_number")
-            chapter = session.exec(
-                select(BookChapter)
-                .where(BookChapter.book_project_id == id)
-                .where(BookChapter.chapter_number == num)
-            ).first()
+            ch_id = ch_data.get("id")
+            chapter = None
+            if ch_id:
+                chapter = session.get(BookChapter, ch_id)
             
             if chapter:
+                chapter.chapter_number = ch_data.get("chapter_number")
                 chapter.title = ch_data.get("title", chapter.title)
                 chapter.plot_outline = ch_data.get("plot_outline", chapter.plot_outline)
                 session.add(chapter)
+                active_ids.append(chapter.id)
             else:
-                # Add new if not existing
+                new_id = ch_data.get("id") or str(uuid.uuid4())[:8]
                 new_ch = BookChapter(
-                    id=str(uuid.uuid4())[:8],
+                    id=new_id,
                     book_project_id=id,
-                    chapter_number=num,
-                    title=ch_data.get("title", f"Kapitel {num}"),
+                    chapter_number=ch_data.get("chapter_number"),
+                    title=ch_data.get("title", f"Kapitel {ch_data.get('chapter_number')}"),
                     plot_outline=ch_data.get("plot_outline", ""),
                     status="draft"
                 )
                 session.add(new_ch)
+                active_ids.append(new_id)
+
+        # 3. Clean up database: delete any chapters that are NOT in active_ids
+        db_chapters = session.exec(
+            select(BookChapter)
+            .where(BookChapter.book_project_id == id)
+        ).all()
+        for db_ch in db_chapters:
+            if db_ch.id not in active_ids:
+                session.delete(db_ch)
                 
         session.commit()
         session.refresh(project)
