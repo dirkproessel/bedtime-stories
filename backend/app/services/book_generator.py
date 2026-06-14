@@ -729,4 +729,72 @@ async def expand_chapter_outline(
         }
 
 
+async def apply_global_feedback_to_outline(
+    characters_bible: str,
+    current_outline: str,
+    findings: List[Dict[str, Any]],
+    model: str = "gemini-3.5-flash"
+) -> str:
+    """
+    Overwrites or adjusts the plot outlines in the book outline based on global proofreading findings.
+    Returns the updated outline JSON string conforming to BookOutlineSchema.
+    """
+    system_instruction = (
+        "Du bist ein leitender Bestseller-Lektor. "
+        "Deine Aufgabe ist es, eine bestehende Buch-Gliederung (Outline) so zu überarbeiten, "
+        "dass die gefundenen Fehler (Findings) korrigiert werden. "
+        "Antworte ausschließlich im JSON-Format gemäß des vorgegebenen Schemas."
+    )
+    
+    # Format the findings into a readable string
+    findings_str_list = []
+    for i, f in enumerate(findings, 1):
+        cats = f.get("category", "Unbekannt")
+        desc = f.get("description", "Keine Beschreibung")
+        chaps = f.get("chapters_involved", [])
+        suggested = f.get("suggested_fix", "Kein Vorschlag")
+        findings_str_list.append(
+            f"Befund #{i} [{cats}]:\n"
+            f"- Beschreibung: {desc}\n"
+            f"- Betroffene Kapitel: {chaps}\n"
+            f"- Lösungsvorschlag: {suggested}"
+        )
+    findings_str = "\n\n".join(findings_str_list)
+    
+    prompt = f"""
+    Hier sind die Referenzdaten für das Buch:
+    - Charakter-Bible: {characters_bible}
+    
+    Aktuelle Gliederung des Buches:
+    {current_outline}
+    
+    Es wurden folgende inhaltliche und stilistische Probleme (Findings) identifiziert:
+    \"\"\"
+    {findings_str}
+    \"\"\"
+    
+    Aufgabe:
+    Überarbeite die Gliederung (BookOutlineSchema). Korrigiere die Gliederungen/Details der betroffenen Kapitel,
+    um die beschriebenen Fehler und Widersprüche vollständig aufzulösen. 
+    Halte dich dabei eng an die vorgeschlagenen Lösungen (suggested_fix). 
+    Lass unbeteiligte Kapitel unverändert. Behalte den generellen Aufbau und das JSON-Format exakt bei.
+    """
+    
+    try:
+        from app.services.text_generator import generate_text
+        response = await generate_text(
+            prompt=prompt,
+            model=model,
+            temperature=0.3,
+            response_mime_type="application/json",
+            system_instruction=system_instruction,
+            response_schema=BookOutlineSchema
+        )
+        return clean_json_string(response)
+    except Exception as e:
+        logger.error(f"Error in apply_global_feedback_to_outline: {e}")
+        return current_outline
+
+
+
 

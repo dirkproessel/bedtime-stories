@@ -1021,6 +1021,23 @@ export async function proofreadProBookGlobally(id: string, model?: string): Prom
     return res.json();
 }
 
+export async function applyGlobalFeedbackToOutline(
+    id: string, 
+    findings: GlobalLektoratFinding[], 
+    model?: string
+): Promise<any> {
+    let url = `${API_BASE}/api/pro/books/${id}/outline/apply-global-feedback`;
+    if (model) url += `?model=${encodeURIComponent(model)}`;
+    const res = await fetch(url, {
+        method: 'POST',
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ findings })
+    });
+    if (!res.ok) throw new Error('Fehler beim Einarbeiten des Lektorats-Feedbacks');
+    return res.json();
+}
+
+
 export async function suggestProCoverPrompt(id: string, model?: string): Promise<{ suggested_prompt: string }> {
     let url = `${API_BASE}/api/pro/books/${id}/cover/suggest`;
     if (model) url += `?model=${encodeURIComponent(model)}`;

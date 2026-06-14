@@ -10,6 +10,7 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query, Header
 from fastapi.responses import FileResponse, Response
+from pydantic import BaseModel
 from sqlmodel import Session, select
 from google import genai
 from google.genai import types
@@ -39,7 +40,8 @@ from app.services.book_generator import (
     proofread_book_globally,
     suggest_cover_prompt,
     parse_imported_outline,
-    expand_chapter_outline
+    expand_chapter_outline,
+    apply_global_feedback_to_outline
 )
 from app.services.book_export_service import (
     generate_book_epub,
@@ -1175,6 +1177,80 @@ async def api_proofread_book_globally(
     )
     return {"findings": findings}
 
+
+class ApplyGlobalFeedbackRequest(BaseModel):
+    findings: List[Dict[str, Any]]
+
+
+@router.post("/books/{id}/outline/apply-global-feedback", response_model=BookProjectDetailResponse)
+async def api_apply_global_feedback_to_outline(
+    id: str,
+    req: ApplyGlobalFeedbackRequest,
+    model: str = "gemini-3.5-flash",
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Applies the global proofreading findings to the project's detailed outlines (blueprints)
+    and synchronizes them in the database.
+    """
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin-Zugang verweigert.")
+        
+    with Session(engine) as session:
+        project = session.get(BookProject, id)
+        if not project:
+            raise HTTPException(status_code=404, detail="Buchprojekt nicht gefunden.")
+            
+        bible = project.characters_bible or "Keine Angabe"
+        outline = project.outline or "{}"
+        
+    # Run the correction LLM task
+    updated_outline_str = await apply_global_feedback_to_outline(
+        characters_bible=bible,
+        current_outline=outline,
+        findings=req.findings,
+        model=model
+    )
+    
+    # Save the updated outline back to project and sync DB chapters
+    with Session(engine) as session:
+        project = session.get(BookProject, id)
+        if not project:
+            raise HTTPException(status_code=404, detail="Buchprojekt nicht gefunden.")
+            
+        try:
+            outline_data = json.loads(updated_outline_str)
+            req_chapters = outline_data.get("chapters", [])
+        except Exception as e:
+            logger.error(f"Error parsing corrected outline JSON: {e}. Raw: {updated_outline_str}")
+            raise HTTPException(
+                status_code=500, 
+                detail=f"Die KI hat keine gültige JSON-Gliederung geliefert. Details: {str(e)}"
+            )
+            
+        project.outline = updated_outline_str
+        session.add(project)
+        
+        # Synchronize chapter details in DB
+        for ch_data in req_chapters:
+            chapter_number = ch_data.get("chapter_number")
+            if chapter_number is None:
+                continue
+                
+            chapter = session.exec(
+                select(BookChapter)
+                .where(BookChapter.book_project_id == id)
+                .where(BookChapter.chapter_number == chapter_number)
+            ).first()
+            
+            if chapter:
+                chapter.plot_outline = ch_data.get("plot_outline", chapter.plot_outline)
+                chapter.title = ch_data.get("title", chapter.title)
+                session.add(chapter)
+                
+        session.commit()
+        session.refresh(project)
+        return BookProjectDetailResponse.model_validate(project, from_attributes=True)
 
 
 @router.post("/books/{id}/cover/suggest")

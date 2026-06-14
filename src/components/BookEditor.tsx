@@ -28,7 +28,8 @@ import {
     importProOutline,
     expandProChapterOutline,
     expandProOutline,
-    generateAllProChapters
+    generateAllProChapters,
+    applyGlobalFeedbackToOutline
 } from '../lib/api';
 import { 
     ArrowLeft, 
@@ -605,6 +606,22 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
             setIsAiLoading(false);
         }
     };
+
+    const handleApplyGlobalFeedback = async () => {
+        if (globalFindings.length === 0) return;
+        setIsAiLoading(true);
+        try {
+            toast.loading('Lektorats-Korrekturen werden in die Kapitel-Gliederungen eingepflegt...', { id: 'ai' });
+            await applyGlobalFeedbackToOutline(activeProject.id, globalFindings, globalLektoratModel);
+            toast.success('Gliederung erfolgreich angepasst! Kapitel-Blueprints wurden aktualisiert.', { id: 'ai' });
+            await loadProProjectDetail(activeProject.id);
+        } catch (e: any) {
+            toast.error('Fehler beim Einarbeiten der Korrekturen: ' + e.message, { id: 'ai' });
+        } finally {
+            setIsAiLoading(false);
+        }
+    };
+
 
 
     // --- Step 5 Actions ---
@@ -1592,7 +1609,19 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                                             </div>
                                         ))}
                                     </div>
-                                    
+
+                                    <div className="flex justify-end pt-1">
+                                        <button
+                                            onClick={handleApplyGlobalFeedback}
+                                            disabled={isAiLoading || globalFindings.length === 0}
+                                            className="bg-primary hover:bg-primary/90 disabled:bg-slate-800 disabled:text-slate-500 text-white font-medium text-xs py-2 px-4 rounded-xl transition-all flex items-center gap-1.5 shadow-lg shadow-primary/10 hover:shadow-primary/20 shrink-0"
+                                            title="Fügt die Lektorats-Korrekturen automatisch in die Kapitel-Gliederungen (Blueprints) ein"
+                                        >
+                                            <Sparkles className="w-3.5 h-3.5" />
+                                            Lektorats-Korrekturen in Gliederung einarbeiten
+                                        </button>
+                                    </div>
+
                                     <div className="bg-slate-800/40 p-3.5 rounded-2xl border border-slate-800 flex items-start gap-3">
                                         <AlertTriangle className="w-5 h-5 text-primary shrink-0 mt-0.5" />
                                         <p className="text-[10px] text-slate-400 leading-normal">
