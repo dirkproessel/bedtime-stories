@@ -582,3 +582,325 @@ async def generate_kdp_metadata(project: BookProject, chapters: List[BookChapter
                 "reason": "Standard-Einstiegspreis für Kurzromane."
             }
         }
+
+
+# ---------------------------------------------------------------------------
+# TXT Generator
+# ---------------------------------------------------------------------------
+
+def generate_book_txt(project: BookProject, chapters: List[BookChapter], output_path: Path):
+    """
+    Generate a clean UTF-8 plain-text export of the book.
+
+    Structure:
+      Title / Author / Year
+      ---
+      Impressum (if set)
+      ---
+      Widmung (if set)
+      ---
+      Inhaltsverzeichnis
+      ---
+      Kapitel 1 … N
+      ---
+      Nachwort (if set)
+    """
+    year = datetime.date.today().year
+    author_name = (project.epub_author or "").strip() or "Stanzwerk Pro"
+    lines: list[str] = []
+
+    # Title block
+    lines.append(project.title.upper())
+    lines.append("")
+    lines.append(f"von {author_name}")
+    lines.append(f"© {year} {author_name}")
+    lines.append("")
+    lines.append("=" * 60)
+    lines.append("")
+
+    # Impressum
+    custom_imprint = (project.epub_imprint or "").strip()
+    lines.append(f"IMPRESSUM")
+    lines.append("")
+    lines.append(f"{project.title}")
+    lines.append(f"Erstauflage {year}")
+    lines.append(f"© {year} {author_name}")
+    lines.append("Alle Rechte vorbehalten.")
+    lines.append("")
+    lines.append(
+        "Dieses Buch wurde mit Unterstützung künstlicher Intelligenz "
+        f"(storyja.com) verfasst und von {author_name} kuratiert, "
+        "redigiert und veröffentlicht."
+    )
+    if custom_imprint:
+        lines.append("")
+        lines.append(custom_imprint)
+    lines.append("")
+    lines.append("=" * 60)
+    lines.append("")
+
+    # Dedication
+    dedication_text = (project.epub_dedication or "").strip()
+    if dedication_text:
+        lines.append(dedication_text)
+        lines.append("")
+        lines.append("=" * 60)
+        lines.append("")
+
+    # Table of contents
+    lines.append("INHALTSVERZEICHNIS")
+    lines.append("")
+    for c in chapters:
+        roman = to_roman(c.chapter_number)
+        lines.append(f"  {roman}. {c.title}")
+    lines.append("")
+    lines.append("=" * 60)
+
+    # Chapters
+    for c in chapters:
+        roman = to_roman(c.chapter_number)
+        lines.append("")
+        lines.append("")
+        lines.append(f"Kapitel {roman}")
+        lines.append(c.title)
+        lines.append("-" * 40)
+        lines.append("")
+        content = (c.content or "Inhalt wird noch generiert.").strip()
+        lines.append(content)
+
+    # Afterword
+    afterword_text = (project.epub_afterword or "").strip()
+    if afterword_text:
+        lines.append("")
+        lines.append("")
+        lines.append("=" * 60)
+        lines.append("NACHWORT")
+        lines.append("=" * 60)
+        lines.append("")
+        lines.append(afterword_text)
+
+    # Footer
+    lines.append("")
+    lines.append("")
+    lines.append("=" * 60)
+    lines.append(f"Generiert mit storyja.com • {year}")
+    lines.append("=" * 60)
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text("\n".join(lines), encoding="utf-8")
+    logger.info(f"Plain-text book written to {output_path}")
+
+
+# ---------------------------------------------------------------------------
+# PDF Generator  (fpdf2)
+# ---------------------------------------------------------------------------
+
+def generate_book_pdf(project: BookProject, chapters: List[BookChapter], output_path: Path):
+    """
+    Generate a professional book-style PDF using fpdf2.
+
+    Layout:
+      - Title page (centered title, ornament, author, publisher)
+      - Imprint page
+      - Dedication page (optional)
+      - Table of contents
+      - Chapter pages (roman numeral header, title, body text)
+      - Afterword (optional)
+    """
+    from fpdf import FPDF
+
+    year = datetime.date.today().year
+    author_name = (project.epub_author or "").strip() or "Stanzwerk Pro"
+
+    class BookPDF(FPDF):
+        """Custom PDF with header/footer for book pages."""
+
+        def __init__(self):
+            super().__init__()
+            self._book_title = project.title
+            self._author = author_name
+            self._show_header_footer = False
+
+        def header(self):
+            if not self._show_header_footer:
+                return
+            self.set_font("Helvetica", "I", 8)
+            self.set_text_color(150, 150, 150)
+            self.cell(0, 8, self._book_title, align="C")
+            self.ln(4)
+
+        def footer(self):
+            if not self._show_header_footer:
+                return
+            self.set_y(-15)
+            self.set_font("Helvetica", "", 8)
+            self.set_text_color(150, 150, 150)
+            self.cell(0, 10, str(self.page_no()), align="C")
+
+    pdf = BookPDF()
+    pdf.set_auto_page_break(auto=True, margin=20)
+    pdf.set_margins(25, 20, 25)
+
+    # ---- Title Page ----
+    pdf.add_page()
+    pdf.ln(60)
+    pdf.set_font("Helvetica", "B", 28)
+    pdf.set_text_color(30, 30, 30)
+    pdf.multi_cell(0, 14, project.title, align="C")
+    pdf.ln(10)
+    pdf.set_font("Helvetica", "", 16)
+    pdf.set_text_color(150, 150, 150)
+    pdf.cell(0, 10, "\u2726", align="C")  # ornament ✦
+    pdf.ln(20)
+    pdf.set_font("Helvetica", "B", 14)
+    pdf.set_text_color(60, 60, 60)
+    pdf.cell(0, 10, author_name, align="C")
+    pdf.ln(40)
+    pdf.set_font("Helvetica", "", 10)
+    pdf.set_text_color(130, 130, 130)
+    pdf.cell(0, 8, f"storyja.com \u2022 {year}", align="C")
+
+    # ---- Imprint Page ----
+    pdf.add_page()
+    pdf.ln(30)
+    pdf.set_font("Helvetica", "B", 11)
+    pdf.set_text_color(60, 60, 60)
+    pdf.cell(0, 8, project.title, ln=True)
+    pdf.set_font("Helvetica", "", 9)
+    pdf.set_text_color(100, 100, 100)
+    pdf.cell(0, 6, f"Erstauflage {year}", ln=True)
+    pdf.ln(4)
+    pdf.cell(0, 6, f"\u00a9 {year} {author_name}", ln=True)
+    pdf.ln(2)
+    pdf.multi_cell(0, 5,
+        "Alle Rechte vorbehalten. Kein Teil dieses Werkes darf ohne "
+        "schriftliche Genehmigung des Autors reproduziert, verbreitet "
+        "oder in irgendeiner Form \u00fcbertragen werden."
+    )
+    pdf.ln(4)
+    pdf.set_font("Helvetica", "I", 9)
+    pdf.multi_cell(0, 5,
+        "Dieses Buch wurde mit Unterst\u00fctzung k\u00fcnstlicher Intelligenz "
+        f"(storyja.com) verfasst und von {author_name} kuratiert, "
+        "redigiert und ver\u00f6ffentlicht."
+    )
+    custom_imprint = (project.epub_imprint or "").strip()
+    if custom_imprint:
+        pdf.ln(6)
+        pdf.set_font("Helvetica", "", 9)
+        pdf.multi_cell(0, 5, custom_imprint)
+
+    # ---- Dedication Page (optional) ----
+    dedication_text = (project.epub_dedication or "").strip()
+    if dedication_text:
+        pdf.add_page()
+        pdf.ln(80)
+        pdf.set_font("Helvetica", "I", 12)
+        pdf.set_text_color(80, 80, 80)
+        pdf.multi_cell(0, 8, dedication_text, align="C")
+
+    # ---- Table of Contents ----
+    pdf.add_page()
+    pdf.ln(10)
+    pdf.set_font("Helvetica", "B", 16)
+    pdf.set_text_color(30, 30, 30)
+    pdf.cell(0, 12, "Inhaltsverzeichnis", align="C", ln=True)
+    pdf.ln(4)
+    # horizontal rule
+    pdf.set_draw_color(200, 200, 200)
+    x_start = pdf.l_margin + 40
+    x_end = pdf.w - pdf.r_margin - 40
+    pdf.line(x_start, pdf.get_y(), x_end, pdf.get_y())
+    pdf.ln(8)
+
+    pdf.set_font("Helvetica", "", 11)
+    pdf.set_text_color(50, 50, 50)
+    for c in chapters:
+        roman = to_roman(c.chapter_number)
+        pdf.cell(15, 8, roman, align="R")
+        pdf.cell(8, 8, "")
+        pdf.cell(0, 8, c.title, ln=True)
+
+    # ---- Chapter Pages ----
+    pdf._show_header_footer = True
+    for c in chapters:
+        pdf.add_page()
+        roman = to_roman(c.chapter_number)
+
+        # Chapter header block
+        pdf.ln(20)
+        pdf.set_font("Helvetica", "", 9)
+        pdf.set_text_color(160, 160, 160)
+        pdf.cell(0, 6, "KAPITEL", align="C", ln=True)
+
+        pdf.set_font("Helvetica", "B", 24)
+        pdf.set_text_color(40, 40, 40)
+        pdf.cell(0, 14, roman, align="C", ln=True)
+
+        pdf.set_font("Helvetica", "I", 13)
+        pdf.set_text_color(90, 90, 90)
+        pdf.multi_cell(0, 8, c.title, align="C")
+        pdf.ln(4)
+
+        # horizontal rule
+        pdf.set_draw_color(200, 200, 200)
+        rule_w = 50
+        x_center = pdf.w / 2
+        pdf.line(x_center - rule_w / 2, pdf.get_y(), x_center + rule_w / 2, pdf.get_y())
+        pdf.ln(12)
+
+        # Chapter body text
+        pdf.set_font("Helvetica", "", 11)
+        pdf.set_text_color(30, 30, 30)
+        content = (c.content or "Inhalt wird noch generiert.").strip()
+
+        # Split content into paragraphs and render
+        paragraphs = re.split(r'\n{2,}', content)
+        for pi, para in enumerate(paragraphs):
+            para = para.strip()
+            if not para:
+                continue
+            # Check for scene break markers
+            if re.match(r'^\s*([-*~=#]{3,}|\*\s+\*\s+\*)\s*$', para):
+                pdf.ln(4)
+                pdf.set_font("Helvetica", "", 10)
+                pdf.set_text_color(150, 150, 150)
+                pdf.cell(0, 8, "* * *", align="C", ln=True)
+                pdf.set_font("Helvetica", "", 11)
+                pdf.set_text_color(30, 30, 30)
+                pdf.ln(4)
+                continue
+            # Join single newlines within a paragraph
+            clean_para = ' '.join(line.strip() for line in para.split('\n') if line.strip())
+            if clean_para:
+                pdf.multi_cell(0, 6.5, clean_para)
+                pdf.ln(3)
+
+    # ---- Afterword (optional) ----
+    afterword_text = (project.epub_afterword or "").strip()
+    if afterword_text:
+        pdf.add_page()
+        pdf.ln(10)
+        pdf.set_font("Helvetica", "B", 16)
+        pdf.set_text_color(30, 30, 30)
+        pdf.cell(0, 12, "Nachwort", align="C", ln=True)
+        pdf.ln(4)
+        pdf.set_draw_color(200, 200, 200)
+        x_start = pdf.l_margin + 40
+        x_end = pdf.w - pdf.r_margin - 40
+        pdf.line(x_start, pdf.get_y(), x_end, pdf.get_y())
+        pdf.ln(8)
+
+        pdf.set_font("Helvetica", "", 11)
+        pdf.set_text_color(50, 50, 50)
+        after_paragraphs = re.split(r'\n{2,}', afterword_text)
+        for para in after_paragraphs:
+            para = para.strip()
+            if para:
+                clean_para = ' '.join(line.strip() for line in para.split('\n') if line.strip())
+                pdf.multi_cell(0, 6.5, clean_para)
+                pdf.ln(3)
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    pdf.output(str(output_path))
+    logger.info(f"Professional PDF written to {output_path}")

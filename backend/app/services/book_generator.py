@@ -796,5 +796,84 @@ async def apply_global_feedback_to_outline(
         return current_outline
 
 
+async def proofread_outline_globally(
+    chapters: List[BookChapter], 
+    characters_bible: str, 
+    model: str = "gemini-3.5-flash"
+) -> List[Dict[str, Any]]:
+    """
+    Analyzes the plot outlines (blueprints) of all chapters for logical consistency,
+    character contradictions, and pacing issues.
+    """
+    system_instruction = (
+        "Du bist ein leitender Bestseller-Lektor. "
+        "Analysiere die Gliederung (Kapitel-Entwürfe/Blueprints) des Buches auf inhaltliche Widersprüche, "
+        "Logikfehler, Charakter-Inkonsistenz und Pacing-Probleme zwischen den Kapiteln. "
+        "Antworte ausschließlich im JSON-Format."
+    )
+    
+    # Concatenate all outlines with clear headers
+    outline_parts = []
+    for c in chapters:
+        outline_parts.append(
+            f"=== Kapitel {c.chapter_number}: {c.title} ===\n"
+            f"Gliederung/Blueprint: {c.plot_outline or '[Keine Vorgabe]'}"
+        )
+    outline_text = "\n\n".join(outline_parts)
+    
+    prompt = f"""
+    Hier sind die Referenzdaten für das Buch:
+    - Charakter-Bible: {characters_bible}
+    
+    Analysiere die folgenden Kapitel-Entwürfe (Blueprints/Outlines) auf logische Widersprüche, Charakter-Inkonsistenzen und Pacing-Probleme:
+    
+    KAPITEL-ENTWÜRFE:
+    \"\"\"
+    {outline_text}
+    \"\"\"
+    
+    Kategorisiere die Probleme in:
+    - 'consistency' (z. B. eine Figur stirbt in Kapitel 2, taucht aber in Kapitel 4 wieder auf; Augenfarbe ändert sich; Mia ist eine Eule, wird aber plötzlich als Katze bezeichnet)
+    - 'style' (z. B. abrupte Tonwechsel in den Beschreibungen oder Zielgruppenverschiebungen)
+    - 'pacing' (Pacing-Probleme, extreme Handlungssprünge zwischen den Kapitel-Blaupausen)
+    
+    Gib eine Liste von Problemen zurück. Jedes Problem muss folgende Felder haben:
+    - category (eine der 3 Kategorien oben)
+    - description (Beschreibung des Fehlers auf Deutsch)
+    - chapters_involved (eine Liste von Integers der Kapitelnummern, die von diesem Problem betroffen sind, z.B. [2, 4])
+    - suggested_fix (Konkreter Vorschlag für die Korrektur der Kapitel-Gliederung auf Deutsch)
+    
+    Format:
+    [
+      {{
+        "category": "consistency",
+        "description": "...",
+        "chapters_involved": [2, 4],
+        "suggested_fix": "..."
+      }}
+    ]
+    """
+    
+    try:
+        from app.services.text_generator import generate_text
+        response = await generate_text(
+            prompt=prompt,
+            model=model,
+            temperature=0.3,
+            response_mime_type="application/json",
+            system_instruction=system_instruction,
+            response_schema=ProofreadGlobalResponseSchema
+        )
+        cleaned = clean_json_string(response)
+        data = json.loads(cleaned)
+        if isinstance(data, dict):
+            return data.get("findings", [])
+        return data
+    except Exception as e:
+        logger.error(f"Error in proofread_outline_globally: {e}")
+        return []
+
+
+
 
 

@@ -20,6 +20,8 @@ import {
     generateProCover,
     getProCoverUrl, 
     getProEpubUrl,
+    getProTxtUrl,
+    getProPdfUrl,
     fetchProKdpMetadata,
     cancelProBookGeneration,
     suggestProStyleRefinement,
@@ -29,7 +31,8 @@ import {
     expandProChapterOutline,
     expandProOutline,
     generateAllProChapters,
-    applyGlobalFeedbackToOutline
+    applyGlobalFeedbackToOutline,
+    proofreadProOutlineGlobally
 } from '../lib/api';
 import { 
     ArrowLeft, 
@@ -46,7 +49,9 @@ import {
     Plus,
     Trash2,
     Edit2,
-    X
+    X,
+    Search,
+    FileText
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -111,6 +116,7 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
     const [editableChapters, setEditableChapters] = useState<any[]>([]);
     const [outlineFeedback, setOutlineFeedback] = useState('');
     const [chapterFeedbacks, setChapterFeedbacks] = useState<{ [key: number]: string }>({});
+    const [outlineFindings, setOutlineFindings] = useState<GlobalLektoratFinding[]>([]);
 
     // Step 3 State: Writing
     const [selectedChapterNum, setSelectedChapterNum] = useState<number>(1);
@@ -607,13 +613,21 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
         }
     };
 
-    const handleApplyGlobalFeedback = async () => {
-        if (globalFindings.length === 0) return;
+    const handleApplyGlobalFeedback = async (isOutlineLektorat: boolean = false) => {
+        const findingsToApply = isOutlineLektorat ? outlineFindings : globalFindings;
+        const modelToUse = isOutlineLektorat ? outlineModel : globalLektoratModel;
+        
+        if (findingsToApply.length === 0) return;
         setIsAiLoading(true);
         try {
-            toast.loading('Lektorats-Korrekturen werden in die Kapitel-Gliederungen eingepflegt...', { id: 'ai' });
-            await applyGlobalFeedbackToOutline(activeProject.id, globalFindings, globalLektoratModel);
+            toast.loading('Lektorats-Korrekturen werden in die Gliederung eingepflegt...', { id: 'ai' });
+            await applyGlobalFeedbackToOutline(activeProject.id, findingsToApply, modelToUse);
             toast.success('Gliederung erfolgreich angepasst! Kapitel-Blueprints wurden aktualisiert.', { id: 'ai' });
+            if (isOutlineLektorat) {
+                setOutlineFindings([]);
+            } else {
+                setGlobalFindings([]);
+            }
             await loadProProjectDetail(activeProject.id);
         } catch (e: any) {
             toast.error('Fehler beim Einarbeiten der Korrekturen: ' + e.message, { id: 'ai' });
@@ -621,6 +635,25 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
             setIsAiLoading(false);
         }
     };
+
+    const handleRunOutlineLektorat = async () => {
+        setIsAiLoading(true);
+        try {
+            toast.loading('Analysiere Kapitel-Entwürfe auf Logik & Konsistenz...', { id: 'ai' });
+            const res = await proofreadProOutlineGlobally(activeProject.id, outlineModel);
+            setOutlineFindings(res.findings);
+            if (res.findings.length === 0) {
+                toast.success('Keine Logikfehler in den Entwürfen gefunden!', { id: 'ai' });
+            } else {
+                toast.success(`${res.findings.length} Logik-Widersprüche in den Entwürfen gefunden!`, { id: 'ai' });
+            }
+        } catch (e: any) {
+            toast.error('Fehler bei der Analyse der Entwürfe: ' + e.message, { id: 'ai' });
+        } finally {
+            setIsAiLoading(false);
+        }
+    };
+
 
 
 
@@ -1060,6 +1093,16 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                                     <Sparkles className="w-3.5 h-3.5" />
                                     Alle Entwürfe ausarbeiten
                                 </button>
+                                <button 
+                                    onClick={handleRunOutlineLektorat}
+                                    disabled={isAiLoading || editableChapters.length === 0}
+                                    className="bg-slate-800 hover:bg-slate-700 text-blue-400 border border-slate-700 py-1.5 px-4 text-xs flex items-center gap-1.5 rounded-xl transition-all shrink-0"
+                                    type="button"
+                                    title="Prüft die Entwürfe aller Kapitel auf Logik & Konsistenz"
+                                >
+                                    <Search className="w-3.5 h-3.5" />
+                                    Entwürfe prüfen
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -1083,6 +1126,67 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                             </button>
                         )}
                     </div>
+
+                    {/* Outline findings display */}
+                    {outlineFindings.length > 0 && (
+                        <div className="space-y-4 bg-slate-900/60 p-4 rounded-2xl border border-amber-500/20">
+                            <div className="flex justify-between items-center">
+                                <h4 className="text-xs font-semibold text-white flex items-center gap-2">
+                                    <AlertTriangle className="w-4 h-4 text-amber-500" />
+                                    Mängel in Kapitel-Entwürfen ({outlineFindings.length})
+                                </h4>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => setOutlineFindings([])}
+                                        className="text-slate-500 hover:text-white text-[10px] px-2 py-1 rounded transition-colors"
+                                    >
+                                        Ausblenden
+                                    </button>
+                                    <button
+                                        onClick={() => handleApplyGlobalFeedback(true)}
+                                        disabled={isAiLoading}
+                                        className="bg-primary hover:bg-primary/90 disabled:bg-slate-800 disabled:text-slate-500 text-white font-medium text-[10px] py-1 px-3 rounded-xl transition-all flex items-center gap-1 shrink-0"
+                                        title="Lektorats-Korrekturen in die Gliederungsentwürfe (Blueprints) einarbeiten"
+                                    >
+                                        <Sparkles className="w-3 h-3" />
+                                        Fehler in Entwürfen beheben
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="space-y-3 max-h-[30vh] overflow-y-auto pr-1 custom-scrollbar">
+                                {outlineFindings.map((gf, idx) => (
+                                    <div key={idx} className="bg-background p-3.5 rounded-xl border border-slate-800 space-y-2 text-xs">
+                                        <div className="flex justify-between items-start gap-3">
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                <span className={`px-2 py-0.5 rounded-md font-mono text-[9px] uppercase tracking-wider font-bold ${
+                                                    gf.category === 'consistency' 
+                                                    ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' 
+                                                    : gf.category === 'style'
+                                                    ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                                                    : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                                                }`}>
+                                                    {gf.category}
+                                                </span>
+                                                <span className="text-[10px] text-slate-400 font-semibold">
+                                                    Kapitel: {gf.chapters_involved.join(', ') || 'Alle'}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div className="text-slate-300 font-sans">
+                                            {gf.description}
+                                        </div>
+
+                                        <div className="bg-primary/5 p-2.5 rounded-lg border border-primary/10 space-y-1">
+                                            <span className="text-[9px] font-mono uppercase text-primary font-bold">Lösungsvorschlag:</span>
+                                            <p className="text-[10px] text-slate-300 font-serif leading-relaxed italic">{gf.suggested_fix}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
 
                     {/* Chapter Cards list for editing */}
                     {editableChapters.length === 0 ? (
@@ -1862,15 +1966,29 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                             {/* EPUB Download box */}
                         <div className="bg-surface p-5 rounded-3xl border border-slate-800 space-y-4">
                             <h3 className="font-semibold text-white text-sm">Dateiexport</h3>
-                            <p className="text-xs text-text-muted">Exportiere dein fertiges Buch als Kindle-kompatible EPUB-Datei.</p>
+                            <p className="text-xs text-text-muted">Exportiere dein fertiges Buch in verschiedenen Formaten.</p>
                             
-                            <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                 <a 
                                     href={getProEpubUrl(activeProject.id)}
-                                    className="btn-primary py-3 px-6 text-sm font-semibold rounded-2xl flex items-center justify-center gap-2 flex-1 sm:flex-initial"
+                                    className="btn-primary py-3 px-5 text-sm font-semibold rounded-2xl flex items-center justify-center gap-2"
                                 >
-                                    <Download className="w-5 h-5" />
-                                    EPUB Datei herunterladen
+                                    <Download className="w-4.5 h-4.5" />
+                                    EPUB
+                                </a>
+                                <a 
+                                    href={getProPdfUrl(activeProject.id)}
+                                    className="bg-indigo-600 hover:bg-indigo-500 text-white py-3 px-5 text-sm font-semibold rounded-2xl flex items-center justify-center gap-2 transition-colors"
+                                >
+                                    <BookOpen className="w-4.5 h-4.5" />
+                                    PDF
+                                </a>
+                                <a 
+                                    href={getProTxtUrl(activeProject.id)}
+                                    className="bg-slate-700 hover:bg-slate-600 text-white py-3 px-5 text-sm font-semibold rounded-2xl flex items-center justify-center gap-2 transition-colors"
+                                >
+                                    <FileText className="w-4.5 h-4.5" />
+                                    TXT
                                 </a>
                             </div>
                         </div>

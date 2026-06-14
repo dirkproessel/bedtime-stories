@@ -975,6 +975,20 @@ export function getProEpubUrl(id: string): string {
     return url.toString();
 }
 
+export function getProTxtUrl(id: string): string {
+    const token = localStorage.getItem('auth_token');
+    const url = new URL(`${API_BASE}/api/pro/books/${id}/export/txt`);
+    if (token) url.searchParams.append('token', token);
+    return url.toString();
+}
+
+export function getProPdfUrl(id: string): string {
+    const token = localStorage.getItem('auth_token');
+    const url = new URL(`${API_BASE}/api/pro/books/${id}/export/pdf`);
+    if (token) url.searchParams.append('token', token);
+    return url.toString();
+}
+
 export async function fetchProKdpMetadata(id: string, model?: string): Promise<KdpMetadata> {
     let url = `${API_BASE}/api/pro/books/${id}/export/metadata`;
     if (model) url += `?model=${encodeURIComponent(model)}`;
@@ -1036,6 +1050,18 @@ export async function applyGlobalFeedbackToOutline(
     if (!res.ok) throw new Error('Fehler beim Einarbeiten des Lektorats-Feedbacks');
     return res.json();
 }
+
+export async function proofreadProOutlineGlobally(id: string, model?: string): Promise<{ findings: GlobalLektoratFinding[] }> {
+    let url = `${API_BASE}/api/pro/books/${id}/outline/proofread`;
+    if (model) url += `?model=${encodeURIComponent(model)}`;
+    const res = await fetch(url, {
+        method: 'POST',
+        headers: getAuthHeaders()
+    });
+    if (!res.ok) throw new Error('Fehler bei der Konsistenzprüfung der Gliederung');
+    return res.json();
+}
+
 
 
 export async function suggestProCoverPrompt(id: string, model?: string): Promise<{ suggested_prompt: string }> {

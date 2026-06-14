@@ -41,10 +41,13 @@ from app.services.book_generator import (
     suggest_cover_prompt,
     parse_imported_outline,
     expand_chapter_outline,
-    apply_global_feedback_to_outline
+    apply_global_feedback_to_outline,
+    proofread_outline_globally
 )
 from app.services.book_export_service import (
     generate_book_epub,
+    generate_book_txt,
+    generate_book_pdf,
     generate_kdp_metadata
 )
 from app.services.store import store
@@ -1253,6 +1256,48 @@ async def api_apply_global_feedback_to_outline(
         return BookProjectDetailResponse.model_validate(project, from_attributes=True)
 
 
+@router.post("/books/{id}/outline/proofread")
+async def api_proofread_outline_globally(
+    id: str, 
+    model: str = "gemini-3.5-flash",
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Checks the consistency and logic of the chapter outlines (blueprints) in Step 2.
+    """
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin-Zugang verweigert.")
+        
+    with Session(engine) as session:
+        project = session.get(BookProject, id)
+        if not project:
+            raise HTTPException(status_code=404, detail="Buchprojekt nicht gefunden.")
+            
+        chapters = session.exec(
+            select(BookChapter)
+            .where(BookChapter.book_project_id == id)
+            .order_by(BookChapter.chapter_number)
+        ).all()
+        
+        bible = project.characters_bible or "Keine Angabe"
+        
+        # Snapshot chapters to avoid DetachedInstanceError outside session block
+        chapters_snapshot = []
+        for c in chapters:
+            chapters_snapshot.append(BookChapter(
+                chapter_number=c.chapter_number,
+                title=c.title,
+                plot_outline=c.plot_outline or ""
+            ))
+            
+    findings = await proofread_outline_globally(
+        chapters=chapters_snapshot,
+        characters_bible=bible,
+        model=model
+    )
+    return {"findings": findings}
+
+
 @router.post("/books/{id}/cover/suggest")
 async def api_suggest_book_cover_prompt(
     id: str,
@@ -1351,6 +1396,58 @@ async def export_book_epub_download(id: str, current_user: User = Depends(get_ad
         epub_path,
         media_type="application/epub+zip",
         filename=f"{safe_title}.epub"
+    )
+
+
+@router.get("/books/{id}/export/txt")
+async def export_book_txt_download(id: str, current_user: User = Depends(get_admin_user_from_request)):
+    with Session(engine) as session:
+        project = session.get(BookProject, id)
+        if not project:
+            raise HTTPException(status_code=404, detail="Buchprojekt nicht gefunden.")
+            
+        chapters = session.exec(
+            select(BookChapter)
+            .where(BookChapter.book_project_id == id)
+            .order_by(BookChapter.chapter_number)
+        ).all()
+        
+    txt_filename = f"book_{id}_{uuid.uuid4().hex[:6]}.txt"
+    txt_path = settings.AUDIO_OUTPUT_DIR / "books" / txt_filename
+    
+    generate_book_txt(project, chapters, txt_path)
+    
+    safe_title = re.sub(r'[^\w\s-]', '', project.title).strip().replace(' ', '_')
+    return FileResponse(
+        txt_path,
+        media_type="text/plain; charset=utf-8",
+        filename=f"{safe_title}.txt"
+    )
+
+
+@router.get("/books/{id}/export/pdf")
+async def export_book_pdf_download(id: str, current_user: User = Depends(get_admin_user_from_request)):
+    with Session(engine) as session:
+        project = session.get(BookProject, id)
+        if not project:
+            raise HTTPException(status_code=404, detail="Buchprojekt nicht gefunden.")
+            
+        chapters = session.exec(
+            select(BookChapter)
+            .where(BookChapter.book_project_id == id)
+            .order_by(BookChapter.chapter_number)
+        ).all()
+        
+    pdf_filename = f"book_{id}_{uuid.uuid4().hex[:6]}.pdf"
+    pdf_path = settings.AUDIO_OUTPUT_DIR / "books" / pdf_filename
+    
+    generate_book_pdf(project, chapters, pdf_path)
+    
+    safe_title = re.sub(r'[^\w\s-]', '', project.title).strip().replace(' ', '_')
+    return FileResponse(
+        pdf_path,
+        media_type="application/pdf",
+        filename=f"{safe_title}.pdf"
     )
 
 
