@@ -264,7 +264,6 @@ async def bg_generate_all_chapters(
                 next_chapter.status = "generating"
                 session.add(project)
                 session.add(next_chapter)
-                session.commit()
                 
                 # Fetch completed chapters before this one
                 prev_chapters = session.exec(
@@ -277,6 +276,8 @@ async def bg_generate_all_chapters(
                 project_validated = BookProject.model_validate(project)
                 chapter_validated = BookChapter.model_validate(next_chapter)
                 chapter_id = next_chapter.id
+                
+                session.commit()
 
             # 2. Write the chapter
             content = await generate_chapter_content(

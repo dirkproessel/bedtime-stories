@@ -103,8 +103,9 @@ async def _generate_deepseek(prompt, model, temperature, max_tokens, response_mi
         raise ValueError("DEEPSEEK_API_KEY is missing in settings")
 
     # Map frontend model names to actual DeepSeek API model names
-    api_model = "deepseek-chat"
-    if "pro" in model.lower() or "reasoner" in model.lower():
+    if model.startswith("deepseek-v4"):
+        api_model = model
+    elif "pro" in model.lower() or "reasoner" in model.lower():
         api_model = "deepseek-reasoner"
     elif "flash" in model.lower():
         api_model = "deepseek-chat"

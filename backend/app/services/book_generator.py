@@ -65,6 +65,39 @@ def clean_json_string(s: str) -> str:
         s = s[:-3]
     return s.strip()
 
+
+def clean_chapter_prose(text: str, chapter_title: str, chapter_number: int) -> str:
+    """
+    Cleans generated chapter text by removing leading chapter titles, numbers, or markdown headers.
+    """
+    text = text.strip()
+    
+    # Remove markdown headers like '#', '##', '###' at the very beginning
+    while text.startswith("#"):
+        text = text.lstrip("#").strip()
+        
+    import re
+    
+    # Pattern for "Kapitel X", "Kapitel X: ...", "Kapitel X - ..."
+    prefix_pattern = re.compile(
+        r'^(?:kapitel|chapter)\s*' + str(chapter_number) + r'(?:\s*[:\-\.]?\s*(?:' + re.escape(chapter_title) + r')?)?',
+        re.IGNORECASE
+    )
+    
+    match = prefix_pattern.match(text)
+    if match:
+        text = text[match.end():].strip()
+        # Strip leading colon, dash or period if left over
+        text = re.sub(r'^[:\-\.\s\n]+', '', text).strip()
+        
+    # Also check if it starts directly with the chapter title
+    if chapter_title and text.lower().startswith(chapter_title.lower()):
+        text = text[len(chapter_title):].strip()
+        text = re.sub(r'^[:\-\.\s\n]+', '', text).strip()
+        
+    return text
+
+
 def get_author_names_improved(style_string: str) -> str:
     if not style_string:
         return "Neutraler Autor"
@@ -251,10 +284,10 @@ async def generate_chapter_content(
         f"Du bist ein preisgekrönter Romanautor. Dein Schreibstil folgt diesen Vorgaben:\n{style_resolved}\n\n"
         f"Du schreibst im Genre: {project.genre}.\n"
         "Schreibe ausschließlich die Romanprosa für das angeforderte Kapitel. Schreib flüssig, "
-        "atmosphärisch und detailreich. Benutze KEINE Meta-Kommentare, Überschriften oder Einleitungen wie 'Kapitel 1'. "
+        "atmosphärisch und detailreich. Benutze KEINE Überschriften, Kapitelnummern (wie 'Kapitel 1'), "
+        "Meta-Kommentare oder den Kapiteltitel am Anfang des Textes. Beginne sofort mit dem ersten Satz der Geschichte. "
         "Benutze unter keinen Umständen Markdown-Sternchen (*) oder Unterstriche (_), um Gedanken, Durchsagen oder wörtliche Rede hervorzuheben. "
-        "Nutze für wörtliche Rede und Durchsagen stattdessen klassische deutsche Anführungszeichen (z. B. „...“ oder »...«). "
-        "Beginne sofort mit der Geschichte."
+        "Nutze für wörtliche Rede und Durchsagen stattdessen klassische deutsche Anführungszeichen (z. B. „...“ oder »...«)."
     )
     
     prompt = f"""
@@ -294,7 +327,8 @@ async def generate_chapter_content(
             max_tokens=8192,
             system_instruction=system_instruction
         )
-        return response.strip().replace("*", "")
+        prose = response.strip().replace("*", "")
+        return clean_chapter_prose(prose, chapter.title, chapter.chapter_number)
     except Exception as e:
         logger.error(f"Error generating chapter {chapter.chapter_number}: {e}")
         raise e
