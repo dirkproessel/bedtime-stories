@@ -455,7 +455,19 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
         
         // Remove finding from list
         setFindings(prev => prev.filter(f => f !== finding));
-        toast.success('Korrektur im Editor angewendet. Speichern nicht vergessen!');
+
+        try {
+            toast.loading('Korrektur wird direkt gespeichert...', { id: 'lektorat-save' });
+            await updateProChapter(activeProject.id, selectedChapterNum, {
+                title: chapterTitle,
+                plot_outline: chapterOutline,
+                content: newText
+            });
+            await loadProProjectDetail(activeProject.id);
+            toast.success('Korrektur angewendet und gespeichert!', { id: 'lektorat-save' });
+        } catch (e: any) {
+            toast.error('Fehler beim Speichern: ' + e.message, { id: 'lektorat-save' });
+        }
     };
 
     const handleRunGlobalLektorat = async () => {

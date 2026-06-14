@@ -187,122 +187,126 @@ function App() {
    return (
      <div className="min-h-screen bg-background flex flex-col lg:flex-row w-full relative overflow-hidden">
        {/* Sidebar Navigation (Desktop) / Bottom Nav (Mobile) */}
-       <nav className="fixed bottom-0 left-0 right-0 lg:static lg:w-64 lg:h-screen bg-surface/80 lg:bg-surface backdrop-blur-xl lg:backdrop-blur-none border-t lg:border-t-0 lg:border-r border-slate-800 safe-area-bottom z-[100] flex flex-col">
-         {/* Desktop Brand Logo */}
-          <div className="hidden lg:flex flex-col items-center gap-0 pt-0 pb-4 px-6 border-b border-slate-800/50">
-          <div className="w-52 h-52 flex items-center justify-center">
-            <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
-          </div>
-           <div className="text-center">
-             <h2 className="text-xl font-semibold text-text tracking-tight leading-tight">Kurzgeschichten-Labor</h2>
-             <p className="text-xs tracking-widest uppercase text-text-muted opacity-80 mt-1">
-               Literatur auf Knopfdruck
-             </p>
+       {activeView !== 'pro' && (
+         <nav className="fixed bottom-0 left-0 right-0 lg:static lg:w-64 lg:h-screen bg-surface/80 lg:bg-surface backdrop-blur-xl lg:backdrop-blur-none border-t lg:border-t-0 lg:border-r border-slate-800 safe-area-bottom z-[100] flex flex-col">
+           {/* Desktop Brand Logo */}
+            <div className="hidden lg:flex flex-col items-center gap-0 pt-0 pb-4 px-6 border-b border-slate-800/50">
+            <div className="w-52 h-52 flex items-center justify-center">
+              <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
+            </div>
+             <div className="text-center">
+               <h2 className="text-xl font-semibold text-text tracking-tight leading-tight">Kurzgeschichten-Labor</h2>
+               <p className="text-xs tracking-widest uppercase text-text-muted opacity-80 mt-1">
+                 Literatur auf Knopfdruck
+               </p>
+             </div>
            </div>
-         </div>
 
-         {/* Nav Items Container */}
-         <div className="w-full lg:w-auto lg:max-w-none mx-auto lg:mx-0 flex lg:flex-col items-center lg:items-stretch justify-between lg:justify-start py-1 lg:py-6 px-2 lg:px-4 gap-2 lg:flex-1">
-           {NAV_ITEMS.map(({ key, label, icon: Icon }) => {
-             const isActive = activeView === key;
-             
-             return (
-               <button
-                 key={key}
-                 onClick={() => {
-                   setActiveView(key);
-                   if (useStore.getState().isReaderOpen) {
-                     useStore.getState().setReaderOpen(false);
-                   }
-                 }}
-                  className={`flex flex-col lg:flex-row items-center justify-center lg:justify-start gap-1 lg:gap-4 px-2 sm:px-4 lg:px-6 py-2 lg:py-3.5 rounded-xl lg:rounded-2xl transition-all relative group ${isActive
-                    ? 'text-primary lg:bg-primary/10'
-                    : 'text-slate-100 hover:text-white hover:bg-white/5'
-                    }`}
-               >
-                 <div className={`transition-transform duration-300 ${key === 'create' ? '-rotate-90' : ''} group-hover:scale-110`}>
-                   <Icon className={`w-5 h-5 lg:w-6 lg:h-6 ${isActive ? 'stroke-[3]' : 'stroke-[2.5]'}`} />
-                 </div>
-                  <span className="text-xs font-medium capitalize lg:capitalize tracking-wider lg:tracking-normal">
-                    {label}
-                  </span>
-                 
-                 {/* Desktop Active Indicator */}
-                 {isActive && (
-                   <div className="hidden lg:block absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r-full shadow-[0_0_15px_rgba(34,197,94,0.5)]" />
-                 )}
-               </button>
-             );
-           })}
+           {/* Nav Items Container */}
+           <div className="w-full lg:w-auto lg:max-w-none mx-auto lg:mx-0 flex lg:flex-col items-center lg:items-stretch justify-between lg:justify-start py-1 lg:py-6 px-2 lg:px-4 gap-2 lg:flex-1">
+             {NAV_ITEMS.map(({ key, label, icon: Icon }) => {
+               const isActive = activeView === key;
+               
+               return (
+                 <button
+                   key={key}
+                   onClick={() => {
+                     setActiveView(key);
+                     if (useStore.getState().isReaderOpen) {
+                       useStore.getState().setReaderOpen(false);
+                     }
+                   }}
+                    className={`flex flex-col lg:flex-row items-center justify-center lg:justify-start gap-1 lg:gap-4 px-2 sm:px-4 lg:px-6 py-2 lg:py-3.5 rounded-xl lg:rounded-2xl transition-all relative group ${isActive
+                      ? 'text-primary lg:bg-primary/10'
+                      : 'text-slate-100 hover:text-white hover:bg-white/5'
+                      }`}
+                 >
+                   <div className={`transition-transform duration-300 ${key === 'create' ? '-rotate-90' : ''} group-hover:scale-110`}>
+                     <Icon className={`w-5 h-5 lg:w-6 lg:h-6 ${isActive ? 'stroke-[3]' : 'stroke-[2.5]'}`} />
+                   </div>
+                    <span className="text-xs font-medium capitalize lg:capitalize tracking-wider lg:tracking-normal">
+                      {label}
+                    </span>
+                   
+                   {/* Desktop Active Indicator */}
+                   {isActive && (
+                     <div className="hidden lg:block absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r-full shadow-[0_0_15px_rgba(34,197,94,0.5)]" />
+                   )}
+                 </button>
+               );
+             })}
 
-           {/* Desktop Admin/Profile Link Area */}
-           <div className="hidden lg:flex flex-col mt-auto pt-6 gap-2 border-t border-slate-800/50">
+             {/* Desktop Admin/Profile Link Area */}
+             <div className="hidden lg:flex flex-col mt-auto pt-6 gap-2 border-t border-slate-800/50">
+                <button 
+                  onClick={() => {
+                    setActiveView('profile');
+                    if (useStore.getState().isReaderOpen) {
+                      useStore.getState().setReaderOpen(false);
+                    }
+                  }}
+                  className={`flex items-center gap-4 px-6 py-3.5 rounded-2xl transition-all ${activeView === 'profile' ? 'text-primary bg-primary/10' : 'text-slate-100 hover:bg-white/5'}`}
+                >
+                  <div className="w-6 h-6 rounded-full border border-slate-700 overflow-hidden flex items-center justify-center bg-surface">
+                     {user?.avatar_url ? (
+                       <img src={user.avatar_url} className="w-full h-full object-cover" />
+                     ) : <User className="w-4 h-4 text-slate-400" />}
+                  </div>
+                   <span className="text-xs font-medium">Mein Profil</span>
+                </button>
+             </div>
+           </div>
+         </nav>
+       )}
+
+        <div className="flex-1 flex flex-col relative h-screen overflow-hidden">
+          {activeView !== 'pro' && (
+            <header className="lg:hidden h-16 shrink-0 flex items-center justify-between px-4 bg-background/80 backdrop-blur-md border-b border-slate-800/50 sticky top-0 z-40">
+              <div className="flex items-center gap-3">
+                  <div className="w-18 h-18 flex items-center justify-center">
+                      <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
+                  </div>
+                  <div>
+                    <h1 className="text-lg font-semibold text-text tracking-tight leading-tight">Kurzgeschichten-Labor</h1>
+                    <p className="text-xs tracking-widest uppercase text-text-muted opacity-80">Literatur auf Knopfdruck</p>
+                  </div>
+              </div>
               <button 
                 onClick={() => {
                   setActiveView('profile');
                   if (useStore.getState().isReaderOpen) {
-                    useStore.getState().setReaderOpen(false);
+                      useStore.getState().setReaderOpen(false);
                   }
                 }}
-                className={`flex items-center gap-4 px-6 py-3.5 rounded-2xl transition-all ${activeView === 'profile' ? 'text-primary bg-primary/10' : 'text-slate-100 hover:bg-white/5'}`}
+                className="shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-surface border-2 border-slate-800 hover:border-slate-700 transition-colors shadow-sm overflow-hidden"
               >
-                <div className="w-6 h-6 rounded-full border border-slate-700 overflow-hidden flex items-center justify-center bg-surface">
-                   {user?.avatar_url ? (
-                     <img src={user.avatar_url} className="w-full h-full object-cover" />
-                   ) : <User className="w-4 h-4 text-slate-400" />}
-                </div>
-                 <span className="text-xs font-medium">Mein Profil</span>
-              </button>
-           </div>
-         </div>
-       </nav>
-
-       <div className="flex-1 flex flex-col relative h-screen overflow-hidden">
-          <header className="lg:hidden h-16 shrink-0 flex items-center justify-between px-4 bg-background/80 backdrop-blur-md border-b border-slate-800/50 sticky top-0 z-40">
-            <div className="flex items-center gap-3">
-                <div className="w-18 h-18 flex items-center justify-center">
-                    <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
-                </div>
-                <div>
-                  <h1 className="text-lg font-semibold text-text tracking-tight leading-tight">Kurzgeschichten-Labor</h1>
-                  <p className="text-xs tracking-widest uppercase text-text-muted opacity-80">Literatur auf Knopfdruck</p>
-                </div>
-            </div>
-            <button 
-              onClick={() => {
-                setActiveView('profile');
-                if (useStore.getState().isReaderOpen) {
-                    useStore.getState().setReaderOpen(false);
-                }
-              }}
-              className="shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-surface border-2 border-slate-800 hover:border-slate-700 transition-colors shadow-sm overflow-hidden"
-            >
-              {user ? (
-                user.avatar_url ? (
-                  <img 
-                    src={user.avatar_url.replace('.jpg', '_thumb.jpg') + "?t=" + Date.now()} 
-                    alt="Avatar" 
-                    className="w-full h-full object-cover" 
-                  />
+                {user ? (
+                  user.avatar_url ? (
+                    <img 
+                      src={user.avatar_url.replace('.jpg', '_thumb.jpg') + "?t=" + Date.now()} 
+                      alt="Avatar" 
+                      className="w-full h-full object-cover" 
+                    />
+                  ) : (
+                    <span className="text-sm font-bold text-slate-300 uppercase">
+                      {user.email.charAt(0)}
+                    </span>
+                  )
                 ) : (
-                  <span className="text-sm font-bold text-slate-300 uppercase">
-                    {user.email.charAt(0)}
-                  </span>
-                )
-              ) : (
-                <User className="w-5 h-5 text-slate-400" />
-              )}
-            </button>
-          </header>
+                  <User className="w-5 h-5 text-slate-400" />
+                )}
+              </button>
+            </header>
+          )}
 
          <div className="flex flex-1 overflow-hidden">
            {/* Main Content Area */}
            <main 
              id="main-scroll-container" 
-             className={`flex-1 overflow-y-auto pb-40 lg:pb-8 ${activeView === 'landing' ? 'pt-0' : 'pt-2 lg:pt-8'}`}
+             className={`flex-1 overflow-y-auto ${activeView === 'pro' ? 'pb-8 pt-4 lg:pt-8' : activeView === 'landing' ? 'pt-0 pb-40' : 'pt-2 lg:pt-8 pb-40 lg:pb-8'}`}
            >
              {/* Dynamic Page Title (Responsive adjusting spacing) */}
-             {activeView !== 'landing' && (
+             {activeView !== 'landing' && activeView !== 'pro' && (
               <div className="px-3 sm:px-6 mb-3 lg:mb-6 max-w-7xl mx-auto w-full">
                 <h1 className="text-lg lg:text-3xl font-semibold text-white lg:text-white text-center lg:text-left opacity-90 lg:opacity-100">
                  {activeView === 'create' && 'Erstelle eine eigene Geschichte'}
@@ -315,7 +319,6 @@ function App() {
                  )}
                  {activeView === 'profile' && 'Mein Profil'}
                  {activeView === 'admin' && 'Adminbereich'}
-                 {activeView === 'pro' && 'Stanzwerk Pro - Buch-Labor'}
                  {activeView === 'login' && (localStorage.getItem('is_registering') === 'true' ? 'Konto erstellen' : 'Willkommen zurück')}
                </h1>
              </div>

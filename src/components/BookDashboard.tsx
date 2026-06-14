@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
-import { Plus, BookOpen, Trash2, ArrowRight, Loader2, RefreshCw } from 'lucide-react';
+import { Plus, BookOpen, Trash2, ArrowRight, Loader2, RefreshCw, ArrowLeft } from 'lucide-react';
 import BookEditor from './BookEditor';
 import { createProBook, deleteProBook } from '../lib/api';
 import toast from 'react-hot-toast';
@@ -14,7 +14,8 @@ export default function BookDashboard() {
         setCurrentProProject, 
         loadProProjects, 
         loadProProjectDetail,
-        isLoading 
+        isLoading,
+        setActiveView
     } = useStore();
     
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -101,9 +102,18 @@ export default function BookDashboard() {
     return (
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-800 pb-5">
-                <div>
-                    <h2 className="text-xl font-bold text-white">Projekte ({proProjects.length})</h2>
-                    <p className="text-xs text-text-muted mt-1">Erstelle und verwalte deine langen Buchprojekte (Novellen).</p>
+                <div className="flex items-center gap-4">
+                    <button 
+                        onClick={() => setActiveView('create')}
+                        className="p-2.5 bg-surface hover:bg-slate-800 text-slate-400 hover:text-white rounded-xl transition-colors border border-slate-800"
+                        title="Zurück zum Labor"
+                    >
+                        <ArrowLeft className="w-5 h-5" />
+                    </button>
+                    <div>
+                        <h2 className="text-xl font-bold text-white">Projekte ({proProjects.length})</h2>
+                        <p className="text-xs text-text-muted mt-1">Erstelle und verwalte deine langen Buchprojekte (Novellen).</p>
+                    </div>
                 </div>
                 
                 <div className="flex gap-2">
