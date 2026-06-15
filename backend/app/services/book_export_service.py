@@ -691,6 +691,39 @@ def generate_book_txt(project: BookProject, chapters: List[BookChapter], output_
     logger.info(f"Plain-text book written to {output_path}")
 
 
+def clean_pdf_text(text: str) -> str:
+    """
+    Sanitize text to be safe for FPDF Latin-1 encoding (Helvetica).
+    Replaces common non-Latin-1 characters with equivalents and encodes/decodes to filter others.
+    """
+    if not text:
+        return ""
+    
+    # Common Unicode characters mapping to Latin-1/ASCII
+    replacements = {
+        "\u201c": '"',  # “ (left double quote)
+        "\u201d": '"',  # ” (right double quote)
+        "\u2018": "'",  # ‘ (left single quote)
+        "\u2019": "'",  # ’ (right single quote)
+        "\u2014": "--", # — (em dash)
+        "\u2013": "-",  # – (en dash)
+        "\u2026": "...",# … (ellipsis)
+        "\u2022": "-",  # • (bullet)
+        "\u2726": "* * *", # ✦ (ornament)
+        "\u00a0": " ",  # non-breaking space
+        "\u200b": "",   # zero-width space
+        "\ufeff": "",   # BOM
+    }
+    
+    for old, new in replacements.items():
+        text = text.replace(old, new)
+        
+    try:
+        return text.encode("latin-1", errors="replace").decode("latin-1")
+    except Exception:
+        return "".join(c if ord(c) < 256 else "?" for c in text)
+
+
 # ---------------------------------------------------------------------------
 # PDF Generator  (fpdf2)
 # ---------------------------------------------------------------------------
@@ -710,14 +743,15 @@ def generate_book_pdf(project: BookProject, chapters: List[BookChapter], output_
     from fpdf import FPDF
 
     year = datetime.date.today().year
-    author_name = (project.epub_author or "").strip() or "Stanzwerk Pro"
+    clean_title = clean_pdf_text(project.title)
+    author_name = clean_pdf_text((project.epub_author or "").strip() or "Stanzwerk Pro")
 
     class BookPDF(FPDF):
         """Custom PDF with header/footer for book pages."""
 
         def __init__(self):
             super().__init__()
-            self._book_title = project.title
+            self._book_title = clean_title
             self._author = author_name
             self._show_header_footer = False
 
@@ -746,11 +780,11 @@ def generate_book_pdf(project: BookProject, chapters: List[BookChapter], output_
     pdf.ln(60)
     pdf.set_font("Helvetica", "B", 28)
     pdf.set_text_color(30, 30, 30)
-    pdf.multi_cell(0, 14, project.title, align="C")
+    pdf.multi_cell(0, 14, clean_title, align="C")
     pdf.ln(10)
     pdf.set_font("Helvetica", "", 16)
     pdf.set_text_color(150, 150, 150)
-    pdf.cell(0, 10, "\u2726", align="C")  # ornament ✦
+    pdf.cell(0, 10, "* * *", align="C")  # ornament ✦ replacement
     pdf.ln(20)
     pdf.set_font("Helvetica", "B", 14)
     pdf.set_text_color(60, 60, 60)
@@ -758,14 +792,14 @@ def generate_book_pdf(project: BookProject, chapters: List[BookChapter], output_
     pdf.ln(40)
     pdf.set_font("Helvetica", "", 10)
     pdf.set_text_color(130, 130, 130)
-    pdf.cell(0, 8, f"storyja.com \u2022 {year}", align="C")
+    pdf.cell(0, 8, f"storyja.com - {year}", align="C")  # bullet replacement
 
     # ---- Imprint Page ----
     pdf.add_page()
     pdf.ln(30)
     pdf.set_font("Helvetica", "B", 11)
     pdf.set_text_color(60, 60, 60)
-    pdf.cell(0, 8, project.title, ln=True)
+    pdf.cell(0, 8, clean_title, ln=True)
     pdf.set_font("Helvetica", "", 9)
     pdf.set_text_color(100, 100, 100)
     pdf.cell(0, 6, f"Erstauflage {year}", ln=True)
@@ -784,14 +818,14 @@ def generate_book_pdf(project: BookProject, chapters: List[BookChapter], output_
         f"(storyja.com) verfasst und von {author_name} kuratiert, "
         "redigiert und ver\u00f6ffentlicht."
     )
-    custom_imprint = (project.epub_imprint or "").strip()
+    custom_imprint = clean_pdf_text((project.epub_imprint or "").strip())
     if custom_imprint:
         pdf.ln(6)
         pdf.set_font("Helvetica", "", 9)
         pdf.multi_cell(0, 5, custom_imprint)
 
     # ---- Dedication Page (optional) ----
-    dedication_text = (project.epub_dedication or "").strip()
+    dedication_text = clean_pdf_text((project.epub_dedication or "").strip())
     if dedication_text:
         pdf.add_page()
         pdf.ln(80)
@@ -819,7 +853,7 @@ def generate_book_pdf(project: BookProject, chapters: List[BookChapter], output_
         roman = to_roman(c.chapter_number)
         pdf.cell(15, 8, roman, align="R")
         pdf.cell(8, 8, "")
-        pdf.cell(0, 8, c.title, ln=True)
+        pdf.cell(0, 8, clean_pdf_text(c.title), ln=True)
 
     # ---- Chapter Pages ----
     pdf._show_header_footer = True
@@ -839,7 +873,7 @@ def generate_book_pdf(project: BookProject, chapters: List[BookChapter], output_
 
         pdf.set_font("Helvetica", "I", 13)
         pdf.set_text_color(90, 90, 90)
-        pdf.multi_cell(0, 8, c.title, align="C")
+        pdf.multi_cell(0, 8, clean_pdf_text(c.title), align="C")
         pdf.ln(4)
 
         # horizontal rule
@@ -873,11 +907,11 @@ def generate_book_pdf(project: BookProject, chapters: List[BookChapter], output_
             # Join single newlines within a paragraph
             clean_para = ' '.join(line.strip() for line in para.split('\n') if line.strip())
             if clean_para:
-                pdf.multi_cell(0, 6.5, clean_para)
+                pdf.multi_cell(0, 6.5, clean_pdf_text(clean_para))
                 pdf.ln(3)
 
     # ---- Afterword (optional) ----
-    afterword_text = (project.epub_afterword or "").strip()
+    afterword_text = clean_pdf_text((project.epub_afterword or "").strip())
     if afterword_text:
         pdf.add_page()
         pdf.ln(10)
@@ -898,7 +932,7 @@ def generate_book_pdf(project: BookProject, chapters: List[BookChapter], output_
             para = para.strip()
             if para:
                 clean_para = ' '.join(line.strip() for line in para.split('\n') if line.strip())
-                pdf.multi_cell(0, 6.5, clean_para)
+                pdf.multi_cell(0, 6.5, clean_pdf_text(clean_para))
                 pdf.ln(3)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
