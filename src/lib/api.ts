@@ -752,6 +752,7 @@ export interface BookChapter {
     chapter_number: number;
     title: string;
     plot_outline: string;
+    pov_character?: string | null;
     content: string | null;
     running_summary: string | null;
     feedback: string | null;
@@ -767,6 +768,7 @@ export interface BookProject {
     prompt: string;
     genre: string;
     style: string;
+    genre_config?: string | null;
     characters_bible: string | null;
     style_bible: string | null;
     outline: string | null;
@@ -820,7 +822,7 @@ export async function fetchProBookDetail(id: string): Promise<BookProjectDetail>
     return res.json();
 }
 
-export async function createProBook(req: { title: string, prompt: string, genre: string, style: string }): Promise<BookProject> {
+export async function createProBook(req: { title: string, prompt: string, genre: string, style: string, genre_config?: string }): Promise<BookProject> {
     const res = await fetch(`${API_BASE}/api/pro/books`, {
         method: 'POST',
         headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
@@ -1158,6 +1160,16 @@ export async function generateAllProChapters(
     if (!res.ok) {
         const error = await res.json().catch(() => ({}));
         throw new Error(error.detail || 'Fehler beim Starten der Gesamt-Generierung');
+    }
+    return res.json();
+}
+
+export async function fetchGenreProfile(genre: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/api/pro/genres/${encodeURIComponent(genre)}/profile`, {
+        headers: getAuthHeaders()
+    });
+    if (!res.ok) {
+        throw new Error("Genre-Profil konnte nicht geladen werden");
     }
     return res.json();
 }

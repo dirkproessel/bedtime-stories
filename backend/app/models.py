@@ -269,6 +269,9 @@ class BookProject(SQLModel, table=True):
     genre: str = Field(default="Realismus")
     style: str = Field(default="Douglas Adams")
     
+    # Genre-Konfiguration (JSON string: {tropes: [], pov: "", spice_level: 3})
+    genre_config: Optional[str] = Field(default=None)
+    
     # Store JSON strings for structure
     characters_bible: Optional[str] = Field(default=None)  # JSON list of characters
     style_bible: Optional[str] = Field(default=None)  # Detailed style guidelines (custom/editable)
@@ -303,6 +306,7 @@ class BookChapter(SQLModel, table=True):
     chapter_number: int
     title: str
     plot_outline: str
+    pov_character: Optional[str] = Field(default=None)  # Wessen Perspektive hat dieses Kapitel
     
     content: Optional[str] = Field(default=None)  # Written text
     running_summary: Optional[str] = Field(default=None)  # Small summary of this chapter for next chapters' context
@@ -322,6 +326,7 @@ class BookProjectCreate(BaseModel):
     prompt: str
     genre: str
     style: str
+    genre_config: Optional[str] = None
 
 
 class BookProjectUpdate(BaseModel):
@@ -335,6 +340,7 @@ class BookProjectUpdate(BaseModel):
     epub_dedication: Optional[str] = None
     epub_afterword: Optional[str] = None
     epub_imprint: Optional[str] = None
+    genre_config: Optional[str] = None
 
 
 class BookOutlineImport(BaseModel):
@@ -347,6 +353,7 @@ class BookChapterUpdate(BaseModel):
     plot_outline: Optional[str] = None
     content: Optional[str] = None
     feedback: Optional[str] = None
+    pov_character: Optional[str] = None
 
 
 class BookChapterResponse(BaseModel):
@@ -361,6 +368,7 @@ class BookChapterResponse(BaseModel):
     status: str
     created_at: datetime
     updated_at: datetime
+    pov_character: Optional[str] = None
 
 
 class BookProjectResponse(BaseModel):
@@ -384,6 +392,7 @@ class BookProjectResponse(BaseModel):
     progress_pct: int
     created_at: datetime
     updated_at: datetime
+    genre_config: Optional[str] = None
 
 
 class BookProjectDetailResponse(BookProjectResponse):

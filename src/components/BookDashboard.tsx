@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { Plus, BookOpen, Trash2, ArrowRight, Loader2, RefreshCw, ArrowLeft } from 'lucide-react';
 import BookEditor from './BookEditor';
-import { createProBook, deleteProBook } from '../lib/api';
+import { createProBook, deleteProBook, fetchGenreProfile } from '../lib/api';
 import toast from 'react-hot-toast';
 import { AUTHORS, formatAuthorStyles } from '../lib/authors';
 import { GENRES } from './StoryCreator';
@@ -25,6 +25,12 @@ export default function BookDashboard() {
     const [style, setStyle] = useState('adams');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    // Genre specific configurations
+    const [genreProfile, setGenreProfile] = useState<any>(null);
+    const [selectedTropes, setSelectedTropes] = useState<string[]>([]);
+    const [pov, setPov] = useState<string>('');
+    const [spiceLevel, setSpiceLevel] = useState<number>(3);
+
     // Initial load and periodic polling for generating status
     useEffect(() => {
         loadProProjects();
@@ -42,6 +48,24 @@ export default function BookDashboard() {
         return () => clearInterval(interval);
     }, [proProjects, loadProProjects]);
 
+    // Load genre profile when genre or modal changes
+    useEffect(() => {
+        if (!showCreateModal) return;
+        const loadProfile = async () => {
+            try {
+                const profile = await fetchGenreProfile(genre);
+                setGenreProfile(profile);
+                setPov(profile.default_pov || '');
+                setSelectedTropes([]);
+                setSpiceLevel(3);
+            } catch (err) {
+                console.error(err);
+                setGenreProfile(null);
+            }
+        };
+        loadProfile();
+    }, [genre, showCreateModal]);
+
     const handleCreateProject = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!title.trim() || !prompt.trim()) {
@@ -49,9 +73,21 @@ export default function BookDashboard() {
             return;
         }
 
+        const genreConfigJson = JSON.stringify({
+            tropes: selectedTropes,
+            pov: pov,
+            spice_level: genreProfile?.has_spice_levels ? spiceLevel : null
+        });
+
         setIsSubmitting(true);
         try {
-            const newProject = await createProBook({ title, prompt, genre, style });
+            const newProject = await createProBook({ 
+                title, 
+                prompt, 
+                genre, 
+                style, 
+                genre_config: genreConfigJson 
+            });
             toast.success('Projekt erfolgreich angelegt!');
             setTitle('');
             setPrompt('');
@@ -261,6 +297,93 @@ export default function BookDashboard() {
                                     </select>
                                 </div>
                             </div>
+
+                            {/* Genre-spezifische Einstellungen (Tropes, POV, Spice) */}
+                            {genreProfile && (
+                                <div className="space-y-4 border-t border-slate-800/80 pt-4">
+                                    {/* Tropes */}
+                                    {genreProfile.available_tropes?.length > 0 && (
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-medium text-slate-300">
+                                                Aktive Tropes (wähle passende narrative Elemente)
+                                            </label>
+                                            <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto pr-1">
+                                                {genreProfile.available_tropes.map((t: any) => {
+                                                    const isSelected = selectedTropes.includes(t.id);
+                                                    return (
+                                                        <button
+                                                            key={t.id}
+                                                            type="button"
+                                                            onClick={() => {
+                                                                if (isSelected) {
+                                                                    setSelectedTropes(selectedTropes.filter(id => id !== t.id));
+                                                                } else {
+                                                                    setSelectedTropes([...selectedTropes, t.id]);
+                                                                }
+                                                            }}
+                                                            className={`text-[11px] px-2.5 py-1 rounded-full border transition-all ${
+                                                                isSelected 
+                                                                ? 'bg-primary/20 border-primary text-primary' 
+                                                                : 'bg-background border-slate-800 text-slate-400 hover:border-slate-700'
+                                                            }`}
+                                                            title={t.description}
+                                                        >
+                                                            {t.name}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* POV */}
+                                    {genreProfile.pov_options?.length > 0 && (
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-medium text-slate-300">Erzählperspektive (POV)</label>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                {genreProfile.pov_options.map((p: any) => (
+                                                    <button
+                                                        key={p.id}
+                                                        type="button"
+                                                        onClick={() => setPov(p.id)}
+                                                        className={`text-[11px] p-2 rounded-xl border text-left transition-all flex flex-col justify-between ${
+                                                            pov === p.id 
+                                                            ? 'bg-primary/10 border-primary text-white' 
+                                                            : 'bg-background border-slate-800 text-slate-400 hover:border-slate-700'
+                                                        }`}
+                                                    >
+                                                        <span className="font-semibold text-slate-200">{p.name}</span>
+                                                        <span className="text-[9px] text-text-muted mt-1 leading-snug">{p.description}</span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Spice Level */}
+                                    {genreProfile.has_spice_levels && (
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between items-center text-xs font-medium">
+                                                <span className="text-slate-300">Intimitäts-Level (Spice): {spiceLevel}/5</span>
+                                                <span className="text-primary font-semibold">
+                                                    {spiceLevel === 1 ? 'Clean' : spiceLevel === 2 ? 'Mild' : spiceLevel === 3 ? 'Moderat' : spiceLevel === 4 ? 'Steamy' : 'Explicit'}
+                                                </span>
+                                            </div>
+                                            <input 
+                                                type="range" 
+                                                min="1" 
+                                                max="5" 
+                                                value={spiceLevel} 
+                                                onChange={(e) => setSpiceLevel(parseInt(e.target.value))}
+                                                className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-primary focus:outline-none"
+                                            />
+                                            <p className="text-[10px] text-text-muted italic leading-snug">
+                                                {genreProfile.spice_descriptions?.[spiceLevel] || ''}
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
                             <div className="flex justify-end gap-2 pt-2">
                                 <button 

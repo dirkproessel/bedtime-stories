@@ -198,6 +198,18 @@ async def bg_generate_chapter(project_id: str, chapter_id: str, model: str, feed
             db_project.status = "draft"
             db_project.progress = None
             db_project.progress_pct = 0
+            
+            if chapter_number == 1 and content:
+                from app.services.book_generator import extract_style_samples
+                try:
+                    samples = await extract_style_samples(content)
+                    if samples:
+                        existing = db_project.style_bible or ""
+                        if "Stilproben aus Kapitel 1" not in existing:
+                            db_project.style_bible = (existing + "\n\n--- Stilproben aus Kapitel 1 ---\n" + samples).strip()
+                except Exception as ex_style:
+                    logger.error(f"Failed to extract style samples in background: {ex_style}")
+            
             session.add(db_chapter)
             session.add(db_project)
             session.commit()
@@ -308,7 +320,20 @@ async def bg_generate_all_chapters(
                 db_chapter.content = content
                 db_chapter.running_summary = summary
                 db_chapter.status = "done"
+                
+                if num == 1 and content:
+                    from app.services.book_generator import extract_style_samples
+                    try:
+                        samples = await extract_style_samples(content)
+                        if samples:
+                            existing = db_project.style_bible or ""
+                            if "Stilproben aus Kapitel 1" not in existing:
+                                db_project.style_bible = (existing + "\n\n--- Stilproben aus Kapitel 1 ---\n" + samples).strip()
+                    except Exception as ex_style:
+                        logger.error(f"Failed to extract style samples in bulk background: {ex_style}")
+                
                 session.add(db_chapter)
+                session.add(db_project)
                 session.commit()
                 logger.info(f"Background: Chapter {num} written sequentially.")
         
@@ -473,6 +498,16 @@ async def bg_generate_cover(project_id: str, cover_prompt: str, model: Optional[
 
 # --- CRUD Endpoints ---
 
+@router.get("/genres/{genre}/profile")
+async def api_get_genre_profile(genre: str, current_user: User = Depends(get_current_active_user)):
+    """Returns the genre profile configuration for a specific genre."""
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin-Zugang verweigert.")
+    from app.services.genre_profiles import get_genre_profile
+    profile = get_genre_profile(genre)
+    return profile.model_dump()
+
+
 @router.post("/books", response_model=BookProjectResponse)
 async def create_book_project(req: BookProjectCreate, current_user: User = Depends(get_current_active_user)):
     if not current_user.is_admin:
@@ -489,6 +524,7 @@ async def create_book_project(req: BookProjectCreate, current_user: User = Depen
         prompt=req.prompt,
         genre=req.genre,
         style=req.style,
+        genre_config=req.genre_config,
         style_bible=initial_style,
         status="draft"
     )
@@ -610,6 +646,8 @@ async def api_generate_outline(
             
         # Generate outline
         bible = project.characters_bible or "Keine Angabe"
+        g_config = json.loads(project.genre_config) if project.genre_config else None
+        
         outline_res = await generate_outline(
             prompt=project.prompt,
             genre=project.genre,
@@ -617,7 +655,8 @@ async def api_generate_outline(
             characters_bible=bible,
             num_chapters=num_chapters,
             model=model,
-            instruction=instruction
+            instruction=instruction,
+            genre_config=g_config
         )
         
         # Save outline structure to project
@@ -633,13 +672,22 @@ async def api_generate_outline(
             
         # Create new chapters in draft state
         for ch_data in outline_res.get("chapters", []):
+            pov_char = None
+            if g_config and g_config.get("pov") == "dual_alternating":
+                pov_char = "weiblicher Hauptcharakter" if ch_data.get("chapter_number", 1) % 2 == 1 else "männlicher Hauptcharakter"
+            elif g_config and g_config.get("pov") == "single_female":
+                pov_char = "weiblicher Hauptcharakter"
+            elif g_config and g_config.get("pov") == "single_male":
+                pov_char = "männlicher Hauptcharakter"
+                
             chapter = BookChapter(
                 id=str(uuid.uuid4())[:8],
                 book_project_id=id,
                 chapter_number=ch_data.get("chapter_number"),
                 title=ch_data.get("title", f"Kapitel {ch_data.get('chapter_number')}"),
                 plot_outline=ch_data.get("plot_outline", ""),
-                status="draft"
+                status="draft",
+                pov_character=pov_char
             )
             session.add(chapter)
             
@@ -977,6 +1025,7 @@ async def api_expand_chapter_outline(
             
         bible = project.characters_bible or "Keine Angabe"
         full_outline = project.outline or "{}"
+        g_config = json.loads(project.genre_config) if project.genre_config else None
         
         # Expand single chapter outline
         expanded = await expand_chapter_outline(
@@ -988,11 +1037,14 @@ async def api_expand_chapter_outline(
             chapter_number=num,
             current_title=chapter.title,
             current_plot_outline=chapter.plot_outline,
-            model=model
+            model=model,
+            genre_config=g_config
         )
         
         chapter.title = expanded.get("title", chapter.title)
         chapter.plot_outline = expanded.get("plot_outline", chapter.plot_outline)
+        if "pov_character" in expanded and expanded["pov_character"]:
+            chapter.pov_character = expanded["pov_character"]
         chapter.updated_at = datetime.now(timezone.utc)
         session.add(chapter)
         
@@ -1004,6 +1056,7 @@ async def api_expand_chapter_outline(
                 if c_data.get("chapter_number") == num:
                     c_data["title"] = chapter.title
                     c_data["plot_outline"] = chapter.plot_outline
+                    c_data["pov_character"] = chapter.pov_character
                     break
             outline_data["chapters"] = chaps
             project.outline = json.dumps(outline_data)
@@ -1042,6 +1095,7 @@ async def api_expand_all_outlines(
             
         bible = project.characters_bible or "Keine Angabe"
         full_outline = project.outline or "{}"
+        g_config = json.loads(project.genre_config) if project.genre_config else None
         
         # Build concurrent tasks for each chapter
         tasks = []
@@ -1056,7 +1110,8 @@ async def api_expand_all_outlines(
                     chapter_number=ch.chapter_number,
                     current_title=ch.title,
                     current_plot_outline=ch.plot_outline,
-                    model=model
+                    model=model,
+                    genre_config=g_config
                 )
             )
             
@@ -1072,19 +1127,23 @@ async def api_expand_all_outlines(
                 outline_chaps.append({
                     "chapter_number": ch.chapter_number,
                     "title": ch.title,
-                    "plot_outline": ch.plot_outline
+                    "plot_outline": ch.plot_outline,
+                    "pov_character": ch.pov_character
                 })
                 continue
                 
             ch.title = res.get("title", ch.title)
             ch.plot_outline = res.get("plot_outline", ch.plot_outline)
+            if "pov_character" in res and res["pov_character"]:
+                ch.pov_character = res["pov_character"]
             ch.updated_at = datetime.now(timezone.utc)
             session.add(ch)
             
             outline_chaps.append({
                 "chapter_number": ch.chapter_number,
                 "title": ch.title,
-                "plot_outline": ch.plot_outline
+                "plot_outline": ch.plot_outline,
+                "pov_character": ch.pov_character
             })
             
         # Update project outline JSON

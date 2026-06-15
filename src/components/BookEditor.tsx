@@ -32,7 +32,8 @@ import {
     expandProOutline,
     generateAllProChapters,
     applyGlobalFeedbackToOutline,
-    proofreadProOutlineGlobally
+    proofreadProOutlineGlobally,
+    fetchGenreProfile
 } from '../lib/api';
 import { 
     ArrowLeft, 
@@ -76,6 +77,40 @@ const IMAGE_MODELS = [
     { value: 'fal-ai/flux/schnell', label: 'Flux/schnell (fal.ai)' }
 ];
 
+function parseSceneBeats(plotOutline: string): any[] {
+    if (!plotOutline || !plotOutline.includes('--- Szene')) return [];
+    
+    const scenes: any[] = [];
+    const sections = plotOutline.split(/--- Szene \d+ ---/i);
+    
+    for (let i = 1; i < sections.length; i++) {
+        const text = sections[i].trim();
+        const scene: any = { scene_number: i };
+        
+        const lines = text.split('\n');
+        for (const line of lines) {
+            const trimmed = line.trim();
+            if (trimmed.startsWith('POV:')) {
+                scene.pov_character = trimmed.substring(4).trim();
+            } else if (trimmed.startsWith('Ort:')) {
+                scene.setting = trimmed.substring(4).trim();
+            } else if (trimmed.startsWith('Ziel:')) {
+                scene.goal = trimmed.substring(5).trim();
+            } else if (trimmed.startsWith('Konflikt:')) {
+                scene.conflict = trimmed.substring(9).trim();
+            } else if (trimmed.startsWith('Ausgang:')) {
+                scene.outcome = trimmed.substring(8).trim();
+            } else if (trimmed.startsWith('Emotion:')) {
+                scene.emotional_arc = trimmed.substring(8).trim();
+            } else if (trimmed.startsWith('Wörter:')) {
+                scene.estimated_words = trimmed.substring(7).trim();
+            }
+        }
+        scenes.push(scene);
+    }
+    return scenes;
+}
+
 export default function BookEditor({ project, onBack }: BookEditorProps) {
     const { loadProProjectDetail, currentProProject } = useStore();
     const activeProject = currentProProject || project;
@@ -108,7 +143,13 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
     const [charModel, setCharModel] = useState('gemini-3.1-flash-lite');
     const [styleBible, setStyleBible] = useState(activeProject.style_bible || '');
     const [styleModel, setStyleModel] = useState('gemini-3.1-flash-lite');
-    const [activeConceptTab, setActiveConceptTab] = useState<'characters' | 'style'>('characters');
+    const [activeConceptTab, setActiveConceptTab] = useState<'characters' | 'style' | 'genre'>('characters');
+
+    // Genre specific configurations
+    const [genreProfile, setGenreProfile] = useState<any>(null);
+    const [selectedTropes, setSelectedTropes] = useState<string[]>([]);
+    const [pov, setPov] = useState<string>('');
+    const [spiceLevel, setSpiceLevel] = useState<number>(3);
 
     // Step 2 State: Outline
     const [numChapters, setNumChapters] = useState(activeProject.chapters.length || 8);
@@ -126,6 +167,12 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
     const [chapterOutline, setChapterOutline] = useState('');
     const [feedback, setFeedback] = useState('');
     const [targetWords, setTargetWords] = useState<number>(2000);
+    const [completedScenes, setCompletedScenes] = useState<Record<string, boolean>>({});
+
+    const toggleSceneCompleted = (chapterNum: number, sceneNum: number) => {
+        const key = `${chapterNum}-${sceneNum}`;
+        setCompletedScenes(prev => ({ ...prev, [key]: !prev[key] }));
+    };
 
     // Step 4 State: Lektorat
     const [lektoratTab, setLektoratTab] = useState<'chapter' | 'global'>('chapter');
@@ -201,6 +248,54 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
         setEpubImprint(activeProject.epub_imprint || '');
     }, [activeProject.id, activeProject.characters_bible, activeProject.style_bible, activeProject.cover_prompt,
         activeProject.epub_author, activeProject.epub_dedication, activeProject.epub_afterword, activeProject.epub_imprint]);
+
+    // Load and sync genre profiles configuration
+    useEffect(() => {
+        const loadProfile = async () => {
+            try {
+                const profile = await fetchGenreProfile(activeProject.genre);
+                setGenreProfile(profile);
+            } catch (err) {
+                console.error("Failed to load genre profile inside editor:", err);
+            }
+        };
+        loadProfile();
+    }, [activeProject.genre]);
+
+    useEffect(() => {
+        if (activeProject.genre_config) {
+            try {
+                const config = JSON.parse(activeProject.genre_config);
+                setSelectedTropes(config.tropes || []);
+                setPov(config.pov || '');
+                setSpiceLevel(config.spice_level || 3);
+            } catch (err) {
+                console.error("Error parsing genre_config in editor:", err);
+            }
+        } else {
+            setSelectedTropes([]);
+            setPov('');
+            setSpiceLevel(3);
+        }
+    }, [activeProject.id, activeProject.genre_config]);
+
+    const handleSaveGenreConfig = async () => {
+        setIsSaving(true);
+        try {
+            const configJson = JSON.stringify({
+                tropes: selectedTropes,
+                pov,
+                spice_level: genreProfile?.has_spice_levels ? spiceLevel : null
+            });
+            await updateProBook(activeProject.id, { genre_config: configJson });
+            toast.success('Genre-Einstellungen gespeichert!');
+            await loadProProjectDetail(activeProject.id);
+        } catch (e: any) {
+            toast.error('Fehler beim Speichern der Genre-Einstellungen: ' + e.message);
+        } finally {
+            setIsSaving(false);
+        }
+    };
 
     const dbChapter = activeProject.chapters.find(c => c.chapter_number === selectedChapterNum);
 
@@ -925,6 +1020,16 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                             >
                                 Stil-Bible (Schreibstil)
                             </button>
+                            <button 
+                                onClick={() => setActiveConceptTab('genre')}
+                                className={`pb-2 text-xs font-bold transition-all relative ${
+                                    activeConceptTab === 'genre' 
+                                    ? 'text-white after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:bg-primary' 
+                                    : 'text-slate-400 hover:text-slate-200'
+                                }`}
+                            >
+                                Genre-Einstellungen
+                            </button>
                         </div>
 
                         {/* TAB 1: CHARACTERS */}
@@ -1018,6 +1123,119 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                                     >
                                         {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
                                         Stil-Bible speichern
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* TAB 3: GENRE CONFIG */}
+                        {activeConceptTab === 'genre' && (
+                            <div className="flex-1 flex flex-col space-y-4 overflow-hidden">
+                                <span className="text-[10px] text-slate-500 font-semibold uppercase font-mono">Genre-Einstellungen ({activeProject.genre})</span>
+                                
+                                {genreProfile ? (
+                                    <div className="space-y-5 flex-1 overflow-y-auto pr-1">
+                                        <div className="bg-background p-4 rounded-2xl border border-slate-800 space-y-1">
+                                            <h4 className="text-xs font-semibold text-white">{genreProfile.name}</h4>
+                                            <p className="text-[11px] text-text-muted">{genreProfile.description}</p>
+                                        </div>
+
+                                        {/* Tropes */}
+                                        {genreProfile.available_tropes?.length > 0 && (
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-semibold text-slate-300">
+                                                    Aktive Tropes (Beliebte Wendepunkte/Narrative)
+                                                </label>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {genreProfile.available_tropes.map((t: any) => {
+                                                        const isSelected = selectedTropes.includes(t.id);
+                                                        return (
+                                                            <button
+                                                                key={t.id}
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    if (isSelected) {
+                                                                        setSelectedTropes(selectedTropes.filter(id => id !== t.id));
+                                                                    } else {
+                                                                        setSelectedTropes([...selectedTropes, t.id]);
+                                                                    }
+                                                                }}
+                                                                className={`text-[11px] px-3 py-1.5 rounded-full border transition-all ${
+                                                                    isSelected 
+                                                                    ? 'bg-primary/20 border-primary text-primary' 
+                                                                    : 'bg-background border-slate-800 text-slate-400 hover:border-slate-700'
+                                                                }`}
+                                                                title={t.description}
+                                                            >
+                                                                {t.name}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* POV */}
+                                        {genreProfile.pov_options?.length > 0 && (
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-semibold text-slate-300">Erzählperspektive (POV)</label>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                                    {genreProfile.pov_options.map((p: any) => (
+                                                        <button
+                                                            key={p.id}
+                                                            type="button"
+                                                            onClick={() => setPov(p.id)}
+                                                            className={`text-[11px] p-3 rounded-xl border text-left transition-all flex flex-col justify-between ${
+                                                                pov === p.id 
+                                                                ? 'bg-primary/10 border-primary text-white' 
+                                                                : 'bg-background border-slate-800 text-slate-400 hover:border-slate-700'
+                                                            }`}
+                                                        >
+                                                            <span className="font-semibold text-slate-200">{p.name}</span>
+                                                            <span className="text-[10px] text-text-muted mt-1 leading-snug">{p.description}</span>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Spice Level */}
+                                        {genreProfile.has_spice_levels && (
+                                            <div className="space-y-2.5">
+                                                <div className="flex justify-between items-center text-xs font-semibold">
+                                                    <span className="text-slate-300">Intimitäts-Level (Spice): {spiceLevel}/5</span>
+                                                    <span className="text-primary">
+                                                        {spiceLevel === 1 ? 'Clean' : spiceLevel === 2 ? 'Mild' : spiceLevel === 3 ? 'Moderat' : spiceLevel === 4 ? 'Steamy' : 'Explicit'}
+                                                    </span>
+                                                </div>
+                                                <input 
+                                                    type="range" 
+                                                    min="1" 
+                                                    max="5" 
+                                                    value={spiceLevel} 
+                                                    onChange={(e) => setSpiceLevel(parseInt(e.target.value))}
+                                                    className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-primary focus:outline-none"
+                                                />
+                                                <p className="text-[10px] text-text-muted italic leading-snug">
+                                                    {genreProfile.spice_descriptions?.[spiceLevel] || ''}
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div className="text-slate-500 text-xs py-10 text-center">
+                                        Keine Genre-Vorgaben für dieses Genre gefunden.
+                                    </div>
+                                )}
+
+                                <div className="flex justify-end pt-1 shrink-0 border-t border-slate-800/80 pt-3">
+                                    <button 
+                                        onClick={handleSaveGenreConfig}
+                                        disabled={isSaving}
+                                        className="btn-primary py-2 px-5 text-xs flex items-center gap-1.5 rounded-xl"
+                                    >
+                                        {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                                        Genre-Einstellungen speichern
                                     </button>
                                 </div>
                             </div>
@@ -1242,11 +1460,84 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                                         </div>
                                     </div>
 
+                                    {/* Visualize Scene Beats if available */}
+                                    {(() => {
+                                        const scenes = parseSceneBeats(chap.plot_outline);
+                                        if (scenes.length === 0) return null;
+                                        
+                                        const totalWords = scenes.reduce((acc, s) => {
+                                            const match = s.estimated_words?.match(/\d+/);
+                                            return acc + (match ? parseInt(match[0]) : 0);
+                                        }, 0);
+                                        
+                                        return (
+                                            <div className="space-y-3 bg-slate-900/40 p-4 rounded-2xl border border-slate-800/80 animate-fadeIn">
+                                                <div className="flex justify-between items-center text-[10px] uppercase font-mono text-slate-500 font-bold border-b border-slate-800/80 pb-2">
+                                                    <span>Strukturierte Szenen-Gliederung ({scenes.length} Szenen)</span>
+                                                    <span className="text-primary bg-primary/5 px-2 py-0.5 rounded border border-primary/10">~{totalWords} Wörter geplant</span>
+                                                </div>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                    {scenes.map((scene, idx) => (
+                                                        <div key={idx} className="bg-background p-3 rounded-xl border border-slate-800/80 space-y-2 relative flex flex-col justify-between">
+                                                            <div className="space-y-1.5">
+                                                                <div className="flex justify-between items-start">
+                                                                    <span className="text-[10px] font-bold text-slate-400 font-mono">
+                                                                        Szene {scene.scene_number}
+                                                                    </span>
+                                                                    {scene.pov_character && (
+                                                                        <span className="text-[9px] bg-primary/10 border border-primary/20 text-primary px-2 py-0.5 rounded-full uppercase font-mono tracking-wide font-bold">
+                                                                            POV: {scene.pov_character}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                
+                                                                {scene.setting && (
+                                                                    <div className="text-[10px]">
+                                                                        <span className="text-slate-500 block uppercase font-mono text-[8px] tracking-wide">Ort:</span>
+                                                                        <span className="text-slate-300 font-medium">{scene.setting}</span>
+                                                                    </div>
+                                                                )}
+                                                                
+                                                                <div className="text-[10px] grid grid-cols-3 gap-2 border-t border-slate-800/60 pt-1.5">
+                                                                    {scene.goal && (
+                                                                        <div className="col-span-1 border-r border-slate-800/60 pr-1">
+                                                                            <span className="text-slate-500 block uppercase font-mono text-[8px] tracking-wide">Ziel:</span>
+                                                                            <p className="text-slate-300 leading-snug line-clamp-3" title={scene.goal}>{scene.goal}</p>
+                                                                        </div>
+                                                                    )}
+                                                                    {scene.conflict && (
+                                                                        <div className="col-span-1 border-r border-slate-800/60 px-1">
+                                                                            <span className="text-slate-500 block uppercase font-mono text-[8px] tracking-wide">Konflikt:</span>
+                                                                            <p className="text-slate-300 leading-snug line-clamp-3" title={scene.conflict}>{scene.conflict}</p>
+                                                                        </div>
+                                                                    )}
+                                                                    {scene.outcome && (
+                                                                        <div className="col-span-1 pl-1">
+                                                                            <span className="text-slate-500 block uppercase font-mono text-[8px] tracking-wide">Ausgang:</span>
+                                                                            <p className="text-slate-300 leading-snug line-clamp-3" title={scene.outcome}>{scene.outcome}</p>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+
+                                                            {scene.emotional_arc && (
+                                                                <div className="text-[9px] border-t border-slate-800/60 pt-1.5 flex justify-between items-center text-slate-500">
+                                                                    <span className="uppercase font-mono text-[8px] tracking-wide">Emotion:</span>
+                                                                    <span className="text-slate-300 font-serif italic">{scene.emotional_arc}</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
+
                                     <textarea 
                                         value={chap.plot_outline}
                                         onChange={(e) => updateEditableChapterField(i, 'plot_outline', e.target.value)}
                                         rows={6}
-                                        className="w-full bg-surface border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-primary resize-y leading-relaxed"
+                                        className="w-full bg-surface border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-primary resize-y leading-relaxed font-mono"
                                         placeholder="Handlungsstrang und Ereignisse für dieses Kapitel..."
                                     />
 
@@ -1346,11 +1637,86 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                         </div>
                         
                         {/* Outline of selected chapter */}
-                        <div className="bg-surface p-4 rounded-3xl border border-slate-800 space-y-2">
-                            <h4 className="text-xs font-semibold text-white">Kapitel-Plot-Outline</h4>
-                            <p className="text-xs text-slate-400 leading-relaxed font-serif">
-                                {chapterOutline || 'Keine Plot-Vorgabe für dieses Kapitel.'}
-                            </p>
+                        <div className="bg-surface p-4 rounded-3xl border border-slate-800 space-y-3">
+                            <div className="flex justify-between items-center pb-1.5 border-b border-slate-800/60">
+                                <h4 className="text-xs font-semibold text-white">Kapitel-Plot-Outline</h4>
+                                {dbChapter?.pov_character && (
+                                    <span className="text-[9px] bg-primary/10 border border-primary/20 text-primary px-2 py-0.5 rounded-full uppercase font-mono tracking-wide font-bold">
+                                        POV: {dbChapter.pov_character}
+                                    </span>
+                                )}
+                            </div>
+                            
+                            {(() => {
+                                const scenes = parseSceneBeats(chapterOutline);
+                                if (scenes.length === 0) {
+                                    return (
+                                        <p className="text-xs text-slate-400 leading-relaxed font-serif whitespace-pre-wrap">
+                                            {chapterOutline || 'Keine Plot-Vorgabe für dieses Kapitel.'}
+                                        </p>
+                                    );
+                                }
+                                
+                                return (
+                                    <div className="space-y-2 max-h-[40vh] overflow-y-auto custom-scrollbar pr-1">
+                                        <p className="text-[10px] text-slate-500 font-mono uppercase font-bold tracking-wide mb-1.5">
+                                            Szenen-Checkliste ({scenes.length} Szenen):
+                                        </p>
+                                        <div className="space-y-2">
+                                            {scenes.map((scene, idx) => {
+                                                const isCompleted = !!completedScenes[`${selectedChapterNum}-${scene.scene_number}`];
+                                                return (
+                                                    <div 
+                                                        key={idx} 
+                                                        className={`flex items-start gap-2.5 p-2.5 rounded-xl transition-all border ${
+                                                            isCompleted 
+                                                            ? 'bg-slate-900/20 border-slate-900/40 opacity-60' 
+                                                            : 'bg-background border-slate-800/80 hover:border-slate-700/60'
+                                                        }`}
+                                                    >
+                                                        <input
+                                                            type="checkbox"
+                                                            id={`scene-chk-${selectedChapterNum}-${scene.scene_number}`}
+                                                            checked={isCompleted}
+                                                            onChange={() => toggleSceneCompleted(selectedChapterNum, scene.scene_number)}
+                                                            className="mt-0.5 rounded border-slate-700 text-primary focus:ring-primary/20 focus:ring-offset-0 bg-slate-900"
+                                                        />
+                                                        <div className="flex-1 min-w-0 space-y-1">
+                                                            <div className="flex justify-between items-center gap-2">
+                                                                <label 
+                                                                    htmlFor={`scene-chk-${selectedChapterNum}-${scene.scene_number}`}
+                                                                    className={`text-[11px] font-bold font-mono cursor-pointer select-none ${
+                                                                        isCompleted ? 'text-slate-500 line-through' : 'text-slate-300'
+                                                                    }`}
+                                                                >
+                                                                    Szene {scene.scene_number}
+                                                                </label>
+                                                                {scene.pov_character && scene.pov_character !== dbChapter?.pov_character && (
+                                                                    <span className="text-[8px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded font-mono truncate max-w-[100px]" title={scene.pov_character}>
+                                                                        {scene.pov_character}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            {scene.goal && (
+                                                                <p className="text-[10px] text-slate-400 leading-normal font-sans">
+                                                                    <span className="text-slate-500 font-medium font-mono mr-1">Ziel:</span>
+                                                                    {scene.goal}
+                                                                </p>
+                                                            )}
+                                                            {scene.setting && (
+                                                                <p className="text-[10px] text-slate-400 leading-normal font-sans">
+                                                                    <span className="text-slate-500 font-medium font-mono mr-1">Ort:</span>
+                                                                    {scene.setting}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                );
+                            })()}
                         </div>
                     </div>
 

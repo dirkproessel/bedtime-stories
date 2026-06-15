@@ -54,6 +54,97 @@ class ProofreadGlobalFindingSchema(BaseModel):
 class ProofreadGlobalResponseSchema(BaseModel):
     findings: List[ProofreadGlobalFindingSchema] = Field(description="Die Liste aller globalen Fehler und Widersprüche im gesamten Manuskript")
 
+class SceneBeatSchema(BaseModel):
+    scene_number: int = Field(description="Fortlaufende Nummer der Szene (1-basiert)")
+    pov_character: str = Field(description="Name des Charakter, aus dessen Perspektive erzählt wird")
+    setting: str = Field(description="Ort/Setting der Szene (z.B. 'Dunkle Gasse hinter dem Club')")
+    goal: str = Field(description="Was will der POV-Charakter in dieser Szene erreichen?")
+    conflict: str = Field(description="Was steht ihm/ihr im Weg? Welche Spannung entsteht?")
+    outcome: str = Field(description="Wie endet die Szene? (z.B. 'Sie erfährt sein Geheimnis')")
+    emotional_arc: str = Field(description="Emotionale Entwicklung in dieser Szene (z.B. 'Misstrauen → Neugier → Angst')")
+    estimated_words: int = Field(description="Geschätzte Wortanzahl für diese Szene (z.B. 500)")
+
+class ExpandedChapterOutlineSchema(BaseModel):
+    title: str = Field(description="Der Kapitel-Titel")
+    scene_beats: List[SceneBeatSchema] = Field(description="Die Szenen des Kapitels als strukturierte Beats")
+    chapter_summary: str = Field(description="Kurze Zusammenfassung des gesamten Kapitels (1-2 Sätze)")
+
+def estimate_tokens(text: str) -> int:
+    """Grobe Token-Schätzung für deutschen Text (~1.4 Token pro Wort)."""
+    if not text:
+        return 0
+    return int(len(text.split()) * 1.4)
+
+# Kontextlimits pro Modell
+MODEL_CONTEXT_LIMITS = {
+    "gemini-3.5-flash": 1048576,       # 1M tokens
+    "gemini-3.1-flash-lite": 1048576,
+    "gemini-3.1-pro-preview": 2097152,  # 2M tokens
+    "deepseek-v4-pro": 65536,           # 64K tokens  
+    "deepseek-v4-flash": 65536,
+}
+
+def truncate_to_budget(text: str, max_tokens: int) -> str:
+    """Kürze Text intelligent auf ein Token-Budget."""
+    current = estimate_tokens(text)
+    if current <= max_tokens:
+        return text
+    # Berechne Wort-Limit und schneide ab
+    max_words = int(max_tokens / 1.4)
+    words = text.split()
+    truncated = " ".join(words[:max_words])
+    return truncated + "\n\n[... Text gekürzt wegen Kontextlimit ...]"
+
+async def extract_style_samples(chapter_content: str, model: str = "gemini-3.1-flash-lite") -> str:
+    """Extract 3-5 particularly well-written passages from a chapter as style reference."""
+    prompt = f"""
+    Analysiere den folgenden Romantext und extrahiere exakt 3 bis 5 besonders gelungene Absätze 
+    oder Passagen (je 1-3 Sätze), die den Schreibstil des Autors am besten repräsentieren.
+    
+    Achte auf:
+    - Charakteristische Satzstrukturen
+    - Besonders atmosphärische Beschreibungen  
+    - Gelungene Dialoge
+    - Wiederkehrende stilistische Muster
+    
+    Text:
+    \"\"\"
+    {chapter_content[:4000]}
+    \"\"\"
+    
+    Gib die Passagen als nummerierte Liste zurück, OHNE Kommentar oder Einleitung.
+    Format: 
+    1. "Passage..."
+    2. "Passage..."
+    """
+    try:
+        response = await generate_text(
+            prompt=prompt,
+            model=model,
+            temperature=0.2,
+            max_tokens=1000
+        )
+        return response.strip()
+    except Exception as e:
+        logger.error(f"Error extracting style samples: {e}")
+        return ""
+
+def format_scene_beats_as_text(beats: list) -> str:
+    """Konvertiert Scene Beats in lesbaren Text für das plot_outline-Feld."""
+    lines = []
+    for beat in beats:
+        sn = beat.get("scene_number", "?")
+        lines.append(f"--- Szene {sn} ---")
+        lines.append(f"POV: {beat.get('pov_character', '?')}")
+        lines.append(f"Ort: {beat.get('setting', '?')}")
+        lines.append(f"Ziel: {beat.get('goal', '?')}")
+        lines.append(f"Konflikt: {beat.get('conflict', '?')}")
+        lines.append(f"Ausgang: {beat.get('outcome', '?')}")
+        lines.append(f"Emotion: {beat.get('emotional_arc', '?')}")
+        lines.append(f"Wörter: ~{beat.get('estimated_words', '?')}")
+        lines.append("")  # Leerzeile
+    return "\n".join(lines).strip()
+
 def clean_json_string(s: str) -> str:
     """Strip markdown code blocks around JSON if present."""
     s = s.strip()
@@ -124,8 +215,17 @@ def get_author_names_improved(style_string: str) -> str:
 async def suggest_characters(prompt: str, genre: str, style: str, model: str = "gemini-3.1-flash-lite") -> List[Dict[str, Any]]:
     """Generate 3-5 character suggestions based on a book idea."""
     style_resolved = get_author_names_improved(style)
+    from app.services.genre_profiles import get_genre_profile
+    profile = get_genre_profile(genre)
+    genre_context = ""
+    if profile.id != "default":
+        genre_context = f"\nGenre-spezifische Anforderungen: {profile.description}\n"
+        if profile.emotional_arc_template:
+            genre_context += f"Emotionaler Bogen: {profile.emotional_arc_template}\n"
+
     system_instruction = (
         "Du bist ein erfahrener Romanautor und Charakter-Designer. "
+        f"{genre_context}"
         "Erstelle 3 bis 5 vielschichtige Charaktere für ein neues Buchprojekt. "
         "Antworte ausschließlich im JSON-Format."
     )
@@ -179,10 +279,22 @@ async def generate_outline(
     characters_bible: str, 
     num_chapters: int = 8, 
     model: str = "gemini-3.1-flash-lite",
-    instruction: Optional[str] = None
+    instruction: Optional[str] = None,
+    genre_config: Optional[dict] = None
 ) -> Dict[str, Any]:
     """Generate a chapter outline for the book."""
     style_resolved = get_author_names_improved(style)
+    
+    # Parse genre config and build genre-specific prompt section
+    from app.services.genre_profiles import build_genre_prompt_section
+    g_config = genre_config or {}
+    genre_section = build_genre_prompt_section(
+        genre,
+        selected_tropes=g_config.get("tropes", []),
+        pov=g_config.get("pov"),
+        spice_level=g_config.get("spice_level")
+    )
+    
     system_instruction = (
         "Du bist ein Bestseller-Autor. Entwerfe eine spannende, kapitelweise Gliederung (Outline) "
         "für eine Novelle. Antworte ausschließlich im JSON-Format."
@@ -192,7 +304,9 @@ async def generate_outline(
     
     prompt_content = f"""
     Buchidee: {prompt}
-    Genre: {genre}
+    
+    {genre_section}
+    
     Autorenstil: {style_resolved}
     Charaktere: {characters_bible}
     Anzahl Kapitel: {num_chapters}
@@ -249,7 +363,7 @@ async def generate_chapter_content(
     feedback: Optional[str] = None,
     target_words: int = 2000
 ) -> str:
-    """Generate prose for a chapter utilizing compressed running summaries of past chapters."""
+    """Generate prose for a chapter utilizing a sliding window context and scene beats if available."""
     # Build character bible string
     chars_str = project.characters_bible or "Keine Angabe"
     style_resolved = getattr(project, "style_bible", None) or None
@@ -257,38 +371,89 @@ async def generate_chapter_content(
         from app.services.story_generator import generate_modular_prompt
         style_resolved = generate_modular_prompt(project.style)
     
+    # Load genre profile configuration
+    import json
+    g_config = json.loads(project.genre_config) if project.genre_config else {}
+    from app.services.genre_profiles import build_genre_prompt_section
+    genre_section = build_genre_prompt_section(
+        project.genre,
+        selected_tropes=g_config.get("tropes", []),
+        pov=g_config.get("pov"),
+        spice_level=g_config.get("spice_level")
+    )
+    
     # Build outline context
     outline_data = json.loads(project.outline) if project.outline else {}
     outline_chapters = outline_data.get("chapters", [])
     outline_str = "\n".join([f"Kapitel {c.get('chapter_number')}: {c.get('title')} - {c.get('plot_outline')}" for c in outline_chapters])
     
-    # Build running summaries of past chapters
-    past_summaries = []
-    for c in previous_chapters:
-        past_summaries.append(f"Kapitel {c.chapter_number} ({c.title}): {c.running_summary or 'Inhalt geschrieben.'}")
-    past_summaries_str = "\n".join(past_summaries) if past_summaries else "Erstes Kapitel. Keine vorherigen Ereignisse."
-    
-    # Build exact content of IMMEDIATELY PRECEDING chapter
-    prev_chapter_text = ""
-    if previous_chapters:
-        last_chap = previous_chapters[-1]
-        prev_chapter_text = f"VOLLTEXT KAPITEL {last_chap.chapter_number} (Zuletzt geschrieben):\n{last_chap.content or 'Kein Inhalt vorhanden.'}"
+    # Sliding Window context building (Default: 2 preceding full-text chapters)
+    FULLTEXT_WINDOW_SIZE = 2
+    if len(previous_chapters) > FULLTEXT_WINDOW_SIZE:
+        summary_chapters = previous_chapters[:-FULLTEXT_WINDOW_SIZE]
+        fulltext_chapters = previous_chapters[-FULLTEXT_WINDOW_SIZE:]
     else:
-        prev_chapter_text = "Dies ist das erste Kapitel des Buches. Es gibt keinen vorherigen Kapitel-Text."
+        summary_chapters = []
+        fulltext_chapters = previous_chapters
+
+    # Build summaries for older chapters
+    past_summaries = []
+    for c in summary_chapters:
+        past_summaries.append(f"Kapitel {c.chapter_number} ({c.title}): {c.running_summary or 'Inhalt geschrieben.'}")
+    past_summaries_str = "\n".join(past_summaries) if past_summaries else ""
+
+    # Build full-text sections for recent chapters
+    fulltext_sections = []
+    for c in fulltext_chapters:
+        fulltext_sections.append(
+            f"=== VOLLTEXT KAPITEL {c.chapter_number}: {c.title} ===\n"
+            f"{c.content or 'Kein Inhalt vorhanden.'}"
+        )
+    fulltext_str = "\n\n---\n\n".join(fulltext_sections) if fulltext_sections else "Dies ist das erste Kapitel des Buches."
         
     feedback_clause = ""
     if feedback:
         feedback_clause = f"\n**WICHTIGE ÄNDERUNGSANWEISUNG VOM USER (Für diesen Rewrite):**\n\"{feedback}\"\nBitte überarbeite das Kapitel und beachte diese Anweisung unbedingt!"
  
+    # Detect if plot_outline is scene beats structured
+    is_scene_based = "--- Szene" in (chapter.plot_outline or "")
+    if is_scene_based:
+        writing_instruction = f"""
+    Kapitel-Plot (Szenen-Struktur – arbeite ALLE Szenen in dieser Reihenfolge ab):
+    {chapter.plot_outline}
+    
+    ANWEISUNG: Schreibe das Kapitel, indem du JEDE Szene nacheinander ausarbeitest.
+    - Verwende KEINE Szenen-Überschriften, Trennlinien oder Nummerierungen im Prosa-Text!
+    - Trenne Szenen durch einen atmosphärischen Übergang oder eine Leerzeile.
+    - Halte dich an die geschätzten Wortanzahlen pro Szene (±20% ist OK).
+    - Achte besonders auf die emotionalen Arcs und Konflikte jeder Szene.
+    - Falls ein POV (Point of View) Charakter für dieses Kapitel/Szene angegeben ist (z.B. POV: {chapter.pov_character or 'Hauptcharakter'}), erzähle konsequent aus dieser Perspektive!
+    """
+    else:
+        writing_instruction = f"""
+    Kapitel-Plot (Was passieren soll): {chapter.plot_outline}
+    """
+
     system_instruction = (
         f"Du bist ein preisgekrönter Romanautor. Dein Schreibstil folgt diesen Vorgaben:\n{style_resolved}\n\n"
-        f"Du schreibst im Genre: {project.genre}.\n"
+        f"{genre_section}\n\n"
         "Schreibe ausschließlich die Romanprosa für das angeforderte Kapitel. Schreib flüssig, "
         "atmosphärisch und detailreich. Benutze KEINE Überschriften, Kapitelnummern (wie 'Kapitel 1'), "
         "Meta-Kommentare oder den Kapiteltitel am Anfang des Textes. Beginne sofort mit dem ersten Satz der Geschichte. "
         "Benutze unter keinen Umständen Markdown-Sternchen (*) oder Unterstriche (_), um Gedanken, Durchsagen oder wörtliche Rede hervorzuheben. "
         "Nutze für wörtliche Rede und Durchsagen stattdessen klassische deutsche Anführungszeichen (z. B. „...“ oder »...«)."
     )
+    
+    # Reference style samples if they are in the resolved style
+    if "Stilproben" in (style_resolved or ""):
+        system_instruction += (
+            "\n\nACHTUNG: Die in den Vorgaben enthaltenen Stilproben zeigen deinen bisherigen Schreibstil für dieses Buch. "
+            "Halte dich eng an diesen Ton, Rhythmus und diese Wortwahl, um Konsistenz zu gewährleisten."
+        )
+    
+    # Dynamic max_tokens calculation: ~1.4 tokens per German word + buffer
+    estimated_tokens = int(target_words * 1.4)
+    dynamic_max_tokens = max(8192, min(estimated_tokens + 2048, 16384))
     
     prompt = f"""
     Hier sind die Rahmendaten für das Buchprojekt:
@@ -300,18 +465,64 @@ async def generate_chapter_content(
     
     ---
     
-    Bisheriger Handlungsverlauf (Zusammenfassungen):
-    {past_summaries_str}
+    Bisheriger Handlungsverlauf (Zusammenfassungen früherer Kapitel):
+    {past_summaries_str or "Keine früheren Kapitel."}
     
     ---
     
-    {prev_chapter_text}
+    Volltext der letzten {len(fulltext_chapters)} Kapitel (als Stilreferenz und für Kontinuität):
+    {fulltext_str}
     
     ---
     
     Aufgabe:
     Schreibe jetzt das gesamte Kapitel {chapter.chapter_number} mit dem Titel: \"{chapter.title}\"
-    Kapitel-Plot (Was passieren soll): {chapter.plot_outline}
+    
+    {writing_instruction}
+    
+    {feedback_clause}
+    
+    Schreibe ein langes, literarisch hochwertiges Kapitel (Ziel-Wortanzahl: ca. {target_words} Wörter). 
+    Achte auf lebendige Dialoge, tiefe Charaktereinblicke und ein angemessenes Pacing passend zum gewählten Stil.
+    Gib ausschließlich die Kapitelprosa zurück.
+    """
+    
+    # Token-Budgeting context protection
+    model_limit = MODEL_CONTEXT_LIMITS.get(model, 32000)
+    output_budget = dynamic_max_tokens
+    input_budget = model_limit - output_budget - 2000  # Safety margin
+    
+    total_input_tokens = estimate_tokens(prompt)
+    if total_input_tokens > input_budget:
+        logger.warning(f"Context overflow detected: {total_input_tokens} > {input_budget}. Truncating outline.")
+        outline_str = truncate_to_budget(outline_str, max(500, input_budget // 4))
+        
+        # Re-build prompt with truncated outline
+        prompt = f"""
+    Hier sind die Rahmendaten für das Buchprojekt:
+    - Buchtitel: {project.title}
+    - Ursprungsidee: {project.prompt}
+    - Charakter-Übersicht: {chars_str}
+    - Gesamte Gliederung des Buches (Gekürzt):
+    {outline_str}
+    
+    ---
+    
+    Bisheriger Handlungsverlauf (Zusammenfassungen früherer Kapitel):
+    {past_summaries_str or "Keine früheren Kapitel."}
+    
+    ---
+    
+    Volltext der letzten {len(fulltext_chapters)} Kapitel (als Stilreferenz und für Kontinuität):
+    {fulltext_str}
+    
+    ---
+    
+    Aufgabe:
+    Schreibe jetzt das gesamte Kapitel {chapter.chapter_number} mit dem Titel: \"{chapter.title}\"
+    
+    {writing_instruction}
+    
     {feedback_clause}
     
     Schreibe ein langes, literarisch hochwertiges Kapitel (Ziel-Wortanzahl: ca. {target_words} Wörter). 
@@ -324,7 +535,7 @@ async def generate_chapter_content(
             prompt=prompt,
             model=model,
             temperature=0.8,
-            max_tokens=8192,
+            max_tokens=dynamic_max_tokens,
             system_instruction=system_instruction
         )
         prose = response.strip().replace("*", "")
@@ -666,20 +877,97 @@ async def expand_chapter_outline(
     chapter_number: int,
     current_title: str,
     current_plot_outline: str,
-    model: str = "gemini-3.1-flash-lite"
+    model: str = "gemini-3.1-flash-lite",
+    target_words_per_chapter: int = 2500,
+    genre_config: Optional[dict] = None,
+    use_scene_beats: bool = True
 ) -> Dict[str, Any]:
-    """Expands a single chapter outline into a detailed 3-4 paragraph blueprint."""
+    """Expands a single chapter outline into structured scene beats or a detailed 3-4 paragraph blueprint."""
     style_resolved = get_author_names_improved(style)
+    
+    if not use_scene_beats:
+        # Old behavior: paragraph blueprint
+        system_instruction = (
+            "Du bist ein Bestseller-Autor. Deine Aufgabe ist es, eine kurze Kapitelgliederung (Outline) "
+            "zu einem hochdetaillierten, schlüssigen und konsistenten Kapitel-Entwurf (Blueprint) auszuarbeiten. "
+            "Dieser Entwurf soll ca. 3 bis 4 Absätze umfassen, die den exakten Handlungsablauf, Schlüsselszenen, "
+            "Interaktionen und Emotionen beschreiben, damit das Kapitel danach perfekt geschrieben werden kann. "
+            "Antworte ausschließlich im JSON-Format."
+        )
+        
+        prompt_content = f"""
+        Hier sind die Rahmendaten des Buches:
+        - Buchidee/Plot: {project_prompt}
+        - Genre: {genre}
+        - Autorenstil: {style_resolved}
+        - Charaktere: {characters_bible}
+        
+        Gesamt-Gliederung des Buches:
+        {full_outline}
+        
+        Wir arbeiten gerade Kapitel {chapter_number} aus:
+        - Aktueller Titel: {current_title}
+        - Aktuelle Kurz-Gliederung: {current_plot_outline}
+        
+        Bitte verfeinere und vergrößere diese Kurz-Gliederung zu einem detaillierten Kapitel-Blueprint.
+        Der Blueprint muss:
+        - Etwa 3 bis 4 Absätze lang sein.
+        - Die genaue Szenenfolge, wichtige Gesprächsthemen, Gefühle der Charaktere und den roten Faden des Kapitels beschreiben.
+        - Vollkommen konsistent mit den vorherigen und nachfolgenden Kapiteln sein.
+        - Keine Platzhalter enthalten.
+        
+        Gib ein JSON-Objekt mit exakt diesen Feldern zurück:
+        - title (Der Kapitel-Titel)
+        - plot_outline (Der detaillierte Blueprint, 3-4 Absätze lang)
+        
+        Format:
+        {{
+          "title": "...",
+          "plot_outline": "..."
+        }}
+        """
+        try:
+            response = await generate_text(
+                prompt=prompt_content,
+                model=model,
+                temperature=0.75,
+                response_mime_type="application/json",
+                system_instruction=system_instruction,
+                response_schema=ImprovedChapterOutlineSchema
+            )
+            cleaned = clean_json_string(response)
+            return json.loads(cleaned)
+        except Exception as e:
+            logger.error(f"Error in expand_chapter_outline for chapter {chapter_number}: {e}")
+            return {
+                "title": current_title,
+                "plot_outline": current_plot_outline
+            }
+            
+    # New behavior: structured scene beats
+    pov_hint = ""
+    if genre_config and genre_config.get("pov") == "dual_alternating":
+        pov_hint = (
+            f"\nWICHTIG: Dieses Kapitel ({chapter_number}) wird aus der Perspektive des "
+            f"{'weiblichen' if chapter_number % 2 == 1 else 'männlichen'} Hauptcharakters erzählt. "
+            f"Alle Szenen MÜSSEN aus dieser Perspektive geplant sein."
+        )
+    elif genre_config and genre_config.get("pov") == "single_female":
+        pov_hint = "\nWICHTIG: Alle Szenen MÜSSEN aus der Perspektive des weiblichen Hauptcharakters erzählt sein."
+    elif genre_config and genre_config.get("pov") == "single_male":
+        pov_hint = "\nWICHTIG: Alle Szenen MÜSSEN aus der Perspektive des männlichen Hauptcharakters erzählt sein."
+        
+    recommended_scenes = max(3, min(7, target_words_per_chapter // 500))
+    
     system_instruction = (
-        "Du bist ein Bestseller-Autor. Deine Aufgabe ist es, eine kurze Kapitelgliederung (Outline) "
-        "zu einem hochdetaillierten, schlüssigen und konsistenten Kapitel-Entwurf (Blueprint) auszuarbeiten. "
-        "Dieser Entwurf soll ca. 3 bis 4 Absätze umfassen, die den exakten Handlungsablauf, Schlüsselszenen, "
-        "Interaktionen und Emotionen beschreiben, damit das Kapitel danach perfekt geschrieben werden kann. "
+        "Du bist ein Bestseller-Autor und Story-Architekt. Deine Aufgabe ist es, eine kurze "
+        "Kapitelgliederung zu einer detaillierten Szenen-Struktur auszuarbeiten. "
+        "Jede Szene bekommt einen klaren dramaturgischen Aufbau mit Ziel, Konflikt und Ausgang. "
         "Antworte ausschließlich im JSON-Format."
     )
     
     prompt_content = f"""
-    Hier sind die Rahmendaten des Buches:
+    Rahmendaten des Buches:
     - Buchidee/Plot: {project_prompt}
     - Genre: {genre}
     - Autorenstil: {style_resolved}
@@ -688,25 +976,38 @@ async def expand_chapter_outline(
     Gesamt-Gliederung des Buches:
     {full_outline}
     
-    Wir arbeiten gerade Kapitel {chapter_number} aus:
+    Wir arbeiten Kapitel {chapter_number} aus:
     - Aktueller Titel: {current_title}
     - Aktuelle Kurz-Gliederung: {current_plot_outline}
+    {pov_hint}
     
-    Bitte verfeinere und vergrößere diese Kurz-Gliederung zu einem detaillierten Kapitel-Blueprint.
-    Der Blueprint muss:
-    - Etwa 3 bis 4 Absätze lang sein.
-    - Die genaue Szenenfolge, wichtige Gesprächsthemen, Gefühle der Charaktere und den roten Faden des Kapitels beschreiben.
-    - Vollkommen konsistent mit den vorherigen und nachfolgenden Kapiteln sein.
-    - Keine Platzhalter enthalten.
+    Erstelle eine Szenen-Struktur mit {recommended_scenes} bis {recommended_scenes + 2} Szenen.
+    Das Kapitel soll insgesamt ca. {target_words_per_chapter} Wörter umfassen.
+    Verteile das Wortbudget sinnvoll auf die Szenen (manche Szenen sind kürzer/länger).
     
-    Gib ein JSON-Objekt mit exakt diesen Feldern zurück:
-    - title (Der Kapitel-Titel)
-    - plot_outline (Der detaillierte Blueprint, 3-4 Absätze lang)
+    WICHTIG:
+    - Jede Szene braucht einen klaren KONFLIKT – keine Szene ohne Spannung!
+    - Die Szenen müssen logisch aufeinander aufbauen.
+    - Die letzte Szene soll einen Hook/Cliffhanger für das nächste Kapitel setzen.
+    - Emotional Arcs sollen variieren (nicht jede Szene gleich emotional aufgeladen).
     
-    Format:
+    Gib ein JSON-Objekt mit diesen Feldern zurück:
     {{
-      "title": "...",
-      "plot_outline": "..."
+      "title": "Kapitel-Titel",
+      "scene_beats": [
+        {{
+          "scene_number": 1,
+          "pov_character": "Name des POV-Charakters",
+          "setting": "Wo spielt die Szene?",
+          "goal": "Was will der POV-Charakter?",
+          "conflict": "Was steht im Weg?",
+          "outcome": "Wie endet die Szene?",
+          "emotional_arc": "Emotionale Entwicklung (z.B. 'Angst → Entschlossenheit')",
+          "estimated_words": 400
+        }},
+        ...
+      ],
+      "chapter_summary": "Kurze Zusammenfassung des gesamten Kapitels"
     }}
     """
     
@@ -717,10 +1018,24 @@ async def expand_chapter_outline(
             temperature=0.75,
             response_mime_type="application/json",
             system_instruction=system_instruction,
-            response_schema=ImprovedChapterOutlineSchema
+            response_schema=ExpandedChapterOutlineSchema
         )
         cleaned = clean_json_string(response)
-        return json.loads(cleaned)
+        data = json.loads(cleaned)
+        
+        beats = data.get("scene_beats", [])
+        formatted_outline = format_scene_beats_as_text(beats)
+        
+        # Determine main POV character for the chapter
+        pov_char = None
+        if beats:
+            pov_char = beats[0].get("pov_character")
+            
+        return {
+            "title": data.get("title", current_title),
+            "plot_outline": formatted_outline,
+            "pov_character": pov_char
+        }
     except Exception as e:
         logger.error(f"Error in expand_chapter_outline for chapter {chapter_number}: {e}")
         return {
