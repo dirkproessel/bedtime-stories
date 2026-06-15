@@ -1174,4 +1174,17 @@ export async function fetchGenreProfile(genre: string): Promise<any> {
     return res.json();
 }
 
+export async function exportProBookToKindle(id: string, email: string): Promise<any> {
+    const response = await fetch(`${API_BASE}/api/pro/books/${id}/export/kindle`, {
+        method: 'POST',
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+    });
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || 'Email-Versand fehlgeschlagen');
+    }
+    return response.json();
+}
+
 

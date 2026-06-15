@@ -28,7 +28,8 @@ from app.models import (
     BookChapterUpdate,
     BookProjectResponse,
     BookProjectDetailResponse,
-    BookChapterResponse
+    BookChapterResponse,
+    KindleExportRequest
 )
 from app.services.book_generator import (
     suggest_characters,
@@ -1456,6 +1457,36 @@ async def export_book_epub_download(id: str, current_user: User = Depends(get_ad
         media_type="application/epub+zip",
         filename=f"{safe_title}.epub"
     )
+
+
+@router.post("/books/{id}/export/kindle")
+async def export_book_kindle(
+    id: str,
+    req: KindleExportRequest,
+    current_user: User = Depends(get_admin_user_from_request)
+):
+    with Session(engine) as session:
+        project = session.get(BookProject, id)
+        if not project:
+            raise HTTPException(status_code=404, detail="Buchprojekt nicht gefunden.")
+            
+        chapters = session.exec(
+            select(BookChapter)
+            .where(BookChapter.book_project_id == id)
+            .order_by(BookChapter.chapter_number)
+        ).all()
+        
+    # Generate temporary EPUB inside settings.AUDIO_OUTPUT_DIR/books
+    epub_filename = f"book_{id}_{uuid.uuid4().hex[:6]}.epub"
+    epub_path = settings.AUDIO_OUTPUT_DIR / "books" / epub_filename
+    
+    await generate_book_epub(project, chapters, epub_path)
+    
+    # Send via SMTP
+    from app.services.kindle_service import send_to_kindle
+    await send_to_kindle(epub_path, req.email, project.title)
+    
+    return {"status": "success", "message": f"Buch an {req.email} gesendet"}
 
 
 @router.get("/books/{id}/export/txt")

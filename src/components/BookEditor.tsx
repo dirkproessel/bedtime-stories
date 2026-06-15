@@ -33,7 +33,8 @@ import {
     generateAllProChapters,
     applyGlobalFeedbackToOutline,
     proofreadProOutlineGlobally,
-    fetchGenreProfile
+    fetchGenreProfile,
+    exportProBookToKindle
 } from '../lib/api';
 import { 
     ArrowLeft, 
@@ -52,7 +53,8 @@ import {
     Edit2,
     X,
     Search,
-    FileText
+    FileText,
+    Send
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -112,7 +114,7 @@ function parseSceneBeats(plotOutline: string): any[] {
 }
 
 export default function BookEditor({ project, onBack }: BookEditorProps) {
-    const { loadProProjectDetail, currentProProject } = useStore();
+    const { loadProProjectDetail, currentProProject, user } = useStore();
     const activeProject = currentProProject || project;
 
     const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -188,6 +190,11 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
     const [coverVersion, setCoverVersion] = useState(Date.now().toString());
     const [kdpMetadata, setKdpMetadata] = useState<KdpMetadata | null>(null);
     const [kdpModel, setKdpModel] = useState('gemini-3.1-flash-lite');
+
+    // Kindle Export State
+    const [showKindleModal, setShowKindleModal] = useState(false);
+    const [kindleEmail, setKindleEmail] = useState<string>(() => user?.kindle_email || localStorage.getItem('kindle_email') || 'dirk.proessel.runthaler@kindle.com');
+    const [isExporting, setIsExporting] = useState(false);
 
     // Step 5 State: EPUB Metadata
     const [epubTab, setEpubTab] = useState<'cover' | 'metadata' | 'export'>('cover');
@@ -813,6 +820,25 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
             toast.error('Fehler beim Speichern: ' + e.message);
         } finally {
             setIsSaving(false);
+        }
+    };
+
+    const handleKindleExport = async () => {
+        if (!kindleEmail) {
+            toast.error('Bitte Kindle E-Mail Adresse eingeben');
+            return;
+        }
+        localStorage.setItem('kindle_email', kindleEmail);
+        setIsExporting(true);
+        try {
+            toast.loading('Buch wird an Kindle gesendet...', { id: 'kindle' });
+            await exportProBookToKindle(activeProject.id, kindleEmail);
+            toast.success('An Kindle gesendet!', { id: 'kindle' });
+            setShowKindleModal(false);
+        } catch (e: any) {
+            toast.error(e.message || 'Fehler beim Kindle-Export', { id: 'kindle' });
+        } finally {
+            setIsExporting(false);
         }
     };
 
@@ -2354,7 +2380,7 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                             <h3 className="font-semibold text-white text-sm">Dateiexport</h3>
                             <p className="text-xs text-text-muted">Exportiere dein fertiges Buch in verschiedenen Formaten.</p>
                             
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                                 <a 
                                     href={getProEpubUrl(activeProject.id)}
                                     className="btn-primary py-3 px-5 text-sm font-semibold rounded-2xl flex items-center justify-center gap-2"
@@ -2376,6 +2402,13 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                                     <FileText className="w-4.5 h-4.5" />
                                     TXT
                                 </a>
+                                <button 
+                                    onClick={() => setShowKindleModal(true)}
+                                    className="bg-amber-600 hover:bg-amber-500 text-white py-3 px-5 text-sm font-semibold rounded-2xl flex items-center justify-center gap-2 transition-colors"
+                                >
+                                    <Send className="w-4.5 h-4.5" />
+                                    Kindle
+                                </button>
                             </div>
                         </div>
 
@@ -2680,6 +2713,50 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                                 >
                                     <Sparkles className="w-3.5 h-3.5" />
                                     Generierung starten
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showKindleModal && (
+                <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-[1000] flex items-center justify-center p-4">
+                    <div className="bg-surface border border-slate-800 w-full max-w-md rounded-3xl p-6 shadow-2xl relative space-y-4">
+                        <div className="space-y-1">
+                            <h3 className="text-lg font-bold text-white">An Kindle senden</h3>
+                            <p className="text-xs text-text-muted">Gib deine Kindle E-Mail Adresse ein, um das Buch als E-Book zu senden.</p>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] uppercase font-mono text-slate-500 font-semibold">Kindle E-Mail Adresse:</label>
+                                <input 
+                                    type="text" 
+                                    value={kindleEmail}
+                                    onChange={(e) => setKindleEmail(e.target.value)}
+                                    className="w-full bg-background border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-primary"
+                                    placeholder="beispiel@kindle.com"
+                                />
+                                <p className="text-[9px] text-slate-500 leading-normal">
+                                    Stelle sicher, dass die Absender-E-Mail (stories@storyja.com) in deinen Amazon Kindle Einstellungen unter "Persönliche Dokumente-E-Mail-Liste" freigegeben ist.
+                                </p>
+                            </div>
+
+                            <div className="flex justify-end gap-2 pt-2 border-t border-slate-800/80">
+                                <button
+                                    onClick={() => setShowKindleModal(false)}
+                                    className="px-4 py-2.5 rounded-xl text-xs font-medium hover:bg-slate-800 text-slate-400"
+                                >
+                                    Abbrechen
+                                </button>
+                                <button
+                                    onClick={handleKindleExport}
+                                    disabled={isExporting}
+                                    className="btn-primary py-2.5 px-5 rounded-xl text-xs flex items-center gap-1.5"
+                                >
+                                    {isExporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                                    Senden
                                 </button>
                             </div>
                         </div>
