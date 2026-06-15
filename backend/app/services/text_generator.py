@@ -75,6 +75,21 @@ async def _generate_gemini(prompt, model, temperature, max_tokens, response_mime
             contents=formatted_contents,
             config=config
         )
+        
+        # Diagnostic check for safety cutoffs or token budget limits
+        if response.candidates:
+            cand = response.candidates[0]
+            finish_reason = getattr(cand, "finish_reason", None)
+            if finish_reason:
+                fr_str = str(finish_reason)
+                # "1" or "STOP" is normal completion
+                if fr_str not in ["STOP", "FinishReason.STOP", "1", "FinishReason.STOP_SEQUENCE"]:
+                    logger.warning(
+                        f"TEXT_GEN: Gemini model '{model}' finished with status: {fr_str}. "
+                        f"If this is 'SAFETY' or 'MAX_TOKENS', the text was truncated mid-generation. "
+                        f"Generated text length: {len(response.text or '')} characters."
+                    )
+        
         if response.text is not None:
             return response.text.strip()
 
@@ -98,17 +113,17 @@ async def _generate_gemini(prompt, model, temperature, max_tokens, response_mime
         raise e
 
 async def _generate_deepseek(prompt, model, temperature, max_tokens, response_mime_type, system_instruction, presence_penalty, frequency_penalty):
-    """DeepSeek API call (OpenAI compatible)"""
+    """DeepSeek API call (OpenAI compatible) with automatic retry and error checks"""
     if not settings.DEEPSEEK_API_KEY:
         raise ValueError("DEEPSEEK_API_KEY is missing in settings")
 
     # Map frontend model names to actual DeepSeek API model names
-    if model.startswith("deepseek-v4"):
-        api_model = model
-    elif "pro" in model.lower() or "reasoner" in model.lower():
+    if "pro" in model.lower() or "reasoner" in model.lower():
         api_model = "deepseek-reasoner"
-    elif "flash" in model.lower():
+    elif "flash" in model.lower() or "chat" in model.lower():
         api_model = "deepseek-chat"
+    elif model.startswith("deepseek-v4"):
+        api_model = model
     else:
         api_model = model
 
@@ -126,12 +141,18 @@ async def _generate_deepseek(prompt, model, temperature, max_tokens, response_mi
     payload = {
         "model": api_model,
         "messages": messages,
-        "temperature": temperature,
-        "max_tokens": max_tokens,
-        "presence_penalty": presence_penalty,
-        "frequency_penalty": frequency_penalty,
         "stream": False
     }
+
+    if api_model == "deepseek-reasoner":
+        # DeepSeek Reasoner does NOT support temperature, presence_penalty, frequency_penalty
+        # It also needs a high max_tokens budget (e.g. 8192) to fit CoT reasoning tokens + prose
+        payload["max_tokens"] = 8192
+    else:
+        payload["temperature"] = temperature
+        payload["max_tokens"] = max_tokens
+        payload["presence_penalty"] = presence_penalty
+        payload["frequency_penalty"] = frequency_penalty
 
     if response_mime_type == "application/json":
         # DeepSeek supports json_object for deepseek-chat
@@ -141,14 +162,45 @@ async def _generate_deepseek(prompt, model, temperature, max_tokens, response_mi
             prompt += " (Respond in JSON format)"
             messages[-1]["content"] = prompt
 
-    async with httpx.AsyncClient(timeout=300.0) as client:
-        try:
-            resp = await client.post(url, headers=headers, json=payload)
-            resp.raise_for_status()
-            data = resp.json()
-            return data["choices"][0]["message"]["content"].strip()
-        except Exception as e:
-            logger.error(f"DeepSeek generation failed: {e}")
-            if hasattr(e, 'response') and e.response:
-                logger.error(f"Response: {e.response.text}")
-            raise e
+    max_retries = 3
+    initial_delay = 5.0
+    for attempt in range(max_retries):
+        async with httpx.AsyncClient(timeout=300.0) as client:
+            try:
+                resp = await client.post(url, headers=headers, json=payload)
+                resp.raise_for_status()
+                data = resp.json()
+                
+                choices = data.get("choices")
+                if not choices:
+                    raise ValueError(f"DeepSeek response contains no choices: {data}")
+                
+                message = choices[0].get("message")
+                if not message:
+                    raise ValueError(f"DeepSeek response choice contains no message: {data}")
+                
+                content = message.get("content")
+                if content is None:
+                    reasoning = message.get("reasoning_content", "")
+                    raise ValueError(
+                        f"DeepSeek returned reasoning but empty prose content. "
+                        f"Reasoning length: {len(reasoning)} chars. "
+                        f"Finish reason: {choices[0].get('finish_reason')}"
+                    )
+                
+                return content.strip()
+            except (httpx.HTTPStatusError, httpx.RequestError, ValueError) as e:
+                is_server_error = isinstance(e, httpx.HTTPStatusError) and e.response.status_code in [429, 500, 502, 503, 504]
+                is_network_error = isinstance(e, httpx.RequestError)
+                is_empty_content = isinstance(e, ValueError)
+                
+                if (is_server_error or is_network_error or is_empty_content) and attempt < max_retries - 1:
+                    delay = initial_delay * (2 ** attempt)
+                    logger.warning(f"DeepSeek attempt {attempt + 1} failed: {e}. Retrying in {delay:.1f}s...")
+                    await asyncio.sleep(delay)
+                else:
+                    logger.error(f"DeepSeek generation failed after {attempt + 1} attempts: {e}")
+                    if hasattr(e, 'response') and e.response:
+                        logger.error(f"Response: {e.response.text}")
+                    raise e
+

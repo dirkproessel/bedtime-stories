@@ -469,6 +469,22 @@ async def generate_chapter_content(
             else:
                 prev_scenes_context = "\nDies ist der Anfang dieses Kapitels. Beginne direkt mit dem ersten Satz.\n"
                 
+            # Optimize context for later scenes to prevent token count bloating and DeepSeek timeouts/aborts.
+            # If chapter_prose exists (Scene 2 or later), we don't need full texts of previous chapters;
+            # their summaries are sufficient for plot reference, and chapter_prose acts as the style guide.
+            if chapter_prose:
+                # Include summaries for ALL previous chapters (even those that were in the fulltext window)
+                all_summaries = []
+                for c in previous_chapters:
+                    all_summaries.append(f"Kapitel {c.chapter_number} ({c.title}): {c.running_summary or 'Inhalt geschrieben.'}")
+                scene_past_summaries_str = "\n".join(all_summaries)
+                scene_fulltext_str = "Siehe bisher geschriebene Szenen unten für Stil und Kontinuität."
+                fulltext_count = 0
+            else:
+                scene_past_summaries_str = past_summaries_str
+                scene_fulltext_str = fulltext_str
+                fulltext_count = len(fulltext_chapters)
+
             scene_prompt = f"""
     Hier sind die Rahmendaten für das Buchprojekt:
     - Buchtitel: {project.title}
@@ -480,12 +496,12 @@ async def generate_chapter_content(
     ---
     
     Bisheriger Handlungsverlauf (Zusammenfassungen früherer Kapitel):
-    {past_summaries_str or "Keine früheren Kapitel."}
+    {scene_past_summaries_str or "Keine früheren Kapitel."}
     
     ---
     
-    Volltext der letzten {len(fulltext_chapters)} Kapitel (als Stilreferenz und für Kontinuität):
-    {fulltext_str}
+    Volltext der letzten {fulltext_count} Kapitel (als Stilreferenz und für Kontinuität):
+    {scene_fulltext_str}
     
     ---
     
@@ -521,6 +537,8 @@ async def generate_chapter_content(
             # Token budget check
             model_limit = MODEL_CONTEXT_LIMITS.get(model, 32000)
             scene_max_tokens = int(words * 1.5 + 1000)
+            if "reasoner" in model.lower() or "pro" in model.lower():
+                scene_max_tokens = 8192
             input_budget = model_limit - scene_max_tokens - 2000
             
             total_input_tokens = estimate_tokens(scene_prompt)
@@ -539,12 +557,12 @@ async def generate_chapter_content(
     ---
     
     Bisheriger Handlungsverlauf (Zusammenfassungen früherer Kapitel):
-    {past_summaries_str or "Keine früheren Kapitel."}
+    {scene_past_summaries_str or "Keine früheren Kapitel."}
     
     ---
     
-    Volltext der letzten {len(fulltext_chapters)} Kapitel (als Stilreferenz und für Kontinuität):
-    {fulltext_str}
+    Volltext der letzten {fulltext_count} Kapitel (als Stilreferenz und für Kontinuität):
+    {scene_fulltext_str}
     
     ---
     
@@ -594,6 +612,11 @@ async def generate_chapter_content(
                     "\n\nACHTUNG: Die in den Vorgaben enthaltenen Stilproben zeigen deinen bisherigen Schreibstil für dieses Buch. "
                     "Halte dich eng an diesen Ton, Rhythmus und diese Wortwahl."
                 )
+            if "reasoner" in model.lower() or "pro" in model.lower():
+                system_instruction += (
+                    "\n\nACHTUNG für Reasoning-Modelle (DeepSeek R1/Pro): Halte deinen Denkprozess (Thinking) "
+                    "kurz und fokussiert, um genügend Output-Token für den eigentlichen Romantext zu lassen."
+                )
             
             try:
                 response = await generate_text(
@@ -616,7 +639,6 @@ async def generate_chapter_content(
             except Exception as e:
                 logger.error(f"Error generating scene {scene['scene_number']} in chapter {chapter.chapter_number}: {e}")
                 raise e
-                
         return chapter_prose
         
     else:
