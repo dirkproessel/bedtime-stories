@@ -414,48 +414,216 @@ async def generate_chapter_content(
     feedback_clause = ""
     if feedback:
         feedback_clause = f"\n**WICHTIGE ÄNDERUNGSANWEISUNG VOM USER (Für diesen Rewrite):**\n\"{feedback}\"\nBitte überarbeite das Kapitel und beachte diese Anweisung unbedingt!"
- 
+
     # Detect if plot_outline is scene beats structured
-    is_scene_based = "--- Szene" in (chapter.plot_outline or "")
-    if is_scene_based:
-        writing_instruction = f"""
-    Kapitel-Plot (Szenen-Struktur – arbeite ALLE Szenen in dieser Reihenfolge ab):
-    {chapter.plot_outline}
+    scenes = []
+    if chapter.plot_outline and "--- Szene" in chapter.plot_outline:
+        import re
+        sections = re.split(r"--- Szene \d+ ---", chapter.plot_outline, flags=re.IGNORECASE)
+        for i in range(1, len(sections)):
+            text = sections[i].strip()
+            scene = {"scene_number": i}
+            for line in text.split("\n"):
+                line = line.strip()
+                if line.startswith("POV:"):
+                    scene["pov_character"] = line[4:].strip()
+                elif line.startswith("Ort:"):
+                    scene["setting"] = line[4:].strip()
+                elif line.startswith("Ziel:"):
+                    scene["goal"] = line[5:].strip()
+                elif line.startswith("Konflikt:"):
+                    scene["conflict"] = line[9:].strip()
+                elif line.startswith("Ausgang:"):
+                    scene["outcome"] = line[8:].strip()
+                elif line.startswith("Emotion:"):
+                    scene["emotional_arc"] = line[8:].strip()
+                elif line.startswith("Wörter:"):
+                    scene["estimated_words"] = line[7:].strip()
+            scenes.append(scene)
+
+    if scenes:
+        logger.info(f"Generating chapter {chapter.chapter_number} scene-by-scene ({len(scenes)} scenes)")
+        chapter_prose = ""
+        import re
+        
+        for scene in scenes:
+            words = 500  # Fallback target words per scene
+            if "estimated_words" in scene:
+                match = re.search(r"\d+", scene["estimated_words"])
+                if match:
+                    words = int(match.group())
+            
+            # Clamp target words between reasonable boundaries
+            words = max(200, min(words, 1500))
+            
+            prev_scenes_context = ""
+            if chapter_prose:
+                prev_scenes_context = f"\nBisher geschriebene Szenen für dieses Kapitel (setze nahtlos und flüssig fort):\n{chapter_prose}\n"
+            else:
+                prev_scenes_context = "\nDies ist der Anfang dieses Kapitels. Beginne direkt mit dem ersten Satz.\n"
+                
+            scene_prompt = f"""
+    Hier sind die Rahmendaten für das Buchprojekt:
+    - Buchtitel: {project.title}
+    - Ursprungsidee: {project.prompt}
+    - Charakter-Übersicht: {chars_str}
+    - Gesamte Gliederung des Buches:
+    {outline_str}
     
-    ANWEISUNG: Schreibe das Kapitel, indem du JEDE Szene nacheinander ausarbeitest.
-    - Verwende KEINE Szenen-Überschriften, Trennlinien oder Nummerierungen im Prosa-Text!
-    - Trenne Szenen durch einen atmosphärischen Übergang oder eine Leerzeile.
-    - Halte dich an die geschätzten Wortanzahlen pro Szene (±20% ist OK).
-    - Achte besonders auf die emotionalen Arcs und Konflikte jeder Szene.
-    - Falls ein POV (Point of View) Charakter für dieses Kapitel/Szene angegeben ist (z.B. POV: {chapter.pov_character or 'Hauptcharakter'}), erzähle konsequent aus dieser Perspektive!
+    ---
+    
+    Bisheriger Handlungsverlauf (Zusammenfassungen früherer Kapitel):
+    {past_summaries_str or "Keine früheren Kapitel."}
+    
+    ---
+    
+    Volltext der letzten {len(fulltext_chapters)} Kapitel (als Stilreferenz und für Kontinuität):
+    {fulltext_str}
+    
+    ---
+    
+    Aktuelles Kapitel: Kapitel {chapter.chapter_number} - \"{chapter.title}\"
+    
+    {prev_scenes_context}
+    
+    ---
+    
+    AUFGABE:
+    Schreibe jetzt die Romanprosa für **Szene {scene['scene_number']}** (von insgesamt {len(scenes)} Szenen in diesem Kapitel).
+    
+    Szenen-Vorgaben:
+    - POV: {scene.get('pov_character', chapter.pov_character or 'Hauptcharakter')} (Schreibe konsequent aus dieser Perspektive!)
+    - Ort: {scene.get('setting', 'Nicht spezifiziert')}
+    - Ziel: {scene.get('goal', 'Nicht spezifiziert')}
+    - Konflikt: {scene.get('conflict', 'Nicht spezifiziert')}
+    - Ausgang: {scene.get('outcome', 'Nicht spezifiziert')}
+    - Emotionaler Verlauf: {scene.get('emotional_arc', 'Nicht spezifiziert')}
+    - Ziel-Wortanzahl für diese Szene: ca. {words} Wörter.
+    
+    {feedback_clause}
+    
+    Schreibe die Szene lebendig, mit atmosphärischen Beschreibungen, wörtlicher Rede und passendem Pacing.
+    Füge KEINE Szenentitel, Trennlinien (wie '---') oder Meta-Informationen in deine Antwort ein! Beginne direkt mit der Prosa und knüpfe nahtlos an den bisherigen Text des aktuellen Kapitels an.
     """
+            
+            # Token budget check
+            model_limit = MODEL_CONTEXT_LIMITS.get(model, 32000)
+            scene_max_tokens = int(words * 1.5 + 1000)
+            input_budget = model_limit - scene_max_tokens - 2000
+            
+            total_input_tokens = estimate_tokens(scene_prompt)
+            if total_input_tokens > input_budget:
+                logger.warning(f"Context overflow in scene {scene['scene_number']}: {total_input_tokens} > {input_budget}. Truncating outline.")
+                temp_outline_str = truncate_to_budget(outline_str, max(500, input_budget // 4))
+                # Re-build scene_prompt with truncated outline
+                scene_prompt = f"""
+    Hier sind die Rahmendaten für das Buchprojekt:
+    - Buchtitel: {project.title}
+    - Ursprungsidee: {project.prompt}
+    - Charakter-Übersicht: {chars_str}
+    - Gesamte Gliederung des Buches (Gekürzt):
+    {temp_outline_str}
+    
+    ---
+    
+    Bisheriger Handlungsverlauf (Zusammenfassungen früherer Kapitel):
+    {past_summaries_str or "Keine früheren Kapitel."}
+    
+    ---
+    
+    Volltext der letzten {len(fulltext_chapters)} Kapitel (als Stilreferenz und für Kontinuität):
+    {fulltext_str}
+    
+    ---
+    
+    Aktuelles Kapitel: Kapitel {chapter.chapter_number} - \"{chapter.title}\"
+    
+    {prev_scenes_context}
+    
+    ---
+    
+    AUFGABE:
+    Schreibe jetzt die Romanprosa für **Szene {scene['scene_number']}** (von insgesamt {len(scenes)} Szenen in diesem Kapitel).
+    
+    Szenen-Vorgaben:
+    - POV: {scene.get('pov_character', chapter.pov_character or 'Hauptcharakter')} (Schreibe konsequent aus dieser Perspektive!)
+    - Ort: {scene.get('setting', 'Nicht spezifiziert')}
+    - Ziel: {scene.get('goal', 'Nicht spezifiziert')}
+    - Konflikt: {scene.get('conflict', 'Nicht spezifiziert')}
+    - Ausgang: {scene.get('outcome', 'Nicht spezifiziert')}
+    - Emotionaler Verlauf: {scene.get('emotional_arc', 'Nicht spezifiziert')}
+    - Ziel-Wortanzahl für diese Szene: ca. {words} Wörter.
+    
+    {feedback_clause}
+    
+    Schreibe die Szene lebendig, mit atmosphärischen Beschreibungen, wörtlicher Rede und passendem Pacing.
+    Füge KEINE Szenentitel, Trennlinien (wie '---') oder Meta-Informationen in deine Antwort ein! Beginne direkt mit der Prosa und knüpfe nahtlos an den bisherigen Text des aktuellen Kapitels an.
+    """
+            
+            system_instruction = (
+                f"Du bist ein preisgekrönter Romanautor. Dein Schreibstil folgt diesen Vorgaben:\n{style_resolved}\n\n"
+                f"{genre_section}\n\n"
+                "Schreibe ausschließlich die Romanprosa für die angeforderte Szene. Schreib flüssig, "
+                "atmosphärisch und detailreich. Benutze KEINE Überschriften, Szenennummern, Meta-Kommentare oder den Kapitelnamen. "
+                "Beginne sofort mit der Geschichte.\n"
+                "Benutze unter keinen Umständen Markdown-Sternchen (*) oder Unterstriche (_), um Gedanken, Durchsagen oder wörtliche Rede hervorzuheben. "
+                "Nutze für wörtliche Rede und Durchsagen stattdessen klassische deutsche Anführungszeichen (z. B. „...“ oder »...«)."
+            )
+            if "Stilproben" in (style_resolved or ""):
+                system_instruction += (
+                    "\n\nACHTUNG: Die in den Vorgaben enthaltenen Stilproben zeigen deinen bisherigen Schreibstil für dieses Buch. "
+                    "Halte dich eng an diesen Ton, Rhythmus und diese Wortwahl."
+                )
+            
+            try:
+                response = await generate_text(
+                    prompt=scene_prompt,
+                    model=model,
+                    temperature=0.8,
+                    max_tokens=scene_max_tokens,
+                    system_instruction=system_instruction
+                )
+                scene_prose = response.strip().replace("*", "")
+                
+                # Strip leading headers or typical scene labels
+                scene_prose = clean_chapter_prose(scene_prose, chapter.title, chapter.chapter_number)
+                scene_prose = re.sub(r'^(?:---\s*)?szene\s*\d+\s*(?:[:\-\.]|---)?\s*', '', scene_prose, flags=re.IGNORECASE).strip()
+                
+                if chapter_prose:
+                    chapter_prose += "\n\n" + scene_prose
+                else:
+                    chapter_prose = scene_prose
+            except Exception as e:
+                logger.error(f"Error generating scene {scene['scene_number']} in chapter {chapter.chapter_number}: {e}")
+                raise e
+                
+        return chapter_prose
+        
     else:
+        # Fallback to single-run chapter generation if no structured scenes are found
         writing_instruction = f"""
     Kapitel-Plot (Was passieren soll): {chapter.plot_outline}
     """
-
-    system_instruction = (
-        f"Du bist ein preisgekrönter Romanautor. Dein Schreibstil folgt diesen Vorgaben:\n{style_resolved}\n\n"
-        f"{genre_section}\n\n"
-        "Schreibe ausschließlich die Romanprosa für das angeforderte Kapitel. Schreib flüssig, "
-        "atmosphärisch und detailreich. Benutze KEINE Überschriften, Kapitelnummern (wie 'Kapitel 1'), "
-        "Meta-Kommentare oder den Kapiteltitel am Anfang des Textes. Beginne sofort mit dem ersten Satz der Geschichte. "
-        "Benutze unter keinen Umständen Markdown-Sternchen (*) oder Unterstriche (_), um Gedanken, Durchsagen oder wörtliche Rede hervorzuheben. "
-        "Nutze für wörtliche Rede und Durchsagen stattdessen klassische deutsche Anführungszeichen (z. B. „...“ oder »...«)."
-    )
     
-    # Reference style samples if they are in the resolved style
-    if "Stilproben" in (style_resolved or ""):
-        system_instruction += (
-            "\n\nACHTUNG: Die in den Vorgaben enthaltenen Stilproben zeigen deinen bisherigen Schreibstil für dieses Buch. "
-            "Halte dich eng an diesen Ton, Rhythmus und diese Wortwahl, um Konsistenz zu gewährleisten."
+        system_instruction = (
+            f"Du bist ein preisgekrönter Romanautor. Dein Schreibstil folgt diesen Vorgaben:\n{style_resolved}\n\n"
+            f"{genre_section}\n\n"
+            "Schreibe ausschließlich die Romanprosa für das angeforderte Kapitel. Schreib flüssig, "
+            "atmosphärisch und detailreich. Benutze KEINE Überschriften, Kapitelnummern (wie 'Kapitel 1'), "
+            "Meta-Kommentare oder den Kapiteltitel am Anfang des Textes. Beginne sofort mit dem ersten Satz der Geschichte. "
+            "Benutze unter keinen Umständen Markdown-Sternchen (*) oder Unterstriche (_), um Gedanken, Durchsagen oder wörtliche Rede hervorzuheben. "
+            "Nutze für wörtliche Rede und Durchsagen stattdessen klassische deutsche Anführungszeichen (z. B. „...“ oder »...«)."
         )
-    
-    # Dynamic max_tokens calculation: ~1.4 tokens per German word + buffer
-    estimated_tokens = int(target_words * 1.4)
-    dynamic_max_tokens = max(8192, min(estimated_tokens + 2048, 16384))
-    
-    prompt = f"""
+        if "Stilproben" in (style_resolved or ""):
+            system_instruction += (
+                "\n\nACHTUNG: Die in den Vorgaben enthaltenen Stilproben zeigen deinen bisherigen Schreibstil für dieses Buch. "
+                "Halte dich eng an diesen Ton, Rhythmus und diese Wortwahl, um Konsistenz zu gewährleisten."
+            )
+            
+        estimated_tokens = int(target_words * 1.4)
+        dynamic_max_tokens = max(8192, min(estimated_tokens + 2048, 16384))
+        
+        prompt = f"""
     Hier sind die Rahmendaten für das Buchprojekt:
     - Buchtitel: {project.title}
     - Ursprungsidee: {project.prompt}
@@ -487,24 +655,23 @@ async def generate_chapter_content(
     Gib ausschließlich die Kapitelprosa zurück.
     """
     
-    # Token-Budgeting context protection
-    model_limit = MODEL_CONTEXT_LIMITS.get(model, 32000)
-    output_budget = dynamic_max_tokens
-    input_budget = model_limit - output_budget - 2000  # Safety margin
-    
-    total_input_tokens = estimate_tokens(prompt)
-    if total_input_tokens > input_budget:
-        logger.warning(f"Context overflow detected: {total_input_tokens} > {input_budget}. Truncating outline.")
-        outline_str = truncate_to_budget(outline_str, max(500, input_budget // 4))
+        model_limit = MODEL_CONTEXT_LIMITS.get(model, 32000)
+        output_budget = dynamic_max_tokens
+        input_budget = model_limit - output_budget - 2000  # Safety margin
         
-        # Re-build prompt with truncated outline
-        prompt = f"""
+        total_input_tokens = estimate_tokens(prompt)
+        if total_input_tokens > input_budget:
+            logger.warning(f"Context overflow detected: {total_input_tokens} > {input_budget}. Truncating outline.")
+            temp_outline_str = truncate_to_budget(outline_str, max(500, input_budget // 4))
+            
+            # Re-build prompt with truncated outline
+            prompt = f"""
     Hier sind die Rahmendaten für das Buchprojekt:
     - Buchtitel: {project.title}
     - Ursprungsidee: {project.prompt}
     - Charakter-Übersicht: {chars_str}
     - Gesamte Gliederung des Buches (Gekürzt):
-    {outline_str}
+    {temp_outline_str}
     
     ---
     
@@ -529,20 +696,20 @@ async def generate_chapter_content(
     Achte auf lebendige Dialoge, tiefe Charaktereinblicke und ein angemessenes Pacing passend zum gewählten Stil.
     Gib ausschließlich die Kapitelprosa zurück.
     """
-    
-    try:
-        response = await generate_text(
-            prompt=prompt,
-            model=model,
-            temperature=0.8,
-            max_tokens=dynamic_max_tokens,
-            system_instruction=system_instruction
-        )
-        prose = response.strip().replace("*", "")
-        return clean_chapter_prose(prose, chapter.title, chapter.chapter_number)
-    except Exception as e:
-        logger.error(f"Error generating chapter {chapter.chapter_number}: {e}")
-        raise e
+        
+        try:
+            response = await generate_text(
+                prompt=prompt,
+                model=model,
+                temperature=0.8,
+                max_tokens=dynamic_max_tokens,
+                system_instruction=system_instruction
+            )
+            prose = response.strip().replace("*", "")
+            return clean_chapter_prose(prose, chapter.title, chapter.chapter_number)
+        except Exception as e:
+            logger.error(f"Error generating chapter {chapter.chapter_number}: {e}")
+            raise e
 
 async def generate_chapter_summary(chapter_content: str, model: str = "gemini-3.1-flash-lite") -> str:
     """Generate a 50-80 word summary of the chapter content."""
