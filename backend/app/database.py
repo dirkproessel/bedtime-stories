@@ -157,6 +157,30 @@ def ensure_migrations():
                 for k, v, d in defaults:
                     cur.execute("INSERT INTO systemsetting (key, value, description, updated_at) VALUES (?, ?, ?, ?)", (k, v, d, now_iso))
                 conn.commit()
+
+            # --- Check if columns exist in bookproject table ---
+            try:
+                cur.execute("PRAGMA table_info(bookproject)")
+                proj_columns = [row[1] for row in cur.fetchall()]
+                if proj_columns:
+                    if "genre_config" not in [c.lower() for c in proj_columns]:
+                        print("Migration: Adding genre_config to bookproject...")
+                        cur.execute("ALTER TABLE bookproject ADD COLUMN genre_config TEXT")
+                        conn.commit()
+            except Exception as proj_e:
+                print(f"Migration bookproject warning: {proj_e}")
+
+            # --- Check if columns exist in bookchapter table ---
+            try:
+                cur.execute("PRAGMA table_info(bookchapter)")
+                chap_columns = [row[1] for row in cur.fetchall()]
+                if chap_columns:
+                    if "pov_character" not in [c.lower() for c in chap_columns]:
+                        print("Migration: Adding pov_character to bookchapter...")
+                        cur.execute("ALTER TABLE bookchapter ADD COLUMN pov_character TEXT")
+                        conn.commit()
+            except Exception as chap_e:
+                print(f"Migration bookchapter warning: {chap_e}")
                     
         except Exception as e:
             print(f"Migration voice/systemvoice warning: {e}")
