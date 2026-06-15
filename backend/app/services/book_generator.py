@@ -1213,10 +1213,11 @@ async def expand_chapter_outline(
         beats = data.get("scene_beats", [])
         formatted_outline = format_scene_beats_as_text(beats)
         
-        # Prepend chapter summary if present
-        chap_sum = data.get("chapter_summary")
+        # Use the original plot outline as the summary to preserve all creative details and prevent hallucinations.
+        # Fall back to generated chapter_summary if current_plot_outline is not set.
+        chap_sum = current_plot_outline.strip() if current_plot_outline else data.get("chapter_summary", "").strip()
         if chap_sum:
-            formatted_outline = f"Zusammenfassung: {chap_sum.strip()}\n\n{formatted_outline}"
+            formatted_outline = f"Zusammenfassung: {chap_sum}\n\n{formatted_outline}"
         
         # Determine main POV character for the chapter
         pov_char = None
