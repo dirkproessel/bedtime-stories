@@ -446,6 +446,13 @@ async def generate_chapter_content(
         chapter_prose = ""
         import re
         
+        # Extract chapter summary if present in outline
+        current_summary = ""
+        if chapter.plot_outline:
+            sum_match = re.match(r"^Zusammenfassung:\s*(.*?)\n\n", chapter.plot_outline, re.DOTALL | re.IGNORECASE)
+            if sum_match:
+                current_summary = sum_match.group(1).strip()
+        
         for scene in scenes:
             words = 500  # Fallback target words per scene
             if "estimated_words" in scene:
@@ -483,6 +490,7 @@ async def generate_chapter_content(
     ---
     
     Aktuelles Kapitel: Kapitel {chapter.chapter_number} - \"{chapter.title}\"
+    {f"Zusammenfassung des Kapitels: {current_summary}" if current_summary else ""}
     
     {prev_scenes_context}
     
@@ -502,8 +510,12 @@ async def generate_chapter_content(
     
     {feedback_clause}
     
-    Schreibe die Szene lebendig, mit atmosphärischen Beschreibungen, wörtlicher Rede und passendem Pacing.
-    Füge KEINE Szenentitel, Trennlinien (wie '---') oder Meta-Informationen in deine Antwort ein! Beginne direkt mit der Prosa und knüpfe nahtlos an den bisherigen Text des aktuellen Kapitels an.
+    WICHTIGE SCHREIBREGELN:
+    1. Schreibe AUSSCHLIESSLICH diese eine Szene (ca. {words} Wörter). Schreibe NICHT das gesamte Kapitel!
+    2. Sobald der in 'Ausgang' beschriebene Zustand der Szene erreicht ist, beende die Generierung sofort.
+    3. Beschreibe oder erwähne KEINE Ereignisse oder Dialoge der darauffolgenden Szenen vorab.
+    4. Setze den bisherigen Text nahtlos und stilistisch identisch fort. Wiederhole keine Ereignisse, die bereits im bisherigen Text stattgefunden haben.
+    5. Füge keine Überschriften, Kapitel- oder Szenennummern (wie 'Szene 1') oder Trennlinien ein. Beginne direkt mit der Romanprosa.
     """
             
             # Token budget check
@@ -537,6 +549,7 @@ async def generate_chapter_content(
     ---
     
     Aktuelles Kapitel: Kapitel {chapter.chapter_number} - \"{chapter.title}\"
+    {f"Zusammenfassung des Kapitels: {current_summary}" if current_summary else ""}
     
     {prev_scenes_context}
     
@@ -556,8 +569,12 @@ async def generate_chapter_content(
     
     {feedback_clause}
     
-    Schreibe die Szene lebendig, mit atmosphärischen Beschreibungen, wörtlicher Rede und passendem Pacing.
-    Füge KEINE Szenentitel, Trennlinien (wie '---') oder Meta-Informationen in deine Antwort ein! Beginne direkt mit der Prosa und knüpfe nahtlos an den bisherigen Text des aktuellen Kapitels an.
+    WICHTIGE SCHREIBREGELN:
+    1. Schreibe AUSSCHLIESSLICH diese eine Szene (ca. {words} Wörter). Schreibe NICHT das gesamte Kapitel!
+    2. Sobald der in 'Ausgang' beschriebene Zustand der Szene erreicht ist, beende die Generierung sofort.
+    3. Beschreibe oder erwähne KEINE Ereignisse oder Dialoge der darauffolgenden Szenen vorab.
+    4. Setze den bisherigen Text nahtlos und stilistisch identisch fort. Wiederhole keine Ereignisse, die bereits im bisherigen Text stattgefunden haben.
+    5. Füge keine Überschriften, Kapitel- oder Szenennummern (wie 'Szene 1') oder Trennlinien ein. Beginne direkt mit der Romanprosa.
     """
             
             system_instruction = (
@@ -567,7 +584,10 @@ async def generate_chapter_content(
                 "atmosphärisch und detailreich. Benutze KEINE Überschriften, Szenennummern, Meta-Kommentare oder den Kapitelnamen. "
                 "Beginne sofort mit der Geschichte.\n"
                 "Benutze unter keinen Umständen Markdown-Sternchen (*) oder Unterstriche (_), um Gedanken, Durchsagen oder wörtliche Rede hervorzuheben. "
-                "Nutze für wörtliche Rede und Durchsagen stattdessen klassische deutsche Anführungszeichen (z. B. „...“ oder »...«)."
+                "Nutze für wörtliche Rede und Durchsagen stattdessen klassische deutsche Anführungszeichen (z. B. „...“ oder »...«).\n\n"
+                "ACHTUNG: Du schreibst nur eine EINZELNE Szene des Kapitels (nicht das gesamte Kapitel). "
+                "Halte dich streng an das vorgegebene Wortbudget und übertreibe es nicht mit Abschweifungen. "
+                "Beende die Generierung sofort, sobald die Handlung der aktuellen Szene abgeschlossen ist."
             )
             if "Stilproben" in (style_resolved or ""):
                 system_instruction += (
@@ -1192,6 +1212,11 @@ async def expand_chapter_outline(
         
         beats = data.get("scene_beats", [])
         formatted_outline = format_scene_beats_as_text(beats)
+        
+        # Prepend chapter summary if present
+        chap_sum = data.get("chapter_summary")
+        if chap_sum:
+            formatted_outline = f"Zusammenfassung: {chap_sum.strip()}\n\n{formatted_outline}"
         
         # Determine main POV character for the chapter
         pov_char = None

@@ -1465,6 +1465,9 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                                         const scenes = parseSceneBeats(chap.plot_outline);
                                         if (scenes.length === 0) return null;
                                         
+                                        const summaryMatch = chap.plot_outline?.match(/^Zusammenfassung:\s*(.*?)\n\n/is);
+                                        const summary = summaryMatch ? summaryMatch[1] : null;
+                                        
                                         const totalWords = scenes.reduce((acc, s) => {
                                             const match = s.estimated_words?.match(/\d+/);
                                             return acc + (match ? parseInt(match[0]) : 0);
@@ -1476,6 +1479,13 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                                                     <span>Strukturierte Szenen-Gliederung ({scenes.length} Szenen)</span>
                                                     <span className="text-primary bg-primary/5 px-2 py-0.5 rounded border border-primary/10">~{totalWords} Wörter geplant</span>
                                                 </div>
+                                                
+                                                {summary && (
+                                                    <div className="bg-background/60 p-3 rounded-xl border border-slate-800/80 text-xs text-slate-300 leading-relaxed font-sans shadow-inner">
+                                                        <span className="font-bold text-slate-400 block mb-1 text-[10px] uppercase tracking-wider font-mono">Kapitel-Zusammenfassung</span>
+                                                        {summary}
+                                                    </div>
+                                                )}
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                                     {scenes.map((scene, idx) => (
                                                         <div key={idx} className="bg-background p-3 rounded-xl border border-slate-800/80 space-y-2 relative flex flex-col justify-between">
@@ -1648,7 +1658,11 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                             </div>
                             
                             {(() => {
-                                const scenes = parseSceneBeats(chapterOutline);
+                                const summaryMatch = chapterOutline?.match(/^Zusammenfassung:\s*(.*?)\n\n/is);
+                                const summary = summaryMatch ? summaryMatch[1] : null;
+                                const cleanOutline = (summary && summaryMatch) ? chapterOutline.substring(summaryMatch[0].length) : chapterOutline;
+                                
+                                const scenes = parseSceneBeats(cleanOutline);
                                 if (scenes.length === 0) {
                                     return (
                                         <p className="text-xs text-slate-400 leading-relaxed font-serif whitespace-pre-wrap">
@@ -1659,6 +1673,12 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                                 
                                 return (
                                     <div className="space-y-2 max-h-[40vh] overflow-y-auto custom-scrollbar pr-1">
+                                        {summary && (
+                                            <div className="bg-slate-900/40 p-3 rounded-2xl border border-slate-800/80 mb-3 text-[11px] leading-relaxed text-slate-300 shadow-inner font-sans">
+                                                <span className="font-bold text-slate-400 block mb-1 text-[9px] uppercase tracking-wider font-mono">Kapitel-Zusammenfassung</span>
+                                                {summary}
+                                            </div>
+                                        )}
                                         <p className="text-[10px] text-slate-500 font-mono uppercase font-bold tracking-wide mb-1.5">
                                             Szenen-Checkliste ({scenes.length} Szenen):
                                         </p>
