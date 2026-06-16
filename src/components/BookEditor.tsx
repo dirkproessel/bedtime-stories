@@ -79,6 +79,14 @@ const IMAGE_MODELS = [
     { value: 'fal-ai/flux/schnell', label: 'Flux/schnell (fal.ai)' }
 ];
 
+const LEKTORAT_CATEGORIES = [
+    { value: '', label: 'Alle Bereiche' },
+    { value: 'grammar', label: 'Grammatik & Rechtschreibung' },
+    { value: 'style', label: 'Stil & Lesefluss' },
+    { value: 'consistency', label: 'Logik & Konsistenz' },
+    { value: 'pacing', label: 'Pacing & Erzähltempo' },
+];
+
 function parseSceneBeats(plotOutline: string): any[] {
     if (!plotOutline || !plotOutline.includes('--- Szene')) return [];
     
@@ -202,6 +210,8 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
     const [lektoratTab, setLektoratTab] = useState<'chapter' | 'global'>('chapter');
     const [lektoratModel, setLektoratModel] = useState('gemini-3.5-flash');
     const [globalLektoratModel, setGlobalLektoratModel] = useState('gemini-3.5-flash');
+    const [lektoratCategory, setLektoratCategory] = useState<string>('');
+    const [globalLektoratCategory, setGlobalLektoratCategory] = useState<string>('');
     const [findings, setFindings] = useState<LektoratFinding[]>([]);
     const [globalFindings, setGlobalFindings] = useState<GlobalLektoratFinding[]>([]);
     const [groupFindings, setGroupFindings] = useState(true);
@@ -767,8 +777,9 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
     const handleRunLektorat = async () => {
         setIsAiLoading(true);
         try {
-            toast.loading('Lektorat läuft über Kapitel ' + selectedChapterNum + '...', { id: 'ai' });
-            const res = await proofreadProChapter(activeProject.id, selectedChapterNum, lektoratModel);
+            const catName = lektoratCategory ? LEKTORAT_CATEGORIES.find(c => c.value === lektoratCategory)?.label : 'Kapitel';
+            toast.loading(`${catName}-Lektorat läuft über Kapitel ${selectedChapterNum}...`, { id: 'ai' });
+            const res = await proofreadProChapter(activeProject.id, selectedChapterNum, lektoratModel, lektoratCategory || undefined);
             setFindings(res.findings);
             if (res.findings.length === 0) {
                 toast.success('Keine auffälligen Fehler gefunden!', { id: 'ai' });
@@ -813,8 +824,9 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
     const handleRunGlobalLektorat = async () => {
         setIsAiLoading(true);
         try {
-            toast.loading('Globales Lektorat läuft über das gesamte Manuskript...', { id: 'ai' });
-            const res = await proofreadProBookGlobally(activeProject.id, globalLektoratModel);
+            const catName = globalLektoratCategory ? LEKTORAT_CATEGORIES.find(c => c.value === globalLektoratCategory)?.label : 'Globales';
+            toast.loading(`${catName}-Lektorat läuft über das gesamte Manuskript...`, { id: 'ai' });
+            const res = await proofreadProBookGlobally(activeProject.id, globalLektoratModel, globalLektoratCategory || undefined);
             setGlobalFindings(res.findings);
             if (res.findings.length === 0) {
                 toast.success('Keine globalen Widersprüche oder Probleme gefunden!', { id: 'ai' });
@@ -2046,6 +2058,15 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
 
                                     <div className="flex items-center gap-2">
                                         <select 
+                                            value={lektoratCategory}
+                                            onChange={(e) => setLektoratCategory(e.target.value)}
+                                            className="bg-background border border-slate-800 text-xs text-slate-300 rounded-lg px-2 py-1.5 focus:outline-none"
+                                        >
+                                            {LEKTORAT_CATEGORIES.map(c => (
+                                                <option key={c.value} value={c.value}>{c.label}</option>
+                                            ))}
+                                        </select>
+                                        <select 
                                             value={lektoratModel}
                                             onChange={(e) => setLektoratModel(e.target.value)}
                                             className="bg-background border border-slate-800 text-xs text-slate-300 rounded-lg px-2 py-1.5 focus:outline-none"
@@ -2166,6 +2187,15 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                                 </div>
 
                                 <div className="flex items-center gap-2">
+                                    <select 
+                                        value={globalLektoratCategory}
+                                        onChange={(e) => setGlobalLektoratCategory(e.target.value)}
+                                        className="bg-background border border-slate-800 text-xs text-slate-300 rounded-lg px-2 py-1.5 focus:outline-none"
+                                    >
+                                        {LEKTORAT_CATEGORIES.map(c => (
+                                            <option key={c.value} value={c.value}>{c.label}</option>
+                                        ))}
+                                    </select>
                                     <select 
                                         value={globalLektoratModel}
                                         onChange={(e) => setGlobalLektoratModel(e.target.value)}

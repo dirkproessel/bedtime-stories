@@ -940,9 +940,12 @@ export async function updateProChapter(id: string, num: number, data: { title?: 
     return res.json();
 }
 
-export async function proofreadProChapter(id: string, num: number, model?: string): Promise<{ findings: LektoratFinding[] }> {
+export async function proofreadProChapter(id: string, num: number, model?: string, category?: string): Promise<{ findings: LektoratFinding[] }> {
     let url = `${API_BASE}/api/pro/books/${id}/chapters/${num}/proofread`;
-    if (model) url += `?model=${encodeURIComponent(model)}`;
+    const params = [];
+    if (model) params.push(`model=${encodeURIComponent(model)}`);
+    if (category) params.push(`category=${encodeURIComponent(category)}`);
+    if (params.length > 0) url += `?${params.join('&')}`;
     const res = await fetch(url, {
         method: 'POST',
         headers: getAuthHeaders()
@@ -1026,9 +1029,12 @@ export interface GlobalLektoratFinding {
     suggested_fix: string;
 }
 
-export async function proofreadProBookGlobally(id: string, model?: string): Promise<{ findings: GlobalLektoratFinding[] }> {
+export async function proofreadProBookGlobally(id: string, model?: string, category?: string): Promise<{ findings: GlobalLektoratFinding[] }> {
     let url = `${API_BASE}/api/pro/books/${id}/proofread/global`;
-    if (model) url += `?model=${encodeURIComponent(model)}`;
+    const params = [];
+    if (model) params.push(`model=${encodeURIComponent(model)}`);
+    if (category) params.push(`category=${encodeURIComponent(category)}`);
+    if (params.length > 0) url += `?${params.join('&')}`;
     const res = await fetch(url, {
         method: 'POST',
         headers: getAuthHeaders()
