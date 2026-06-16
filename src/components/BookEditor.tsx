@@ -113,6 +113,28 @@ function parseSceneBeats(plotOutline: string): any[] {
     return scenes;
 }
 
+function getGroupedFindings(items: any[]) {
+    const groups: { [key: string]: any[] } = {
+        consistency: [],
+        grammar: [],
+        pacing: [],
+        style: []
+    };
+    items.forEach(item => {
+        const cat = (item.category || 'style').toLowerCase();
+        if (cat.includes('consist') || cat.includes('logik')) {
+            groups.consistency.push(item);
+        } else if (cat.includes('gram') || cat.includes('rechtschr')) {
+            groups.grammar.push(item);
+        } else if (cat.includes('pace') || cat.includes('geschwind')) {
+            groups.pacing.push(item);
+        } else {
+            groups.style.push(item);
+        }
+    });
+    return groups;
+}
+
 export default function BookEditor({ project, onBack }: BookEditorProps) {
     const { loadProProjectDetail, currentProProject, user } = useStore();
     const activeProject = currentProProject || project;
@@ -182,6 +204,8 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
     const [globalLektoratModel, setGlobalLektoratModel] = useState('gemini-3.5-flash');
     const [findings, setFindings] = useState<LektoratFinding[]>([]);
     const [globalFindings, setGlobalFindings] = useState<GlobalLektoratFinding[]>([]);
+    const [groupFindings, setGroupFindings] = useState(true);
+    const [groupGlobalFindings, setGroupGlobalFindings] = useState(true);
 
     // Step 5 State: Export & Cover
     const [coverPrompt, setCoverPrompt] = useState(activeProject.cover_prompt || '');
@@ -203,6 +227,95 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
     const [epubAfterword, setEpubAfterword] = useState(activeProject.epub_afterword || '');
     const [epubImprint, setEpubImprint] = useState(activeProject.epub_imprint || '');
     const [epubMetaModel, setEpubMetaModel] = useState('gemini-3.1-flash-lite');
+
+    const renderFindingCard = (f: LektoratFinding, idx: number) => {
+        const displayCategory = f.category === 'consistency' ? 'Logik' : f.category === 'grammar' ? 'Grammatik' : f.category === 'pacing' ? 'Pacing' : 'Stil';
+        return (
+            <div key={idx} className="bg-background p-4.5 rounded-2xl border border-slate-800 space-y-3 text-xs animate-fadeIn">
+                <div className="flex justify-between items-start gap-3">
+                    <span className={`px-2 py-0.5 rounded-md font-mono text-[9px] uppercase tracking-wider font-bold ${
+                        f.category === 'consistency' 
+                        ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' 
+                        : f.category === 'style'
+                        ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                        : f.category === 'pacing'
+                        ? 'bg-teal-500/10 text-teal-400 border border-teal-500/20'
+                        : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                    }`}>
+                        {displayCategory}
+                    </span>
+                    <span className="text-[10px] text-slate-500 font-semibold">Empfehlung</span>
+                </div>
+
+                <div className="text-slate-300 font-semibold">
+                    {f.description}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                    <div className="bg-red-500/5 p-2 rounded-xl border border-red-500/10 space-y-1">
+                        <span className="text-[9px] font-mono uppercase text-red-400 font-bold">Original:</span>
+                        <p className="text-[11px] text-slate-400 font-serif leading-relaxed italic">"{f.original_snippet}"</p>
+                    </div>
+                    <div className="bg-primary/5 p-2 rounded-xl border border-primary/10 space-y-1">
+                        <span className="text-[9px] font-mono uppercase text-primary font-bold">Korrektur:</span>
+                        <p className="text-[11px] text-slate-300 font-serif leading-relaxed italic">"{f.suggested_rewrite}"</p>
+                    </div>
+                </div>
+
+                {chapterText.includes(f.original_snippet) ? (
+                    <div className="flex justify-end">
+                        <button
+                            onClick={() => handleApplyFinding(f)}
+                            className="bg-primary/15 hover:bg-primary/20 text-primary border border-primary/30 text-[10px] px-3.5 py-1.5 rounded-xl transition-colors font-medium flex items-center gap-1"
+                        >
+                            <Check className="w-3.5 h-3.5" />
+                            Original im Editor ersetzen
+                        </button>
+                    </div>
+                ) : (
+                    <div className="text-right text-[10px] text-slate-500 italic">
+                        Bereits im Kapitel-Editor angepasst oder ersetzt.
+                    </div>
+                )}
+            </div>
+        );
+    };
+
+    const renderGlobalFindingCard = (gf: GlobalLektoratFinding, idx: number) => {
+        const displayCategory = gf.category === 'consistency' ? 'Logik' : gf.category === 'grammar' ? 'Grammatik' : gf.category === 'pacing' ? 'Pacing' : 'Stil';
+        return (
+            <div key={idx} className="bg-background p-4.5 rounded-2xl border border-slate-800 space-y-3 text-xs animate-fadeIn">
+                <div className="flex justify-between items-start gap-3">
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`px-2 py-0.5 rounded-md font-mono text-[9px] uppercase tracking-wider font-bold ${
+                            gf.category === 'consistency' 
+                            ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' 
+                            : gf.category === 'style'
+                            ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                            : gf.category === 'pacing'
+                            ? 'bg-teal-500/10 text-teal-400 border border-teal-500/20'
+                            : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                        }`}>
+                            {displayCategory}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-semibold">
+                            Kapitel: {gf.chapters_involved.join(', ') || 'Alle'}
+                        </span>
+                    </div>
+                    <span className="text-[10px] text-slate-500 font-semibold">Globaler Befund</span>
+                </div>
+
+                <div className="text-slate-300 font-semibold font-sans">
+                    {gf.description}
+                </div>
+
+                <div className="bg-primary/5 p-3 rounded-xl border border-primary/10 space-y-1">
+                    <span className="text-[9px] font-mono uppercase text-primary font-bold">Lösungsvorschlag:</span>
+                    <p className="text-[11px] text-slate-300 font-serif leading-relaxed italic">{gf.suggested_fix}</p>
+                </div>
+            </div>
+        );
+    };
 
     // Reload active project context when step changes to keep it fresh
     useEffect(() => {
@@ -1982,59 +2095,52 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                                     </div>
                                 ) : (
                                     <div className="space-y-4">
-                                        <h4 className="text-xs font-semibold text-white flex items-center gap-2">
-                                            <AlertTriangle className="w-4 h-4 text-amber-500" />
-                                            Korrektur-Empfehlungen ({findings.length})
-                                        </h4>
+                                        <div className="flex justify-between items-center">
+                                            <h4 className="text-xs font-semibold text-white flex items-center gap-2">
+                                                <AlertTriangle className="w-4 h-4 text-amber-500" />
+                                                Korrektur-Empfehlungen ({findings.length})
+                                            </h4>
+                                            <div className="flex bg-background rounded-lg p-0.5 border border-slate-800 text-[10px] text-slate-400">
+                                                <button 
+                                                    onClick={() => setGroupFindings(false)}
+                                                    className={`px-2 py-1 rounded-md transition-all ${!groupFindings ? 'bg-slate-800 text-white font-semibold' : 'hover:text-slate-200'}`}
+                                                >
+                                                    Liste
+                                                </button>
+                                                <button 
+                                                    onClick={() => setGroupFindings(true)}
+                                                    className={`px-2 py-1 rounded-md transition-all ${groupFindings ? 'bg-slate-800 text-white font-semibold' : 'hover:text-slate-200'}`}
+                                                >
+                                                    Nach Typ
+                                                </button>
+                                            </div>
+                                        </div>
 
                                         <div className="space-y-3 max-h-[40vh] overflow-y-auto pr-1 custom-scrollbar">
-                                            {findings.map((f, idx) => (
-                                                <div key={idx} className="bg-background p-4.5 rounded-2xl border border-slate-800 space-y-3 text-xs animate-fadeIn">
-                                                    <div className="flex justify-between items-start gap-3">
-                                                        <span className={`px-2 py-0.5 rounded-md font-mono text-[9px] uppercase tracking-wider font-bold ${
-                                                            f.category === 'consistency' 
-                                                            ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' 
-                                                            : f.category === 'style'
-                                                            ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
-                                                            : 'bg-red-500/10 text-red-400 border border-red-500/20'
-                                                        }`}>
-                                                            {f.category}
-                                                        </span>
-                                                        <span className="text-[10px] text-slate-500 font-semibold">Empfehlung</span>
-                                                    </div>
-
-                                                    <div className="text-slate-300 font-semibold">
-                                                        {f.description}
-                                                    </div>
-
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
-                                                        <div className="bg-red-500/5 p-2 rounded-xl border border-red-500/10 space-y-1">
-                                                            <span className="text-[9px] font-mono uppercase text-red-400 font-bold">Original:</span>
-                                                            <p className="text-[11px] text-slate-400 font-serif leading-relaxed italic">"{f.original_snippet}"</p>
+                                            {groupFindings ? (
+                                                Object.entries(getGroupedFindings(findings)).map(([category, catFindings]) => {
+                                                    if (catFindings.length === 0) return null;
+                                                    const catTitle = category === 'consistency' ? 'Logik & Konsistenz' :
+                                                                     category === 'grammar' ? 'Grammatik & Rechtschreibung' :
+                                                                     category === 'pacing' ? 'Pacing & Plotfluss' : 'Schreibstil';
+                                                    const catColor = category === 'consistency' ? 'text-amber-400 border-amber-500/20 bg-amber-500/5' :
+                                                                     category === 'grammar' ? 'text-red-400 border-red-500/20 bg-red-500/5' :
+                                                                     category === 'pacing' ? 'text-teal-400 border-teal-500/20 bg-teal-500/5' :
+                                                                     'text-blue-400 border-blue-500/20 bg-blue-500/5';
+                                                    return (
+                                                        <div key={category} className="space-y-3 pt-2 first:pt-0">
+                                                            <div className={`text-[10px] font-mono uppercase tracking-wider font-bold ${catColor} border border-slate-800 px-3 py-1 rounded-xl inline-block`}>
+                                                                {catTitle} ({catFindings.length})
+                                                            </div>
+                                                            <div className="space-y-3 pl-2 border-l border-slate-800/60">
+                                                                {catFindings.map((f, idx) => renderFindingCard(f, idx))}
+                                                            </div>
                                                         </div>
-                                                        <div className="bg-primary/5 p-2 rounded-xl border border-primary/10 space-y-1">
-                                                            <span className="text-[9px] font-mono uppercase text-primary font-bold">Korrektur:</span>
-                                                            <p className="text-[11px] text-slate-300 font-serif leading-relaxed italic">"{f.suggested_rewrite}"</p>
-                                                        </div>
-                                                    </div>
-
-                                                    {chapterText.includes(f.original_snippet) ? (
-                                                        <div className="flex justify-end">
-                                                            <button
-                                                                onClick={() => handleApplyFinding(f)}
-                                                                className="bg-primary/15 hover:bg-primary/20 text-primary border border-primary/30 text-[10px] px-3.5 py-1.5 rounded-xl transition-colors font-medium flex items-center gap-1"
-                                                            >
-                                                                <Check className="w-3.5 h-3.5" />
-                                                                Original im Editor ersetzen
-                                                            </button>
-                                                        </div>
-                                                    ) : (
-                                                        <div className="text-right text-[10px] text-slate-500 italic">
-                                                            Bereits im Kapitel-Editor angepasst oder ersetzt.
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            ))}
+                                                    );
+                                                })
+                                            ) : (
+                                                findings.map((f, idx) => renderFindingCard(f, idx))
+                                            )}
                                         </div>
 
                                         <div className="bg-amber-500/5 p-3.5 rounded-2xl border border-amber-500/15 flex items-start gap-3">
@@ -2087,44 +2193,54 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                                     <p>Keine ungelösten globalen Lektorat-Befunde. Starte das globale Lektorat über den Button oben.</p>
                                 </div>
                             ) : (
-                                <div className="space-y-4">
-                                    <h4 className="text-xs font-semibold text-white flex items-center gap-2">
-                                        <AlertTriangle className="w-4 h-4 text-amber-500" />
-                                        Globale Befunde ({globalFindings.length})
-                                    </h4>
+                <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                        <h4 className="text-xs font-semibold text-white flex items-center gap-2">
+                            <AlertTriangle className="w-4 h-4 text-amber-500" />
+                            Globale Befunde ({globalFindings.length})
+                        </h4>
+                        <div className="flex bg-background rounded-lg p-0.5 border border-slate-800 text-[10px] text-slate-400">
+                            <button 
+                                onClick={() => setGroupGlobalFindings(false)}
+                                className={`px-2 py-1 rounded-md transition-all ${!groupGlobalFindings ? 'bg-slate-800 text-white font-semibold' : 'hover:text-slate-200'}`}
+                            >
+                                Liste
+                            </button>
+                            <button 
+                                onClick={() => setGroupGlobalFindings(true)}
+                                className={`px-2 py-1 rounded-md transition-all ${groupGlobalFindings ? 'bg-slate-800 text-white font-semibold' : 'hover:text-slate-200'}`}
+                            >
+                                Nach Typ
+                            </button>
+                        </div>
+                    </div>
 
-                                    <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-1 custom-scrollbar">
-                                        {globalFindings.map((gf, idx) => (
-                                            <div key={idx} className="bg-background p-4.5 rounded-2xl border border-slate-800 space-y-3 text-xs animate-fadeIn">
-                                                <div className="flex justify-between items-start gap-3">
-                                                    <div className="flex items-center gap-2 flex-wrap">
-                                                        <span className={`px-2 py-0.5 rounded-md font-mono text-[9px] uppercase tracking-wider font-bold ${
-                                                            gf.category === 'consistency' 
-                                                            ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' 
-                                                            : gf.category === 'style'
-                                                            ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
-                                                            : 'bg-red-500/10 text-red-400 border border-red-500/20'
-                                                        }`}>
-                                                            {gf.category}
-                                                        </span>
-                                                        <span className="text-[10px] text-slate-400 font-semibold">
-                                                            Kapitel: {gf.chapters_involved.join(', ') || 'Alle'}
-                                                        </span>
-                                                    </div>
-                                                    <span className="text-[10px] text-slate-500 font-semibold">Globaler Befund</span>
-                                                </div>
-
-                                                <div className="text-slate-300 font-semibold font-sans">
-                                                    {gf.description}
-                                                </div>
-
-                                                <div className="bg-primary/5 p-3 rounded-xl border border-primary/10 space-y-1">
-                                                    <span className="text-[9px] font-mono uppercase text-primary font-bold">Lösungsvorschlag:</span>
-                                                    <p className="text-[11px] text-slate-300 font-serif leading-relaxed italic">{gf.suggested_fix}</p>
-                                                </div>
-                                            </div>
-                                        ))}
+                    <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-1 custom-scrollbar">
+                        {groupGlobalFindings ? (
+                            Object.entries(getGroupedFindings(globalFindings)).map(([category, catFindings]) => {
+                                if (catFindings.length === 0) return null;
+                                const catTitle = category === 'consistency' ? 'Logik & Konsistenz' :
+                                                 category === 'grammar' ? 'Grammatik & Rechtschreibung' :
+                                                 category === 'pacing' ? 'Pacing & Plotfluss' : 'Schreibstil';
+                                const catColor = category === 'consistency' ? 'text-amber-400 border-amber-500/20 bg-amber-500/5' :
+                                                 category === 'grammar' ? 'text-red-400 border-red-500/20 bg-red-500/5' :
+                                                 category === 'pacing' ? 'text-teal-400 border-teal-500/20 bg-teal-500/5' :
+                                                 'text-blue-400 border-blue-500/20 bg-blue-500/5';
+                                return (
+                                    <div key={category} className="space-y-3 pt-2 first:pt-0">
+                                        <div className={`text-[10px] font-mono uppercase tracking-wider font-bold ${catColor} border border-slate-800 px-3 py-1 rounded-xl inline-block`}>
+                                            {catTitle} ({catFindings.length})
+                                        </div>
+                                        <div className="space-y-3 pl-2 border-l border-slate-800/60">
+                                            {catFindings.map((gf, idx) => renderGlobalFindingCard(gf, idx))}
+                                        </div>
                                     </div>
+                                );
+                            })
+                        ) : (
+                            globalFindings.map((gf, idx) => renderGlobalFindingCard(gf, idx))
+                        )}
+                    </div>
 
                                     <div className="flex justify-end pt-1">
                                         <button

@@ -46,7 +46,7 @@ class ProofreadChapterResponseSchema(BaseModel):
     findings: List[ProofreadChapterFindingSchema] = Field(description="Die Liste aller gefundenen Fehler und Korrekturen")
 
 class ProofreadGlobalFindingSchema(BaseModel):
-    category: str = Field(description="Die Kategorie des Fehlers ('consistency', 'style' oder 'pacing')")
+    category: str = Field(description="Die Kategorie des Fehlers ('consistency', 'style', 'pacing' oder 'grammar')")
     description: str = Field(description="Beschreibung des Fehlers auf Deutsch")
     chapters_involved: List[int] = Field(description="Eine Liste der Kapitelnummern, die von diesem Problem betroffen sind")
     suggested_fix: str = Field(description="Konkreter Vorschlag für die Korrektur auf Deutsch")
@@ -795,7 +795,7 @@ async def proofread_chapter(
     - Charakter-Bible: {characters_bible}
     - Gliederung: {outline}
     
-    Analysiere Kapitel {chapter_num} auf Probleme:
+    Analysiere Kapitel {chapter_num} auf Probleme. Finde so viele Probleme wie möglich (mindestens 10 bis 15 relevante Befunde, falls vorhanden). Sei extrem gründlich und suche auch nach kleineren Stil-, Grammatik-, Zeichensetzungs- und Wortwiederholungsfehlern.
     
     Kapitelinhalt:
     \"\"\"
@@ -869,7 +869,7 @@ async def proofread_book_globally(
     - Charakter-Bible: {characters_bible}
     - Gliederung (Outline): {outline}
     
-    Analysiere das folgende gesamte Manuskript auf übergeordnete Probleme (Logikfehler, Charakter-Inkonsistenzen, Stilbrüche):
+    Analysiere das folgende gesamte Manuskript auf übergeordnete Probleme (Logikfehler, Charakter-Inkonsistenzen, Stilbrüche, Grammatikmuster). Finde so viele Probleme wie möglich (mindestens 10 bis 15 relevante Befunde, falls vorhanden). Sei extrem gründlich und suche nach Widersprüchen, Stilbrüchen und systematischen Rechtschreib- oder Grammatikfehlern im gesamten Buch.
     
     MANUSKRIPT:
     \"\"\"
@@ -880,6 +880,7 @@ async def proofread_book_globally(
     - 'consistency' (z. B. Augenfarbe ändert sich, Figur taucht auf obwohl tot, Gegenstand wechselt den Besitzer ohne Grund, Zeitachsensprung)
     - 'style' (z. B. Kapitel 3 klingt modern, Kapitel 4 plötzlich altertümlich; Tonwechsel; extreme Wortwiederholungen über Kapitel hinweg)
     - 'pacing' (Pacing-Probleme, sprunghafte Entwicklungen im Plotfluss)
+    - 'grammar' (systematische Rechtschreib- oder Grammatikfehler im gesamten Buch oder in mehreren Kapiteln)
     
     Gib eine Liste von Problemen zurück. Jedes Problem muss folgende Felder haben:
     - category (eine der 3 Kategorien oben)

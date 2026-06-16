@@ -1020,7 +1020,7 @@ export async function suggestProStyleRefinement(id: string, model?: string): Pro
 }
 
 export interface GlobalLektoratFinding {
-    category: 'consistency' | 'style' | 'pacing';
+    category: 'consistency' | 'style' | 'pacing' | 'grammar';
     description: string;
     chapters_involved: number[];
     suggested_fix: string;
