@@ -983,6 +983,17 @@ async def improve_chapter_outline(
     model: str = "gemini-3.1-flash-lite"
 ) -> Dict[str, Any]:
     """Improve / rewrite a single chapter outline based on feedback/instructions."""
+    # If the outline has already been expanded, extract the clean summary to prevent recursive double-expansion.
+    if current_plot_outline and "--- Szene" in current_plot_outline:
+        import re
+        summary_match = re.match(r"^Zusammenfassung:\s*(.*?)(?=\n\s*--- Szene|\n\n--- Szene|$)", current_plot_outline, re.DOTALL | re.IGNORECASE)
+        if summary_match:
+            current_plot_outline = summary_match.group(1).strip()
+        else:
+            parts = re.split(r"--- Szene \d+ ---", current_plot_outline, flags=re.IGNORECASE)
+            if parts:
+                current_plot_outline = parts[0].replace("Zusammenfassung:", "").strip()
+
     style_resolved = get_author_names_improved(style)
     system_instruction = (
         "Du bist ein Bestseller-Autor. Du hilfst dabei, ein einzelnes Kapitel einer Buchgliederung (Outline) "
@@ -1100,6 +1111,17 @@ async def expand_chapter_outline(
     use_scene_beats: bool = True
 ) -> Dict[str, Any]:
     """Expands a single chapter outline into structured scene beats or a detailed 3-4 paragraph blueprint."""
+    # If the outline has already been expanded, extract the clean summary to prevent recursive double-expansion.
+    if current_plot_outline and "--- Szene" in current_plot_outline:
+        import re
+        summary_match = re.match(r"^Zusammenfassung:\s*(.*?)(?=\n\s*--- Szene|\n\n--- Szene|$)", current_plot_outline, re.DOTALL | re.IGNORECASE)
+        if summary_match:
+            current_plot_outline = summary_match.group(1).strip()
+        else:
+            parts = re.split(r"--- Szene \d+ ---", current_plot_outline, flags=re.IGNORECASE)
+            if parts:
+                current_plot_outline = parts[0].replace("Zusammenfassung:", "").strip()
+
     style_resolved = get_author_names_improved(style)
     
     if not use_scene_beats:
