@@ -37,7 +37,7 @@ class ImprovedChapterOutlineSchema(BaseModel):
     plot_outline: str = Field(description="Der überarbeitete Inhalt des Kapitels (ca. 100-150 Wörter)")
 
 class ProofreadChapterFindingSchema(BaseModel):
-    category: str = Field(description="Die Kategorie des Fehlers ('consistency', 'style' oder 'grammar')")
+    category: str = Field(description="Die Kategorie des Fehlers ('consistency', 'style', 'grammar' oder 'pacing')")
     description: str = Field(description="Beschreibung des Fehlers auf Deutsch")
     original_snippet: str = Field(description="Der genaue fehlerhafte Satz/Absatz aus dem Kapiteltext")
     suggested_rewrite: str = Field(description="Konkreter Vorschlag für die Korrektur auf Deutsch, passend zum Kontext")
@@ -804,11 +804,12 @@ async def proofread_chapter(
     
     Kategorisiere die Probleme in:
     - 'consistency' (Logikfehler, falsche Augenfarben, Plot-Widersprüche)
-    - 'style' (Wortwiederholungen, holpriger Satzbau, Pacing-Fehler)
+    - 'style' (Wortwiederholungen, holpriger Satzbau)
+    - 'pacing' (Pacing-Fehler, sprunghafter Plotfluss)
     - 'grammar' (Tippfehler, Grammatikfehler)
     
     Gib eine Liste von Problemen zurück. Jedes Problem muss folgende Felder haben:
-    - category (eine der 3 Kategorien oben)
+    - category (eine der 4 Kategorien oben)
     - description (Beschreibung des Fehlers auf Deutsch)
     - original_snippet (der genaue fehlerhafte Satz/Absatz aus dem Text)
     - suggested_rewrite (Vorschlag für die Korrektur auf Deutsch, passend zum Kontext)

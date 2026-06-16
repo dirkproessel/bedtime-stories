@@ -802,7 +802,7 @@ export interface KdpMetadata {
 }
 
 export interface LektoratFinding {
-    category: 'consistency' | 'style' | 'grammar';
+    category: 'consistency' | 'style' | 'grammar' | 'pacing';
     description: string;
     original_snippet: string;
     suggested_rewrite: string;
