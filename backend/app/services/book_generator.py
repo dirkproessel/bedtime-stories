@@ -56,7 +56,7 @@ class ProofreadGlobalResponseSchema(BaseModel):
 
 class SceneBeatSchema(BaseModel):
     scene_number: int = Field(description="Fortlaufende Nummer der Szene (1-basiert)")
-    pov_character: str = Field(description="Name des Charakter, aus dessen Perspektive erzählt wird")
+    pov_character: str = Field(description="Name des Charakters, aus dessen Perspektive erzählt wird (oder 'Erzähler', falls die allwissende Erzählperspektive gewählt wurde)")
     setting: str = Field(description="Ort/Setting der Szene (z.B. 'Dunkle Gasse hinter dem Club')")
     goal: str = Field(description="Was will der POV-Charakter in dieser Szene erreichen?")
     conflict: str = Field(description="Was steht ihm/ihr im Weg? Welche Spannung entsteht?")
@@ -485,6 +485,12 @@ async def generate_chapter_content(
                 scene_fulltext_str = fulltext_str
                 fulltext_count = len(fulltext_chapters)
 
+            pov_val = scene.get('pov_character', chapter.pov_character or 'Erzähler')
+            if (g_config and g_config.get("pov") == "omniscient") or pov_val in ["Erzähler", "allwissend", "Allwissend", "Narrator"]:
+                pov_line = "- Erzählperspektive: Allwissend (Schreibe aus der Perspektive des allwissenden, neutralen Erzählers, nicht aus der personalen/Ich-Perspektive einer der Hauptpersonen!)"
+            else:
+                pov_line = f"- POV: {pov_val} (Schreibe konsequent aus dieser Perspektive!)"
+
             scene_prompt = f"""
     Hier sind die Rahmendaten für das Buchprojekt:
     - Buchtitel: {project.title}
@@ -516,7 +522,7 @@ async def generate_chapter_content(
     Schreibe jetzt die Romanprosa für **Szene {scene['scene_number']}** (von insgesamt {len(scenes)} Szenen in diesem Kapitel).
     
     Szenen-Vorgaben:
-    - POV: {scene.get('pov_character', chapter.pov_character or 'Hauptcharakter')} (Schreibe konsequent aus dieser Perspektive!)
+    {pov_line}
     - Ort: {scene.get('setting', 'Nicht spezifiziert')}
     - Ziel: {scene.get('goal', 'Nicht spezifiziert')}
     - Konflikt: {scene.get('conflict', 'Nicht spezifiziert')}
@@ -577,7 +583,7 @@ async def generate_chapter_content(
     Schreibe jetzt die Romanprosa für **Szene {scene['scene_number']}** (von insgesamt {len(scenes)} Szenen in diesem Kapitel).
     
     Szenen-Vorgaben:
-    - POV: {scene.get('pov_character', chapter.pov_character or 'Hauptcharakter')} (Schreibe konsequent aus dieser Perspektive!)
+    {pov_line}
     - Ort: {scene.get('setting', 'Nicht spezifiziert')}
     - Ziel: {scene.get('goal', 'Nicht spezifiziert')}
     - Konflikt: {scene.get('conflict', 'Nicht spezifiziert')}
@@ -1167,6 +1173,13 @@ async def expand_chapter_outline(
         pov_hint = "\nWICHTIG: Alle Szenen MÜSSEN aus der Perspektive des weiblichen Hauptcharakters erzählt sein."
     elif genre_config and genre_config.get("pov") == "single_male":
         pov_hint = "\nWICHTIG: Alle Szenen MÜSSEN aus der Perspektive des männlichen Hauptcharakters erzählt sein."
+    elif genre_config and genre_config.get("pov") == "omniscient":
+        pov_hint = (
+            "\nWICHTIG: Die gewählte Erzählperspektive ist 'Allwissend' (auktorialer Erzähler / allgemeiner Erzähler). "
+            "Es gibt keinen einzelnen charaktergebundenen Point of View (POV). Alle Szenen MÜSSEN aus der allwissenden, "
+            "übergeordneten Erzählerperspektive geschrieben sein. Setze für das Feld 'pov_character' bei allen Szenen "
+            "konsequent 'Erzähler' ein."
+        )
         
     recommended_scenes = max(3, min(7, target_words_per_chapter // 500))
     

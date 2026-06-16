@@ -680,6 +680,8 @@ async def api_generate_outline(
                 pov_char = "weiblicher Hauptcharakter"
             elif g_config and g_config.get("pov") == "single_male":
                 pov_char = "männlicher Hauptcharakter"
+            elif g_config and g_config.get("pov") == "omniscient":
+                pov_char = "Erzähler"
                 
             chapter = BookChapter(
                 id=str(uuid.uuid4())[:8],
