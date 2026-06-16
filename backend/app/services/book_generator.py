@@ -530,7 +530,7 @@ async def generate_chapter_content(
     1. Schreibe AUSSCHLIESSLICH diese eine Szene (ca. {words} Wörter). Schreibe NICHT das gesamte Kapitel!
     2. Sobald der in 'Ausgang' beschriebene Zustand der Szene erreicht ist, beende die Generierung sofort.
     3. Beschreibe oder erwähne KEINE Ereignisse oder Dialoge der darauffolgenden Szenen vorab.
-    4. Setze den bisherigen Text nahtlos und stilistisch identisch fort. Wiederhole keine Ereignisse, die bereits im bisherigen Text stattgefunden haben.
+    4. Setze den bisherigen Text nahtlos und stilistisch identisch fort. Wiederhole keine Ereignisse, die bereits im bisherigen Text stattgefunden haben. Wenn diese Szene an einem anderen Ort oder zu einer anderen Zeit spielt als die vorherige Szene, verankere den Leser direkt zu Beginn kurz und elegant in der neuen Umgebung (z. B. durch einen kurzen Übergangssatz, der den Orts- oder Zeitwechsel beschreibt).
     5. Füge keine Überschriften, Kapitel- oder Szenennummern (wie 'Szene 1') oder Trennlinien ein. Beginne direkt mit der Romanprosa.
     """
             
@@ -591,7 +591,7 @@ async def generate_chapter_content(
     1. Schreibe AUSSCHLIESSLICH diese eine Szene (ca. {words} Wörter). Schreibe NICHT das gesamte Kapitel!
     2. Sobald der in 'Ausgang' beschriebene Zustand der Szene erreicht ist, beende die Generierung sofort.
     3. Beschreibe oder erwähne KEINE Ereignisse oder Dialoge der darauffolgenden Szenen vorab.
-    4. Setze den bisherigen Text nahtlos und stilistisch identisch fort. Wiederhole keine Ereignisse, die bereits im bisherigen Text stattgefunden haben.
+    4. Setze den bisherigen Text nahtlos und stilistisch identisch fort. Wiederhole keine Ereignisse, die bereits im bisherigen Text stattgefunden haben. Wenn diese Szene an einem anderen Ort oder zu einer anderen Zeit spielt als die vorherige Szene, verankere den Leser direkt zu Beginn kurz und elegant in der neuen Umgebung (z. B. durch einen kurzen Übergangssatz, der den Orts- oder Zeitwechsel beschreibt).
     5. Füge keine Überschriften, Kapitel- oder Szenennummern (wie 'Szene 1') oder Trennlinien ein. Beginne direkt mit der Romanprosa.
     """
             
@@ -633,7 +633,7 @@ async def generate_chapter_content(
                 scene_prose = re.sub(r'^(?:---\s*)?szene\s*\d+\s*(?:[:\-\.]|---)?\s*', '', scene_prose, flags=re.IGNORECASE).strip()
                 
                 if chapter_prose:
-                    chapter_prose += "\n\n" + scene_prose
+                    chapter_prose += "\n\n***\n\n" + scene_prose
                 else:
                     chapter_prose = scene_prose
             except Exception as e:
