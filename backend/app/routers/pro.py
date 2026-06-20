@@ -58,6 +58,15 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/pro", tags=["pro"])
 
 
+def _get_kids_flag(genre_config_str: Optional[str]) -> bool:
+    """Extract is_kids_book from a genre_config JSON string."""
+    if not genre_config_str:
+        return False
+    try:
+        return json.loads(genre_config_str).get("is_kids_book", False)
+    except (json.JSONDecodeError, TypeError):
+        return False
+
 async def get_admin_user_from_request(
     token: Optional[str] = Query(None),
     authorization: Optional[str] = Header(None)
@@ -624,7 +633,8 @@ async def api_suggest_characters(
         prompt=project.prompt,
         genre=project.genre,
         style=project.style,
-        model=model
+        model=model,
+        is_kids_book=_get_kids_flag(project.genre_config)
     )
     return {"suggestions": suggestions}
 
@@ -975,7 +985,8 @@ async def api_improve_chapter_outline(
             current_title=chapter.title,
             current_plot_outline=chapter.plot_outline,
             instruction=instruction,
-            model=model
+            model=model,
+            is_kids_book=_get_kids_flag(project.genre_config)
         )
         
         # Save back to database chapter

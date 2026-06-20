@@ -182,6 +182,7 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
     const [selectedTropes, setSelectedTropes] = useState<string[]>([]);
     const [pov, setPov] = useState<string>('');
     const [spiceLevel, setSpiceLevel] = useState<number>(3);
+    const [isKidsBook, setIsKidsBook] = useState<boolean>(false);
 
     // Step 2 State: Outline
     const [numChapters, setNumChapters] = useState(activeProject.chapters.length || 8);
@@ -399,6 +400,7 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                 setSelectedTropes(config.tropes || []);
                 setPov(config.pov || '');
                 setSpiceLevel(config.spice_level || 3);
+                setIsKidsBook(config.is_kids_book || false);
             } catch (err) {
                 console.error("Error parsing genre_config in editor:", err);
             }
@@ -406,6 +408,7 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
             setSelectedTropes([]);
             setPov('');
             setSpiceLevel(3);
+            setIsKidsBook(false);
         }
     }, [activeProject.id, activeProject.genre_config]);
 
@@ -415,7 +418,8 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
             const configJson = JSON.stringify({
                 tropes: selectedTropes,
                 pov,
-                spice_level: genreProfile?.has_spice_levels ? spiceLevel : null
+                spice_level: genreProfile?.has_spice_levels ? spiceLevel : null,
+                is_kids_book: isKidsBook
             });
             await updateProBook(activeProject.id, { genre_config: configJson });
             toast.success('Genre-Einstellungen gespeichert!');
@@ -1372,6 +1376,44 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                                                 </p>
                                             </div>
                                         )}
+
+                                        {/* Kinderbuch-Option */}
+                                        <div className="space-y-2.5 bg-background/60 p-4 rounded-2xl border border-slate-800">
+                                            <div className="flex items-center justify-between">
+                                                <div className="space-y-1">
+                                                    <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                                                        <BookOpen className="w-3.5 h-3.5 text-amber-400" />
+                                                        Kinderbuch-Modus
+                                                    </span>
+                                                    <p className="text-[10px] text-text-muted leading-snug max-w-sm">
+                                                        Passt Sprache, Vokabular und Inhalte für Kinder ab 10 Jahren an. 
+                                                        Die stilistischen Eigenheiten der gewählten Autoren bleiben erhalten, 
+                                                        werden aber kindgerecht übersetzt.
+                                                    </p>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setIsKidsBook(!isKidsBook)}
+                                                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                                                        isKidsBook ? 'bg-amber-500' : 'bg-slate-700'
+                                                    }`}
+                                                    role="switch"
+                                                    aria-checked={isKidsBook}
+                                                >
+                                                    <span
+                                                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                                                            isKidsBook ? 'translate-x-5' : 'translate-x-0'
+                                                        }`}
+                                                    />
+                                                </button>
+                                            </div>
+                                            {isKidsBook && (
+                                                <div className="bg-amber-500/5 px-3 py-2 rounded-xl border border-amber-500/15 text-[10px] text-amber-300/80 leading-relaxed animate-fadeIn">
+                                                    <b>Aktiv:</b> Charaktere, Gliederungen und Kapitel werden für junge Leser optimiert. 
+                                                    Keine Gewalt, keine komplexe Psychologie, einfache Satzstruktur — aber mit dem vollen Stil-Charakter deiner Autoren-Auswahl.
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 ) : (
                                     <div className="text-slate-500 text-xs py-10 text-center">

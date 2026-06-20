@@ -212,7 +212,29 @@ def get_author_names_improved(style_string: str) -> str:
             
     return ", ".join(resolved_names)
 
-async def suggest_characters(prompt: str, genre: str, style: str, model: str = "gemini-3.1-flash-lite") -> List[Dict[str, Any]]:
+
+def get_kids_book_prompt(is_kids_book: bool) -> str:
+    """Returns the prompt injection clause for Kinderbuch mode, or empty string."""
+    if not is_kids_book:
+        return ""
+    return (
+        "\n\n🧒 KINDERBUCH-MODUS AKTIV:\n"
+        "Dieses Buch richtet sich an Kinder ab ca. 10 Jahren. Beachte unbedingt folgende Regeln:\n"
+        "1. SPRACHE: Verwende klare, einfache Satzstrukturen (max. 1-2 Nebensätze pro Satz). "
+        "Vermeide Fachvokabular, Fremdwörter und abstrakte Konzepte — erkläre sie ggf. beiläufig.\n"
+        "2. INHALT: Keine explizite Gewalt, keine Waffen, kein Blut, keine psychologischen Abgründe, "
+        "keine Drogen, kein Alkohol, keine sexuellen Inhalte, keine düstere Hoffnungslosigkeit. "
+        "Konflikte sollen altersgerecht und lösbar sein.\n"
+        "3. STIL: Behalte die stilistischen Eigenheiten der gewählten Autoren bei (z.B. Stakkato-Sätze, "
+        "Markennamen-Referenzen, Dialog-Schleifen), aber übersetze sie in einen kindgerechten Kontext. "
+        "Ein 'Stuckrad-Barre für Kids' referenziert Sneakers und Schoko-Müsli statt Kokain und Gucci.\n"
+        "4. EMOTIONEN: Zeige Gefühle direkt und greifbar. Kinder verstehen Wut, Freude, Trauer, Angst — "
+        "aber vermeide existenzielle Krisen oder moralische Grauzonen ohne Auflösung.\n"
+        "5. CHARAKTER-DESIGN: Protagonisten sollten Identifikationsfiguren für 10-Jährige sein. "
+        "Erwachsene Figuren können Mentoren/Begleiter sein, aber die Kinder/Jugendlichen treiben die Handlung.\n"
+    )
+
+async def suggest_characters(prompt: str, genre: str, style: str, model: str = "gemini-3.1-flash-lite", is_kids_book: bool = False) -> List[Dict[str, Any]]:
     """Generate 3-5 character suggestions based on a book idea."""
     style_resolved = get_author_names_improved(style)
     from app.services.genre_profiles import get_genre_profile
@@ -228,6 +250,7 @@ async def suggest_characters(prompt: str, genre: str, style: str, model: str = "
         f"{genre_context}"
         "Erstelle 3 bis 5 vielschichtige Charaktere für ein neues Buchprojekt. "
         "Antworte ausschließlich im JSON-Format."
+        f"{get_kids_book_prompt(is_kids_book)}"
     )
     
     prompt_content = f"""
@@ -298,6 +321,7 @@ async def generate_outline(
     system_instruction = (
         "Du bist ein Bestseller-Autor. Entwerfe eine spannende, kapitelweise Gliederung (Outline) "
         "für eine Novelle. Antworte ausschließlich im JSON-Format."
+        f"{get_kids_book_prompt(g_config.get('is_kids_book', False))}"
     )
     
     instruction_str = f"\nNutzer-Anweisung/Kritik zur Berücksichtigung für diese Gliederung:\n\"{instruction}\"\n" if instruction else ""
@@ -612,6 +636,7 @@ async def generate_chapter_content(
                 "ACHTUNG: Du schreibst nur eine EINZELNE Szene des Kapitels (nicht das gesamte Kapitel). "
                 "Halte dich streng an das vorgegebene Wortbudget und übertreibe es nicht mit Abschweifungen. "
                 "Beende die Generierung sofort, sobald die Handlung der aktuellen Szene abgeschlossen ist."
+                f"{get_kids_book_prompt(g_config.get('is_kids_book', False))}"
             )
             if "Stilproben" in (style_resolved or ""):
                 system_instruction += (
@@ -661,6 +686,7 @@ async def generate_chapter_content(
             "Meta-Kommentare oder den Kapiteltitel am Anfang des Textes. Beginne sofort mit dem ersten Satz der Geschichte. "
             "Benutze unter keinen Umständen Markdown-Sternchen (*) oder Unterstriche (_), um Gedanken, Durchsagen oder wörtliche Rede hervorzuheben. "
             "Nutze für wörtliche Rede und Durchsagen stattdessen klassische deutsche Anführungszeichen (z. B. „...“ oder »...«)."
+            f"{get_kids_book_prompt(g_config.get('is_kids_book', False))}"
         )
         if "Stilproben" in (style_resolved or ""):
             system_instruction += (
@@ -980,7 +1006,8 @@ async def improve_chapter_outline(
     current_title: str,
     current_plot_outline: str,
     instruction: str,
-    model: str = "gemini-3.1-flash-lite"
+    model: str = "gemini-3.1-flash-lite",
+    is_kids_book: bool = False
 ) -> Dict[str, Any]:
     """Improve / rewrite a single chapter outline based on feedback/instructions."""
     # If the outline has already been expanded, extract the clean summary to prevent recursive double-expansion.
@@ -998,6 +1025,7 @@ async def improve_chapter_outline(
     system_instruction = (
         "Du bist ein Bestseller-Autor. Du hilfst dabei, ein einzelnes Kapitel einer Buchgliederung (Outline) "
         "zu überarbeiten und zu verbessern. Antworte ausschließlich im JSON-Format."
+        f"{get_kids_book_prompt(is_kids_book)}"
     )
     
     prompt_content = f"""
@@ -1205,11 +1233,14 @@ async def expand_chapter_outline(
         
     recommended_scenes = max(3, min(7, target_words_per_chapter // 500))
     
+    kids_book_clause = get_kids_book_prompt(genre_config.get('is_kids_book', False) if genre_config else False)
+    
     system_instruction = (
         "Du bist ein Bestseller-Autor und Story-Architekt. Deine Aufgabe ist es, eine kurze "
         "Kapitelgliederung zu einer detaillierten Szenen-Struktur auszuarbeiten. "
         "Jede Szene bekommt einen klaren dramaturgischen Aufbau mit Ziel, Konflikt und Ausgang. "
         "Antworte ausschließlich im JSON-Format."
+        f"{kids_book_clause}"
     )
     
     prompt_content = f"""
