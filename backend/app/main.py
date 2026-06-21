@@ -129,6 +129,16 @@ def on_startup():
                 # Column likely already exists
                 pass
 
+            # Check if is_kids_book exists, if not add it
+            try:
+                conn.execute(text("ALTER TABLE storymeta ADD COLUMN is_kids_book BOOLEAN DEFAULT 0"))
+                conn.commit()
+                logger.info("Database Migration: Added is_kids_book column to storymeta table.")
+            except Exception as e:
+                # Column likely already exists
+                pass
+
+
             # Check if style_bible exists on bookproject, if not add it
             try:
                 conn.execute(text("ALTER TABLE bookproject ADD COLUMN style_bible TEXT"))
@@ -457,7 +467,8 @@ async def start_generation(req: StoryRequest, current_user: User = Depends(get_c
         user_id=current_user.id,
         parent_id=req.parent_id,
         original_prompt=req.prompt,
-        multi_voice=req.multi_voice
+        multi_voice=req.multi_voice,
+        is_kids_book=req.is_kids_book
     )
 
     # Run generation in background
@@ -478,9 +489,11 @@ async def start_generation(req: StoryRequest, current_user: User = Depends(get_c
             further_instructions=req.further_instructions,
             parent_meta=parent_meta,
             parent_text=parent_text,
-            multi_voice=req.multi_voice
+            multi_voice=req.multi_voice,
+            is_kids_book=req.is_kids_book
         )
     )
+
 
     return {"id": story_id, "status": "started"}
 

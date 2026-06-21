@@ -100,6 +100,8 @@ class StoryMeta(SQLModel, table=True):
     parent_id: Optional[str] = Field(default=None) # Reference to original story
     highlights: Optional[str] = Field(default=None) # AI-extracted punchlines/highlights
     multi_voice: bool = Field(default=False)
+    is_kids_book: bool = Field(default=False)
+
 
 
 class StoryMetaResponse(StoryMeta):
@@ -189,6 +191,8 @@ class StoryRequest(BaseModel):
     remix_type: Optional[str] = None # "improvement" | "sequel"
     further_instructions: Optional[str] = None
     multi_voice: bool = False
+    is_kids_book: bool = False
+
 
 
 class FreeTextRequest(BaseModel):
@@ -331,6 +335,9 @@ class BookProjectCreate(BaseModel):
 
 class BookProjectUpdate(BaseModel):
     title: Optional[str] = None
+    prompt: Optional[str] = None
+    genre: Optional[str] = None
+    style: Optional[str] = None
     characters_bible: Optional[str] = None
     style_bible: Optional[str] = None
     outline: Optional[str] = None
@@ -341,6 +348,7 @@ class BookProjectUpdate(BaseModel):
     epub_afterword: Optional[str] = None
     epub_imprint: Optional[str] = None
     genre_config: Optional[str] = None
+
 
 
 class BookOutlineImport(BaseModel):

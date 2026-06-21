@@ -123,6 +123,7 @@ export interface StoryRequest {
     remix_type?: 'improvement' | 'sequel';
     further_instructions?: string;
     multi_voice?: boolean;
+    is_kids_book?: boolean;
 }
 
 // --- Auth Endpoints ---

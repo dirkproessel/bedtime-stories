@@ -6,7 +6,8 @@ import type {
     KdpMetadata,
     GlobalLektoratFinding
 } from '../lib/api';
-import { formatAuthorStyles } from '../lib/authors';
+import { formatAuthorStyles, AUTHORS } from '../lib/authors';
+import { GENRES } from './StoryCreator';
 import { 
     updateProBook, 
     suggestProCharacters,
@@ -154,6 +155,18 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
     useEffect(() => {
         setEditedTitle(activeProject.title);
     }, [activeProject.title]);
+
+    const [isEditingBasis, setIsEditingBasis] = useState(false);
+    const [editedGenre, setEditedGenre] = useState(activeProject.genre);
+    const [editedStyle, setEditedStyle] = useState(activeProject.style);
+    const [editedPrompt, setEditedPrompt] = useState(activeProject.prompt);
+
+    // Sync basis when activeProject changes
+    useEffect(() => {
+        setEditedGenre(activeProject.genre);
+        setEditedStyle(activeProject.style);
+        setEditedPrompt(activeProject.prompt);
+    }, [activeProject.id, activeProject.genre, activeProject.style, activeProject.prompt]);
 
     const [activeStep, setActiveStep] = useState<StepType>('concept');
     const [isSaving, setIsSaving] = useState(false);
@@ -490,6 +503,39 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
             setIsEditingTitle(false);
         } catch (e: any) {
             toast.error('Fehler beim Aktualisieren des Titels: ' + e.message);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const toggleEditedAuthor = (authorId: string) => {
+        const currentAuthors = editedStyle ? editedStyle.split(',').map(s => s.trim()).filter(Boolean) : [];
+        let nextAuthors: string[];
+        if (currentAuthors.includes(authorId)) {
+            nextAuthors = currentAuthors.filter(id => id !== authorId);
+        } else {
+            if (currentAuthors.length >= 3) {
+                toast.error('Maximal 3 Autorenstile können kombiniert werden.');
+                return;
+            }
+            nextAuthors = [...currentAuthors, authorId];
+        }
+        setEditedStyle(nextAuthors.join(','));
+    };
+
+    const handleSaveBasis = async () => {
+        setIsSaving(true);
+        try {
+            await updateProBook(activeProject.id, {
+                genre: editedGenre,
+                style: editedStyle,
+                prompt: editedPrompt
+            });
+            await loadProProjectDetail(activeProject.id);
+            toast.success('Basisdaten aktualisiert! Wenn du eine Stil-Bible oder Gliederung neu generierst, wird dies berücksichtigt.');
+            setIsEditingBasis(false);
+        } catch (e: any) {
+            toast.error('Fehler beim Speichern der Basisdaten: ' + e.message);
         } finally {
             setIsSaving(false);
         }
@@ -1130,24 +1176,111 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div className="lg:col-span-1 space-y-4">
                         <div className="bg-surface p-5 rounded-3xl border border-slate-800 space-y-3">
-                            <h3 className="font-semibold text-white text-sm">Projektdaten</h3>
-                            <div className="text-xs space-y-2.5">
+                            <div className="flex justify-between items-center">
+                                <h3 className="font-semibold text-white text-sm">Projektdaten</h3>
+                                {!isEditingBasis ? (
+                                    <button 
+                                        onClick={() => setIsEditingBasis(true)}
+                                        className="text-xs text-primary hover:underline flex items-center gap-1"
+                                    >
+                                        <Edit2 className="w-3 h-3" />
+                                        Bearbeiten
+                                    </button>
+                                ) : (
+                                    <div className="flex items-center gap-2">
+                                        <button 
+                                            onClick={handleSaveBasis}
+                                            disabled={isSaving}
+                                            className="text-xs text-primary hover:underline flex items-center gap-1"
+                                        >
+                                            {isSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                                            Speichern
+                                        </button>
+                                        <button 
+                                            onClick={() => {
+                                                setEditedGenre(activeProject.genre);
+                                                setEditedStyle(activeProject.style);
+                                                setEditedPrompt(activeProject.prompt);
+                                                setIsEditingBasis(false);
+                                            }}
+                                            className="text-xs text-slate-500 hover:underline flex items-center gap-1"
+                                        >
+                                            <X className="w-3 h-3" />
+                                            Abbrechen
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="text-xs space-y-3">
                                 <div>
                                     <span className="text-slate-500 block uppercase font-mono text-[9px]">Ziel-Wortanzahl</span>
                                     <span className="text-slate-300 font-medium">15.000 - 20.000 Wörter (Kurzroman)</span>
                                 </div>
-                                <div>
-                                    <span className="text-slate-500 block uppercase font-mono text-[9px]">Genre</span>
-                                    <span className="text-slate-300 font-medium">{activeProject.genre}</span>
-                                </div>
-                                <div>
-                                    <span className="text-slate-500 block uppercase font-mono text-[9px]">Schreibstil</span>
-                                    <span className="text-slate-300 font-medium">{formatAuthorStyles(activeProject.style)}</span>
-                                </div>
-                                <div>
-                                    <span className="text-slate-500 block uppercase font-mono text-[9px]">Buchidee</span>
-                                    <p className="text-slate-400 leading-relaxed mt-0.5">{activeProject.prompt}</p>
-                                </div>
+                                
+                                {!isEditingBasis ? (
+                                    <>
+                                        <div>
+                                            <span className="text-slate-500 block uppercase font-mono text-[9px]">Genre</span>
+                                            <span className="text-slate-300 font-medium">{activeProject.genre}</span>
+                                        </div>
+                                        <div>
+                                            <span className="text-slate-500 block uppercase font-mono text-[9px]">Schreibstil</span>
+                                            <span className="text-slate-300 font-medium">{formatAuthorStyles(activeProject.style)}</span>
+                                        </div>
+                                        <div>
+                                            <span className="text-slate-500 block uppercase font-mono text-[9px]">Buchidee</span>
+                                            <p className="text-slate-400 leading-relaxed mt-0.5 whitespace-pre-wrap">{activeProject.prompt}</p>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="space-y-3">
+                                        <div>
+                                            <span className="text-slate-500 block uppercase font-mono text-[9px] mb-1">Genre</span>
+                                            <select
+                                                value={editedGenre}
+                                                onChange={(e) => setEditedGenre(e.target.value)}
+                                                className="w-full bg-background border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-primary"
+                                            >
+                                                {GENRES.map(g => (
+                                                    <option key={g.value} value={g.value}>{g.label}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <span className="text-slate-500 block uppercase font-mono text-[9px] mb-1">Schreibstil (Mixe bis zu 3)</span>
+                                            <div className="max-h-40 overflow-y-auto bg-background border border-slate-800 rounded-xl p-2 space-y-1.5 no-scrollbar">
+                                                {AUTHORS.map(a => {
+                                                    const currentAuthors = editedStyle ? editedStyle.split(',').map(s => s.trim()).filter(Boolean) : [];
+                                                    const isChecked = currentAuthors.includes(a.id);
+                                                    return (
+                                                        <label key={a.id} className="flex items-center gap-2 cursor-pointer text-slate-300 hover:text-white py-0.5 select-none">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={isChecked}
+                                                                onChange={() => toggleEditedAuthor(a.id)}
+                                                                className="rounded bg-slate-900 border-slate-800 text-primary focus:ring-0 focus:ring-offset-0 focus:outline-none"
+                                                            />
+                                                            <div className="leading-none">
+                                                                <span className="text-[11px] font-semibold">{a.name}</span>
+                                                                <span className="text-[9px] text-slate-500 ml-1.5">({a.desc})</span>
+                                                            </div>
+                                                        </label>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <span className="text-slate-500 block uppercase font-mono text-[9px] mb-1">Buchidee</span>
+                                            <textarea
+                                                value={editedPrompt}
+                                                onChange={(e) => setEditedPrompt(e.target.value)}
+                                                rows={4}
+                                                className="w-full bg-background border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-primary resize-none leading-relaxed"
+                                                placeholder="Beschreibe die Buchidee..."
+                                            />
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

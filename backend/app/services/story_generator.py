@@ -107,13 +107,6 @@ STANZWERK_BIBLIOTHEK = {
             "erzaehlweise": "Philosophischer Blödsinn, trockene Oneliner, totale Vernichtung der Logik"
         },
         {
-            "id": "kinney",
-            "name": "Jeff Kinney",
-            "wortwahl": "Einfach, authentisch, pubertär-ironisch",
-            "atmosphaere": "Die ungeschönte, peinliche Welt des Schulhofs",
-            "erzaehlweise": "Tagebuch-Stil, pointiertes Scheitern, Fokus auf Alltags-Fettnäpfchen"
-        },
-        {
             "id": "kaestner",
             "name": "Erich Kästner",
             "wortwahl": "Klar, ironisch, moralisch ohne erhobenen Zeigefinger",
@@ -125,7 +118,7 @@ STANZWERK_BIBLIOTHEK = {
             "name": "Astrid Lindgren",
             "wortwahl": "Herzlich, mutig, kindlich-weise",
             "atmosphaere": "Sommerlich-melancholisch, tief geborgen und frei",
-            "erzaehlweise": "Voller Empathie, Fokus auf Gerechtigkeit und kindliche Stärke"
+            "erzaehlweise": "Voller Empathie, Fokus auf Gerechtigkeit and kindliche Stärke"
         },
         {
             "id": "dahl",
@@ -187,7 +180,8 @@ STANZWERK_BIBLIOTHEK = {
     "kids": [
         {"id": "funke", "name": "Cornelia Funke", "wortwahl": "Magisch, farbenfroh, bildstark", "atmosphaere": "Wundervoll, abenteuerlich, märchenhaft", "erzaehlweise": "Mitreißend, immersiv, warmherzig"},
         {"id": "pantermueller", "name": "Alice Pantermüller", "wortwahl": "Rotzig, kindgerecht, umgangssprachlich", "atmosphaere": "Chaotisch, alltäglich, lustig", "erzaehlweise": "Frech, tagebuchartig, im Plauderton"},
-        {"id": "auer", "name": "Margit Auer", "wortwahl": "Empathisch, warm, verständlich", "atmosphaere": "Geborgen, geheimnisvoll, magisch-alltäglich", "erzaehlweise": "Pädagogisch wertvoll, spannungsvoll, auf Augenhöhe der Kinder"}
+        {"id": "auer", "name": "Margit Auer", "wortwahl": "Empathisch, warm, verständlich", "atmosphaere": "Geborgen, geheimnisvoll, magisch-alltäglich", "erzaehlweise": "Pädagogisch wertvoll, spannungsvoll, auf Augenhöhe der Kinder"},
+        {"id": "kinney", "name": "Jeff Kinney", "wortwahl": "Einfach, authentisch, pubertär-ironisch", "atmosphaere": "Die ungeschönte, peinliche Welt des Schulhofs", "erzaehlweise": "Tagebuch-Stil, pointiertes Scheitern, Fokus auf Alltags-Fettnäpfchen"}
     ]
 }
 
@@ -410,13 +404,14 @@ async def generate_full_story(
     parent_text: dict | None = None,
     multi_voice: bool = False,
     supports_emotions: bool = False,
+    is_kids_book: bool = False,
 ) -> dict:
     # Due to LLM word length limits (~1000 words max per request), 
     # we always use the multi-pass (chapter-by-chapter) generation.
     return await _generate_multi_pass(
         prompt, genre, style, characters, target_minutes, on_progress,
         remix_type, further_instructions, parent_text,
-        multi_voice, supports_emotions
+        multi_voice, supports_emotions, is_kids_book
     )
 
 
@@ -449,7 +444,7 @@ async def _api_request_with_retry(func, *args, on_progress=None, max_retries=3, 
 async def _generate_single_pass(
     prompt, genre, style, characters, target_minutes, on_progress,
     remix_type=None, further_instructions=None, parent_text=None,
-    multi_voice=False, supports_emotions=False
+    multi_voice=False, supports_emotions=False, is_kids_book=False
 ):
     """Original single-pass logic for shorter stories with improved JSON cleanup."""
     selected_style_info = generate_modular_prompt(style)
@@ -482,6 +477,19 @@ WICHTIGE REGELN FÜR DIESEN MODUS:
         parent_title = parent_text.get("title", "Die erste Geschichte")
         remix_context = f"\n\nDIES IST EINE FORTSETZUNG (SEQUEL) ZU:\nTitel: {parent_title}\nZusammenfassung von Teil 1: {parent_synopsis}\n\nANWEISUNGEN FÜR DIE FORTSETZUNG:\n{further_instructions or 'Erzähle die Geschichte weiter.'}"
 
+    kids_prompt = ""
+    if is_kids_book:
+        kids_prompt = (
+            "\n\n🧒 KINDER-STIL AKTIV (WICHTIG):\n"
+            "Diese Geschichte richtet sich an Kinder. Sie darf unter keinen Umständen 'verkopft', trocken oder kompliziert geschrieben sein!\n"
+            "Beachte unbedingt folgende Regeln:\n"
+            "1. DIREKT & BILDHAFT: Erzähle lebendig, aktiv und szenisch. Vermeide lange gedankliche Monologe, komplexe innere Reflexionen und psychologisches Sezieren.\n"
+            "2. SPRACHE: Benutze kurze, dynamische Sätze. Keine Schachtelsätze. Verwende einfache, bildhafte Begriffe auf Augenhöhe der Kinder.\n"
+            "3. DIALOG & INTERAKTION: Setze auf witzige, direkte Dialoge und unmittelbare physische Aktionen. Zeige Humor und Spaß!\n"
+            "4. EMOTIONEN: Zeige Gefühle (Wut, Freude, Überraschung) durch direktes Handeln oder greifbare körperliche Reaktionen (Show, don't tell auf kindgerechte Weise), statt sie abstrakt zu erklären.\n"
+            "5. INSPIRATION: Orientiere dich an Kinderbuch-Bestsellern wie Alice Pantermüllers Lotta-Leben (chaotisch, frech, rotziger Plauderton) oder Jeff Kinneys Gregs Tagebuch (einfach, authentisch, witzig-peinlicher Alltag).\n"
+        )
+
     master_prompt = f"""Du bist ein preisgekrönter Autor. Schreibe eine abgeschlossene Kurzgeschichte.
 
 STRIKTE REGELN:
@@ -493,10 +501,18 @@ Vermeide jegliche Floskeln, pädagogische Zeigefinger oder moralische Zusammenfa
 4. Pacing & Detail: Hetze nicht durch die Handlung. Entwickle Szenen durch konkrete Details, aber halte die Syntax (Satzbau) einfach.
 5. UMFANG: ZIELGRÖßE: ca. {word_count} Wörter. Nutze eine präzise Wortwahl statt vieler Adjektive. Die neue sprachliche Freiheit darf NICHT zu unnötiger Länge führen. Vermeide Abschweifungen.
 6. KEIN MARKDOWN: Benutze unter keinen Umständen Markdown-Sternchen (*) oder Unterstriche (_), um Gedanken, Betonungen oder wörtliche Rede hervorzuheben. Nutze für wörtliche Rede stattdessen klassische deutsche Anführungszeichen (z. B. „...“ oder »...«).
+{kids_prompt}
 
 Rahmenbedingungen:
 Schreibe eine Geschichte im Genre {genre_data['name']}. Der Kern der Handlung (Nutzer-Wunsch) ist: {user_hook}{char_text}. Folge dem Narrativ: {genre_data['ziel']} unter Verwendung von {genre_data['tropen']}.
 {remix_context}
+
+Antworte EXKLUSIV im validen JSON-Format. WICHTIG: Entwerte (escape) alle Anführungszeichen innerhalb von Texten mit einem Backslash (z.B. \\"Wort\\").
+{{
+    "title": "Titel",
+    "synopsis": "Zusammenfassung",
+    "full_text": "Text der Geschichte..."
+}}"""context}
 
 Antworte EXKLUSIV im validen JSON-Format. WICHTIG: Entwerte (escape) alle Anführungszeichen innerhalb von Texten mit einem Backslash (z.B. \\"Wort\\").
 {{
@@ -585,13 +601,27 @@ Antworte EXKLUSIV im validen JSON-Format. WICHTIG: Entwerte (escape) alle Anfüh
 async def _generate_multi_pass(
     prompt, genre, style, characters, target_minutes, on_progress,
     remix_type=None, further_instructions=None, parent_text=None,
-    multi_voice=False, supports_emotions=False
+    multi_voice=False, supports_emotions=False, is_kids_book=False
 ):
     """Two-step generation for long stories to ensure length and flow."""
     selected_style_info = generate_modular_prompt(style)
     genre_data = GENRES_BIBLIOTHEK.get(genre, GENRES_BIBLIOTHEK["Abenteuer"])
     user_hook = prompt
     char_text = f"\nHauptcharaktere: {', '.join(characters)}" if characters else ""
+    
+    kids_prompt = ""
+    if is_kids_book:
+        kids_prompt = (
+            "\n\n🧒 KINDER-STIL AKTIV (WICHTIG):\n"
+            "Diese Geschichte richtet sich an Kinder. Sie darf unter keinen Umständen 'verkopft', trocken oder kompliziert geschrieben sein!\n"
+            "Beachte unbedingt folgende Regeln:\n"
+            "1. DIREKT & BILDHAFT: Erzähle lebendig, aktiv und szenisch. Vermeide lange gedankliche Monologe, komplexe innere Reflexionen und psychologisches Sezieren.\n"
+            "2. SPRACHE: Benutze kurze, dynamische Sätze. Keine Schachtelsätze. Verwende einfache, bildhafte Begriffe auf Augenhöhe der Kinder.\n"
+            "3. DIALOG & INTERAKTION: Setze auf witzige, direkte Dialoge und unmittelbare physische Aktionen. Zeige Humor und Spaß!\n"
+            "4. EMOTIONEN: Zeige Gefühle (Wut, Freude, Überraschung) durch direktes Handeln oder greifbare körperliche Reaktionen (Show, don't tell auf kindgerechte Weise), statt sie abstrakt zu erklären.\n"
+            "5. INSPIRATION: Orientiere dich an Kinderbuch-Bestsellern wie Alice Pantermüllers Lotta-Leben (chaotisch, frech, rotziger Plauderton) oder Jeff Kinneys Gregs Tagebuch (einfach, authentisch, witzig-peinlicher Alltag).\n"
+        )
+
     
     # Context for remix
     remix_context = ""
@@ -664,6 +694,7 @@ Schreibe eine Geschichte im Genre {genre_data['name']}. Der Kern der Handlung (N
 
 Stil-Vorgaben:
 {selected_style_info}
+{kids_prompt}
 
 Teile die Geschichte in exakt {num_segments} logische Abschnitte auf.
 WICHTIG: Die Geschichte soll wie aus einem Guss erscheinen. Die Abschnitte dienen nur der internen Planung.
@@ -811,6 +842,7 @@ STRIKTE REGELN:
 1. NATÜRLICHER RHYTHMUS: Achte auf einen abwechslungsreichen Satzbau. Nutze sowohl kurze, prägnante Aussagen als auch elegante Nebensätze, um einen flüssigen Leserythmus zu erzeugen. Ideal für Audio/TTS, um Monotonie zu vermeiden. Vermeide jedoch extrem überladene Schachtelsätze.
 2. Stil-Inspiration:
 {selected_style_info}
+{kids_prompt}
 Vermeide jegliche Floskeln, pädagogische Zeigefinger oder moralische Zusammenfassungen am Ende. Kein Kitsch, keine Moral!
 3. Show, don't tell: Erkläre nicht, wie sich Charaktere fühlen – zeige es durch ihre Handlungen und Reaktionen.
 4. Pacing & Detail: Beschreibe präzise und atmosphärisch. Behandle diesen Abschnitt mit der Tiefe eines Romans. Springe nicht zu schnell in der Handlung voran.
