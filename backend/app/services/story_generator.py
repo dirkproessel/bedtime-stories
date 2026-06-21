@@ -512,13 +512,6 @@ Antworte EXKLUSIV im validen JSON-Format. WICHTIG: Entwerte (escape) alle Anfüh
     "title": "Titel",
     "synopsis": "Zusammenfassung",
     "full_text": "Text der Geschichte..."
-}}"""context}
-
-Antworte EXKLUSIV im validen JSON-Format. WICHTIG: Entwerte (escape) alle Anführungszeichen innerhalb von Texten mit einem Backslash (z.B. \\"Wort\\").
-{{
-    "title": "Titel",
-    "synopsis": "Zusammenfassung",
-    "full_text": "Text der Geschichte..."
 }}"""
 
     if on_progress:
