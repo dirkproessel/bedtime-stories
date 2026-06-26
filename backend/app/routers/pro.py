@@ -1599,6 +1599,7 @@ async def api_suggest_style_refinement(
             
         genre = project.genre
         prompt = project.prompt
+        is_kids_book = _get_kids_flag(project.genre_config)
         
     # Ask the LLM to refine the style guidelines into more detailed, professional instructions
     system_instruction = (
@@ -1606,6 +1607,18 @@ async def api_suggest_style_refinement(
         "Optimiere und verfeinere die Stil-Vorgaben für ein Buchprojekt. "
         "Füge konkrete, professionelle Schreibtipps hinzu, die zum gewünschten Autorenstil passen."
     )
+    
+    kids_clause = ""
+    if is_kids_book:
+        kids_clause = (
+            "\n🧒 WICHTIG - DAS BUCH IST EIN KINDERBUCH:\n"
+            "Die Stil-Bible MUSS den kindgerechten Charakter der Erzählweise klar beschreiben.\n"
+            "Füge einen eigenen Abschnitt hinzu oder integriere folgende Regeln explizit:\n"
+            "- Einfache und klare Satzstrukturen (kurze, dynamische Sätze, keine Schachtelsätze).\n"
+            "- Vermeidung von abgehobenen, philosophischen, trockenen oder 'verkopften' Reflexionen.\n"
+            "- Fokus auf direktes, aktives Handeln, lebendige Dialoge und kindgerechten Humor (Show, don't tell auf Augenhöhe von Kindern).\n"
+            "- Der Schreibstil soll frech, witzig, bildhaft und einladend sein (inspiriert von Jeff Kinney oder Alice Pantermüller).\n"
+        )
     
     prompt_content = f"""
     Hier sind die aktuellen Stil-Vorgaben für das Buch:
@@ -1615,6 +1628,7 @@ async def api_suggest_style_refinement(
     
     Das Buch hat das Genre: {genre}
     Ursprungsidee: {prompt}
+    {kids_clause}
     
     Aufgabe:
     Erweitere diese Stil-Vorgaben um konkrete, umsetzbare Tipps (z.B. Satzbau, Atmosphäre, Wortwahl, Dialoge).
