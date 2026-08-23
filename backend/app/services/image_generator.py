@@ -137,11 +137,11 @@ async def generate_story_image(synopsis: str, output_path: Path, genre: str = "R
         logger.info(f"Final Enhanced Prompt: {enhanced_prompt}")
         
         async def call_nano_banana(prompt_text):
-            # Pro models (Imagen 3) and Flash models have different config requirements
-            if "pro" in model_id.lower():
-                image_cfg = types.ImageConfig(aspect_ratio="1:1")
-            else:
+            # Imagen 3 HQ models vs Fast/preview models
+            if "fast" in model_id.lower() or "flash" in model_id.lower():
                 image_cfg = types.ImageConfig(image_size="512")
+            else:
+                image_cfg = types.ImageConfig(aspect_ratio="1:1")
 
             return await asyncio.to_thread(
                 client.models.generate_content,

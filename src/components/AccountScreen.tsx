@@ -183,8 +183,8 @@ function SystemSettingsSection() {
                         disabled={isSaving === 'gemini_image_model'}
                         className="w-full px-4 py-2.5 bg-slate-900 border border-white/10 rounded-xl focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500/50 outline-none transition-all text-white text-sm"
                     >
-                        <option value="gemini-3.1-flash-image-preview">Gemini 3.1 Flash (512px - Günstig)</option>
-                        <option value="gemini-3-pro-image-preview">Gemini 3.0 Pro (Premium Qualität)</option>
+                        <option value="imagen-3.0-fast-generate-001">Google Imagen 3 Fast (Günstig)</option>
+                        <option value="imagen-3.0-generate-002">Google Imagen 3 (High Quality)</option>
                         <option value="fal-ai/flux/schnell">Flux/schnell (fal.ai)</option>
                     </select>
                 </div>

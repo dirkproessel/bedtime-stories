@@ -10,8 +10,8 @@ class Settings:
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
     # Text model: Gemini 3.1 Flash Lite (GA version for stable performance)
     GEMINI_TEXT_MODEL: str = os.getenv("GEMINI_TEXT_MODEL", "gemini-3.1-flash-lite")
-    # Image model: Nano Banana 2 (upgraded 2026-04-15, 512px output for cost efficiency)
-    GEMINI_IMAGE_MODEL: str = os.getenv("GEMINI_IMAGE_MODEL", "gemini-3.1-flash-image-preview")
+    # Image model: Google Imagen 3 Fast
+    GEMINI_IMAGE_MODEL: str = os.getenv("GEMINI_IMAGE_MODEL", "imagen-3.0-fast-generate-001")
     # Detect old/new admin credentials with explicit logging
     _env_admin_email = os.getenv("ADMIN_EMAIL") or os.getenv("POCKETBASE_ADMIN_EMAIL")
     _env_admin_pass = os.getenv("ADMIN_PASSWORD") or os.getenv("POCKETBASE_ADMIN_PASSWORD")
