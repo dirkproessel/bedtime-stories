@@ -450,32 +450,51 @@ async def bg_generate_cover(project_id: str, cover_prompt: str, model: Optional[
                         output_path.write_bytes(processed_bytes)
                         image_path = output_path
         
-        # Fallback to Imagen (GenAI client)
+        # Fallback to Google Image models (GenAI client)
         if not image_path and settings.GEMINI_API_KEY:
             client = genai.Client(api_key=settings.GEMINI_API_KEY)
-            # In Pro Mode, do not limit image size to 512px. Always use aspect_ratio="3:4" to get high-resolution portrait.
-            image_cfg = types.ImageConfig(aspect_ratio="3:4")
             
-            response = await asyncio.to_thread(
-                client.models.generate_content,
-                model=model_id,
-                contents=enhanced_prompt,
-                config=types.GenerateContentConfig(
-                    response_modalities=["IMAGE"],
-                    image_config=image_cfg,
-                    safety_settings=SAFETY_SETTINGS_CONFIG,
+            def _sync_pro_cover_call(target_model: str) -> bytes | None:
+                if "imagen-" in target_model.lower():
+                    try:
+                        logger.info(f"Pro Mode: Calling client.models.generate_images with model {target_model}")
+                        resp = client.models.generate_images(
+                            model=target_model,
+                            prompt=enhanced_prompt,
+                            config=types.GenerateImagesConfig(
+                                number_of_images=1,
+                                aspect_ratio="3:4",
+                                output_mime_type="image/png",
+                            )
+                        )
+                        if resp and resp.generated_images:
+                            return resp.generated_images[0].image.image_bytes
+                    except Exception as e:
+                        logger.warning(f"Pro Mode: Imagen model '{target_model}' generate_images call failed: {e}. Falling back to gemini-3.1-flash-image...")
+                        target_model = "gemini-3.1-flash-image"
+
+                logger.info(f"Pro Mode: Calling client.models.generate_content with model {target_model}")
+                resp = client.models.generate_content(
+                    model=target_model,
+                    contents=enhanced_prompt,
+                    config=types.GenerateContentConfig(
+                        response_modalities=["IMAGE"],
+                        safety_settings=SAFETY_SETTINGS_CONFIG,
+                    )
                 )
-            )
-            
-            image_bytes = None
-            if response.candidates:
-                for candidate in response.candidates:
-                    if candidate.content and candidate.content.parts:
-                        for part in candidate.content.parts:
-                            if part.inline_data and part.inline_data.data:
-                                image_bytes = part.inline_data.data
-                                break
-                                
+                if resp and resp.candidates:
+                    for candidate in resp.candidates:
+                        if candidate.content and candidate.content.parts:
+                            for part in candidate.content.parts:
+                                if part.inline_data and part.inline_data.data:
+                                    return part.inline_data.data
+                return None
+
+            image_bytes = await asyncio.to_thread(_sync_pro_cover_call, model_id)
+            if not image_bytes and "imagen-" in model_id.lower():
+                # Direct retry with gemini-3.1-flash-image if initial attempt gave nothing
+                image_bytes = await asyncio.to_thread(_sync_pro_cover_call, "gemini-3.1-flash-image")
+
             if image_bytes:
                 processed_bytes = resize_and_crop_cover(image_bytes)
                 output_path.write_bytes(processed_bytes)

@@ -132,34 +132,41 @@ async def generate_story_image(synopsis: str, output_path: Path, genre: str = "R
         if "fal-ai" in model_id.lower() or "flux" in model_id.lower():
             return await generate_with_fal_ai(enhanced_prompt, output_path)
 
-        # Fallback to Google Imagen
+        # Fallback to Google Image models
         logger.info(f"Using Google Image model: {model_id}")
         logger.info(f"Final Enhanced Prompt: {enhanced_prompt}")
         
-        async def call_nano_banana(prompt_text):
-            # Imagen 3 HQ models vs Fast/preview models
-            if "fast" in model_id.lower() or "flash" in model_id.lower():
-                image_cfg = types.ImageConfig(image_size="512")
-            else:
-                image_cfg = types.ImageConfig(aspect_ratio="1:1")
+        def _sync_google_image_call(target_model: str, prompt_text: str) -> bytes | None:
+            # Handle Imagen models via generate_images API
+            if "imagen-" in target_model.lower():
+                try:
+                    logger.info(f"Calling client.models.generate_images with model {target_model}")
+                    resp = client.models.generate_images(
+                        model=target_model,
+                        prompt=prompt_text,
+                        config=types.GenerateImagesConfig(
+                            number_of_images=1,
+                            aspect_ratio="1:1",
+                            output_mime_type="image/png",
+                        )
+                    )
+                    if resp and resp.generated_images:
+                        return resp.generated_images[0].image.image_bytes
+                except Exception as e:
+                    logger.warning(f"Imagen model '{target_model}' generate_images call failed: {e}. Falling back to gemini-3.1-flash-image...")
+                    target_model = "gemini-3.1-flash-image"
 
-            return await asyncio.to_thread(
-                client.models.generate_content,
-                model=model_id,
+            # Handle Gemini image models (e.g. gemini-3.1-flash-image, gemini-3-pro-image)
+            logger.info(f"Calling client.models.generate_content with model {target_model}")
+            resp = client.models.generate_content(
+                model=target_model,
                 contents=prompt_text,
                 config=types.GenerateContentConfig(
                     response_modalities=["IMAGE"],
-                    image_config=image_cfg,
                     safety_settings=SAFETY_SETTINGS_CONFIG,
                 )
             )
-
-        # Attempt 1: Full optimized prompt
-        response = await call_nano_banana(enhanced_prompt)
-        
-        # Helper to extract image from response
-        def get_image_bytes(resp):
-            if resp.candidates:
+            if resp and resp.candidates:
                 for candidate in resp.candidates:
                     if candidate.content and candidate.content.parts:
                         for part in candidate.content.parts:
@@ -167,19 +174,19 @@ async def generate_story_image(synopsis: str, output_path: Path, genre: str = "R
                                 return part.inline_data.data
             return None
 
-        image_bytes = get_image_bytes(response)
+        # Attempt 1: Full optimized prompt
+        image_bytes = await asyncio.to_thread(_sync_google_image_call, model_id, enhanced_prompt)
         
         # Attempt 2: Fallback if attempt 1 was filtered or failed
         if not image_bytes:
-            logger.warning(f"{model_id} attempt 1 failed to return an image. Retrying with simplified fallback...")
+            logger.warning(f"{model_id} attempt 1 failed to return an image. Retrying with simplified fallback prompt...")
             
             fallback_prompt = (
                 f"STRICT RULE: NO TEXT, NO WORDS, NO LETTERS, NO SIGNATURES. "
                 f"{visual_description}. Aesthetic artistic illustration, high quality, no text. "
                 f"Seamless edge-to-edge full-bleed artwork. The composition must fill the entire canvas completely."
             )
-            response = await call_nano_banana(fallback_prompt)
-            image_bytes = get_image_bytes(response)
+            image_bytes = await asyncio.to_thread(_sync_google_image_call, "gemini-3.1-flash-image", fallback_prompt)
 
         if image_bytes:
             output_path.parent.mkdir(parents=True, exist_ok=True)
