@@ -67,9 +67,9 @@ interface BookEditorProps {
 type StepType = 'concept' | 'outline' | 'writing' | 'lektorat' | 'export';
 
 const TEXT_MODELS = [
-    { value: 'gemini-3.5-flash', label: 'Gemini 3.5 Flash (Neueste Generation)' },
+    { value: 'gemini-3.7-flash', label: 'Gemini 3.7 Flash (Neueste Generation)' },
     { value: 'gemini-3.1-flash-lite', label: 'Gemini 3.1 Flash (Effizient & Schnell)' },
-    { value: 'gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro (Meisterhafte Lyrik)' },
+    { value: 'gemini-3.7-pro', label: 'Gemini 3.7 Pro (Meisterhafte Lyrik)' },
     { value: 'deepseek-v4-flash', label: 'DeepSeek V4 Flash (Neu & Schnell)' },
     { value: 'deepseek-v4-pro', label: 'DeepSeek V4 Pro (High-End Reasoning)' },
 ];
@@ -222,8 +222,8 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
 
     // Step 4 State: Lektorat
     const [lektoratTab, setLektoratTab] = useState<'chapter' | 'global'>('chapter');
-    const [lektoratModel, setLektoratModel] = useState('gemini-3.5-flash');
-    const [globalLektoratModel, setGlobalLektoratModel] = useState('gemini-3.5-flash');
+    const [lektoratModel, setLektoratModel] = useState('gemini-3.7-flash');
+    const [globalLektoratModel, setGlobalLektoratModel] = useState('gemini-3.7-flash');
     const [lektoratCategory, setLektoratCategory] = useState<string>('');
     const [globalLektoratCategory, setGlobalLektoratCategory] = useState<string>('');
     const [findings, setFindings] = useState<LektoratFinding[]>([]);

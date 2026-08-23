@@ -16,7 +16,7 @@ async def test_gemini_params():
     client = genai.Client(api_key=api_key)
     try:
         response = client.models.generate_content(
-            model="gemini-3.1-pro-preview",
+            model="gemini-3.7-pro",
             contents="Hallo, erzähl einen kurzen Witz.",
             config=types.GenerateContentConfig(
                 presence_penalty=0.1,

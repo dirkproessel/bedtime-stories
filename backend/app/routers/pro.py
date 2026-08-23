@@ -1180,7 +1180,7 @@ async def api_expand_all_outlines(
 async def api_proofread_chapter(
     id: str, 
     num: int, 
-    model: str = "gemini-3.5-flash",
+    model: str = "gemini-3.7-flash",
     current_user: User = Depends(get_current_active_user)
 ):
     if not current_user.is_admin:
@@ -1216,7 +1216,7 @@ async def api_proofread_chapter(
 @router.post("/books/{id}/proofread/global")
 async def api_proofread_book_globally(
     id: str, 
-    model: str = "gemini-3.5-flash",
+    model: str = "gemini-3.7-flash",
     current_user: User = Depends(get_current_active_user)
 ):
     if not current_user.is_admin:
@@ -1262,7 +1262,7 @@ class ApplyGlobalFeedbackRequest(BaseModel):
 async def api_apply_global_feedback_to_outline(
     id: str,
     req: ApplyGlobalFeedbackRequest,
-    model: str = "gemini-3.5-flash",
+    model: str = "gemini-3.7-flash",
     current_user: User = Depends(get_current_active_user)
 ):
     """
@@ -1332,7 +1332,7 @@ async def api_apply_global_feedback_to_outline(
 @router.post("/books/{id}/outline/proofread")
 async def api_proofread_outline_globally(
     id: str, 
-    model: str = "gemini-3.5-flash",
+    model: str = "gemini-3.7-flash",
     current_user: User = Depends(get_current_active_user)
 ):
     """

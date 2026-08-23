@@ -77,9 +77,9 @@ def estimate_tokens(text: str) -> int:
 
 # Kontextlimits pro Modell
 MODEL_CONTEXT_LIMITS = {
-    "gemini-3.5-flash": 1048576,       # 1M tokens
+    "gemini-3.7-flash": 1048576,       # 1M tokens
     "gemini-3.1-flash-lite": 1048576,
-    "gemini-3.1-pro-preview": 2097152,  # 2M tokens
+    "gemini-3.7-pro": 2097152,  # 2M tokens
     "deepseek-v4-pro": 65536,           # 64K tokens  
     "deepseek-v4-flash": 65536,
 }
@@ -816,7 +816,7 @@ async def proofread_chapter(
     characters_bible: str, 
     outline: str, 
     chapter_num: int, 
-    model: str = "gemini-3.5-flash"
+    model: str = "gemini-3.7-flash"
 ) -> List[Dict[str, Any]]:
     """Proofread the chapter content for consistency, style, and grammar, returning structured findings."""
     system_instruction = (
@@ -883,7 +883,7 @@ async def proofread_book_globally(
     chapters: List[BookChapter], 
     characters_bible: str, 
     outline: str, 
-    model: str = "gemini-3.5-flash"
+    model: str = "gemini-3.7-flash"
 ) -> List[Dict[str, Any]]:
     """Analyze the complete book manuscript for plot holes, character inconsistencies, and style breaks."""
     system_instruction = (
@@ -1334,7 +1334,7 @@ async def apply_global_feedback_to_outline(
     characters_bible: str,
     current_outline: str,
     findings: List[Dict[str, Any]],
-    model: str = "gemini-3.5-flash"
+    model: str = "gemini-3.7-flash"
 ) -> str:
     """
     Overwrites or adjusts the plot outlines in the book outline based on global proofreading findings.
@@ -1400,7 +1400,7 @@ async def apply_global_feedback_to_outline(
 async def proofread_outline_globally(
     chapters: List[BookChapter], 
     characters_bible: str, 
-    model: str = "gemini-3.5-flash"
+    model: str = "gemini-3.7-flash"
 ) -> List[Dict[str, Any]]:
     """
     Analyzes the plot outlines (blueprints) of all chapters for logical consistency,
