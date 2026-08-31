@@ -2063,6 +2063,7 @@ async def export_book_pdf_download(id: str, current_user: User = Depends(get_adm
 async def export_book_kdp_metadata(
     id: str, 
     model: str = "gemini-3.1-flash-lite", 
+    marketplace: str = "amazon.de",
     current_user: User = Depends(get_current_active_user)
 ):
     if not current_user.is_admin:
@@ -2079,7 +2080,7 @@ async def export_book_kdp_metadata(
             .order_by(BookChapter.chapter_number)
         ).all()
         
-    metadata = await generate_kdp_metadata(project, chapters, model=model)
+    metadata = await generate_kdp_metadata(project, chapters, model=model, marketplace=marketplace)
     return metadata
 
 

@@ -4,10 +4,16 @@ import type {
     BookProjectDetail, 
     LektoratFinding, 
     KdpMetadata,
+    KdpCategoryItem,
     GlobalLektoratFinding
 } from '../lib/api';
 import { formatAuthorStyles, AUTHORS } from '../lib/authors';
 import { GENRES } from './StoryCreator';
+import { 
+    KDP_MARKETPLACES,
+    searchKdpCategories,
+    type KdpCategoryDefinition
+} from '../lib/kdpTaxonomy';
 import { 
     updateProBook, 
     suggestProCharacters,
@@ -58,7 +64,13 @@ import {
     Search,
     FileText,
     Send,
-    Layers
+    Layers,
+    Globe,
+    Tag,
+    ChevronRight,
+    Copy,
+    CheckSquare,
+    Info
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -243,6 +255,13 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
     const [coverVersion, setCoverVersion] = useState(Date.now().toString());
     const [kdpMetadata, setKdpMetadata] = useState<KdpMetadata | null>(null);
     const [kdpModel, setKdpModel] = useState('gemini-3.1-flash-lite');
+    const [kdpMarketplace, setKdpMarketplace] = useState<string>(activeProject.language === 'en' ? 'amazon.com' : 'amazon.de');
+    const [showCategoryExplorer, setShowCategoryExplorer] = useState(false);
+    const [categorySearchQuery, setCategorySearchQuery] = useState('');
+    const [categoryMainFilter, setCategoryMainFilter] = useState('ALL');
+    const [blurbViewMode, setBlurbViewMode] = useState<'preview' | 'html'>('preview');
+    const [targetCategorySlot, setTargetCategorySlot] = useState<number | null>(null);
+    const [checkedKdpSteps, setCheckedKdpSteps] = useState<{ [idx: number]: boolean }>({});
 
     // Kindle Export State
     const [showKindleModal, setShowKindleModal] = useState(false);
@@ -1082,15 +1101,76 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
     const handleFetchKdpMetadata = async () => {
         setIsAiLoading(true);
         try {
-            toast.loading('KDP-Metadaten werden analysiert...', { id: 'ai' });
-            const meta = await fetchProKdpMetadata(activeProject.id, kdpModel);
+            toast.loading('KDP-Metadaten & Kategorien werden analysiert...', { id: 'ai' });
+            const meta = await fetchProKdpMetadata(activeProject.id, kdpModel, kdpMarketplace);
             setKdpMetadata(meta);
-            toast.success('Metadaten geladen!', { id: 'ai' });
+            toast.success('KDP-Metadaten geladen!', { id: 'ai' });
         } catch (e: any) {
             toast.error('Fehler: ' + e.message, { id: 'ai' });
         } finally {
             setIsAiLoading(false);
         }
+    };
+
+    const copyAllKdpMetadata = () => {
+        if (!kdpMetadata) return;
+        const catLines = kdpMetadata.kdp_categories && kdpMetadata.kdp_categories.length > 0
+            ? kdpMetadata.kdp_categories.map((c, i) => `Kategorie ${i + 1} (${c.role}): ${c.path}`).join('\n')
+            : kdpMetadata.recommended_bisac_categories.map((c, i) => `Kategorie ${i + 1}: ${c}`).join('\n');
+        
+        const summary = `=== AMAZON KDP METADATEN (${(kdpMetadata.marketplace || kdpMarketplace).toUpperCase()}) ===\n\n` +
+            `BUCHTITEL: ${activeProject.title}\n` +
+            `UNTERTITEL: ${kdpMetadata.suggested_subtitle}\n` +
+            (kdpMetadata.target_audience ? `ZIELGRUPPE: ${kdpMetadata.target_audience}\n` : '') +
+            (kdpMetadata.age_range ? `LESEALTER: ${kdpMetadata.age_range.label} (Min: ${kdpMetadata.age_range.min_age ?? 'k.A.'}, Max: ${kdpMetadata.age_range.max_age ?? 'k.A.'})\n` : '') +
+            `\n--- 3 KDP KATEGORIEN ---\n${catLines}\n` +
+            `\n--- 7 KDP KEYWORDS ---\n${kdpMetadata.search_keywords.join(', ')}\n` +
+            `\n--- PREISEMPFEHLUNG ---\n${kdpMetadata.pricing_recommendation.price} (${kdpMetadata.pricing_recommendation.reason})\n` +
+            `\n--- KDP BUCHBESCHREIBUNG (HTML) ---\n${kdpMetadata.description_kdp}\n`;
+
+        navigator.clipboard.writeText(summary);
+        toast.success('Komplettes KDP-Paket in die Zwischenablage kopiert!');
+    };
+
+    const handleSelectCustomCategory = (cat: KdpCategoryDefinition, slotIndex?: number) => {
+        if (!kdpMetadata) return;
+        const newCategories: KdpCategoryItem[] = [...(kdpMetadata.kdp_categories || [])];
+        const targetSlot = slotIndex ?? targetCategorySlot ?? 1;
+        const idx = targetSlot - 1;
+
+        const roleName = targetSlot === 1 
+            ? 'Hauptkategorie (Manuell gewählt)' 
+            : targetSlot === 2 
+            ? 'Subgenre (Manuell gewählt)' 
+            : 'Nische (Manuell gewählt)';
+
+        const updatedItem: KdpCategoryItem = {
+            slot: targetSlot,
+            role: roleName,
+            path: cat.path,
+            breadcrumbs: cat.breadcrumbs,
+            strategy_note: `Manuell aus offiziellem KDP-Katalog (${cat.mainCategory}) gewählt.`
+        };
+
+        if (newCategories[idx]) {
+            newCategories[idx] = updatedItem;
+        } else {
+            newCategories.push(updatedItem);
+        }
+
+        setKdpMetadata({
+            ...kdpMetadata,
+            kdp_categories: newCategories,
+            recommended_bisac_categories: newCategories.map(c => c.path)
+        });
+
+        setShowCategoryExplorer(false);
+        setTargetCategorySlot(null);
+        toast.success(`Kategorie-Slot ${targetSlot} aktualisiert!`);
+    };
+
+    const toggleKdpStep = (idx: number) => {
+        setCheckedKdpSteps(prev => ({ ...prev, [idx]: !prev[idx] }));
     };
 
     const copyToClipboard = (text: string, label: string) => {
@@ -2854,123 +2934,485 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                         </div>
 
                         {/* Amazon KDP metadata copy-paste sheet */}
-                        <div className="bg-surface p-5 rounded-3xl border border-slate-800 space-y-4">
-                            <div className="flex justify-between items-center border-b border-slate-800/80 pb-3">
-                                <div className="space-y-0.5">
-                                    <h3 className="font-semibold text-white text-sm">Amazon KDP Metadaten</h3>
-                                    <p className="text-xs text-text-muted">Kopiere diese Daten direkt in dein Amazon KDP Dashboard.</p>
+                        <div className="bg-surface p-6 rounded-3xl border border-slate-800 space-y-6">
+                            {/* KDP Header */}
+                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800/80 pb-5">
+                                <div className="space-y-1">
+                                    <div className="flex items-center gap-2">
+                                        <h3 className="font-bold text-white text-base">Amazon KDP Metadaten & Bestseller-Setup</h3>
+                                        <span className="bg-primary/10 border border-primary/20 text-primary text-[10px] font-mono font-bold px-2 py-0.5 rounded-full uppercase">
+                                            KDP 2026 Ready
+                                        </span>
+                                    </div>
+                                    <p className="text-xs text-text-muted">
+                                        Marktplatz-spezifische KDP-Kategoriepfade, 7 Backend-Keywords, Lesealter-Vorgaben & verkaufsstarker HTML-Klappentext.
+                                    </p>
                                 </div>
                                 
-                                <div className="flex items-center gap-2">
+                                <div className="flex flex-wrap items-center gap-2.5">
+                                    {/* Marketplace Selector */}
+                                    <div className="flex items-center bg-background border border-slate-800 rounded-xl p-1 gap-1">
+                                        <Globe className="w-3.5 h-3.5 text-slate-400 ml-1.5" />
+                                        <select 
+                                            value={kdpMarketplace}
+                                            onChange={(e) => setKdpMarketplace(e.target.value)}
+                                            className="bg-transparent text-xs text-slate-200 px-1 py-1 focus:outline-none cursor-pointer font-medium"
+                                            title="Amazon Marktplatz wählen"
+                                        >
+                                            {KDP_MARKETPLACES.map(m => (
+                                                <option key={m.id} value={m.id} className="bg-surface text-slate-200">
+                                                    {m.flag} {m.label}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    {/* Model Selector */}
                                     <select 
                                         value={kdpModel}
                                         onChange={(e) => setKdpModel(e.target.value)}
-                                        className="bg-background border border-slate-800 text-xs text-slate-300 rounded-lg px-2 py-1.5 focus:outline-none"
+                                        className="bg-background border border-slate-800 text-xs text-slate-300 rounded-xl px-2.5 py-2 focus:outline-none cursor-pointer"
                                     >
                                         {TEXT_MODELS.map(m => (
-                                            <option key={m.value} value={m.value}>{m.label}</option>
+                                            <option key={m.value} value={m.value} className="bg-surface">{m.label}</option>
                                         ))}
                                     </select>
+
+                                    {/* Action Buttons */}
                                     <button 
                                         onClick={handleFetchKdpMetadata}
                                         disabled={isAiLoading}
-                                        className="bg-slate-800 hover:bg-slate-700 text-primary border border-slate-700/50 text-xs px-3 py-1.5 rounded-xl transition-colors font-medium flex items-center gap-1.5 shrink-0"
+                                        className="btn-primary text-xs px-4 py-2 rounded-xl transition-all font-semibold flex items-center gap-1.5 shrink-0 shadow-lg shadow-primary/20"
                                     >
                                         {isAiLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-                                        Metadaten erstellen
+                                        KDP-Metadaten analysieren
+                                    </button>
+
+                                    {kdpMetadata && (
+                                        <button 
+                                            onClick={copyAllKdpMetadata}
+                                            className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700/60 text-xs px-3 py-2 rounded-xl transition-colors font-medium flex items-center gap-1.5 shrink-0"
+                                            title="Alle Daten auf einmal als Text-Dokument kopieren"
+                                        >
+                                            <Copy className="w-3.5 h-3.5 text-primary" />
+                                            Alles kopieren
+                                        </button>
+                                    )}
+
+                                    <button 
+                                        onClick={() => {
+                                            setTargetCategorySlot(null);
+                                            setShowCategoryExplorer(true);
+                                        }}
+                                        className="bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700/50 text-xs px-3 py-2 rounded-xl transition-colors font-medium flex items-center gap-1.5 shrink-0"
+                                        title="KDP Kategoriebaum durchsuchen"
+                                    >
+                                        <BookOpen className="w-3.5 h-3.5 text-indigo-400" />
+                                        Kategorie-Katalog
                                     </button>
                                 </div>
                             </div>
 
                             {kdpMetadata ? (
-                                <div className="space-y-4 text-xs">
-                                    <div className="space-y-1 relative">
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-[10px] uppercase font-mono text-slate-500 font-semibold">Buchtitel (Zur Referenz):</span>
-                                            <button 
-                                                onClick={() => copyToClipboard(activeProject.title, 'Buchtitel')}
-                                                className="text-slate-500 hover:text-white p-1 hover:bg-slate-800 rounded-lg transition-colors"
-                                                title="Titel kopieren"
-                                            >
-                                                <Clipboard className="w-3.5 h-3.5" />
-                                            </button>
+                                <div className="space-y-6 text-xs animate-fadeIn">
+                                    {/* Row 1: Title, Subtitle, Age / Target Audience */}
+                                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                                        {/* Reference Book Title */}
+                                        <div className="bg-background/80 p-4 rounded-2xl border border-slate-800 space-y-2 flex flex-col justify-between">
+                                            <div className="space-y-1">
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-[10px] uppercase font-mono text-slate-500 font-bold tracking-wider">1. Buchtitel:</span>
+                                                    <button 
+                                                        onClick={() => copyToClipboard(activeProject.title, 'Buchtitel')}
+                                                        className="text-slate-400 hover:text-white p-1 hover:bg-slate-800 rounded-lg transition-colors"
+                                                        title="Titel kopieren"
+                                                    >
+                                                        <Clipboard className="w-3.5 h-3.5" />
+                                                    </button>
+                                                </div>
+                                                <div className="text-white font-bold text-sm leading-snug">
+                                                    {activeProject.title}
+                                                </div>
+                                            </div>
+                                            <span className="text-[9px] text-slate-500 font-mono">Feld 'Buchtitel' im KDP Dashboard</span>
                                         </div>
-                                        <div className="bg-background border border-slate-800 rounded-xl p-3 text-slate-200">
-                                            {activeProject.title}
-                                        </div>
-                                    </div>
 
-                                    <div className="space-y-1">
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-[10px] uppercase font-mono text-slate-500 font-semibold">Empfohlener Untertitel:</span>
-                                            <button 
-                                                onClick={() => copyToClipboard(kdpMetadata.suggested_subtitle, 'Untertitel')}
-                                                className="text-slate-500 hover:text-white p-1 hover:bg-slate-800 rounded-lg transition-colors"
-                                                title="Untertitel kopieren"
-                                            >
-                                                <Clipboard className="w-3.5 h-3.5" />
-                                            </button>
+                                        {/* Suggested Subtitle */}
+                                        <div className="bg-background/80 p-4 rounded-2xl border border-slate-800 space-y-2 flex flex-col justify-between">
+                                            <div className="space-y-1">
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-[10px] uppercase font-mono text-indigo-400 font-bold tracking-wider">2. Optimierter Untertitel:</span>
+                                                    <button 
+                                                        onClick={() => copyToClipboard(kdpMetadata.suggested_subtitle, 'Untertitel')}
+                                                        className="text-indigo-400 hover:text-white p-1 hover:bg-slate-800 rounded-lg transition-colors"
+                                                        title="Untertitel kopieren"
+                                                    >
+                                                        <Clipboard className="w-3.5 h-3.5" />
+                                                    </button>
+                                                </div>
+                                                <div className="text-slate-200 font-serif italic text-xs leading-relaxed">
+                                                    {kdpMetadata.suggested_subtitle}
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center justify-between text-[9px] text-slate-500 font-mono">
+                                                <span>Feld 'Untertitel' im KDP Dashboard</span>
+                                                <span>{kdpMetadata.suggested_subtitle.length} / 200 Zeichen</span>
+                                            </div>
                                         </div>
-                                        <div className="bg-background border border-slate-800 rounded-xl p-3 text-slate-200 font-serif">
-                                            {kdpMetadata.suggested_subtitle}
-                                        </div>
-                                    </div>
 
-                                    <div className="space-y-1">
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-[10px] uppercase font-mono text-slate-500 font-semibold">KDP-Buchbeschreibung (HTML):</span>
-                                            <button 
-                                                onClick={() => copyToClipboard(kdpMetadata.description_kdp, 'Buchbeschreibung')}
-                                                className="text-slate-500 hover:text-white p-1 hover:bg-slate-800 rounded-lg transition-colors"
-                                                title="Beschreibung kopieren"
-                                            >
-                                                <Clipboard className="w-3.5 h-3.5" />
-                                            </button>
-                                        </div>
-                                        <textarea
-                                            readOnly
-                                            value={kdpMetadata.description_kdp}
-                                            rows={5}
-                                            className="w-full bg-background border border-slate-800 rounded-xl p-3 text-slate-300 font-mono focus:outline-none resize-none leading-relaxed"
-                                        />
-                                    </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div className="space-y-1">
-                                            <span className="text-[10px] uppercase font-mono text-slate-500 font-semibold block">7 Such-Keywords:</span>
-                                            <div className="bg-background border border-slate-800 rounded-xl p-3 text-slate-300 flex flex-wrap gap-1.5">
-                                                {kdpMetadata.search_keywords.map((kw, i) => (
-                                                    <span key={i} className="bg-slate-800 text-[10px] px-2 py-0.5 rounded-md text-slate-300">
-                                                        {kw}
+                                        {/* Age Range & Target Audience Helper */}
+                                        <div className="bg-indigo-950/20 p-4 rounded-2xl border border-indigo-800/30 space-y-2 flex flex-col justify-between">
+                                            <div className="space-y-1.5">
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-[10px] uppercase font-mono text-indigo-300 font-bold tracking-wider flex items-center gap-1">
+                                                        <Info className="w-3 h-3" /> Lesealter & Zielgruppe:
                                                     </span>
-                                                ))}
+                                                    {kdpMetadata.age_range && (
+                                                        <button 
+                                                            onClick={() => copyToClipboard(
+                                                                `Min-Alter: ${kdpMetadata.age_range?.min_age ?? '0'}, Max-Alter: ${kdpMetadata.age_range?.max_age ?? '18'} (${kdpMetadata.age_range?.label})`,
+                                                                'Lesealter'
+                                                            )}
+                                                            className="text-indigo-300 hover:text-white p-1 hover:bg-indigo-900/40 rounded-lg transition-colors"
+                                                            title="Altersangabe kopieren"
+                                                        >
+                                                            <Clipboard className="w-3.5 h-3.5" />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <div className="text-white font-semibold text-xs flex items-center gap-1.5">
+                                                        <span className="bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-md border border-indigo-500/30 text-[11px] font-bold">
+                                                            {kdpMetadata.age_range?.label || 'All-Age / Erwachsene'}
+                                                        </span>
+                                                        {kdpMetadata.age_range?.min_age !== undefined && kdpMetadata.age_range?.min_age !== null && (
+                                                            <span className="text-[10px] text-indigo-300/80 font-mono">
+                                                                (Min: {kdpMetadata.age_range.min_age} J., Max: {kdpMetadata.age_range.max_age} J.)
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <p className="text-[10px] text-indigo-200/70 leading-normal">
+                                                        {kdpMetadata.target_audience || 'Optimiert für das Hauptpublikum dieses Buchgenres.'}
+                                                    </p>
+                                                </div>
                                             </div>
-                                        </div>
-                                        
-                                        <div className="space-y-1">
-                                            <span className="text-[10px] uppercase font-mono text-slate-500 font-semibold block">BISAC-Kategorien:</span>
-                                            <div className="bg-background border border-slate-800 rounded-xl p-3 text-slate-300 space-y-1">
-                                                {kdpMetadata.recommended_bisac_categories.map((c, i) => (
-                                                    <div key={i} className="text-[10px] truncate">&bull; {c}</div>
-                                                ))}
+                                            <div className="text-[9px] text-indigo-400/80 bg-indigo-950/40 px-2 py-1 rounded-lg border border-indigo-800/20">
+                                                💡 Bei KDP unter "Lesealter" eintragen, um Jugend- & Kinderbuch-Kategorien freizuschalten.
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div className="bg-background p-3.5 rounded-2xl border border-slate-800 flex justify-between items-center">
-                                        <div className="space-y-0.5">
-                                            <span className="text-[10px] uppercase font-mono text-slate-500 font-semibold">Preis-Empfehlung:</span>
-                                            <div className="text-sm font-bold text-white">{kdpMetadata.pricing_recommendation.price}</div>
+                                    {/* Row 2: The 3 Amazon KDP Official Category Slots */}
+                                    <div className="bg-background/90 p-5 rounded-2xl border border-slate-800 space-y-4">
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
+                                            <div>
+                                                <h4 className="font-bold text-white text-xs flex items-center gap-1.5">
+                                                    <Tag className="w-4 h-4 text-primary" />
+                                                    Die 3 offiziellen Amazon KDP Kategorien ({KDP_MARKETPLACES.find(m => m.id === (kdpMetadata.marketplace || kdpMarketplace))?.label})
+                                                </h4>
+                                                <p className="text-[11px] text-text-muted mt-0.5">
+                                                    Wähle im KDP-Kategoriebaum genau diese 3 Pfade aus, um Relevanz, Sichtbarkeit und Bestseller-Ranking optimal zu kombinieren:
+                                                </p>
+                                            </div>
+                                            <button 
+                                                onClick={() => {
+                                                    setTargetCategorySlot(null);
+                                                    setShowCategoryExplorer(true);
+                                                }}
+                                                className="text-[11px] text-primary hover:underline flex items-center gap-1 font-semibold self-start sm:self-auto"
+                                            >
+                                                <Search className="w-3 h-3" />
+                                                Im Kategoriebaum blättern
+                                            </button>
                                         </div>
-                                        <div className="text-[10px] text-slate-400 text-right max-w-xs leading-normal">
-                                            {kdpMetadata.pricing_recommendation.reason}
+
+                                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                                            {(kdpMetadata.kdp_categories && kdpMetadata.kdp_categories.length > 0 
+                                                ? kdpMetadata.kdp_categories 
+                                                : kdpMetadata.recommended_bisac_categories.map((c, i) => ({
+                                                    slot: i + 1,
+                                                    role: i === 0 ? 'Hauptkategorie (Höchste Relevanz)' : i === 1 ? 'Subgenre (Hohes Suchvolumen)' : 'Nische (Bestseller-Chance)',
+                                                    path: c,
+                                                    breadcrumbs: c.split('>').map(b => b.trim()),
+                                                    strategy_note: 'Empfohlene Platzierung im KDP Dashboard'
+                                                }))
+                                            ).map((cat, idx) => {
+                                                const slotColors = idx === 0 
+                                                    ? { badge: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30', border: 'border-indigo-800/40 hover:border-indigo-600/60', title: 'text-indigo-300' }
+                                                    : idx === 1 
+                                                    ? { badge: 'bg-amber-500/20 text-amber-300 border-amber-500/30', border: 'border-amber-800/40 hover:border-amber-600/60', title: 'text-amber-300' }
+                                                    : { badge: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30', border: 'border-emerald-800/40 hover:border-emerald-600/60', title: 'text-emerald-300' };
+
+                                                return (
+                                                    <div 
+                                                        key={idx} 
+                                                        className={`bg-surface p-4 rounded-xl border ${slotColors.border} space-y-3 flex flex-col justify-between transition-all`}
+                                                    >
+                                                        <div className="space-y-2">
+                                                            <div className="flex justify-between items-start gap-2">
+                                                                <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-md border ${slotColors.badge}`}>
+                                                                    Slot {cat.slot || idx + 1}: {cat.role}
+                                                                </span>
+                                                                <div className="flex items-center gap-1">
+                                                                    <button 
+                                                                        onClick={() => copyToClipboard(cat.path, `Kategorie ${idx + 1}`)}
+                                                                        className="text-slate-400 hover:text-white p-1 hover:bg-slate-800 rounded-lg transition-colors"
+                                                                        title="Exakten KDP-Pfad kopieren"
+                                                                    >
+                                                                        <Clipboard className="w-3.5 h-3.5" />
+                                                                    </button>
+                                                                    <button 
+                                                                        onClick={() => {
+                                                                            setTargetCategorySlot(idx + 1);
+                                                                            setShowCategoryExplorer(true);
+                                                                        }}
+                                                                        className="text-slate-400 hover:text-primary p-1 hover:bg-slate-800 rounded-lg transition-colors text-[10px]"
+                                                                        title="Kategorie manuell anpassen"
+                                                                    >
+                                                                        <Edit2 className="w-3 h-3" />
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Breadcrumbs Pills */}
+                                                            <div className="space-y-1">
+                                                                <span className="text-[9px] uppercase font-mono text-slate-500 font-semibold block">Klick-Pfad im KDP Dashboard:</span>
+                                                                <div className="flex flex-wrap items-center gap-1 bg-background/90 p-2.5 rounded-lg border border-slate-800/90 text-[11px]">
+                                                                    {cat.breadcrumbs && cat.breadcrumbs.length > 0 ? (
+                                                                        cat.breadcrumbs.map((crumb, bIdx) => (
+                                                                            <span key={bIdx} className="flex items-center gap-1">
+                                                                                <span className={`font-semibold ${bIdx === cat.breadcrumbs.length - 1 ? 'text-white' : 'text-slate-400'}`}>
+                                                                                    {crumb}
+                                                                                </span>
+                                                                                {bIdx < cat.breadcrumbs.length - 1 && (
+                                                                                    <ChevronRight className="w-3 h-3 text-slate-600 shrink-0" />
+                                                                                )}
+                                                                            </span>
+                                                                        ))
+                                                                    ) : (
+                                                                        <span className="text-white font-semibold">{cat.path}</span>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Strategy explanation */}
+                                                        <div className="pt-2 border-t border-slate-800/60 space-y-1">
+                                                            <span className="text-[9px] uppercase font-mono text-slate-500 font-semibold block">Strategische Begründung:</span>
+                                                            <p className="text-[10px] text-slate-400 leading-normal italic">
+                                                                {cat.strategy_note || 'Ausgewählt für hohe algorithmische Relevanz.'}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    {/* Row 3: 7 KDP Backend Keywords & Pricing */}
+                                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                                        {/* 7 Backend Keywords */}
+                                        <div className="lg:col-span-2 bg-background/80 p-5 rounded-2xl border border-slate-800 space-y-3">
+                                            <div className="flex justify-between items-center">
+                                                <div>
+                                                    <span className="text-[10px] uppercase font-mono text-slate-400 font-bold tracking-wider block">
+                                                        Die 7 Amazon Suchbegriffe (Backend-Keywords):
+                                                    </span>
+                                                    <p className="text-[10px] text-text-muted mt-0.5">
+                                                        Trage diese Begriffe in die 7 separaten Suchbegriff-Felder in KDP ein (max. 50 Zeichen pro Feld).
+                                                    </p>
+                                                </div>
+                                                <button 
+                                                    onClick={() => copyToClipboard(kdpMetadata.search_keywords.join(', '), 'Alle 7 Keywords')}
+                                                    className="bg-slate-800 hover:bg-slate-700 text-primary border border-slate-700/60 text-[10px] px-2.5 py-1.5 rounded-lg transition-colors font-medium flex items-center gap-1"
+                                                    title="Alle Keywords kommagetrennt kopieren"
+                                                >
+                                                    <Copy className="w-3 h-3" />
+                                                    Alle kopieren
+                                                </button>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                                                {kdpMetadata.search_keywords.map((kw, i) => (
+                                                    <div 
+                                                        key={i} 
+                                                        className="flex items-center justify-between bg-surface border border-slate-800 px-3 py-2 rounded-xl text-slate-200 group hover:border-slate-700 transition-colors"
+                                                    >
+                                                        <div className="flex items-center gap-2 min-w-0">
+                                                            <span className="text-[10px] font-mono text-slate-500 font-bold w-4">#{i+1}</span>
+                                                            <span className="text-xs truncate font-medium">{kw}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                                                            <span className="text-[9px] font-mono text-slate-500">{kw.length}/50</span>
+                                                            <button 
+                                                                onClick={() => copyToClipboard(kw, `Keyword #${i+1}`)}
+                                                                className="text-slate-500 hover:text-white p-1 hover:bg-slate-800 rounded transition-colors"
+                                                                title="Dieses Keyword kopieren"
+                                                            >
+                                                                <Clipboard className="w-3 h-3" />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Pricing & Royalties */}
+                                        <div className="bg-background/80 p-5 rounded-2xl border border-slate-800 space-y-3 flex flex-col justify-between">
+                                            <div className="space-y-2">
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-[10px] uppercase font-mono text-slate-400 font-bold tracking-wider">
+                                                        KDP Preis- & Tantiemen-Empfehlung:
+                                                    </span>
+                                                    <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-mono font-bold px-2 py-0.5 rounded-md">
+                                                        {kdpMetadata.pricing_recommendation.royalty_rate || '70% KDP Tantieme'}
+                                                    </span>
+                                                </div>
+
+                                                <div className="bg-surface p-3 rounded-xl border border-slate-800 text-center space-y-0.5">
+                                                    <div className="text-2xl font-black text-white font-mono">
+                                                        {kdpMetadata.pricing_recommendation.price}
+                                                    </div>
+                                                    <div className="text-[10px] text-slate-400">
+                                                        Empfohlener Launch-Preis für E-Book
+                                                    </div>
+                                                </div>
+
+                                                <div className="space-y-1">
+                                                    <span className="text-[9px] uppercase font-mono text-slate-500 font-semibold block">Tantiemen-Logik:</span>
+                                                    <p className="text-[10px] text-slate-300 leading-relaxed">
+                                                        {kdpMetadata.pricing_recommendation.reason}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div className="pt-2 border-t border-slate-800/80 flex justify-between items-center text-[10px] text-slate-500">
+                                                <span>70% Option: 2,99 € – 9,99 €</span>
+                                                <button 
+                                                    onClick={() => copyToClipboard(kdpMetadata.pricing_recommendation.price, 'Preis')}
+                                                    className="text-primary hover:underline flex items-center gap-1 font-medium"
+                                                >
+                                                    <Clipboard className="w-3 h-3" /> Preis kopieren
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Row 4: Book Description (HTML & Preview Toggle) */}
+                                    <div className="bg-background/80 p-5 rounded-2xl border border-slate-800 space-y-3">
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
+                                            <div className="space-y-0.5">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xs font-bold text-white">KDP-Buchbeschreibung / Klappentext</span>
+                                                    <span className="text-[10px] font-mono text-slate-500">
+                                                        ({kdpMetadata.description_kdp.length} / 4000 Zeichen)
+                                                    </span>
+                                                </div>
+                                                <p className="text-[10px] text-text-muted">
+                                                    Verkaufsstark formatiert mit Überschriften, Aufzählungszeichen und emotionalem Hook.
+                                                </p>
+                                            </div>
+
+                                            <div className="flex items-center gap-2">
+                                                {/* View Mode Toggle */}
+                                                <div className="bg-surface border border-slate-800 rounded-xl p-0.5 flex">
+                                                    <button 
+                                                        onClick={() => setBlurbViewMode('preview')}
+                                                        className={`text-[10px] px-2.5 py-1 rounded-lg font-medium transition-colors ${blurbViewMode === 'preview' ? 'bg-slate-700 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
+                                                    >
+                                                        Live-Vorschau
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => setBlurbViewMode('html')}
+                                                        className={`text-[10px] px-2.5 py-1 rounded-lg font-medium transition-colors ${blurbViewMode === 'html' ? 'bg-slate-700 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
+                                                    >
+                                                        HTML-Code
+                                                    </button>
+                                                </div>
+
+                                                <button 
+                                                    onClick={() => copyToClipboard(kdpMetadata.description_kdp, 'Klappentext (HTML)')}
+                                                    className="btn-primary text-[10px] px-3 py-1.5 rounded-xl transition-colors font-semibold flex items-center gap-1"
+                                                    title="HTML-Beschreibung für KDP kopieren"
+                                                >
+                                                    <Clipboard className="w-3 h-3" />
+                                                    HTML kopieren
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {blurbViewMode === 'preview' ? (
+                                            <div 
+                                                className="bg-surface/90 border border-slate-800 rounded-xl p-5 text-slate-200 font-serif leading-relaxed space-y-3 prose prose-invert prose-sm max-w-none text-xs"
+                                                dangerouslySetInnerHTML={{ __html: kdpMetadata.description_kdp }}
+                                            />
+                                        ) : (
+                                            <textarea
+                                                readOnly
+                                                value={kdpMetadata.description_kdp}
+                                                rows={7}
+                                                className="w-full bg-surface border border-slate-800 rounded-xl p-4 text-slate-300 font-mono text-[11px] focus:outline-none resize-none leading-relaxed select-all"
+                                            />
+                                        )}
+                                    </div>
+
+                                    {/* Row 5: KDP Upload Checklist */}
+                                    <div className="bg-surface p-5 rounded-2xl border border-slate-800 space-y-3">
+                                        <div className="flex justify-between items-center">
+                                            <h4 className="font-bold text-white text-xs flex items-center gap-1.5">
+                                                <CheckSquare className="w-4 h-4 text-emerald-400" />
+                                                KDP Upload-Checkliste (Schritt für Schritt abhaken)
+                                            </h4>
+                                            <span className="text-[10px] text-slate-500 font-mono">
+                                                {Object.values(checkedKdpSteps).filter(Boolean).length} von {kdpMetadata.kdp_checklist?.length || 5} erledigt
+                                            </span>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-1">
+                                            {(kdpMetadata.kdp_checklist || [
+                                                "1. Titel & Untertitel in KDP Buchdetails einfügen",
+                                                "2. HTML-Klappentext im Beschreibungsfeld hinterlegen",
+                                                "3. Die 7 Keywords in die Suchbegriff-Boxen eintragen",
+                                                "4. Die 3 vorgeschlagenen Kategoriepfade im KDP-Baum auswählen",
+                                                "5. Lesealter (Min/Max) und Zielgruppe festlegen"
+                                            ]).map((step, idx) => (
+                                                <label 
+                                                    key={idx}
+                                                    className={`flex items-start gap-2.5 p-2.5 rounded-xl border transition-colors cursor-pointer text-xs ${
+                                                        checkedKdpSteps[idx] 
+                                                            ? 'bg-emerald-950/20 border-emerald-800/40 text-emerald-300 line-through opacity-75' 
+                                                            : 'bg-background border-slate-800 text-slate-300 hover:border-slate-700'
+                                                    }`}
+                                                >
+                                                    <input 
+                                                        type="checkbox"
+                                                        checked={!!checkedKdpSteps[idx]}
+                                                        onChange={() => toggleKdpStep(idx)}
+                                                        className="mt-0.5 rounded accent-emerald-500"
+                                                    />
+                                                    <span className="leading-snug">{step}</span>
+                                                </label>
+                                            ))}
                                         </div>
                                     </div>
                                 </div>
                             ) : (
-                                <div className="text-center py-10 text-slate-600 text-xs space-y-1">
-                                    <Clipboard className="w-6 h-6 mx-auto text-slate-700" />
-                                    <p>Keine Metadaten generiert. Klicke auf 'Metadaten erstellen' zur Analyse.</p>
+                                <div className="text-center py-12 text-slate-500 text-xs space-y-3 bg-background/50 rounded-2xl border border-slate-800/60 border-dashed">
+                                    <Tag className="w-8 h-8 mx-auto text-slate-600" />
+                                    <div className="space-y-1">
+                                        <p className="font-semibold text-slate-300">Noch keine KDP-Metadaten analysiert</p>
+                                        <p className="text-[11px] text-slate-500 max-w-md mx-auto">
+                                            Wähle deinen primären Amazon-Marktplatz (z. B. Amazon.de) und klicke auf 'KDP-Metadaten analysieren', um den offiziellen 3-Kategorien-Pfad, Keywords und Klappentext zu generieren.
+                                        </p>
+                                    </div>
+                                    <button 
+                                        onClick={handleFetchKdpMetadata}
+                                        disabled={isAiLoading}
+                                        className="btn-primary text-xs px-5 py-2.5 rounded-xl font-semibold inline-flex items-center gap-2 shadow-lg shadow-primary/20"
+                                    >
+                                        {isAiLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                                        Jetzt KDP-Metadaten erstellen
+                                    </button>
                                 </div>
                             )}
                         </div>
@@ -3200,6 +3642,196 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                                     Senden
                                 </button>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* KDP Category Explorer Modal */}
+            {showCategoryExplorer && (
+                <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-[1000] flex items-center justify-center p-4 animate-in fade-in duration-200">
+                    <div className="bg-surface border border-slate-800 w-full max-w-3xl rounded-3xl p-6 shadow-2xl relative space-y-4 max-h-[90vh] flex flex-col animate-in zoom-in duration-200">
+                        <div className="flex justify-between items-start border-b border-slate-800/80 pb-3 shrink-0">
+                            <div>
+                                <div className="flex items-center gap-2">
+                                    <h3 className="text-base font-bold text-white flex items-center gap-2">
+                                        <BookOpen className="w-4 h-4 text-primary" />
+                                        Offizieller Amazon KDP Kategorie-Katalog
+                                    </h3>
+                                    <span className="bg-primary/20 text-primary text-[10px] font-mono font-bold px-2 py-0.5 rounded-full">
+                                        {kdpMarketplace.toUpperCase()}
+                                    </span>
+                                </div>
+                                <p className="text-xs text-text-muted mt-1">
+                                    {targetCategorySlot ? (
+                                        <span className="text-primary font-semibold">
+                                            Wähle eine Kategorie, um Slot {targetCategorySlot} zu ersetzen:
+                                        </span>
+                                    ) : (
+                                        "Durchsuche die offiziellen hierarchischen Amazon KDP Kategorien. Kopiere den Pfad oder übernehme ihn in einen Slot."
+                                    )}
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    setShowCategoryExplorer(false);
+                                    setTargetCategorySlot(null);
+                                }}
+                                className="text-slate-500 hover:text-white p-1 hover:bg-slate-800 rounded-lg transition-colors"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        {/* Search & Main Filter */}
+                        <div className="space-y-3 shrink-0">
+                            <div className="flex flex-col sm:flex-row gap-2">
+                                <div className="relative flex-1">
+                                    <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                                    <input 
+                                        type="text"
+                                        value={categorySearchQuery}
+                                        onChange={(e) => setCategorySearchQuery(e.target.value)}
+                                        placeholder="Nach Kategorien suchen (z. B. Gutenachtgeschichten, Tiere, Fantasy, Krimi, Achtsamkeit)..."
+                                        className="w-full bg-background border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-primary"
+                                    />
+                                    {categorySearchQuery && (
+                                        <button 
+                                            onClick={() => setCategorySearchQuery('')}
+                                            className="text-slate-500 hover:text-white absolute right-3 top-1/2 -translate-y-1/2"
+                                        >
+                                            <X className="w-3.5 h-3.5" />
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Main Category Filter Pills */}
+                            <div className="flex flex-wrap gap-1.5 text-xs">
+                                {[
+                                    { id: 'ALL', label: 'Alle Bereiche' },
+                                    { id: 'Kinderbücher', label: 'Kinderbücher' },
+                                    { id: 'Belletristik', label: 'Belletristik' },
+                                    { id: 'Jugendbücher', label: 'Jugendbücher (YA)' },
+                                    { id: 'Sachbuch & Ratgeber', label: 'Sachbuch & Ratgeber' },
+                                    { id: "Children's Books", label: "Children's Books" },
+                                    { id: 'Fiction', label: 'Fiction' },
+                                ].map(tab => (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => setCategoryMainFilter(tab.id)}
+                                        className={`px-3 py-1 rounded-lg text-[11px] font-medium transition-colors ${
+                                            categoryMainFilter === tab.id
+                                                ? 'bg-primary text-black font-semibold'
+                                                : 'bg-background border border-slate-800 text-slate-400 hover:text-slate-200'
+                                        }`}
+                                    >
+                                        {tab.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Search Results / Category List */}
+                        <div className="overflow-y-auto flex-1 space-y-2 pr-1 custom-scrollbar">
+                            {(() => {
+                                const results = searchKdpCategories(categorySearchQuery, kdpMarketplace, categoryMainFilter);
+                                if (results.length === 0) {
+                                    return (
+                                        <div className="text-center py-10 text-slate-500 text-xs space-y-2">
+                                            <Search className="w-6 h-6 mx-auto text-slate-600" />
+                                            <p>Keine passenden Kategorien für "{categorySearchQuery}" gefunden.</p>
+                                        </div>
+                                    );
+                                }
+                                return results.map(cat => (
+                                    <div 
+                                        key={cat.id} 
+                                        className="bg-background/90 p-3.5 rounded-xl border border-slate-800/90 hover:border-slate-700 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                                    >
+                                        <div className="space-y-1.5 min-w-0">
+                                            <div className="flex items-center gap-2">
+                                                <span className="bg-slate-800 text-slate-300 text-[10px] font-mono px-2 py-0.5 rounded-md font-semibold">
+                                                    {cat.mainCategory}
+                                                </span>
+                                                {cat.ageHint && (
+                                                    <span className="bg-indigo-950/60 text-indigo-300 border border-indigo-800/30 text-[9px] font-mono px-1.5 py-0.5 rounded">
+                                                        Lesealter: {cat.ageHint}
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            {/* Breadcrumbs trail */}
+                                            <div className="flex flex-wrap items-center gap-1 text-xs">
+                                                {cat.breadcrumbs.map((crumb, idx) => (
+                                                    <span key={idx} className="flex items-center gap-1">
+                                                        <span className={`font-semibold ${idx === cat.breadcrumbs.length - 1 ? 'text-white' : 'text-slate-400'}`}>
+                                                            {crumb}
+                                                        </span>
+                                                        {idx < cat.breadcrumbs.length - 1 && (
+                                                            <ChevronRight className="w-3 h-3 text-slate-600 shrink-0" />
+                                                        )}
+                                                    </span>
+                                                ))}
+                                            </div>
+
+                                            {/* Tags */}
+                                            <div className="flex flex-wrap gap-1">
+                                                {cat.tags.slice(0, 5).map((tag, tIdx) => (
+                                                    <span key={tIdx} className="text-[9px] text-slate-500 bg-surface px-1.5 py-0.2 rounded font-mono">
+                                                        #{tag}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Actions */}
+                                        <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-center">
+                                            <button 
+                                                onClick={() => copyToClipboard(cat.path, 'Kategorie-Pfad')}
+                                                className="bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] px-2.5 py-1.5 rounded-lg transition-colors flex items-center gap-1 font-medium"
+                                                title="Pfad in die Zwischenablage kopieren"
+                                            >
+                                                <Clipboard className="w-3 h-3" />
+                                                Kopieren
+                                            </button>
+
+                                            {kdpMetadata && (
+                                                <div className="flex items-center gap-1">
+                                                    {[1, 2, 3].map(slotNum => (
+                                                        <button 
+                                                            key={slotNum}
+                                                            onClick={() => handleSelectCustomCategory(cat, slotNum)}
+                                                            className={`text-[10px] px-2 py-1.5 rounded-lg font-semibold transition-colors ${
+                                                                targetCategorySlot === slotNum
+                                                                    ? 'bg-primary text-black'
+                                                                    : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700/60'
+                                                            }`}
+                                                            title={`Als Slot ${slotNum} übernehmen`}
+                                                        >
+                                                            Slot {slotNum}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                ));
+                            })()}
+                        </div>
+
+                        {/* Footer */}
+                        <div className="pt-3 border-t border-slate-800/80 flex justify-between items-center text-xs text-slate-500 shrink-0">
+                            <span>💡 KDP erlaubt bis zu 3 Kategorien pro Format.</span>
+                            <button
+                                onClick={() => {
+                                    setShowCategoryExplorer(false);
+                                    setTargetCategorySlot(null);
+                                }}
+                                className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
+                            >
+                                Schließen
+                            </button>
                         </div>
                     </div>
                 </div>

@@ -186,14 +186,29 @@ def format_scene_beats_as_text(beats: list, language: str = "de") -> str:
     return "\n".join(lines).strip()
 
 def clean_json_string(s: str) -> str:
-    """Strip markdown code blocks around JSON if present."""
+    """Strip markdown code blocks around JSON or extract the outermost valid JSON object/array."""
     s = s.strip()
-    if s.startswith("```json"):
-        s = s[7:]
-    elif s.startswith("```"):
-        s = s[3:]
-    if s.endswith("```"):
-        s = s[:-3]
+    if "```json" in s:
+        start = s.find("```json") + 7
+        end = s.rfind("```")
+        if end > start:
+            s = s[start:end].strip()
+    elif "```" in s:
+        start = s.find("```") + 3
+        end = s.rfind("```")
+        if end > start:
+            s = s[start:end].strip()
+            
+    first_brace = s.find("{")
+    last_brace = s.rfind("}")
+    first_bracket = s.find("[")
+    last_bracket = s.rfind("]")
+
+    if first_brace != -1 and last_brace != -1 and (first_bracket == -1 or first_brace < first_bracket):
+        s = s[first_brace:last_brace+1]
+    elif first_bracket != -1 and last_bracket != -1:
+        s = s[first_bracket:last_bracket+1]
+
     return s.strip()
 
 

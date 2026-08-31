@@ -829,15 +829,35 @@ export interface SequelPitch {
     tone: string;
 }
 
+export interface KdpCategoryItem {
+    slot: number;
+    role: string;
+    path: string;
+    breadcrumbs: string[];
+    strategy_note: string;
+}
+
+export interface KdpAgeRange {
+    min_age?: number | null;
+    max_age?: number | null;
+    label: string;
+}
+
 export interface KdpMetadata {
+    marketplace?: string;
+    target_audience?: string;
+    age_range?: KdpAgeRange;
     suggested_subtitle: string;
     description_kdp: string;
     search_keywords: string[];
+    kdp_categories?: KdpCategoryItem[];
     recommended_bisac_categories: string[];
     pricing_recommendation: {
         price: string;
         reason: string;
+        royalty_rate?: string;
     };
+    kdp_checklist?: string[];
 }
 
 export interface LektoratFinding {
@@ -1165,9 +1185,13 @@ export function getProPdfUrl(id: string): string {
     return url.toString();
 }
 
-export async function fetchProKdpMetadata(id: string, model?: string): Promise<KdpMetadata> {
+export async function fetchProKdpMetadata(id: string, model?: string, marketplace?: string): Promise<KdpMetadata> {
     let url = `${API_BASE}/api/pro/books/${id}/export/metadata`;
-    if (model) url += `?model=${encodeURIComponent(model)}`;
+    const params = new URLSearchParams();
+    if (model) params.append('model', model);
+    if (marketplace) params.append('marketplace', marketplace);
+    const queryString = params.toString();
+    if (queryString) url += `?${queryString}`;
     const res = await fetch(url, { headers: getAuthHeaders() });
     if (!res.ok) throw new Error('Fehler beim Generieren der KDP-Metadaten');
     return res.json();

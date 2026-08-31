@@ -566,11 +566,22 @@ async def generate_book_epub(project: BookProject, chapters: List[BookChapter], 
 # KDP Metadata Generator
 # ---------------------------------------------------------------------------
 
-async def generate_kdp_metadata(project: BookProject, chapters: List[BookChapter], model: str = "gemini-3.1-flash-lite") -> Dict[str, Any]:
+async def generate_kdp_metadata(
+    project: BookProject, 
+    chapters: List[BookChapter], 
+    model: str = "gemini-3.1-flash-lite",
+    marketplace: str = "amazon.de"
+) -> Dict[str, Any]:
     """
-    Generate Amazon KDP compatible copy-paste metadata sheet.
+    Generate official Amazon KDP compatible copy-paste metadata sheet,
+    aligned with Amazon's 3-category hierarchy system, backend keywords,
+    HTML blurb, and marketplace-specific taxonomies.
     """
-    is_en = (getattr(project, "language", "de") == "en")
+    marketplace = (marketplace or "amazon.de").lower().strip()
+    is_en_market = marketplace in ["amazon.com", "amazon.co.uk", "amazon.ca", "amazon.com.au"]
+    is_en_project = (getattr(project, "language", "de") == "en")
+    is_en = is_en_market or is_en_project
+
     word_count = sum(len(c.content.split()) for c in chapters if c.content)
     page_est = max(1, round(word_count / 250))
     ch_lbl = "Chapter" if is_en else "Kapitel"
@@ -591,78 +602,286 @@ async def generate_kdp_metadata(project: BookProject, chapters: List[BookChapter
         except Exception:
             pass
 
+    # Marketplace-specific taxonomy guidance
     if is_en:
+        taxonomy_guide = """
+Amazon KDP Category Taxonomy (English / Amazon.com & Amazon.co.uk):
+Select EXACTLY 3 categories using the hierarchical path 'Main Category > Subcategory > Specific Subcategory'.
+Amazon KDP Main Branches:
+1. 'Children's Books' (or 'Juvenile Fiction' / 'Juvenile Nonfiction'):
+   - Bedtime & Dreams
+   - Animals (Farm Animals, Dogs, Cats, Wildlife, Dinosaurs, Dragons & Mythical Creatures)
+   - Early Learning & Picture Books (Basic Concepts, Stories in Verse, Interactive)
+   - Growing Up & Facts of Life (Friendship, Family & Siblings, Emotions & Feelings, School & Kindergarten)
+   - Fantasy & Magic (Fairies, Wizards, Mythical Creatures, Fairy Tales & Folklore)
+   - Action & Adventure (Exploration, Pirates, Mysteries & Detectives)
+   - Humorous Stories (Funny Animal Tales, Silly Stories)
+   - Science, Nature & How It Works (Space & Astronomy, Nature & Wildlife)
+   - Holidays & Celebrations (Christmas, Halloween, Easter, Birthdays)
+   - Activities, Crafts & Games (Coloring Books, Puzzles & Mazes)
+2. 'Fiction':
+   - Fantasy (Epic / High Fantasy, Dark Fantasy, Urban Fantasy, Romantic Fantasy / Romantasy, Magical Realism, Time Travel)
+   - Science Fiction (Space Opera, Dystopian, Hard Sci-Fi & AI, Cyberpunk, Time Travel, Post-Apocalyptic & Survival, Alien Invasion)
+   - Mystery, Thriller & Suspense (Psychological Thrillers, Cozy Mystery, Crime & Detective, Serial Killers, Legal & Political Thrillers, Espionage)
+   - Romance (Contemporary Romance, Romantic Comedy, New Adult & College, Fantasy Romance, Historical Romance, Billionaires & Boss, Romantic Suspense)
+   - Historical Fiction (Ancient World, Medieval & Renaissance, 19th Century, 20th Century & World Wars, Biographical Fiction)
+   - Horror (Psychological Horror, Supernatural & Ghosts, Dark Fantasy & Monsters, Occult)
+   - Humor & Satire (Romantic & Contemporary Comedy, Parody & Satire, Dark Humor)
+   - Literary Fiction (Family Sagas, Contemporary & Social, Philosophical)
+   - Action & Adventure (Treasure Hunting, Wilderness & Survival, Military)
+   - Short Stories & Anthologies
+3. 'Young Adult Fiction' (YA):
+   - Fantasy & Romantasy (Magic Academies, Paranormal, Dark Fantasy)
+   - Romance & Coming of Age (First Love, High School & College, Romantic Comedy)
+   - Dystopian & Science Fiction
+   - Mystery & Thriller
+   - Social Issues & Identity
+4. 'Nonfiction':
+   - Self-Help & Personal Development (Mindfulness & Meditation, Habits & Motivation, Time Management, Stress Management)
+   - Health, Fitness & Dieting (Mental Health, Nutrition, Exercise, Holistic Medicine)
+   - Parenting & Relationships (Babies & Toddlers, Parenting, Family)
+   - Business & Money (Personal Finance, Investing, Entrepreneurship, Leadership)
+   - Cookbooks, Food & Wine
+   - Science, Tech & Math (AI & Technology, Astronomy, Nature)
+   - Biographies & Memoirs
+"""
         system_instruction = (
-            "You are an expert in Amazon Kindle Direct Publishing (KDP) marketing and book launch optimization. "
-            "Generate high-converting, sales-optimized metadata in English for the completed book project. "
-            "If the book is part of a series, integrate the series connection prominently into the blurb and search keywords. "
-            "Respond strictly in JSON format."
+            "You are a leading Amazon Kindle Direct Publishing (KDP) marketing strategist and metadata architect. "
+            "Your task is to generate perfectly matching, high-converting metadata for Amazon KDP according to Amazon's official category tree and search algorithms. "
+            "Follow the 3-category strategy: Slot 1 = Primary Core Category (Highest Relevance), Slot 2 = High-Traffic Subgenre (High Browse Demand), Slot 3 = Niche Subcategory (Low Competition for #1 Bestseller Badge). "
+            "Respond strictly with valid JSON."
         )
         prompt = f"""
-        Completed Book Information:
-        - Title: {project.title}
-        {series_clause}
-        - Genre: {project.genre}
-        - Style: {project.style}
-        - Word Count: {word_count} (~{page_est} book pages)
-        - Chapters Overview: {chapter_titles}
-        - Description / Core Idea: {project.prompt}
+Book Details:
+- Title: {project.title}
+{series_clause}
+- Genre: {project.genre}
+- Style: {project.style}
+- Word Count: {word_count} (~{page_est} book pages)
+- Chapters Overview: {chapter_titles}
+- Core Concept / Description: {project.prompt}
+- Target Marketplace: {marketplace.upper()}
 
-        Create a JSON object in English with:
-        1. 'suggested_subtitle': High-converting Amazon subtitle (max 200 chars)
-        2. 'description_kdp': Compelling, engaging sales blurb in HTML (using <b>, <i>, <p>, max 2000 chars)
-        3. 'search_keywords': Exactly 7 high-traffic KDP search keywords/phrases Amazon buyers use.
-        4. 'recommended_bisac_categories': 3 recommended KDP/BISAC categories.
-        5. 'pricing_recommendation': Recommended KDP price in USD ($0.99, $2.99, $3.99, or $4.99) with brief rationale.
+{taxonomy_guide}
 
-        Format:
-        {{
-          "suggested_subtitle": "...",
-          "description_kdp": "...",
-          "search_keywords": ["...", "...", "...", "...", "...", "...", "..."],
-          "recommended_bisac_categories": ["...", "...", "..."],
-          "pricing_recommendation": {{
-            "price": "$2.99 USD",
-            "reason": "..."
-          }}
-        }}
-        """
+Provide the metadata in English as a single valid JSON object with the following fields:
+1. 'marketplace': '{marketplace}'
+2. 'target_audience': High-level audience definition (e.g., 'Children (Ages 3–6, Bedtime Picture Book)', 'Young Adult (Ages 14–18)', 'Adult Fiction')
+3. 'age_range': An object with:
+   - 'min_age': integer or null (e.g. 3)
+   - 'max_age': integer or null (e.g. 6)
+   - 'label': string (e.g. 'Ages 3–6' or 'Adult / All Ages')
+4. 'suggested_subtitle': High-converting Amazon subtitle (max 180 characters, crisp and engaging)
+5. 'description_kdp': Compelling Amazon HTML blurb using <b>, <i>, <p>, <ul>, <li>, <h3> (max 2000 chars, structured with a catchy hook, bullet points of key themes, and a call to action)
+6. 'search_keywords': Array of EXACTLY 7 high-intent KDP search phrases (each under 50 characters, without repeating words from the title)
+7. 'kdp_categories': Array of EXACTLY 3 category objects matching the KDP taxonomy:
+   - Slot 1: 'slot': 1, 'role': 'Primary Core Category (High Relevance)', 'path': 'Main Category > Subcategory > Branch', 'breadcrumbs': ['Main Category', 'Subcategory', 'Branch'], 'strategy_note': '...'
+   - Slot 2: 'slot': 2, 'role': 'High-Traffic Subgenre (High Browse Demand)', 'path': 'Main Category > Subcategory > Branch', 'breadcrumbs': ['Main Category', 'Subcategory', 'Branch'], 'strategy_note': '...'
+   - Slot 3: 'slot': 3, 'role': 'Niche Opportunity (Bestseller Badge Potential)', 'path': 'Main Category > Subcategory > Branch', 'breadcrumbs': ['Main Category', 'Subcategory', 'Branch'], 'strategy_note': '...'
+8. 'recommended_bisac_categories': Array of 3 string paths (identical to kdp_categories path for backward compatibility)
+9. 'pricing_recommendation': Object with:
+   - 'price': Recommended price (e.g., '$2.99 USD' or '$3.99 USD' for 70% royalty tier, or '$0.99 USD' for promo launch)
+   - 'reason': Strategic pricing rationale
+   - 'royalty_rate': '70% KDP Royalty' or '35% KDP Royalty'
+10. 'kdp_checklist': Array of 5 concise step-by-step instructions for pasting these fields into KDP.
+
+Format:
+{{
+  "marketplace": "{marketplace}",
+  "target_audience": "...",
+  "age_range": {{
+    "min_age": 3,
+    "max_age": 6,
+    "label": "Ages 3–6"
+  }},
+  "suggested_subtitle": "...",
+  "description_kdp": "...",
+  "search_keywords": ["...", "...", "...", "...", "...", "...", "..."],
+  "kdp_categories": [
+    {{
+      "slot": 1,
+      "role": "Primary Core Category (High Relevance)",
+      "path": "Children's Books > Bedtime & Dreams",
+      "breadcrumbs": ["Children's Books", "Bedtime & Dreams"],
+      "strategy_note": "Direct match for bedtime story queries."
+    }},
+    {{
+      "slot": 2,
+      "role": "High-Traffic Subgenre (High Browse Demand)",
+      "path": "Children's Books > Animals > Farm Animals",
+      "breadcrumbs": ["Children's Books", "Animals", "Farm Animals"],
+      "strategy_note": "High-volume browse node on Amazon."
+    }},
+    {{
+      "slot": 3,
+      "role": "Niche Opportunity (Bestseller Badge Potential)",
+      "path": "Children's Books > Growing Up & Facts of Life > Emotions & Feelings",
+      "breadcrumbs": ["Children's Books", "Growing Up & Facts of Life", "Emotions & Feelings"],
+      "strategy_note": "Lower competition niche ideal for #1 category ranking."
+    }}
+  ],
+  "recommended_bisac_categories": [
+    "Children's Books > Bedtime & Dreams",
+    "Children's Books > Animals > Farm Animals",
+    "Children's Books > Growing Up & Facts of Life > Emotions & Feelings"
+  ],
+  "pricing_recommendation": {{
+    "price": "$2.99 USD",
+    "reason": "Optimal 70% royalty threshold on Amazon KDP.",
+    "royalty_rate": "70% KDP Royalty"
+  }},
+  "kdp_checklist": [
+    "Paste Book Title & Subtitle in KDP Step 1",
+    "Paste HTML Description into the Description field",
+    "Add the 7 search keywords in the 7 backend keyword boxes",
+    "Select the 3 exact category paths via the KDP category picker",
+    "Set the recommended Age Range (min/max age) to unlock juvenile categories"
+  ]
+}}
+"""
     else:
+        taxonomy_guide = """
+Offizielle Amazon KDP Kategorie-Taxonomie (Amazon.de / Deutschland, Österreich, Schweiz):
+Wähle EXAKT 3 Kategorien nach dem hierarchischen Pfad 'Hauptkategorie > Unterkategorie > Spezifischer Zweig'.
+Amazon KDP Hauptkategorien und Zweige im deutschen KDP-Dashboard:
+1. 'Kinderbücher' (für Bilderbücher, Vorlesebücher, Gute-Nacht-Geschichten & Erstleser):
+   - Gutenachtgeschichten & Träume
+   - Tiere (Bauernhoftiere, Hunde & Welpen, Katzen, Wildtiere & Waldtiere, Dinosaurier, Fabelwesen & Drachen, Pferde & Ponys)
+   - Bilderbücher & Vorlesebücher (Reime & Lieder, Interaktive Bücher, Erstes Lesen & Wortschatz)
+   - Alltag, Familie & Gefühle (Freundschaft & Teilen, Geschwister, Kindergarten & Schulstart, Mut & Selbstvertrauen, Ängste überwinden, Wut & Trauer)
+   - Fantasy, Magie & Märchen (Zauberer & Hexen, Fabelwesen, Märchen & Volkssagen)
+   - Abenteuer & Entdecker (Piraten, Detektive & Rätsel, Weltall & Reisen)
+   - Humor & Lustiges (Lustige Tiergeschichten, Witze & Quatsch)
+   - Sachwissen für Kinder (Natur & Umwelt, Tiere, Technik & Fahrzeuge, Weltall & Sterne)
+   - Feste & Feiertage (Weihnachten, Ostern, Halloween, Geburtstag)
+   - Aktivitäten & Beschäftigung (Malbücher, Rätsel & Labyrinthe)
+2. 'Belletristik' (für Romane, Novellen & Erzählungen):
+   - Fantasy (Epische Fantasy & High Fantasy, Dark Fantasy, Urban Fantasy, Romantasy / Fantasy Romance, Magischer Realismus, Humorvolle Fantasy, Zeitreisen)
+   - Science-Fiction (Space Opera, Dystopien, Hard Sci-Fi & KI, Cyberpunk, Zeitreisen, Postapokalypse & Überleben, Alien-Invasion, Steampunk)
+   - Krimis & Thriller (Psychothriller, Detektiv- & Ermittlerromane, Cosy Mystery & Landkrimis, Serienmörder, Justiz- & Politthriller, Spionage, Historische Krimis, Skandinavische Krimis)
+   - Liebesromane / Romance (Contemporary / Zeitgenössisch, Romantische Komödie, New Adult & College, Romantasy, Historische Liebesromane / Regency, Milliardäre & Boss, Romantic Suspense)
+   - Historische Romane (Antike & Rom, Mittelalter & Ritter, Renaissance, 19. Jahrhundert, 20. Jahrhundert & Weltkriege, Biografische Romane)
+   - Horror & Grusel (Psychologischer Horror, Übernatürliches & Geister, Monster & Kreaturen, Dunkle Fantasy)
+   - Humor & Satire (Zeitgenössische Komödie, Satire & Parodie, Schwarzer Humor)
+   - Literarische Belletristik (Familiensagas, Zeitgenössische Gesellschaftsromane, Philosophische Erzählungen)
+   - Action & Abenteuer (Schatzsuche, Überlebenskampf, Militär & Expeditionen)
+   - Kurzgeschichten & Anthologien (Erzählbände, Anthologien)
+   - Märchen, Sagen & Mythen (Neuinterpretationen / Retellings, Deutsche & Keltische Sagen, Griechische Mythologie)
+3. 'Jugendbücher' (Young Adult / YA):
+   - Fantasy & Romantasy (Magische Akademien, Dystopische Fantasy, Hexen & Paranormal)
+   - Romantik & Coming-of-Age (Erste Liebe, Highschool & College, Romantische Komödie)
+   - Dystopien & Science-Fiction (Zukünftige Welten, Sci-Fi Abenteuer)
+   - Krimis & Thriller (Jugenddetektive, Psychothriller)
+   - Alltag, Familie & Emotionen (Freundschaft & Identität, Mentale Gesundheit)
+4. 'Sachbuch & Ratgeber':
+   - Ratgeber & Lebensführung (Persönlichkeitsentwicklung, Achtsamkeit & Meditation, Motivation & Erfolg, Zeitmanagement, Minimalismus)
+   - Gesundheit, Geist & Körper (Mentale Gesundheit & Stress, Ernährung & Darmgesundheit, Fitness & Yoga, Schlaf & Erholung, Naturheilkunde)
+   - Eltern & Familie (Babys 1. Jahr, Kleinkind-Erziehung & Trotzphase, Schule & Lernen, Schwangerschaft & Geburt)
+   - Wirtschaft, Finanzen & Karriere (Geldanlage, Aktien & ETFs, Immobilien, Unternehmertum & Startups, Führung & Leadership, Karriere)
+   - Psychologie & Beziehungen (Kognition, Verhaltenspsychologie, Partnerschaft & Kommunikation)
+   - Wissenschaft & Technik (Künstliche Intelligenz, Astronomie & Physik, Ökologie & Natur)
+   - Kochen, Backen & Genuss (Schnelle Küche, Vegetarisch & Vegan, Backen & Brot, Gesunde Ernährung)
+   - Biografien & Erinnerungen (Historische Persönlichkeiten, Zeitzeugen, Unternehmer & Künstler)
+   - Geschichte & Politik (Antike, Mittelalter, Zeitgeschichte & Weltkriege)
+   - Kreativität, Kunst & Hobbys (Schreiben & Selfpublishing, Zeichnen & Malen, Garten & Handwerk)
+"""
         system_instruction = (
-            "Du bist ein Experte für Amazon Kindle Direct Publishing (KDP). "
-            "Erstelle verkaufsoptimierte Metadaten für das hochgeladene Buchprojekt. "
-            "Falls das Buch Teil einer Serie ist, integriere die Serien-Zugehörigkeit prominent in den Klappentext und die Keywords. "
-            "Antworte ausschließlich im JSON-Format."
+            "Du bist ein führender Experte für Amazon Kindle Direct Publishing (KDP) Marketing und Bestseller-Strategien auf dem deutschen Buchmarkt. "
+            "Erstelle exakt passende, verkaufsoptimierte Metadaten für das Buchprojekt basierend auf dem offiziellen KDP-Kategoriebaum von Amazon.de. "
+            "Wende die bewährte 3-Kategorien-Strategie an: "
+            "Slot 1 = Hauptkategorie (Höchste Relevanz / Kern-Passung), "
+            "Slot 2 = Stark frequentiertes Subgenre (Hohes Stöber-Suchvolumen), "
+            "Slot 3 = Gezielte Nischenkategorie (Geringer Wettbewerb für das #1 Bestseller-Abzeichen). "
+            "Antworte ausschließlich im validen JSON-Format."
         )
         prompt = f"""
-        Hier sind die Daten des fertiggestellten Buches:
-        - Titel: {project.title}
-        {series_clause}
-        - Genre: {project.genre}
-        - Stil: {project.style}
-        - Wortanzahl: {word_count} (~{page_est} Buchseiten)
-        - Kapitelübersicht: {chapter_titles}
-        - Beschreibung / Ausgangsidee: {project.prompt}
+Hier sind die Buchdaten des fertiggestellten Werkes:
+- Titel: {project.title}
+{series_clause}
+- Genre: {project.genre}
+- Stil: {project.style}
+- Wortanzahl: {word_count} (~{page_est} Buchseiten)
+- Kapitelübersicht: {chapter_titles}
+- Beschreibung / Ausgangsidee: {project.prompt}
+- Ziel-Marktplatz: {marketplace.upper()}
 
-        Erstelle ein JSON-Objekt mit folgenden Feldern auf Deutsch:
-        1. 'suggested_subtitle': Ein verkaufsfördernder Untertitel für Amazon (max 200 Zeichen)
-        2. 'description_kdp': Ein attraktiver, verkaufsfördernder Klappentext (KDP Buchbeschreibung) in HTML (mit <b>, <i>, <p> Tags, max 2000 Zeichen)
-        3. 'search_keywords': Eine Liste von exakt 7 KDP Keywords/Suchbegriffen, die Leser bei Amazon eingeben würden.
-        4. 'recommended_bisac_categories': Eine Liste von 3 empfohlenen KDP/BISAC-Kategorien (z. B. Belletristik / Science Fiction / Humoreske)
-        5. 'pricing_recommendation': Empfohlener KDP-Preis (in EUR) für das E-Book (0.99 EUR, 2.99 EUR oder 3.99 EUR) mit kurzer Begründung.
+{taxonomy_guide}
 
-        Format:
-        {{
-          "suggested_subtitle": "...",
-          "description_kdp": "...",
-          "search_keywords": ["...", "...", "...", "...", "...", "...", "..."],
-          "recommended_bisac_categories": ["...", "...", "..."],
-          "pricing_recommendation": {{
-            "price": "2,99 EUR",
-            "reason": "..."
-          }}
-        }}
-        """
+Erstelle ein JSON-Objekt auf Deutsch mit exakt folgenden Feldern:
+1. 'marketplace': '{marketplace}'
+2. 'target_audience': Exakte Zielgruppendefinition (z. B. 'Kinder (3–6 Jahre, Gutenacht-Vorlesebuch)', 'Jugendliche (14–18 Jahre)', 'Erwachsene / All Ages')
+3. 'age_range': Ein Objekt mit:
+   - 'min_age': Zahl oder null (z. B. 3)
+   - 'max_age': Zahl oder null (z. B. 6)
+   - 'label': String (z. B. '3–6 Jahre' oder 'Für Erwachsene / Ab 18')
+4. 'suggested_subtitle': Ein verkaufsstarker Amazon-Untertitel (max 180 Zeichen, prägnant mit emotionalem Mehrwert)
+5. 'description_kdp': Ein hochkonvertierender Klappentext in HTML (mit <b>, <i>, <p>, <ul>, <li>, <h3> Tags, max 2000 Zeichen, bestehend aus Catchy Hook, thematischen Aufzählungspunkten und Handlungsaufforderung)
+6. 'search_keywords': Array von EXAKT 7 hochrelevanten KDP-Keywords/Suchbegriffen (jeweils max 50 Zeichen, keine Duplikate aus Titel/Untertitel)
+7. 'kdp_categories': Array von EXAKT 3 Kategorien nach KDP-Standard:
+   - Slot 1: 'slot': 1, 'role': 'Hauptkategorie (Höchste Relevanz)', 'path': 'Hauptkategorie > Unterkategorie > Spezifischer Zweig', 'breadcrumbs': ['Hauptkategorie', 'Unterkategorie', 'Spezifischer Zweig'], 'strategy_note': '...'
+   - Slot 2: 'slot': 2, 'role': 'Subgenre (Hohes Stöber-Suchvolumen)', 'path': 'Hauptkategorie > Unterkategorie > Spezifischer Zweig', 'breadcrumbs': ['Hauptkategorie', 'Unterkategorie', 'Spezifischer Zweig'], 'strategy_note': '...'
+   - Slot 3: 'slot': 3, 'role': 'Nische (Geringe Konkurrenz / Bestseller-Chance)', 'path': 'Hauptkategorie > Unterkategorie > Spezifischer Zweig', 'breadcrumbs': ['Hauptkategorie', 'Unterkategorie', 'Spezifischer Zweig'], 'strategy_note': '...'
+8. 'recommended_bisac_categories': Array mit den 3 Pfad-Strings (identisch zu kdp_categories.path für Abwärtskompatibilität)
+9. 'pricing_recommendation': Ein Objekt mit:
+   - 'price': '2,99 EUR' (oder 0,99 EUR / 3,99 EUR / 4,99 EUR)
+   - 'reason': Begründung mit KDP 70% Tantiemen-Staffel (2,99 € – 9,99 €)
+   - 'royalty_rate': '70% KDP Tantieme' oder '35% KDP Tantieme'
+10. 'kdp_checklist': Array mit 5 prägnanten Schritten zum Einfügen in das KDP-Dashboard.
+
+Format:
+{{
+  "marketplace": "{marketplace}",
+  "target_audience": "...",
+  "age_range": {{
+    "min_age": 3,
+    "max_age": 6,
+    "label": "3–6 Jahre"
+  }},
+  "suggested_subtitle": "...",
+  "description_kdp": "...",
+  "search_keywords": ["...", "...", "...", "...", "...", "...", "..."],
+  "kdp_categories": [
+    {{
+      "slot": 1,
+      "role": "Hauptkategorie (Höchste Relevanz)",
+      "path": "Kinderbücher > Gutenachtgeschichten & Träume",
+      "breadcrumbs": ["Kinderbücher", "Gutenachtgeschichten & Träume"],
+      "strategy_note": "Exakte thematische Passung für abendliche Vorlesegeschichten."
+    }},
+    {{
+      "slot": 2,
+      "role": "Subgenre (Hohes Stöber-Suchvolumen)",
+      "path": "Kinderbücher > Tiere > Bauernhoftiere",
+      "breadcrumbs": ["Kinderbücher", "Tiere", "Bauernhoftiere"],
+      "strategy_note": "Sehr gefragter Stöberpfad für Tiergeschichten bei Amazon.de."
+    }},
+    {{
+      "slot": 3,
+      "role": "Nische (Geringe Konkurrenz / Bestseller-Chance)",
+      "path": "Kinderbücher > Alltag, Familie & Gefühle > Mut & Selbstvertrauen",
+      "breadcrumbs": ["Kinderbücher", "Alltag, Familie & Gefühle", "Mut & Selbstvertrauen"],
+      "strategy_note": "Geringere Buchtitel-Dichte für schnelle #1 Bestseller Platzierung."
+    }}
+  ],
+  "recommended_bisac_categories": [
+    "Kinderbücher > Gutenachtgeschichten & Träume",
+    "Kinderbücher > Tiere > Bauernhoftiere",
+    "Kinderbücher > Alltag, Familie & Gefühle > Mut & Selbstvertrauen"
+  ],
+  "pricing_recommendation": {{
+    "price": "2,99 EUR",
+    "reason": "Optimaler Einstiegspreis im 70%-Tantiemen-Bereich von Amazon KDP.",
+    "royalty_rate": "70% KDP Tantieme"
+  }},
+  "kdp_checklist": [
+    "Titel und Untertitel in Schritt 1 bei KDP eingeben",
+    "HTML-Klappentext in das Beschreibungsfeld kopieren",
+    "Die 7 Suchbegriffe in die 7 Keyword-Felder einfügen",
+    "Die 3 Kategorien über den KDP-Kategoriebaum anklicken",
+    "Lesealter (Min/Max) einstellen, um Kinderbuch-Kategorien freizuschalten"
+  ]
+}}
+"""
 
     try:
         from app.services.text_generator import generate_text
@@ -675,19 +894,134 @@ async def generate_kdp_metadata(project: BookProject, chapters: List[BookChapter
         )
         from app.services.book_generator import clean_json_string
         cleaned = clean_json_string(response)
-        return json.loads(cleaned)
+        data = json.loads(cleaned)
+        
+        # Ensure backward compatibility if kdp_categories exists
+        if "kdp_categories" in data and isinstance(data["kdp_categories"], list):
+            data["recommended_bisac_categories"] = [
+                c.get("path", "") for c in data["kdp_categories"] if isinstance(c, dict) and "path" in c
+            ]
+        elif "recommended_bisac_categories" in data and isinstance(data["recommended_bisac_categories"], list):
+            data["kdp_categories"] = [
+                {
+                    "slot": idx + 1,
+                    "role": "KDP-Kategorie" if not is_en else "KDP Category",
+                    "path": p,
+                    "breadcrumbs": [b.strip() for b in p.split(">")],
+                    "strategy_note": "Empfohlene Amazon KDP Kategorie" if not is_en else "Recommended Amazon KDP Category"
+                }
+                for idx, p in enumerate(data["recommended_bisac_categories"])
+            ]
+            
+        data["marketplace"] = marketplace
+        return data
+
     except Exception as e:
         logger.error(f"Error generating KDP metadata: {e}")
-        return {
-            "suggested_subtitle": f"A captivating {project.genre} novel" if is_en else f"Eine spannende Novelle im Genre {project.genre}",
-            "description_kdp": f"<p>{project.prompt}</p>",
-            "search_keywords": [project.genre, project.style, "Novel", "E-Book", "Fiction", "Bestseller", "Literature"] if is_en else [project.genre, project.style, "Novelle", "E-Book", "Roman", "Stanzwerk", "Literatur"],
-            "recommended_bisac_categories": ["Fiction / General"] if is_en else ["Belletristik / Allgemein"],
-            "pricing_recommendation": {
-                "price": "$2.99 USD" if is_en else "0,99 EUR",
-                "reason": "Standard launch price." if is_en else "Standard-Einstiegspreis für Kurzromane."
+        
+        # Determine defaults based on genre / prompt
+        is_kids = any(k in (project.genre + " " + project.prompt).lower() for k in ["kinder", "child", "gute nacht", "bedtime", "tier", "animal", "märchen", "fairy"])
+        
+        if is_en:
+            default_categories = [
+                {
+                    "slot": 1,
+                    "role": "Primary Core Category (High Relevance)",
+                    "path": "Children's Books > Bedtime & Dreams" if is_kids else "Fiction > Fantasy > Epic",
+                    "breadcrumbs": ["Children's Books", "Bedtime & Dreams"] if is_kids else ["Fiction", "Fantasy", "Epic"],
+                    "strategy_note": "Direct alignment with main genre."
+                },
+                {
+                    "slot": 2,
+                    "role": "High-Traffic Subgenre (High Browse Demand)",
+                    "path": "Children's Books > Animals > Farm Animals" if is_kids else "Fiction > Science Fiction > Space Opera",
+                    "breadcrumbs": ["Children's Books", "Animals", "Farm Animals"] if is_kids else ["Fiction", "Science Fiction", "Space Opera"],
+                    "strategy_note": "High search volume on Amazon.com."
+                },
+                {
+                    "slot": 3,
+                    "role": "Niche Opportunity (Bestseller Badge Potential)",
+                    "path": "Children's Books > Growing Up & Facts of Life > Emotions & Feelings" if is_kids else "Fiction > Fantasy > Urban",
+                    "breadcrumbs": ["Children's Books", "Growing Up & Facts of Life", "Emotions & Feelings"] if is_kids else ["Fiction", "Fantasy", "Urban"],
+                    "strategy_note": "Low competition niche for bestseller ranking."
+                }
+            ]
+            return {
+                "marketplace": marketplace,
+                "target_audience": "Children (Ages 3–6)" if is_kids else "Adult Fiction",
+                "age_range": {
+                    "min_age": 3 if is_kids else None,
+                    "max_age": 6 if is_kids else None,
+                    "label": "Ages 3–6" if is_kids else "Adult / All Ages"
+                },
+                "suggested_subtitle": f"A Captivating {project.genre} Adventure",
+                "description_kdp": f"<p><b>{project.title}</b></p><p>{project.prompt}</p>",
+                "search_keywords": [project.genre, project.style, "Bedtime Story" if is_kids else "Novel", "E-Book", "Fiction", "Bestseller", "Paperback"],
+                "kdp_categories": default_categories,
+                "recommended_bisac_categories": [c["path"] for c in default_categories],
+                "pricing_recommendation": {
+                    "price": "$2.99 USD",
+                    "reason": "Standard launch price within 70% KDP royalty bracket.",
+                    "royalty_rate": "70% KDP Royalty"
+                },
+                "kdp_checklist": [
+                    "Paste Book Title & Subtitle in KDP Step 1",
+                    "Paste HTML Description into the Description field",
+                    "Add the 7 search keywords in the 7 backend keyword boxes",
+                    "Select the 3 exact category paths via the KDP category picker",
+                    "Set the recommended Age Range (min/max age) to unlock juvenile categories"
+                ]
             }
-        }
+        else:
+            default_categories = [
+                {
+                    "slot": 1,
+                    "role": "Hauptkategorie (Höchste Relevanz)",
+                    "path": "Kinderbücher > Gutenachtgeschichten & Träume" if is_kids else f"Belletristik > {project.genre}",
+                    "breadcrumbs": ["Kinderbücher", "Gutenachtgeschichten & Träume"] if is_kids else ["Belletristik", project.genre],
+                    "strategy_note": "Direkte thematische Übereinstimmung mit dem Kerninhalt."
+                },
+                {
+                    "slot": 2,
+                    "role": "Subgenre (Hohes Stöber-Suchvolumen)",
+                    "path": "Kinderbücher > Tiere > Bauernhoftiere" if is_kids else "Belletristik > Fantasy > Epische Fantasy",
+                    "breadcrumbs": ["Kinderbücher", "Tiere", "Bauernhoftiere"] if is_kids else ["Belletristik", "Fantasy", "Epische Fantasy"],
+                    "strategy_note": "Stark frequentierter Stöberpfad auf Amazon.de."
+                },
+                {
+                    "slot": 3,
+                    "role": "Nische (Geringe Konkurrenz / Bestseller-Chance)",
+                    "path": "Kinderbücher > Alltag, Familie & Gefühle > Mut & Selbstvertrauen" if is_kids else "Belletristik > Kurzgeschichten & Anthologien",
+                    "breadcrumbs": ["Kinderbücher", "Alltag, Familie & Gefühle", "Mut & Selbstvertrauen"] if is_kids else ["Belletristik", "Kurzgeschichten & Anthologien"],
+                    "strategy_note": "Geringe Konkurrenz für schnellen #1 Bestseller-Status."
+                }
+            ]
+            return {
+                "marketplace": marketplace,
+                "target_audience": "Kinder (3–6 Jahre, Vorlesebuch)" if is_kids else "Erwachsene / All-Age",
+                "age_range": {
+                    "min_age": 3 if is_kids else None,
+                    "max_age": 6 if is_kids else None,
+                    "label": "3–6 Jahre" if is_kids else "Für Erwachsene / Ab 18"
+                },
+                "suggested_subtitle": f"Eine spannende Geschichte im Genre {project.genre}",
+                "description_kdp": f"<p><b>{project.title}</b></p><p>{project.prompt}</p>",
+                "search_keywords": [project.genre, project.style, "Gutenachtgeschichte" if is_kids else "Roman", "E-Book", "Novelle", "Bestseller", "Taschenbuch"],
+                "kdp_categories": default_categories,
+                "recommended_bisac_categories": [c["path"] for c in default_categories],
+                "pricing_recommendation": {
+                    "price": "2,99 EUR",
+                    "reason": "Standard-Einstiegspreis im optimalen 70%-Tantiemen-Bereich.",
+                    "royalty_rate": "70% KDP Tantieme"
+                },
+                "kdp_checklist": [
+                    "Titel und Untertitel in Schritt 1 bei KDP eingeben",
+                    "HTML-Klappentext in das Beschreibungsfeld kopieren",
+                    "Die 7 Suchbegriffe in die 7 Keyword-Felder einfügen",
+                    "Die 3 Kategorien über den KDP-Kategoriebaum anklicken",
+                    "Lesealter (Min/Max) einstellen, um Kinderbuch-Kategorien freizuschalten"
+                ]
+            }
 
 
 # ---------------------------------------------------------------------------
