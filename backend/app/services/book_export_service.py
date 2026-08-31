@@ -425,7 +425,7 @@ async def generate_book_epub(project: BookProject, chapters: List[BookChapter], 
     imprint_extra = f'<hr/><p>{custom_imprint}</p>' if custom_imprint else ''
     
     if is_en:
-        series_notice = f'<p><em>This work is {project.series_subtitle or f"Volume {project.series_order}"} of the series &ldquo;{series_title}&rdquo;.</em></p><hr/>' if series_title else ''
+        series_notice = f'<hr/><p><em>This work is {project.series_subtitle or f"Volume {project.series_order}"} of the series &ldquo;{series_title}&rdquo;.</em></p>' if series_title else ''
         imprint_lbl = "Imprint"
         imprint_body = f'''<div class="imprint-page">
   <p><strong>{project.title}</strong></p>
@@ -433,13 +433,11 @@ async def generate_book_epub(project: BookProject, chapters: List[BookChapter], 
   <hr/>
   <p>&copy; {year} {author_name}</p>
   <p>All rights reserved. No part of this publication may be reproduced, distributed, or transmitted in any form or by any means without the prior written permission of the author.</p>
-  <hr/>
   {series_notice}
-  <p><em>This book was authored with AI assistance (storyja.com) and curated, edited, and published by {author_name}.</em></p>
   {imprint_extra}
 </div>'''
     else:
-        series_notice = f'<p><em>Dieses Werk ist {project.series_subtitle or f"Band {project.series_order}"} der Buchreihe &bdquo;{series_title}&ldquo;.</em></p><hr/>' if series_title else ''
+        series_notice = f'<hr/><p><em>Dieses Werk ist {project.series_subtitle or f"Band {project.series_order}"} der Buchreihe &bdquo;{series_title}&ldquo;.</em></p>' if series_title else ''
         imprint_lbl = "Impressum"
         imprint_body = f'''<div class="imprint-page">
   <p><strong>{project.title}</strong></p>
@@ -449,11 +447,7 @@ async def generate_book_epub(project: BookProject, chapters: List[BookChapter], 
   <p>Alle Rechte vorbehalten. Kein Teil dieses Werkes darf ohne schriftliche
   Genehmigung des Autors reproduziert, verbreitet oder in irgendeiner Form
   &uuml;bertragen werden.</p>
-  <hr/>
   {series_notice}
-  <p><em>Dieses Buch wurde mit Unterst&uuml;tzung k&uuml;nstlicher Intelligenz
-  (storyja.com) verfasst und von {author_name} kuratiert,
-  redigiert und ver&ouml;ffentlicht.</em></p>
   {imprint_extra}
 </div>'''
 
@@ -1077,17 +1071,6 @@ def generate_book_txt(project: BookProject, chapters: List[BookChapter], output_
     lines.append(f"First edition {year}" if is_en else f"Erstauflage {year}")
     lines.append(f"© {year} {author_name}")
     lines.append("All rights reserved." if is_en else "Alle Rechte vorbehalten.")
-    lines.append("")
-    if is_en:
-        lines.append(
-            f"This book was authored with AI assistance (storyja.com) and curated, edited, and published by {author_name}."
-        )
-    else:
-        lines.append(
-            "Dieses Buch wurde mit Unterstützung künstlicher Intelligenz "
-            f"(storyja.com) verfasst und von {author_name} kuratiert, "
-            "redigiert und veröffentlicht."
-        )
     if custom_imprint:
         lines.append("")
         lines.append(custom_imprint)
@@ -1272,24 +1255,11 @@ def generate_book_pdf(project: BookProject, chapters: List[BookChapter], output_
             "distributed, or transmitted in any form or by any means without the "
             "prior written permission of the author."
         )
-        pdf.ln(4)
-        pdf.set_font("Helvetica", "I", 9)
-        pdf.multi_cell(0, 5,
-            "This book was authored with AI assistance (storyja.com) "
-            f"and curated, edited, and published by {author_name}."
-        )
     else:
         pdf.multi_cell(0, 5,
             "Alle Rechte vorbehalten. Kein Teil dieses Werkes darf ohne "
             "schriftliche Genehmigung des Autors reproduziert, verbreitet "
             "oder in irgendeiner Form \u00fcbertragen werden."
-        )
-        pdf.ln(4)
-        pdf.set_font("Helvetica", "I", 9)
-        pdf.multi_cell(0, 5,
-            "Dieses Buch wurde mit Unterst\u00fctzung k\u00fcnstlicher Intelligenz "
-            f"(storyja.com) verfasst und von {author_name} kuratiert, "
-            "redigiert und ver\u00f6ffentlicht."
         )
     custom_imprint = clean_pdf_text((project.epub_imprint or "").strip())
     if custom_imprint:
