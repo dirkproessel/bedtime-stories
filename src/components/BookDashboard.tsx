@@ -34,6 +34,7 @@ export default function BookDashboard() {
     const [prompt, setPrompt] = useState('');
     const [genre, setGenre] = useState('Fantasy');
     const [style, setStyle] = useState('adams');
+    const [language, setLanguage] = useState<'de' | 'en'>('de');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Genre specific configurations
@@ -98,11 +99,13 @@ export default function BookDashboard() {
                 prompt, 
                 genre, 
                 style, 
+                language,
                 genre_config: genreConfigJson 
             });
             toast.success('Projekt erfolgreich angelegt!');
             setTitle('');
             setPrompt('');
+            setLanguage('de');
             setShowCreateModal(false);
             
             // Immediately open the newly created project
@@ -301,7 +304,7 @@ export default function BookDashboard() {
                                                         Serie
                                                     </span>
                                                     <span className="text-[10px] text-slate-400 font-mono">
-                                                        {s.genre}
+                                                        {s.language === 'en' ? '🇬🇧 EN' : '🇩🇪 DE'} &bull; {s.genre}
                                                     </span>
                                                 </div>
 
@@ -390,7 +393,7 @@ export default function BookDashboard() {
                                         <div className="mt-4 border-t border-slate-800/80 pt-4 flex justify-between items-center text-xs">
                                             <div className="flex flex-col gap-1">
                                                 <span className="text-[10px] uppercase font-mono text-slate-500">
-                                                    {p.genre} &bull; {formatAuthorStyles(p.style)}
+                                                    {p.language === 'en' ? '🇬🇧 EN' : '🇩🇪 DE'} &bull; {p.genre} &bull; {formatAuthorStyles(p.style)}
                                                 </span>
                                                 {isGenerating ? (
                                                     <span className="text-primary font-medium flex items-center gap-1.5">
@@ -451,13 +454,41 @@ export default function BookDashboard() {
                             </div>
 
                             <div className="space-y-1">
+                                <label className="text-xs font-medium text-slate-300">Sprache des Buches</label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setLanguage('de')}
+                                        className={`py-2 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
+                                            language === 'de'
+                                                ? 'bg-primary/20 border-primary text-primary'
+                                                : 'bg-background border-slate-800 text-slate-400 hover:border-slate-700'
+                                        }`}
+                                    >
+                                        <span>🇩🇪</span> Deutsch
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setLanguage('en')}
+                                        className={`py-2 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
+                                            language === 'en'
+                                                ? 'bg-primary/20 border-primary text-primary'
+                                                : 'bg-background border-slate-800 text-slate-400 hover:border-slate-700'
+                                        }`}
+                                    >
+                                        <span>🇬🇧</span> English
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="space-y-1">
                                 <label className="text-xs font-medium text-slate-300">Konzept / Kernidee</label>
                                 <textarea 
                                     value={prompt}
                                     onChange={(e) => setPrompt(e.target.value)}
                                     rows={4}
                                     className="w-full bg-background border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-primary resize-none"
-                                    placeholder="Worum soll es in dem Buch gehen? Details zur Handlung, Überraschungen, roter Faden..."
+                                    placeholder={language === 'en' ? "What is the book about? Premise, characters, plot twists..." : "Worum soll es in dem Buch gehen? Details zur Handlung, Überraschungen, roter Faden..."}
                                 />
                             </div>
 

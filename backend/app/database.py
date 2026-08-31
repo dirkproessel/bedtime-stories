@@ -185,6 +185,18 @@ def ensure_migrations():
                 cur.execute("CREATE INDEX IF NOT EXISTS ix_bookseries_user_id ON bookseries (user_id)")
                 conn.commit()
 
+            # --- Check if columns exist in bookseries table ---
+            try:
+                cur.execute("PRAGMA table_info(bookseries)")
+                series_columns = [row[1] for row in cur.fetchall()]
+                if series_columns:
+                    if "language" not in [c.lower() for c in series_columns]:
+                        print("Migration: Adding language to bookseries...")
+                        cur.execute("ALTER TABLE bookseries ADD COLUMN language TEXT DEFAULT 'de'")
+                        conn.commit()
+            except Exception as series_e:
+                print(f"Migration bookseries warning: {series_e}")
+
             # --- Check if columns exist in bookproject table ---
             try:
                 cur.execute("PRAGMA table_info(bookproject)")
@@ -193,6 +205,11 @@ def ensure_migrations():
                     if "genre_config" not in [c.lower() for c in proj_columns]:
                         print("Migration: Adding genre_config to bookproject...")
                         cur.execute("ALTER TABLE bookproject ADD COLUMN genre_config TEXT")
+                        conn.commit()
+                    
+                    if "language" not in [c.lower() for c in proj_columns]:
+                        print("Migration: Adding language to bookproject...")
+                        cur.execute("ALTER TABLE bookproject ADD COLUMN language TEXT DEFAULT 'de'")
                         conn.commit()
                     
                     series_proj_cols = [

@@ -770,6 +770,7 @@ export interface BookProject {
     genre: string;
     style: string;
     genre_config?: string | null;
+    language?: 'de' | 'en';
     series_id?: string | null;
     series_order?: number | null;
     series_subtitle?: string | null;
@@ -804,6 +805,7 @@ export interface BookSeries {
     genre: string;
     style: string;
     genre_config?: string | null;
+    language?: 'de' | 'en';
     planned_volumes?: number | null;
     characters_bible: string | null;
     style_bible: string | null;
@@ -865,6 +867,7 @@ export async function createProBook(req: {
     genre: string, 
     style: string, 
     genre_config?: string,
+    language?: 'de' | 'en',
     series_id?: string,
     series_order?: number,
     series_subtitle?: string,
@@ -917,6 +920,7 @@ export async function createProSeries(req: {
     genre: string;
     style: string;
     genre_config?: string;
+    language?: 'de' | 'en';
     planned_volumes?: number | null;
     auto_init_volume_1?: boolean;
 }): Promise<BookSeriesDetail> {

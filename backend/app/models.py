@@ -272,6 +272,7 @@ class BookSeries(SQLModel, table=True):
     description: str
     genre: str = Field(default="Realismus")
     style: str = Field(default="Douglas Adams")
+    language: str = Field(default="de")  # "de" or "en"
     genre_config: Optional[str] = Field(default=None)
     planned_volumes: Optional[int] = Field(default=None)
 
@@ -299,6 +300,7 @@ class BookProject(SQLModel, table=True):
     prompt: str  # Original idea / concept prompt
     genre: str = Field(default="Realismus")
     style: str = Field(default="Douglas Adams")
+    language: str = Field(default="de")  # "de" or "en"
     
     # Series linkage
     series_id: Optional[str] = Field(default=None, foreign_key="bookseries.id", index=True)
@@ -365,6 +367,7 @@ class BookSeriesCreate(BaseModel):
     description: str
     genre: str = "Realismus"
     style: str = "Douglas Adams"
+    language: Optional[str] = "de"
     genre_config: Optional[str] = None
     planned_volumes: Optional[int] = None
     auto_init_volume_1: bool = True  # Band 1 direkt miterstellen
@@ -375,6 +378,7 @@ class BookSeriesUpdate(BaseModel):
     description: Optional[str] = None
     genre: Optional[str] = None
     style: Optional[str] = None
+    language: Optional[str] = None
     characters_bible: Optional[str] = None
     style_bible: Optional[str] = None
     world_lore: Optional[str] = None
@@ -389,6 +393,7 @@ class BookProjectCreate(BaseModel):
     prompt: str
     genre: str
     style: str
+    language: Optional[str] = "de"
     genre_config: Optional[str] = None
     series_id: Optional[str] = None
     series_order: Optional[int] = None
@@ -401,6 +406,7 @@ class BookProjectUpdate(BaseModel):
     prompt: Optional[str] = None
     genre: Optional[str] = None
     style: Optional[str] = None
+    language: Optional[str] = None
     characters_bible: Optional[str] = None
     style_bible: Optional[str] = None
     outline: Optional[str] = None
@@ -453,6 +459,7 @@ class BookProjectResponse(BaseModel):
     prompt: str
     genre: str
     style: str
+    language: str = "de"
     series_id: Optional[str] = None
     series_order: Optional[int] = None
     series_subtitle: Optional[str] = None
@@ -485,6 +492,7 @@ class BookSeriesResponse(BaseModel):
     description: str
     genre: str
     style: str
+    language: str = "de"
     genre_config: Optional[str] = None
     planned_volumes: Optional[int] = None
     characters_bible: Optional[str] = None

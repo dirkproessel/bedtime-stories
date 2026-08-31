@@ -19,6 +19,7 @@ export default function SeriesWizard({ isOpen, onClose, onSuccess }: SeriesWizar
     const [description, setDescription] = useState('');
     const [genre, setGenre] = useState('Fantasy');
     const [style, setStyle] = useState('adams');
+    const [language, setLanguage] = useState<'de' | 'en'>('de');
     const [plannedVolumes, setPlannedVolumes] = useState<number | ''>(3);
     const [autoInitVolume1, setAutoInitVolume1] = useState(true);
 
@@ -74,6 +75,7 @@ export default function SeriesWizard({ isOpen, onClose, onSuccess }: SeriesWizar
                 description: description.trim(),
                 genre,
                 style,
+                language,
                 genre_config: genreConfigJson,
                 planned_volumes: plannedVolumes === '' ? null : Number(plannedVolumes),
                 auto_init_volume_1: autoInitVolume1
@@ -194,6 +196,37 @@ export default function SeriesWizard({ isOpen, onClose, onSuccess }: SeriesWizar
                                 rows={4}
                                 className="w-full bg-surface border border-slate-700 rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 transition-colors resize-none"
                             />
+                        </div>
+
+                        {/* Language Selection */}
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-semibold uppercase tracking-wider text-slate-300">
+                                Sprache der Serie
+                            </label>
+                            <div className="grid grid-cols-2 gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setLanguage('de')}
+                                    className={`py-2 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
+                                        language === 'de'
+                                            ? 'bg-indigo-600/30 border-indigo-500 text-white shadow-sm'
+                                            : 'bg-surface border-slate-700 text-slate-400 hover:border-slate-600'
+                                    }`}
+                                >
+                                    <span>🇩🇪</span> Deutsch
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setLanguage('en')}
+                                    className={`py-2 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
+                                        language === 'en'
+                                            ? 'bg-indigo-600/30 border-indigo-500 text-white shadow-sm'
+                                            : 'bg-surface border-slate-700 text-slate-400 hover:border-slate-600'
+                                    }`}
+                                >
+                                    <span>🇬🇧</span> English
+                                </button>
+                            </div>
                         </div>
 
                         {/* Genre & Style */}

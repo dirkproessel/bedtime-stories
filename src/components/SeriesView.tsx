@@ -112,12 +112,13 @@ export default function SeriesView({ series: initialSeries, onBack }: SeriesView
 
     // Open Sequel Modal & load pitches
     const handleOpenSequelModal = async () => {
+        const isEn = series.language === 'en';
         setShowSequelModal(true);
         setIsLoadingPitches(true);
         setPitches([]);
         setSelectedPitchIndex(null);
         setSequelTitle('');
-        setSequelSubtitle(`Band ${(series.books?.length || 0) + 1}`);
+        setSequelSubtitle(`${isEn ? 'Volume' : 'Band'} ${(series.books?.length || 0) + 1}`);
         setSequelPrompt('');
 
         try {
@@ -205,7 +206,7 @@ export default function SeriesView({ series: initialSeries, onBack }: SeriesView
         setIsSyncingBible(true);
         try {
             const res = await syncProSeriesBible(series.id, bookId);
-            toast.success(res.message);
+            toast.success(res.message || 'Serien-Bibel synchronisiert');
             await refreshSeries();
         } catch (e: any) {
             toast.error('Fehler beim Synchronisieren: ' + e.message);
@@ -226,24 +227,24 @@ export default function SeriesView({ series: initialSeries, onBack }: SeriesView
     }
 
     const nextVolumeNum = (series.books?.length || 0) + 1;
-    const isCompleted = series.planned_volumes && (series.books?.length || 0) >= series.planned_volumes;
+    const isCompleted = series.planned_volumes && series.books && series.books.length >= series.planned_volumes;
 
     return (
-        <div className="space-y-8 animate-in fade-in duration-200">
+        <div className="space-y-6">
             
             {/* Header Banner */}
-            <div className="relative rounded-3xl p-6 sm:p-8 bg-gradient-to-r from-slate-900 via-indigo-950/40 to-slate-900 border border-indigo-500/20 shadow-2xl overflow-hidden">
-                <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="bg-gradient-to-br from-indigo-950/60 via-surface to-surface border border-indigo-500/20 rounded-3xl p-6 sm:p-8 shadow-xl relative overflow-hidden">
+                <div className="absolute -top-24 -right-24 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
                 
-                <div className="relative z-10 space-y-6">
-                    {/* Top Row: Back button & Actions */}
-                    <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="relative space-y-6">
+                    {/* Top action row */}
+                    <div className="flex items-center justify-between">
                         <button 
                             onClick={onBack}
-                            className="p-2.5 bg-surface/80 hover:bg-slate-800 text-slate-300 hover:text-white rounded-xl transition-colors border border-slate-700/60 flex items-center gap-2 text-sm font-medium"
+                            className="inline-flex items-center gap-2 px-3.5 py-2 bg-surface/80 hover:bg-slate-800 text-slate-300 hover:text-white rounded-xl text-xs font-semibold transition-colors border border-slate-700/60"
                         >
                             <ArrowLeft className="w-4 h-4" />
-                            Zurück zu allen Projekten
+                            Zurück zur Übersicht
                         </button>
 
                         <div className="flex items-center gap-2">
@@ -270,6 +271,9 @@ export default function SeriesView({ series: initialSeries, onBack }: SeriesView
                             <span className="px-3 py-1 rounded-full text-xs font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 flex items-center gap-1.5">
                                 <Layers className="w-3.5 h-3.5" />
                                 Buch-Serie
+                            </span>
+                            <span className="px-3 py-1 rounded-full text-xs font-medium bg-slate-800 text-slate-300 border border-slate-700">
+                                {series.language === 'en' ? '🇬🇧 EN' : '🇩🇪 DE'}
                             </span>
                             <span className="px-3 py-1 rounded-full text-xs font-medium bg-slate-800 text-slate-300 border border-slate-700">
                                 {series.genre}

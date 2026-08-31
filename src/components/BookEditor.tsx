@@ -92,10 +92,10 @@ const LEKTORAT_CATEGORIES = [
 ];
 
 function parseSceneBeats(plotOutline: string): any[] {
-    if (!plotOutline || !plotOutline.includes('--- Szene')) return [];
+    if (!plotOutline || (!plotOutline.includes('--- Szene') && !plotOutline.includes('--- Scene'))) return [];
     
     const scenes: any[] = [];
-    const sections = plotOutline.split(/--- Szene \d+ ---/i);
+    const sections = plotOutline.split(/--- (?:Szene|Scene) \d+ ---/i);
     
     for (let i = 1; i < sections.length; i++) {
         const text = sections[i].trim();
@@ -106,18 +106,18 @@ function parseSceneBeats(plotOutline: string): any[] {
             const trimmed = line.trim();
             if (trimmed.startsWith('POV:')) {
                 scene.pov_character = trimmed.substring(4).trim();
-            } else if (trimmed.startsWith('Ort:')) {
-                scene.setting = trimmed.substring(4).trim();
-            } else if (trimmed.startsWith('Ziel:')) {
-                scene.goal = trimmed.substring(5).trim();
-            } else if (trimmed.startsWith('Konflikt:')) {
-                scene.conflict = trimmed.substring(9).trim();
-            } else if (trimmed.startsWith('Ausgang:')) {
-                scene.outcome = trimmed.substring(8).trim();
-            } else if (trimmed.startsWith('Emotion:')) {
-                scene.emotional_arc = trimmed.substring(8).trim();
-            } else if (trimmed.startsWith('Wörter:')) {
-                scene.estimated_words = trimmed.substring(7).trim();
+            } else if (trimmed.startsWith('Ort:') || trimmed.startsWith('Setting:')) {
+                scene.setting = trimmed.includes(':') ? trimmed.split(':')[1].trim() : '';
+            } else if (trimmed.startsWith('Ziel:') || trimmed.startsWith('Goal:')) {
+                scene.goal = trimmed.includes(':') ? trimmed.split(':')[1].trim() : '';
+            } else if (trimmed.startsWith('Konflikt:') || trimmed.startsWith('Conflict:')) {
+                scene.conflict = trimmed.includes(':') ? trimmed.split(':')[1].trim() : '';
+            } else if (trimmed.startsWith('Ausgang:') || trimmed.startsWith('Outcome:')) {
+                scene.outcome = trimmed.includes(':') ? trimmed.split(':')[1].trim() : '';
+            } else if (trimmed.startsWith('Emotion:') || trimmed.startsWith('Emotional Arc:')) {
+                scene.emotional_arc = trimmed.includes(':') ? trimmed.split(':')[1].trim() : '';
+            } else if (trimmed.startsWith('Wörter:') || trimmed.startsWith('Words:')) {
+                scene.estimated_words = trimmed.includes(':') ? trimmed.split(':')[1].trim() : '';
             }
         }
         scenes.push(scene);
@@ -163,13 +163,15 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
     const [editedGenre, setEditedGenre] = useState(activeProject.genre);
     const [editedStyle, setEditedStyle] = useState(activeProject.style);
     const [editedPrompt, setEditedPrompt] = useState(activeProject.prompt);
+    const [editedLanguage, setEditedLanguage] = useState<'de' | 'en'>(activeProject.language || 'de');
 
     // Sync basis when activeProject changes
     useEffect(() => {
         setEditedGenre(activeProject.genre);
         setEditedStyle(activeProject.style);
         setEditedPrompt(activeProject.prompt);
-    }, [activeProject.id, activeProject.genre, activeProject.style, activeProject.prompt]);
+        setEditedLanguage(activeProject.language || 'de');
+    }, [activeProject.id, activeProject.genre, activeProject.style, activeProject.prompt, activeProject.language]);
 
     const [activeStep, setActiveStep] = useState<StepType>('concept');
     const [isSaving, setIsSaving] = useState(false);
@@ -532,7 +534,8 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
             await updateProBook(activeProject.id, {
                 genre: editedGenre,
                 style: editedStyle,
-                prompt: editedPrompt
+                prompt: editedPrompt,
+                language: editedLanguage
             });
             await loadProProjectDetail(activeProject.id);
             toast.success('Basisdaten aktualisiert! Wenn du eine Stil-Bible oder Gliederung neu generierst, wird dies berücksichtigt.');
@@ -1109,6 +1112,9 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                     <div>
                         <div className="flex items-center gap-2">
                             <span className="text-[10px] uppercase font-mono tracking-wider bg-primary/10 text-primary px-2.5 py-0.5 rounded-full border border-primary/20">Pro Mode</span>
+                            <span className="text-[10px] uppercase font-mono tracking-wider bg-slate-800 text-slate-300 px-2.5 py-0.5 rounded-full border border-slate-700">
+                                {activeProject.language === 'en' ? '🇬🇧 English' : '🇩🇪 Deutsch'}
+                            </span>
                             
                             {activeProject.series_id ? (
                                 <span className="text-[10px] uppercase font-mono tracking-wider bg-indigo-500/20 text-indigo-300 px-2.5 py-0.5 rounded-full border border-indigo-500/30 flex items-center gap-1">
@@ -1261,6 +1267,7 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                                                 setEditedGenre(activeProject.genre);
                                                 setEditedStyle(activeProject.style);
                                                 setEditedPrompt(activeProject.prompt);
+                                                setEditedLanguage(activeProject.language || 'de');
                                                 setIsEditingBasis(false);
                                             }}
                                             className="text-xs text-slate-500 hover:underline flex items-center gap-1"
@@ -1279,6 +1286,10 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                                 
                                 {!isEditingBasis ? (
                                     <>
+                                        <div>
+                                            <span className="text-slate-500 block uppercase font-mono text-[9px]">Sprache</span>
+                                            <span className="text-slate-300 font-medium">{activeProject.language === 'en' ? '🇬🇧 English' : '🇩🇪 Deutsch'}</span>
+                                        </div>
                                         <div>
                                             <span className="text-slate-500 block uppercase font-mono text-[9px]">Genre</span>
                                             <span className="text-slate-300 font-medium">{activeProject.genre}</span>
@@ -1305,6 +1316,33 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                                     </>
                                 ) : (
                                     <div className="space-y-3">
+                                        <div>
+                                            <span className="text-slate-500 block uppercase font-mono text-[9px] mb-1">Sprache</span>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setEditedLanguage('de')}
+                                                    className={`py-1.5 px-2.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
+                                                        editedLanguage === 'de'
+                                                            ? 'bg-primary/20 border-primary text-primary'
+                                                            : 'bg-background border-slate-800 text-slate-400 hover:border-slate-700'
+                                                    }`}
+                                                >
+                                                    <span>🇩🇪</span> Deutsch
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setEditedLanguage('en')}
+                                                    className={`py-1.5 px-2.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
+                                                        editedLanguage === 'en'
+                                                            ? 'bg-primary/20 border-primary text-primary'
+                                                            : 'bg-background border-slate-800 text-slate-400 hover:border-slate-700'
+                                                    }`}
+                                                >
+                                                    <span>🇬🇧</span> English
+                                                </button>
+                                            </div>
+                                        </div>
                                         <div>
                                             <span className="text-slate-500 block uppercase font-mono text-[9px] mb-1">Genre</span>
                                             <select

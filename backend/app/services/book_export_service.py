@@ -324,23 +324,14 @@ p {
 async def generate_book_epub(project: BookProject, chapters: List[BookChapter], output_path: Path):
     """
     Generate a professional, print-ready EPUB for the book project.
-
-    Page order (standard German Belletristik):
-      1. Cover image
-      2. Schmutzblatt (Half-Title)
-      3. Titelblatt (Full Title Page)
-      4. Impressum
-      5. Widmung (optional – only when epub_dedication is set)
-      6. Inhaltsverzeichnis (HTML TOC page)
-      7. Kapitel 1 … N
-      8. Nachwort (optional – only when epub_afterword is set)
     """
+    is_en = (getattr(project, "language", "de") == "en")
     book = epub.EpubBook()
 
     # --- Dublin Core Metadata ---
     book.set_identifier(f"urn:uuid:pro-{project.id}")
     book.set_title(project.title)
-    book.set_language('de')
+    book.set_language('en' if is_en else 'de')
     author_name = (project.epub_author or "").strip() or "Stanzwerk Pro"
     book.add_author(author_name)
     book.add_metadata('DC', 'publisher', 'storyja.com')
@@ -357,7 +348,7 @@ async def generate_book_epub(project: BookProject, chapters: List[BookChapter], 
 
     # --- Helper: create a well-formed XHTML page ---
     def make_page(uid: str, filename: str, title: str, body_html: str) -> epub.EpubHtml:
-        page = epub.EpubHtml(title=title, file_name=filename, lang='de')
+        page = epub.EpubHtml(title=title, file_name=filename, lang='en' if is_en else 'de')
         page.content = body_html
         page.add_item(css_item)
         return page
@@ -412,9 +403,11 @@ async def generate_book_epub(project: BookProject, chapters: List[BookChapter], 
     # -------------------------------------------------------
     # PAGE 1 – Titelblatt (Full Title)
     # -------------------------------------------------------
-    series_line = f'<div class="book-subtitle">{series_title} &bull; {project.series_subtitle or f"Band {project.series_order}"}</div>' if series_title else ''
+    vol_lbl = "Volume" if is_en else "Band"
+    series_line = f'<div class="book-subtitle">{series_title} &bull; {project.series_subtitle or f"{vol_lbl} {project.series_order}"}</div>' if series_title else ''
+    title_lbl = "Title Page" if is_en else "Titelblatt"
     title_page = make_page(
-        "title", "title.xhtml", "Titelblatt",
+        "title", "title.xhtml", title_lbl,
         f'''<div class="title-page">
   <div class="book-title">{project.title}</div>
   {series_line}
@@ -426,14 +419,29 @@ async def generate_book_epub(project: BookProject, chapters: List[BookChapter], 
     book.add_item(title_page)
 
     # -------------------------------------------------------
-    # PAGE 2 – Impressum
+    # PAGE 2 – Impressum / Imprint
     # -------------------------------------------------------
     custom_imprint = (project.epub_imprint or "").strip()
     imprint_extra = f'<hr/><p>{custom_imprint}</p>' if custom_imprint else ''
-    series_notice = f'<p><em>Dieses Werk ist {project.series_subtitle or f"Band {project.series_order}"} der Buchreihe &bdquo;{series_title}&ldquo;.</em></p><hr/>' if series_title else ''
-    imprint_page = make_page(
-        "imprint", "imprint.xhtml", "Impressum",
-        f'''<div class="imprint-page">
+    
+    if is_en:
+        series_notice = f'<p><em>This work is {project.series_subtitle or f"Volume {project.series_order}"} of the series &ldquo;{series_title}&rdquo;.</em></p><hr/>' if series_title else ''
+        imprint_lbl = "Imprint"
+        imprint_body = f'''<div class="imprint-page">
+  <p><strong>{project.title}</strong></p>
+  <p>First edition {year}</p>
+  <hr/>
+  <p>&copy; {year} {author_name}</p>
+  <p>All rights reserved. No part of this publication may be reproduced, distributed, or transmitted in any form or by any means without the prior written permission of the author.</p>
+  <hr/>
+  {series_notice}
+  <p><em>This book was authored with AI assistance (storyja.com) and curated, edited, and published by {author_name}.</em></p>
+  {imprint_extra}
+</div>'''
+    else:
+        series_notice = f'<p><em>Dieses Werk ist {project.series_subtitle or f"Band {project.series_order}"} der Buchreihe &bdquo;{series_title}&ldquo;.</em></p><hr/>' if series_title else ''
+        imprint_lbl = "Impressum"
+        imprint_body = f'''<div class="imprint-page">
   <p><strong>{project.title}</strong></p>
   <p>Erstauflage {year}</p>
   <hr/>
@@ -448,31 +456,34 @@ async def generate_book_epub(project: BookProject, chapters: List[BookChapter], 
   redigiert und ver&ouml;ffentlicht.</em></p>
   {imprint_extra}
 </div>'''
-    )
+
+    imprint_page = make_page("imprint", "imprint.xhtml", imprint_lbl, imprint_body)
     book.add_item(imprint_page)
 
     # -------------------------------------------------------
-    # PAGE 3 – Widmung (optional)
+    # PAGE 3 – Widmung / Dedication (optional)
     # -------------------------------------------------------
     dedication_page = None
     dedication_text = (project.epub_dedication or "").strip()
     if dedication_text:
+        ded_lbl = "Dedication" if is_en else "Widmung"
         dedication_page = make_page(
-            "dedication", "dedication.xhtml", "Widmung",
+            "dedication", "dedication.xhtml", ded_lbl,
             f'<div class="dedication-page"><p>{dedication_text}</p></div>'
         )
         book.add_item(dedication_page)
 
     # -------------------------------------------------------
-    # PAGE 3.5 – Was bisher geschah (optional for sequels)
+    # PAGE 3.5 – Was bisher geschah / The Story So Far (optional for sequels)
     # -------------------------------------------------------
     previous_page = None
     if project.previous_summary and project.series_order and project.series_order > 1:
         prev_paras = text_to_html_paragraphs(project.previous_summary)
+        prev_lbl = "The Story So Far" if is_en else "Was bisher geschah"
         previous_page = make_page(
-            "previous_summary", "previous_summary.xhtml", "Was bisher geschah",
+            "previous_summary", "previous_summary.xhtml", prev_lbl,
             f'''<div class="previous-summary-page">
-  <h2>Was bisher geschah</h2>
+  <h2>{prev_lbl}</h2>
   {prev_paras}
 </div>'''
         )
@@ -481,16 +492,18 @@ async def generate_book_epub(project: BookProject, chapters: List[BookChapter], 
     # -------------------------------------------------------
     # CHAPTERS
     # -------------------------------------------------------
+    ch_lbl = "Chapter" if is_en else "Kapitel"
+    fallback_content = "Content is being generated." if is_en else "Inhalt wird noch generiert."
     epub_chapters: list[epub.EpubHtml] = []
     for c in chapters:
         roman = to_roman(c.chapter_number)
-        ch_body = text_to_html_paragraphs(c.content or "Inhalt wird noch generiert.")
+        ch_body = text_to_html_paragraphs(c.content or fallback_content)
         chapter_page = make_page(
             f"chap_{c.chapter_number}",
             f"chap_{c.chapter_number}.xhtml",
             c.title,
             f'''<div class="chapter-header">
-  <span class="chapter-num-label">Kapitel</span>
+  <span class="chapter-num-label">{ch_lbl}</span>
   <span class="chapter-roman">{roman}</span>
   <span class="chapter-title-text">{c.title}</span>
   <hr class="chapter-rule"/>
@@ -501,15 +514,16 @@ async def generate_book_epub(project: BookProject, chapters: List[BookChapter], 
         epub_chapters.append(chapter_page)
 
     # -------------------------------------------------------
-    # LAST PAGE – Nachwort (optional)
+    # LAST PAGE – Nachwort / Afterword (optional)
     # -------------------------------------------------------
     afterword_page = None
     afterword_text = (project.epub_afterword or "").strip()
     if afterword_text:
+        after_lbl = "Afterword" if is_en else "Nachwort"
         after_paras = text_to_html_paragraphs(afterword_text)
         afterword_page = make_page(
-            "afterword", "afterword.xhtml", "Nachwort",
-            f'<div class="afterword-page">\n  <h2>Nachwort</h2>\n  {after_paras}\n</div>'
+            "afterword", "afterword.xhtml", after_lbl,
+            f'<div class="afterword-page">\n  <h2>{after_lbl}</h2>\n  {after_paras}\n</div>'
         )
         book.add_item(afterword_page)
 
@@ -517,16 +531,16 @@ async def generate_book_epub(project: BookProject, chapters: List[BookChapter], 
     # TOC (NCX + EPUB3 nav) and Spine
     # -------------------------------------------------------
     toc_entries: list = [
-        epub.Link('title.xhtml', 'Titelblatt', 'title_page'),
-        epub.Link('imprint.xhtml', 'Impressum', 'imprint'),
+        epub.Link('title.xhtml', title_lbl, 'title_page'),
+        epub.Link('imprint.xhtml', imprint_lbl, 'imprint'),
     ]
     if dedication_page:
-        toc_entries.append(epub.Link('dedication.xhtml', 'Widmung', 'dedication'))
+        toc_entries.append(epub.Link('dedication.xhtml', "Dedication" if is_en else "Widmung", 'dedication'))
     if previous_page:
-        toc_entries.append(epub.Link('previous_summary.xhtml', 'Was bisher geschah', 'previous_summary'))
+        toc_entries.append(epub.Link('previous_summary.xhtml', "The Story So Far" if is_en else "Was bisher geschah", 'previous_summary'))
     toc_entries.extend(epub_chapters)
     if afterword_page:
-        toc_entries.append(epub.Link('afterword.xhtml', 'Nachwort', 'afterword'))
+        toc_entries.append(epub.Link('afterword.xhtml', "Afterword" if is_en else "Nachwort", 'afterword'))
 
     book.toc = tuple(toc_entries)
 
@@ -556,10 +570,12 @@ async def generate_kdp_metadata(project: BookProject, chapters: List[BookChapter
     """
     Generate Amazon KDP compatible copy-paste metadata sheet.
     """
+    is_en = (getattr(project, "language", "de") == "en")
     word_count = sum(len(c.content.split()) for c in chapters if c.content)
     page_est = max(1, round(word_count / 250))
+    ch_lbl = "Chapter" if is_en else "Kapitel"
 
-    chapter_titles = ", ".join([f"Kapitel {c.chapter_number}: {c.title}" for c in chapters])
+    chapter_titles = ", ".join([f"{ch_lbl} {c.chapter_number}: {c.title}" for c in chapters])
 
     series_clause = ""
     if project.series_id:
@@ -570,48 +586,86 @@ async def generate_kdp_metadata(project: BookProject, chapters: List[BookChapter
             with Session(engine) as session:
                 series = session.get(BookSeries, project.series_id)
                 if series:
-                    series_clause = f"- Buch-Serie: '{series.title}', {project.series_subtitle or f'Band {project.series_order}'}\n"
+                    vol_lbl = "Volume" if is_en else "Band"
+                    series_clause = f"- Series: '{series.title}', {project.series_subtitle or f'{vol_lbl} {project.series_order}'}\n"
         except Exception:
             pass
 
-    system_instruction = (
-        "Du bist ein Experte für Amazon Kindle Direct Publishing (KDP). "
-        "Erstelle verkaufsoptimierte Metadaten für das hochgeladene Buchprojekt. "
-        "Falls das Buch Teil einer Serie ist, integriere die Serien-Zugehörigkeit prominent in den Klappentext und die Keywords. "
-        "Antworte ausschließlich im JSON-Format."
-    )
+    if is_en:
+        system_instruction = (
+            "You are an expert in Amazon Kindle Direct Publishing (KDP) marketing and book launch optimization. "
+            "Generate high-converting, sales-optimized metadata in English for the completed book project. "
+            "If the book is part of a series, integrate the series connection prominently into the blurb and search keywords. "
+            "Respond strictly in JSON format."
+        )
+        prompt = f"""
+        Completed Book Information:
+        - Title: {project.title}
+        {series_clause}
+        - Genre: {project.genre}
+        - Style: {project.style}
+        - Word Count: {word_count} (~{page_est} book pages)
+        - Chapters Overview: {chapter_titles}
+        - Description / Core Idea: {project.prompt}
 
-    prompt = f"""
-    Hier sind die Daten des fertiggestellten Buches:
-    - Titel: {project.title}
-    {series_clause}
-    - Genre: {project.genre}
-    - Stil: {project.style}
-    - Wortanzahl: {word_count} (~{page_est} Buchseiten)
-    - Kapitelübersicht: {chapter_titles}
-    - Beschreibung / Ausgangsidee: {project.prompt}
+        Create a JSON object in English with:
+        1. 'suggested_subtitle': High-converting Amazon subtitle (max 200 chars)
+        2. 'description_kdp': Compelling, engaging sales blurb in HTML (using <b>, <i>, <p>, max 2000 chars)
+        3. 'search_keywords': Exactly 7 high-traffic KDP search keywords/phrases Amazon buyers use.
+        4. 'recommended_bisac_categories': 3 recommended KDP/BISAC categories.
+        5. 'pricing_recommendation': Recommended KDP price in USD ($0.99, $2.99, $3.99, or $4.99) with brief rationale.
 
-    Erstelle ein JSON-Objekt mit folgenden Feldern auf Deutsch:
-    1. 'suggested_subtitle': Ein verkaufsfördernder Untertitel für Amazon (max 200 Zeichen)
-    2. 'description_kdp': Ein attraktiver, verkaufsfördernder Klappentext (KDP Buchbeschreibung) in HTML (mit <b>, <i>, <p> Tags, max 2000 Zeichen)
-    3. 'search_keywords': Eine Liste von exakt 7 KDP Keywords/Suchbegriffen, die Leser bei Amazon eingeben würden.
-    4. 'recommended_bisac_categories': Eine Liste von 3 empfohlenen KDP/BISAC-Kategorien (z. B. Belletristik / Science Fiction / Humoreske)
-    5. 'pricing_recommendation': Empfohlener KDP-Preis (in EUR) für das E-Book (0.99 EUR, 2.99 EUR oder 3.99 EUR) mit kurzer Begründung.
+        Format:
+        {{
+          "suggested_subtitle": "...",
+          "description_kdp": "...",
+          "search_keywords": ["...", "...", "...", "...", "...", "...", "..."],
+          "recommended_bisac_categories": ["...", "...", "..."],
+          "pricing_recommendation": {{
+            "price": "$2.99 USD",
+            "reason": "..."
+          }}
+        }}
+        """
+    else:
+        system_instruction = (
+            "Du bist ein Experte für Amazon Kindle Direct Publishing (KDP). "
+            "Erstelle verkaufsoptimierte Metadaten für das hochgeladene Buchprojekt. "
+            "Falls das Buch Teil einer Serie ist, integriere die Serien-Zugehörigkeit prominent in den Klappentext und die Keywords. "
+            "Antworte ausschließlich im JSON-Format."
+        )
+        prompt = f"""
+        Hier sind die Daten des fertiggestellten Buches:
+        - Titel: {project.title}
+        {series_clause}
+        - Genre: {project.genre}
+        - Stil: {project.style}
+        - Wortanzahl: {word_count} (~{page_est} Buchseiten)
+        - Kapitelübersicht: {chapter_titles}
+        - Beschreibung / Ausgangsidee: {project.prompt}
 
-    Format:
-    {{
-      "suggested_subtitle": "...",
-      "description_kdp": "...",
-      "search_keywords": ["...", "...", "...", "...", "...", "...", "..."],
-      "recommended_bisac_categories": ["...", "...", "..."],
-      "pricing_recommendation": {{
-        "price": "2,99 EUR",
-        "reason": "..."
-      }}
-    }}
-    """
+        Erstelle ein JSON-Objekt mit folgenden Feldern auf Deutsch:
+        1. 'suggested_subtitle': Ein verkaufsfördernder Untertitel für Amazon (max 200 Zeichen)
+        2. 'description_kdp': Ein attraktiver, verkaufsfördernder Klappentext (KDP Buchbeschreibung) in HTML (mit <b>, <i>, <p> Tags, max 2000 Zeichen)
+        3. 'search_keywords': Eine Liste von exakt 7 KDP Keywords/Suchbegriffen, die Leser bei Amazon eingeben würden.
+        4. 'recommended_bisac_categories': Eine Liste von 3 empfohlenen KDP/BISAC-Kategorien (z. B. Belletristik / Science Fiction / Humoreske)
+        5. 'pricing_recommendation': Empfohlener KDP-Preis (in EUR) für das E-Book (0.99 EUR, 2.99 EUR oder 3.99 EUR) mit kurzer Begründung.
+
+        Format:
+        {{
+          "suggested_subtitle": "...",
+          "description_kdp": "...",
+          "search_keywords": ["...", "...", "...", "...", "...", "...", "..."],
+          "recommended_bisac_categories": ["...", "...", "..."],
+          "pricing_recommendation": {{
+            "price": "2,99 EUR",
+            "reason": "..."
+          }}
+        }}
+        """
 
     try:
+        from app.services.text_generator import generate_text
         response = await generate_text(
             prompt=prompt,
             model=model,
@@ -625,13 +679,13 @@ async def generate_kdp_metadata(project: BookProject, chapters: List[BookChapter
     except Exception as e:
         logger.error(f"Error generating KDP metadata: {e}")
         return {
-            "suggested_subtitle": f"Eine spannende Novelle im Genre {project.genre}",
+            "suggested_subtitle": f"A captivating {project.genre} novel" if is_en else f"Eine spannende Novelle im Genre {project.genre}",
             "description_kdp": f"<p>{project.prompt}</p>",
-            "search_keywords": [project.genre, project.style, "Novelle", "E-Book", "Roman", "Stanzwerk", "Literatur"],
-            "recommended_bisac_categories": ["Belletristik / Allgemein"],
+            "search_keywords": [project.genre, project.style, "Novel", "E-Book", "Fiction", "Bestseller", "Literature"] if is_en else [project.genre, project.style, "Novelle", "E-Book", "Roman", "Stanzwerk", "Literatur"],
+            "recommended_bisac_categories": ["Fiction / General"] if is_en else ["Belletristik / Allgemein"],
             "pricing_recommendation": {
-                "price": "0,99 EUR",
-                "reason": "Standard-Einstiegspreis für Kurzromane."
+                "price": "$2.99 USD" if is_en else "0,99 EUR",
+                "reason": "Standard launch price." if is_en else "Standard-Einstiegspreis für Kurzromane."
             }
         }
 
@@ -643,20 +697,8 @@ async def generate_kdp_metadata(project: BookProject, chapters: List[BookChapter
 def generate_book_txt(project: BookProject, chapters: List[BookChapter], output_path: Path):
     """
     Generate a clean UTF-8 plain-text export of the book.
-
-    Structure:
-      Title / Author / Year
-      ---
-      Impressum (if set)
-      ---
-      Widmung (if set)
-      ---
-      Inhaltsverzeichnis
-      ---
-      Kapitel 1 … N
-      ---
-      Nachwort (if set)
     """
+    is_en = (getattr(project, "language", "de") == "en")
     year = datetime.date.today().year
     author_name = (project.epub_author or "").strip() or "Stanzwerk Pro"
     lines: list[str] = []
@@ -674,33 +716,44 @@ def generate_book_txt(project: BookProject, chapters: List[BookChapter], output_
         except Exception:
             pass
 
+    vol_lbl = "Volume" if is_en else "Band"
+    by_lbl = "by" if is_en else "von"
+
     # Title block
     lines.append(project.title.upper())
     if series_title:
-        lines.append(f"Serie: {series_title} • {project.series_subtitle or f'Band {project.series_order}'}")
+        lines.append(f"{'Series' if is_en else 'Serie'}: {series_title} • {project.series_subtitle or f'{vol_lbl} {project.series_order}'}")
     lines.append("")
-    lines.append(f"von {author_name}")
+    lines.append(f"{by_lbl} {author_name}")
     lines.append(f"© {year} {author_name}")
     lines.append("")
     lines.append("=" * 60)
     lines.append("")
 
-    # Impressum
+    # Impressum / Imprint
     custom_imprint = (project.epub_imprint or "").strip()
-    lines.append(f"IMPRESSUM")
+    lines.append("IMPRINT" if is_en else "IMPRESSUM")
     lines.append("")
     lines.append(f"{project.title}")
     if series_title:
-        lines.append(f"Dieses Werk ist {project.series_subtitle or f'Band {project.series_order}'} der Buchreihe '{series_title}'.")
-    lines.append(f"Erstauflage {year}")
+        if is_en:
+            lines.append(f"This work is {project.series_subtitle or f'Volume {project.series_order}'} of the series '{series_title}'.")
+        else:
+            lines.append(f"Dieses Werk ist {project.series_subtitle or f'Band {project.series_order}'} der Buchreihe '{series_title}'.")
+    lines.append(f"First edition {year}" if is_en else f"Erstauflage {year}")
     lines.append(f"© {year} {author_name}")
-    lines.append("Alle Rechte vorbehalten.")
+    lines.append("All rights reserved." if is_en else "Alle Rechte vorbehalten.")
     lines.append("")
-    lines.append(
-        "Dieses Buch wurde mit Unterstützung künstlicher Intelligenz "
-        f"(storyja.com) verfasst und von {author_name} kuratiert, "
-        "redigiert und veröffentlicht."
-    )
+    if is_en:
+        lines.append(
+            f"This book was authored with AI assistance (storyja.com) and curated, edited, and published by {author_name}."
+        )
+    else:
+        lines.append(
+            "Dieses Buch wurde mit Unterstützung künstlicher Intelligenz "
+            f"(storyja.com) verfasst und von {author_name} kuratiert, "
+            "redigiert und veröffentlicht."
+        )
     if custom_imprint:
         lines.append("")
         lines.append(custom_imprint)
@@ -716,9 +769,9 @@ def generate_book_txt(project: BookProject, chapters: List[BookChapter], output_
         lines.append("=" * 60)
         lines.append("")
 
-    # Was bisher geschah (optional for sequels)
+    # Was bisher geschah / The Story So Far (optional for sequels)
     if project.previous_summary and project.series_order and project.series_order > 1:
-        lines.append("WAS BISHER GESCHAH")
+        lines.append("THE STORY SO FAR" if is_en else "WAS BISHER GESCHAH")
         lines.append("")
         lines.append(project.previous_summary)
         lines.append("")
@@ -726,7 +779,7 @@ def generate_book_txt(project: BookProject, chapters: List[BookChapter], output_
         lines.append("")
 
     # Table of contents
-    lines.append("INHALTSVERZEICHNIS")
+    lines.append("TABLE OF CONTENTS" if is_en else "INHALTSVERZEICHNIS")
     lines.append("")
     for c in chapters:
         roman = to_roman(c.chapter_number)
@@ -735,15 +788,17 @@ def generate_book_txt(project: BookProject, chapters: List[BookChapter], output_
     lines.append("=" * 60)
 
     # Chapters
+    ch_lbl = "Chapter" if is_en else "Kapitel"
+    fallback_content = "Content is being generated." if is_en else "Inhalt wird noch generiert."
     for c in chapters:
         roman = to_roman(c.chapter_number)
         lines.append("")
         lines.append("")
-        lines.append(f"Kapitel {roman}")
+        lines.append(f"{ch_lbl} {roman}")
         lines.append(c.title)
         lines.append("-" * 40)
         lines.append("")
-        content = (c.content or "Inhalt wird noch generiert.").strip()
+        content = (c.content or fallback_content).strip()
         lines.append(content)
 
     # Afterword
@@ -752,7 +807,7 @@ def generate_book_txt(project: BookProject, chapters: List[BookChapter], output_
         lines.append("")
         lines.append("")
         lines.append("=" * 60)
-        lines.append("NACHWORT")
+        lines.append("AFTERWORD" if is_en else "NACHWORT")
         lines.append("=" * 60)
         lines.append("")
         lines.append(afterword_text)
@@ -761,7 +816,7 @@ def generate_book_txt(project: BookProject, chapters: List[BookChapter], output_
     lines.append("")
     lines.append("")
     lines.append("=" * 60)
-    lines.append(f"Generiert mit storyja.com • {year}")
+    lines.append(f"{'Generated with' if is_en else 'Generiert mit'} storyja.com • {year}")
     lines.append("=" * 60)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -809,17 +864,10 @@ def clean_pdf_text(text: str) -> str:
 def generate_book_pdf(project: BookProject, chapters: List[BookChapter], output_path: Path):
     """
     Generate a professional book-style PDF using fpdf2.
-
-    Layout:
-      - Title page (centered title, ornament, author, publisher)
-      - Imprint page
-      - Dedication page (optional)
-      - Table of contents
-      - Chapter pages (roman numeral header, title, body text)
-      - Afterword (optional)
     """
     from fpdf import FPDF
 
+    is_en = (getattr(project, "language", "de") == "en")
     year = datetime.date.today().year
     clean_title = clean_pdf_text(project.title)
     author_name = clean_pdf_text((project.epub_author or "").strip() or "Stanzwerk Pro")
@@ -880,22 +928,35 @@ def generate_book_pdf(project: BookProject, chapters: List[BookChapter], output_
     pdf.cell(0, 8, clean_title, ln=True)
     pdf.set_font("Helvetica", "", 9)
     pdf.set_text_color(100, 100, 100)
-    pdf.cell(0, 6, f"Erstauflage {year}", ln=True)
+    pdf.cell(0, 6, f"First edition {year}" if is_en else f"Erstauflage {year}", ln=True)
     pdf.ln(4)
     pdf.cell(0, 6, f"\u00a9 {year} {author_name}", ln=True)
     pdf.ln(2)
-    pdf.multi_cell(0, 5,
-        "Alle Rechte vorbehalten. Kein Teil dieses Werkes darf ohne "
-        "schriftliche Genehmigung des Autors reproduziert, verbreitet "
-        "oder in irgendeiner Form \u00fcbertragen werden."
-    )
-    pdf.ln(4)
-    pdf.set_font("Helvetica", "I", 9)
-    pdf.multi_cell(0, 5,
-        "Dieses Buch wurde mit Unterst\u00fctzung k\u00fcnstlicher Intelligenz "
-        f"(storyja.com) verfasst und von {author_name} kuratiert, "
-        "redigiert und ver\u00f6ffentlicht."
-    )
+    if is_en:
+        pdf.multi_cell(0, 5,
+            "All rights reserved. No part of this publication may be reproduced, "
+            "distributed, or transmitted in any form or by any means without the "
+            "prior written permission of the author."
+        )
+        pdf.ln(4)
+        pdf.set_font("Helvetica", "I", 9)
+        pdf.multi_cell(0, 5,
+            "This book was authored with AI assistance (storyja.com) "
+            f"and curated, edited, and published by {author_name}."
+        )
+    else:
+        pdf.multi_cell(0, 5,
+            "Alle Rechte vorbehalten. Kein Teil dieses Werkes darf ohne "
+            "schriftliche Genehmigung des Autors reproduziert, verbreitet "
+            "oder in irgendeiner Form \u00fcbertragen werden."
+        )
+        pdf.ln(4)
+        pdf.set_font("Helvetica", "I", 9)
+        pdf.multi_cell(0, 5,
+            "Dieses Buch wurde mit Unterst\u00fctzung k\u00fcnstlicher Intelligenz "
+            f"(storyja.com) verfasst und von {author_name} kuratiert, "
+            "redigiert und ver\u00f6ffentlicht."
+        )
     custom_imprint = clean_pdf_text((project.epub_imprint or "").strip())
     if custom_imprint:
         pdf.ln(6)
@@ -916,7 +977,7 @@ def generate_book_pdf(project: BookProject, chapters: List[BookChapter], output_
     pdf.ln(10)
     pdf.set_font("Helvetica", "B", 16)
     pdf.set_text_color(30, 30, 30)
-    pdf.cell(0, 12, "Inhaltsverzeichnis", align="C", ln=True)
+    pdf.cell(0, 12, "Table of Contents" if is_en else "Inhaltsverzeichnis", align="C", ln=True)
     pdf.ln(4)
     # horizontal rule
     pdf.set_draw_color(200, 200, 200)
@@ -935,6 +996,8 @@ def generate_book_pdf(project: BookProject, chapters: List[BookChapter], output_
 
     # ---- Chapter Pages ----
     pdf._show_header_footer = True
+    ch_lbl = "CHAPTER" if is_en else "KAPITEL"
+    fallback_content = "Content is being generated." if is_en else "Inhalt wird noch generiert."
     for c in chapters:
         pdf.add_page()
         roman = to_roman(c.chapter_number)
@@ -943,7 +1006,7 @@ def generate_book_pdf(project: BookProject, chapters: List[BookChapter], output_
         pdf.ln(20)
         pdf.set_font("Helvetica", "", 9)
         pdf.set_text_color(160, 160, 160)
-        pdf.cell(0, 6, "KAPITEL", align="C", ln=True)
+        pdf.cell(0, 6, ch_lbl, align="C", ln=True)
 
         pdf.set_font("Helvetica", "B", 24)
         pdf.set_text_color(40, 40, 40)
@@ -964,7 +1027,7 @@ def generate_book_pdf(project: BookProject, chapters: List[BookChapter], output_
         # Chapter body text
         pdf.set_font("Helvetica", "", 11)
         pdf.set_text_color(30, 30, 30)
-        content = (c.content or "Inhalt wird noch generiert.").strip()
+        content = (c.content or fallback_content).strip()
 
         # Split content into paragraphs and render
         paragraphs = re.split(r'\n{2,}', content)
@@ -995,7 +1058,7 @@ def generate_book_pdf(project: BookProject, chapters: List[BookChapter], output_
         pdf.ln(10)
         pdf.set_font("Helvetica", "B", 16)
         pdf.set_text_color(30, 30, 30)
-        pdf.cell(0, 12, "Nachwort", align="C", ln=True)
+        pdf.cell(0, 12, "Afterword" if is_en else "Nachwort", align="C", ln=True)
         pdf.ln(4)
         pdf.set_draw_color(200, 200, 200)
         x_start = pdf.l_margin + 40

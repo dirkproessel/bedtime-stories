@@ -202,11 +202,12 @@ async def bg_generate_chapter(project_id: str, chapter_id: str, model: str, feed
             previous_chapters=prev_chapters_list,
             model=model,
             feedback=feedback,
-            target_words=target_words
+            target_words=target_words,
+            language=getattr(project_validated, "language", "de")
         )
 
         # Generate a summary
-        summary = await generate_chapter_summary(content)
+        summary = await generate_chapter_summary(content, language=getattr(project_validated, "language", "de"))
 
         # Save to DB
         with Session(engine) as session:
@@ -323,11 +324,12 @@ async def bg_generate_all_chapters(
                 previous_chapters=prev_chapters_list,
                 model=model,
                 feedback=None,
-                target_words=target_words
+                target_words=target_words,
+                language=getattr(project_validated, "language", "de")
             )
             
             # 3. Generate summary
-            summary = await generate_chapter_summary(content)
+            summary = await generate_chapter_summary(content, language=getattr(project_validated, "language", "de"))
             
             # 4. Save to DB
             with Session(engine) as session:
@@ -588,6 +590,7 @@ async def api_create_series(
     initial_style = generate_modular_prompt(req.style)
     
     series_id = str(uuid.uuid4())[:8]
+    series_lang = req.language or "de"
     series = BookSeries(
         id=series_id,
         user_id=current_user.id,
@@ -596,6 +599,7 @@ async def api_create_series(
         genre=req.genre,
         style=req.style,
         genre_config=req.genre_config,
+        language=series_lang,
         planned_volumes=req.planned_volumes,
         style_bible=initial_style
     )
@@ -611,7 +615,8 @@ async def api_create_series(
                 genre=req.genre,
                 style=req.style,
                 genre_config=g_config,
-                planned_volumes=req.planned_volumes
+                planned_volumes=req.planned_volumes,
+                language=series_lang
             )
             series.world_lore = arch.get("world_lore")
             chars = arch.get("characters", [])
@@ -621,8 +626,8 @@ async def api_create_series(
 
             # Create Band 1
             vol1_id = str(uuid.uuid4())[:8]
-            vol1_title = arch.get("volume_1_title") or f"{req.title} - Band 1"
-            vol1_subtitle = arch.get("volume_1_subtitle") or "Band 1"
+            vol1_title = arch.get("volume_1_title") or (f"{req.title} - Volume 1" if series_lang == "en" else f"{req.title} - Band 1")
+            vol1_subtitle = arch.get("volume_1_subtitle") or ("Volume 1" if series_lang == "en" else "Band 1")
             vol1_prompt = arch.get("volume_1_prompt") or req.description
 
             volume_1_project = BookProject(
@@ -633,6 +638,7 @@ async def api_create_series(
                 genre=req.genre,
                 style=req.style,
                 genre_config=req.genre_config,
+                language=series_lang,
                 series_id=series_id,
                 series_order=1,
                 series_subtitle=vol1_subtitle,
@@ -748,7 +754,7 @@ async def api_convert_book_to_series(id: str, current_user: User = Depends(get_c
         ).all()
 
         # Run extraction
-        extracted = await extract_series_from_book(project, chapters)
+        extracted = await extract_series_from_book(project, chapters, language=project.language)
         
         series_id = str(uuid.uuid4())[:8]
         chars_bible = json.dumps(extracted.get("characters", []), ensure_ascii=False) if extracted.get("characters") else project.characters_bible
@@ -761,6 +767,7 @@ async def api_convert_book_to_series(id: str, current_user: User = Depends(get_c
             genre=project.genre,
             style=project.style,
             genre_config=project.genre_config,
+            language=project.language or "de",
             characters_bible=chars_bible,
             style_bible=project.style_bible,
             world_lore=extracted.get("world_lore"),
@@ -771,7 +778,7 @@ async def api_convert_book_to_series(id: str, current_user: User = Depends(get_c
         # Update project to be Volume 1
         project.series_id = series_id
         project.series_order = 1
-        project.series_subtitle = "Band 1"
+        project.series_subtitle = "Volume 1" if project.language == "en" else "Band 1"
         
         session.add(series)
         session.add(project)
@@ -807,6 +814,9 @@ async def api_suggest_sequel(
         ).all()
 
         latest_summary = ""
+        is_en = (getattr(series, "language", "de") == "en")
+        ch_lbl = "Chapter" if is_en else "Kapitel"
+        vol_lbl = "Volume" if is_en else "Band"
         if books:
             latest_book = books[-1]
             chaps = session.exec(
@@ -817,8 +827,8 @@ async def api_suggest_sequel(
             summaries = []
             for c in chaps:
                 txt = c.running_summary or (c.content[:250] if c.content else c.plot_outline)
-                summaries.append(f"Kapitel {c.chapter_number} ({c.title}): {txt}")
-            latest_summary = f"Handlungsverlauf von {latest_book.title} (Band {latest_book.series_order or len(books)}):\n" + "\n".join(summaries)
+                summaries.append(f"{ch_lbl} {c.chapter_number} ({c.title}): {txt}")
+            latest_summary = f"{'Story progression of' if is_en else 'Handlungsverlauf von'} {latest_book.title} ({vol_lbl} {latest_book.series_order or len(books)}):\n" + "\n".join(summaries)
         else:
             latest_summary = series.description
 
@@ -826,7 +836,8 @@ async def api_suggest_sequel(
         series=series,
         previous_books=books,
         latest_book_summary=latest_summary,
-        model=model
+        model=model,
+        language=getattr(series, "language", "de")
     )
     return {"pitches": pitches}
 
@@ -853,6 +864,9 @@ async def api_create_sequel(
         ).all()
         
         next_order = len(existing_books) + 1
+        is_en = (getattr(series, "language", "de") == "en")
+        vol_lbl = "Volume" if is_en else "Band"
+        ch_lbl = "Chap." if is_en else "Kap."
         
         # Build "Was bisher geschah..."
         prev_summaries_list = []
@@ -863,10 +877,10 @@ async def api_create_sequel(
                 .where(BookChapter.book_project_id == b.id)
                 .order_by(BookChapter.chapter_number)
             ).all()
-            ch_sums = [f"- Kap. {c.chapter_number}: {c.running_summary or c.title}" for c in chaps if c.running_summary or c.title]
-            prev_summaries_list.append(f"=== Band {b_order}: {b.title} ===\n" + "\n".join(ch_sums))
+            ch_sums = [f"- {ch_lbl} {c.chapter_number}: {c.running_summary or c.title}" for c in chaps if c.running_summary or c.title]
+            prev_summaries_list.append(f"=== {vol_lbl} {b_order}: {b.title} ===\n" + "\n".join(ch_sums))
             
-        previous_summary = "\n\n".join(prev_summaries_list) or f"Vorgängerbände der Serie {series.title}."
+        previous_summary = "\n\n".join(prev_summaries_list) or (f"Previous volumes of the series {series.title}." if is_en else f"Vorgängerbände der Serie {series.title}.")
         
         # Evolve characters if requested
         characters_bible = series.characters_bible
@@ -880,7 +894,8 @@ async def api_create_sequel(
                     genre=series.genre,
                     style=series.style,
                     model="gemini-3.1-flash-lite",
-                    is_kids_book=is_kids
+                    is_kids_book=is_kids,
+                    language=getattr(series, "language", "de")
                 )
                 evolved = char_res.get("evolved_characters", [])
                 new_chars = char_res.get("new_characters", [])
@@ -891,7 +906,7 @@ async def api_create_sequel(
                 logger.error(f"Failed to evolve characters for sequel: {e}")
         
         new_project_id = str(uuid.uuid4())[:8]
-        new_subtitle = req.subtitle or f"Band {next_order}"
+        new_subtitle = req.subtitle or f"{vol_lbl} {next_order}"
         
         new_project = BookProject(
             id=new_project_id,
@@ -901,6 +916,7 @@ async def api_create_sequel(
             genre=series.genre,
             style=series.style,
             genre_config=series.genre_config,
+            language=getattr(series, "language", "de"),
             series_id=id,
             series_order=next_order,
             series_subtitle=new_subtitle,
@@ -1000,6 +1016,7 @@ async def create_book_project(req: BookProjectCreate, current_user: User = Depen
         genre=req.genre,
         style=req.style,
         genre_config=req.genre_config,
+        language=req.language or "de",
         style_bible=initial_style,
         status="draft"
     )
@@ -1099,7 +1116,8 @@ async def api_suggest_characters(
         genre=project.genre,
         style=project.style,
         model=model,
-        is_kids_book=_get_kids_flag(project.genre_config)
+        is_kids_book=_get_kids_flag(project.genre_config),
+        language=getattr(project, "language", "de")
     )
     return {"suggestions": suggestions}
 
@@ -1120,7 +1138,6 @@ async def api_generate_outline(
         if not project:
             raise HTTPException(status_code=404, detail="Buchprojekt nicht gefunden.")
             
-        # Generate outline
         bible = project.characters_bible or "Keine Angabe"
         g_config = json.loads(project.genre_config) if project.genre_config else None
         
@@ -1145,7 +1162,8 @@ async def api_generate_outline(
             model=model,
             instruction=instruction,
             genre_config=g_config,
-            series_context=series_context
+            series_context=series_context,
+            language=getattr(project, "language", "de")
         )
         
         # Save outline structure to project
@@ -1169,7 +1187,7 @@ async def api_generate_outline(
             elif g_config and g_config.get("pov") == "single_male":
                 pov_char = "männlicher Hauptcharakter"
             elif g_config and g_config.get("pov") == "omniscient":
-                pov_char = "Erzähler"
+                pov_char = "Erzähler" if project.language != "en" else "Narrator"
                 
             chapter = BookChapter(
                 id=str(uuid.uuid4())[:8],
@@ -1394,8 +1412,6 @@ async def api_generate_all_chapters_prose(
     return {"status": "started", "message": f"Automatische Generierung gestartet für Kapitel: {target_nums}."}
 
 
-
-
 @router.put("/books/{id}/chapters/{num}", response_model=BookChapterResponse)
 async def api_update_chapter_manually(
     id: str, 
@@ -1464,7 +1480,8 @@ async def api_improve_chapter_outline(
             current_plot_outline=chapter.plot_outline,
             instruction=instruction,
             model=model,
-            is_kids_book=_get_kids_flag(project.genre_config)
+            is_kids_book=_get_kids_flag(project.genre_config),
+            language=getattr(project, "language", "de")
         )
         
         # Save back to database chapter
@@ -1530,7 +1547,8 @@ async def api_expand_chapter_outline(
             current_title=chapter.title,
             current_plot_outline=chapter.plot_outline,
             model=model,
-            genre_config=g_config
+            genre_config=g_config,
+            language=getattr(project, "language", "de")
         )
         
         chapter.title = expanded.get("title", chapter.title)
@@ -1588,6 +1606,7 @@ async def api_expand_all_outlines(
         bible = project.characters_bible or "Keine Angabe"
         full_outline = project.outline or "{}"
         g_config = json.loads(project.genre_config) if project.genre_config else None
+        project_lang = getattr(project, "language", "de")
         
         # Build concurrent tasks for each chapter
         tasks = []
@@ -1603,7 +1622,8 @@ async def api_expand_all_outlines(
                     current_title=ch.title,
                     current_plot_outline=ch.plot_outline,
                     model=model,
-                    genre_config=g_config
+                    genre_config=g_config,
+                    language=project_lang
                 )
             )
             
@@ -1653,7 +1673,6 @@ async def api_expand_all_outlines(
         return BookProjectDetailResponse.model_validate(project, from_attributes=True)
 
 
-
 @router.post("/books/{id}/chapters/{num}/proofread")
 async def api_proofread_chapter(
     id: str, 
@@ -1680,13 +1699,15 @@ async def api_proofread_chapter(
             
         bible = project.characters_bible or "Keine Angabe"
         outline = project.outline or "{}"
+        project_lang = getattr(project, "language", "de")
         
     findings = await proofread_chapter(
         chapter_content=chapter.content,
         characters_bible=bible,
         outline=outline,
         chapter_num=num,
-        model=model
+        model=model,
+        language=project_lang
     )
     return {"findings": findings}
 
@@ -1713,6 +1734,7 @@ async def api_proofread_book_globally(
         
         bible = project.characters_bible or "Keine Angabe"
         outline = project.outline or "{}"
+        project_lang = getattr(project, "language", "de")
         
         # Snapshot chapters to avoid DetachedInstanceError outside the session block
         chapters_snapshot = []
@@ -1727,7 +1749,8 @@ async def api_proofread_book_globally(
         chapters=chapters_snapshot,
         characters_bible=bible,
         outline=outline,
-        model=model
+        model=model,
+        language=project_lang
     )
     return {"findings": findings}
 
@@ -1757,13 +1780,15 @@ async def api_apply_global_feedback_to_outline(
             
         bible = project.characters_bible or "Keine Angabe"
         outline = project.outline or "{}"
+        project_lang = getattr(project, "language", "de")
         
     # Run the correction LLM task
     updated_outline_str = await apply_global_feedback_to_outline(
         characters_bible=bible,
         current_outline=outline,
         findings=req.findings,
-        model=model
+        model=model,
+        language=project_lang
     )
     
     # Save the updated outline back to project and sync DB chapters
@@ -1831,6 +1856,7 @@ async def api_proofread_outline_globally(
         ).all()
         
         bible = project.characters_bible or "Keine Angabe"
+        project_lang = getattr(project, "language", "de")
         
         # Snapshot chapters to avoid DetachedInstanceError outside session block
         chapters_snapshot = []
@@ -1844,7 +1870,8 @@ async def api_proofread_outline_globally(
     findings = await proofread_outline_globally(
         chapters=chapters_snapshot,
         characters_bible=bible,
-        model=model
+        model=model,
+        language=project_lang
     )
     return {"findings": findings}
 
@@ -2191,16 +2218,44 @@ async def api_suggest_epub_metadata(
         genre = project.genre
         style = project.style
         prompt_idea = project.prompt
+        is_en = (getattr(project, "language", "de") == "en")
 
     from app.services.text_generator import generate_text
 
-    system_instruction = (
-        "Du bist ein erfahrener Buchautor und Verlags-Lektor. "
-        "Erstelle kurze, professionelle Texte für ein Buchprojekt. "
-        "Antworte ausschließlich im JSON-Format."
-    )
+    if is_en:
+        system_instruction = (
+            "You are a published author and senior editor. "
+            "Generate concise, high-quality front and back matter for an English book project. "
+            "Respond strictly in JSON format."
+        )
+        ai_prompt = f"""
+Book Information:
+- Title: {title}
+- Genre: {genre}
+- Style: {style}
+- Premise: {prompt_idea}
 
-    ai_prompt = f"""
+Create a JSON object in English with:
+1. "epub_author": Author pen name (e.g. "Stanzwerk Pro" or a genre-appropriate pen name, max 30 chars)
+2. "epub_dedication": Short poetic dedication (2-4 lines)
+3. "epub_afterword": Short engaging afterword (100-150 words) reflecting on the story's themes
+4. "epub_imprint": Optional imprint notice or disclaimer (1-2 sentences, or empty)
+
+Format:
+{{
+  "epub_author": "...",
+  "epub_dedication": "...",
+  "epub_afterword": "...",
+  "epub_imprint": "..."
+}}
+"""
+    else:
+        system_instruction = (
+            "Du bist ein erfahrener Buchautor und Verlags-Lektor. "
+            "Erstelle kurze, professionelle Texte für ein Buchprojekt. "
+            "Antworte ausschließlich im JSON-Format."
+        )
+        ai_prompt = f"""
 Hier sind die Daten des Buchprojekts:
 - Titel: {title}
 - Genre: {genre}
