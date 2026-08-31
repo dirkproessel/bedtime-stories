@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
-import { Plus, BookOpen, Trash2, ArrowRight, Loader2, RefreshCw, ArrowLeft } from 'lucide-react';
+import { Plus, BookOpen, Trash2, ArrowRight, Loader2, RefreshCw, ArrowLeft, Layers, Sparkles, ChevronRight } from 'lucide-react';
 import BookEditor from './BookEditor';
+import SeriesWizard from './SeriesWizard';
+import SeriesView from './SeriesView';
 import { createProBook, deleteProBook, fetchGenreProfile } from '../lib/api';
 import toast from 'react-hot-toast';
 import { AUTHORS, formatAuthorStyles } from '../lib/authors';
@@ -14,11 +16,20 @@ export default function BookDashboard() {
         setCurrentProProject, 
         loadProProjects, 
         loadProProjectDetail,
+        proSeries,
+        currentProSeries,
+        setCurrentProSeries,
+        loadProSeries,
+        loadProSeriesDetail,
+        deleteProSeries,
         isLoading,
         setActiveView
     } = useStore();
     
+    const [dashboardTab, setDashboardTab] = useState<'books' | 'series'>('books');
     const [showCreateModal, setShowCreateModal] = useState(false);
+    const [showSeriesWizard, setShowSeriesWizard] = useState(false);
+
     const [title, setTitle] = useState('');
     const [prompt, setPrompt] = useState('');
     const [genre, setGenre] = useState('Fantasy');
@@ -34,7 +45,8 @@ export default function BookDashboard() {
     // Initial load and periodic polling for generating status
     useEffect(() => {
         loadProProjects();
-    }, [loadProProjects]);
+        loadProSeries();
+    }, [loadProProjects, loadProSeries]);
 
     // Simple status polling if any project is in "generating" status
     useEffect(() => {
@@ -110,6 +122,19 @@ export default function BookDashboard() {
             await deleteProBook(id);
             toast.success('Projekt gelöscht');
             loadProProjects();
+            loadProSeries();
+        } catch (e: any) {
+            toast.error(e.message || 'Fehler beim Löschen');
+        }
+    };
+
+    const handleDeleteSeries = async (id: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!window.confirm('Möchtest du diese Serie wirklich auflösen? Die Bücher bleiben als Einzelbände erhalten.')) return;
+        
+        try {
+            await deleteProSeries(id);
+            toast.success('Serie aufgelöst');
         } catch (e: any) {
             toast.error(e.message || 'Fehler beim Löschen');
         }
@@ -123,12 +148,36 @@ export default function BookDashboard() {
         }
     };
 
+    const handleOpenSeries = async (id: string) => {
+        try {
+            await loadProSeriesDetail(id);
+        } catch (e: any) {
+            toast.error('Fehler beim Laden der Serie: ' + e.message);
+        }
+    };
+
+    // If viewing a single project editor
     if (currentProProject) {
         return (
             <BookEditor 
                 project={currentProProject} 
                 onBack={() => {
                     setCurrentProProject(null);
+                    loadProProjects();
+                    loadProSeries();
+                }} 
+            />
+        );
+    }
+
+    // If viewing a Series hub
+    if (currentProSeries) {
+        return (
+            <SeriesView 
+                series={currentProSeries} 
+                onBack={() => {
+                    setCurrentProSeries(null);
+                    loadProSeries();
                     loadProProjects();
                 }} 
             />
@@ -137,6 +186,8 @@ export default function BookDashboard() {
 
     return (
         <div className="space-y-6">
+            
+            {/* Header Section */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-800 pb-5">
                 <div className="flex items-center gap-4">
                     <button 
@@ -147,97 +198,236 @@ export default function BookDashboard() {
                         <ArrowLeft className="w-5 h-5" />
                     </button>
                     <div>
-                        <h2 className="text-xl font-bold text-white">Projekte ({proProjects.length})</h2>
-                        <p className="text-xs text-text-muted mt-1">Erstelle und verwalte deine langen Buchprojekte (Novellen).</p>
+                        <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                            Storyja Pro Studio
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30 font-medium">
+                                Pro
+                            </span>
+                        </h2>
+                        <p className="text-xs text-text-muted mt-1">
+                            Erstelle lange Novellen, professionelle E-Books und mehrteilige Buchreihen.
+                        </p>
                     </div>
                 </div>
                 
-                <div className="flex gap-2">
+                <div className="flex items-center gap-2">
                     <button 
-                        onClick={() => loadProProjects()} 
+                        onClick={() => { loadProProjects(); loadProSeries(); }} 
                         className="p-2.5 bg-surface rounded-xl hover:bg-slate-800 text-slate-300 transition-colors border border-slate-800"
                         title="Aktualisieren"
                     >
                         <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
                     </button>
+                    
+                    <button 
+                        onClick={() => setShowSeriesWizard(true)}
+                        className="px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl text-sm font-semibold shadow-lg shadow-indigo-500/20 flex items-center gap-2 transition-all"
+                    >
+                        <Sparkles className="w-4 h-4" />
+                        + Neue Buch-Serie
+                    </button>
+
                     <button 
                         onClick={() => setShowCreateModal(true)}
-                        className="btn-primary py-2.5 px-5 text-sm flex items-center gap-2 rounded-xl"
+                        className="btn-primary py-2.5 px-4 text-sm flex items-center gap-2 rounded-xl"
                     >
                         <Plus className="w-4 h-4" />
-                        Neues Buchprojekt
+                        Neues Einzelbuch
                     </button>
                 </div>
             </div>
 
-            {/* Project List */}
-            {proProjects.length === 0 ? (
-                <div className="text-center py-20 bg-surface/50 border border-slate-800 rounded-3xl space-y-4">
-                    <BookOpen className="w-12 h-12 text-slate-600 mx-auto" />
-                    <div>
-                        <h3 className="text-white font-medium">Bislang keine Buchprojekte vorhanden</h3>
-                        <p className="text-xs text-text-muted mt-1">Klicke auf 'Neues Buchprojekt' um deinen ersten Kurzroman zu starten.</p>
-                    </div>
-                </div>
-            ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {proProjects.map((p) => {
-                        const isGenerating = p.status === 'generating';
-                        return (
-                            <div 
-                                key={p.id}
-                                onClick={() => handleOpenProject(p.id)}
-                                className="bg-surface hover:bg-slate-800/80 p-5 rounded-3xl border border-slate-800 hover:border-slate-700/80 cursor-pointer transition-all flex flex-col justify-between h-56 group relative"
-                            >
-                                <div className="space-y-2">
-                                    <div className="flex justify-between items-start gap-4">
-                                        <h3 className="font-semibold text-white text-base group-hover:text-primary transition-colors line-clamp-1">
-                                            {p.title}
-                                        </h3>
-                                        <button 
-                                            onClick={(e) => handleDeleteProject(p.id, e)}
-                                            className="text-slate-500 hover:text-red-400 p-1 hover:bg-red-500/10 rounded-lg transition-colors shrink-0"
-                                            title="Projekt löschen"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                    
-                                    <p className="text-xs text-text-muted line-clamp-3 leading-relaxed">
-                                        {p.prompt}
-                                    </p>
-                                </div>
+            {/* Dashboard Tabs: Einzelbände vs. Serien */}
+            <div className="flex gap-3 border-b border-slate-800/80 pb-3">
+                <button
+                    onClick={() => setDashboardTab('books')}
+                    className={`px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 transition-all ${
+                        dashboardTab === 'books'
+                            ? 'bg-slate-800 text-white shadow'
+                            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                    }`}
+                >
+                    <BookOpen className="w-4 h-4" />
+                    Alle Buchprojekte ({proProjects.length})
+                </button>
 
-                                <div className="mt-4 border-t border-slate-800/80 pt-4 flex justify-between items-center text-xs">
-                                    <div className="flex flex-col gap-1">
-                                        <span className="text-[10px] uppercase font-mono text-slate-500">
-                                            {p.genre} &bull; {formatAuthorStyles(p.style)}
-                                        </span>
-                                        {isGenerating ? (
-                                            <span className="text-primary font-medium flex items-center gap-1.5">
-                                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                                {p.progress || 'Generiere...'} ({p.progress_pct}%)
-                                            </span>
-                                        ) : p.status === 'error' ? (
-                                            <span className="text-red-400 font-medium line-clamp-1 max-w-[200px]">
-                                                Fehler: {p.progress}
-                                            </span>
-                                        ) : (
-                                            <span className="text-slate-400">
-                                                Status: <b className="text-slate-300 font-medium capitalize">{p.status}</b>
-                                            </span>
-                                        )}
-                                    </div>
+                <button
+                    onClick={() => setDashboardTab('series')}
+                    className={`px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 transition-all ${
+                        dashboardTab === 'series'
+                            ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/25'
+                            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                    }`}
+                >
+                    <Layers className="w-4 h-4" />
+                    Buch-Serien & Trilogien ({proSeries.length})
+                </button>
+            </div>
 
-                                    <div className="w-8 h-8 rounded-xl bg-slate-800 flex items-center justify-center text-slate-400 group-hover:text-primary group-hover:bg-primary/10 transition-colors">
-                                        <ArrowRight className="w-4 h-4" />
-                                    </div>
-                                </div>
+            {/* TAB: SERIES */}
+            {dashboardTab === 'series' && (
+                <div className="space-y-4">
+                    {proSeries.length === 0 ? (
+                        <div className="text-center py-20 bg-surface/40 border border-slate-800 rounded-3xl space-y-4">
+                            <Layers className="w-12 h-12 text-slate-600 mx-auto" />
+                            <div>
+                                <h3 className="text-white font-medium">Bislang keine Buch-Serien angelegt</h3>
+                                <p className="text-xs text-text-muted mt-1">
+                                    Starte deine erste mehrteilige Reihe mit fortlaufenden Charakteren und konsistentem Cover-Design!
+                                </p>
                             </div>
-                        );
-                    })}
+                            <button
+                                onClick={() => setShowSeriesWizard(true)}
+                                className="px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl text-xs font-semibold inline-flex items-center gap-2 shadow-lg shadow-indigo-500/20"
+                            >
+                                <Sparkles className="w-4 h-4" />
+                                Erste Buch-Serie starten
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                            {proSeries.map((s) => {
+                                return (
+                                    <div
+                                        key={s.id}
+                                        onClick={() => handleOpenSeries(s.id)}
+                                        className="group bg-surface/70 hover:bg-surface border border-slate-800 hover:border-indigo-500/40 rounded-3xl p-5 transition-all duration-200 cursor-pointer shadow-lg hover:shadow-indigo-500/10 flex flex-col justify-between space-y-4 relative"
+                                    >
+                                        <div className="space-y-3">
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 flex items-center gap-1">
+                                                        <Layers className="w-3 h-3" />
+                                                        Serie
+                                                    </span>
+                                                    <span className="text-[10px] text-slate-400 font-mono">
+                                                        {s.genre}
+                                                    </span>
+                                                </div>
+
+                                                <button 
+                                                    onClick={(e) => handleDeleteSeries(s.id, e)}
+                                                    className="text-slate-500 hover:text-rose-400 p-1 hover:bg-rose-500/10 rounded-lg transition-colors"
+                                                    title="Serie auflösen"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
+
+                                            <h3 className="text-base font-bold text-white group-hover:text-indigo-300 transition-colors line-clamp-1">
+                                                {s.title}
+                                            </h3>
+
+                                            <p className="text-xs text-text-muted line-clamp-2 leading-relaxed">
+                                                {s.description}
+                                            </p>
+                                        </div>
+
+                                        <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs">
+                                            <span className="font-semibold text-slate-300">
+                                                {s.book_count || 0} {s.planned_volumes ? `von ${s.planned_volumes} Bänden` : 'Bände'}
+                                            </span>
+
+                                            <span className="flex items-center text-indigo-400 font-semibold group-hover:translate-x-0.5 transition-transform">
+                                                Serie öffnen <ChevronRight className="w-4 h-4 ml-0.5" />
+                                            </span>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
                 </div>
             )}
+
+            {/* TAB: ALL BOOKS */}
+            {dashboardTab === 'books' && (
+                <div className="space-y-4">
+                    {proProjects.length === 0 ? (
+                        <div className="text-center py-20 bg-surface/50 border border-slate-800 rounded-3xl space-y-4">
+                            <BookOpen className="w-12 h-12 text-slate-600 mx-auto" />
+                            <div>
+                                <h3 className="text-white font-medium">Bislang keine Buchprojekte vorhanden</h3>
+                                <p className="text-xs text-text-muted mt-1">Klicke auf 'Neues Einzelbuch' oder 'Neue Buch-Serie' um zu starten.</p>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {proProjects.map((p) => {
+                                const isGenerating = p.status === 'generating';
+                                return (
+                                    <div 
+                                        key={p.id}
+                                        onClick={() => handleOpenProject(p.id)}
+                                        className="bg-surface hover:bg-slate-800/80 p-5 rounded-3xl border border-slate-800 hover:border-slate-700/80 cursor-pointer transition-all flex flex-col justify-between h-56 group relative"
+                                    >
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between items-start gap-4">
+                                                <div>
+                                                    {p.series_id && (
+                                                        <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider block mb-0.5">
+                                                            {p.series_subtitle || 'Serie'}
+                                                        </span>
+                                                    )}
+                                                    <h3 className="font-semibold text-white text-base group-hover:text-primary transition-colors line-clamp-1">
+                                                        {p.title}
+                                                    </h3>
+                                                </div>
+                                                <button 
+                                                    onClick={(e) => handleDeleteProject(p.id, e)}
+                                                    className="text-slate-500 hover:text-red-400 p-1 hover:bg-red-500/10 rounded-lg transition-colors shrink-0"
+                                                    title="Projekt löschen"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                            
+                                            <p className="text-xs text-text-muted line-clamp-3 leading-relaxed">
+                                                {p.prompt}
+                                            </p>
+                                        </div>
+
+                                        <div className="mt-4 border-t border-slate-800/80 pt-4 flex justify-between items-center text-xs">
+                                            <div className="flex flex-col gap-1">
+                                                <span className="text-[10px] uppercase font-mono text-slate-500">
+                                                    {p.genre} &bull; {formatAuthorStyles(p.style)}
+                                                </span>
+                                                {isGenerating ? (
+                                                    <span className="text-primary font-medium flex items-center gap-1.5">
+                                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                                        {p.progress || 'Generiere...'} ({p.progress_pct}%)
+                                                    </span>
+                                                ) : p.status === 'error' ? (
+                                                    <span className="text-red-400 font-medium line-clamp-1 max-w-[200px]">
+                                                        Fehler: {p.progress}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-slate-400">
+                                                        Status: <b className="text-slate-300 font-medium capitalize">{p.status}</b>
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            <div className="w-8 h-8 rounded-xl bg-slate-800 flex items-center justify-center text-slate-400 group-hover:text-primary group-hover:bg-primary/10 transition-colors">
+                                                <ArrowRight className="w-4 h-4" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Series Wizard Modal */}
+            <SeriesWizard 
+                isOpen={showSeriesWizard}
+                onClose={() => setShowSeriesWizard(false)}
+                onSuccess={(newSeries) => {
+                    setCurrentProSeries(newSeries);
+                }}
+            />
 
             {/* Create Project Modal */}
             {showCreateModal && (

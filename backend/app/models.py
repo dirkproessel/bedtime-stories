@@ -264,6 +264,33 @@ class SystemSettingUpdate(BaseModel):
 
 # --- Pro Book Models ---
 
+class BookSeries(SQLModel, table=True):
+    """Represents an overarching book series / franchise."""
+    id: Optional[str] = Field(default=None, primary_key=True)
+    user_id: str = Field(foreign_key="user.id", index=True)
+    title: str
+    description: str
+    genre: str = Field(default="Realismus")
+    style: str = Field(default="Douglas Adams")
+    genre_config: Optional[str] = Field(default=None)
+    planned_volumes: Optional[int] = Field(default=None)
+
+    # Master Bibles for the whole series
+    characters_bible: Optional[str] = Field(default=None)
+    style_bible: Optional[str] = Field(default=None)
+    world_lore: Optional[str] = Field(default=None)
+    series_arc: Optional[str] = Field(default=None)
+    cover_style_prompt: Optional[str] = Field(default=None)
+
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    books: list["BookProject"] = Relationship(
+        back_populates="series",
+        sa_relationship_kwargs={"order_by": "BookProject.series_order"}
+    )
+
+
 class BookProject(SQLModel, table=True):
     """Represents a long-form book project (novella/short book)."""
     id: Optional[str] = Field(default=None, primary_key=True)
@@ -272,6 +299,12 @@ class BookProject(SQLModel, table=True):
     prompt: str  # Original idea / concept prompt
     genre: str = Field(default="Realismus")
     style: str = Field(default="Douglas Adams")
+    
+    # Series linkage
+    series_id: Optional[str] = Field(default=None, foreign_key="bookseries.id", index=True)
+    series_order: Optional[int] = Field(default=None)       # Band 1, Band 2, etc.
+    series_subtitle: Optional[str] = Field(default=None)    # e.g. "Band 2: Das Erwachen der Schatten"
+    previous_summary: Optional[str] = Field(default=None)   # "Was bisher geschah..."
     
     # Genre-Konfiguration (JSON string: {tropes: [], pov: "", spice_level: 3})
     genre_config: Optional[str] = Field(default=None)
@@ -296,6 +329,8 @@ class BookProject(SQLModel, table=True):
     
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    
+    series: Optional[BookSeries] = Relationship(back_populates="books")
     
     chapters: list["BookChapter"] = Relationship(
         back_populates="project",
@@ -325,12 +360,40 @@ class BookChapter(SQLModel, table=True):
 
 # --- Pro API Request / Response schemas ---
 
+class BookSeriesCreate(BaseModel):
+    title: str
+    description: str
+    genre: str = "Realismus"
+    style: str = "Douglas Adams"
+    genre_config: Optional[str] = None
+    planned_volumes: Optional[int] = None
+    auto_init_volume_1: bool = True  # Band 1 direkt miterstellen
+
+
+class BookSeriesUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    genre: Optional[str] = None
+    style: Optional[str] = None
+    characters_bible: Optional[str] = None
+    style_bible: Optional[str] = None
+    world_lore: Optional[str] = None
+    series_arc: Optional[str] = None
+    cover_style_prompt: Optional[str] = None
+    planned_volumes: Optional[int] = None
+    genre_config: Optional[str] = None
+
+
 class BookProjectCreate(BaseModel):
     title: str
     prompt: str
     genre: str
     style: str
     genre_config: Optional[str] = None
+    series_id: Optional[str] = None
+    series_order: Optional[int] = None
+    series_subtitle: Optional[str] = None
+    previous_summary: Optional[str] = None
 
 
 class BookProjectUpdate(BaseModel):
@@ -348,6 +411,10 @@ class BookProjectUpdate(BaseModel):
     epub_afterword: Optional[str] = None
     epub_imprint: Optional[str] = None
     genre_config: Optional[str] = None
+    series_id: Optional[str] = None
+    series_order: Optional[int] = None
+    series_subtitle: Optional[str] = None
+    previous_summary: Optional[str] = None
 
 
 
@@ -386,6 +453,10 @@ class BookProjectResponse(BaseModel):
     prompt: str
     genre: str
     style: str
+    series_id: Optional[str] = None
+    series_order: Optional[int] = None
+    series_subtitle: Optional[str] = None
+    previous_summary: Optional[str] = None
     characters_bible: Optional[str] = None
     style_bible: Optional[str] = None
     outline: Optional[str] = None
@@ -405,3 +476,27 @@ class BookProjectResponse(BaseModel):
 
 class BookProjectDetailResponse(BookProjectResponse):
     chapters: list[BookChapterResponse] = []
+
+
+class BookSeriesResponse(BaseModel):
+    id: str
+    user_id: str
+    title: str
+    description: str
+    genre: str
+    style: str
+    genre_config: Optional[str] = None
+    planned_volumes: Optional[int] = None
+    characters_bible: Optional[str] = None
+    style_bible: Optional[str] = None
+    world_lore: Optional[str] = None
+    series_arc: Optional[str] = None
+    cover_style_prompt: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+    book_count: int = 0
+
+
+class BookSeriesDetailResponse(BookSeriesResponse):
+    books: list[BookProjectResponse] = []
+

@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
 from sqlmodel import Session, select
 from app.database import engine
-from app.models import BookProject, BookChapter
+from app.models import BookProject, BookChapter, BookSeries
 from app.services.text_generator import generate_text
 
 logger = logging.getLogger(__name__)
@@ -22,6 +22,35 @@ class CharacterSchema(BaseModel):
 
 class CharacterSuggestionsSchema(BaseModel):
     suggestions: List[CharacterSchema] = Field(description="Liste der vorgeschlagenen Charaktere")
+
+class SeriesArchitectureSchema(BaseModel):
+    world_lore: str = Field(description="Ausführliches Worldbuilding, Schauplätze, Magie/Technikregeln, Fraktionen und Zeitlinie")
+    characters: List[CharacterSchema] = Field(description="4-6 archetypische, vielschichtige Stamm-Charaktere für die gesamte Serie")
+    cover_style_prompt: str = Field(description="Visuelles Style-Template für die Buchcover (auf Englisch, spezifiziert Art-Style, Farbpalette, Beleuchtung, Schriftplatzierung)")
+    series_arc: str = Field(description="Übergeordneter Handlungsbogen und Meilensteine für die Bände der Serie")
+    volume_1_title: str = Field(description="Kreativer Titel für Band 1")
+    volume_1_subtitle: str = Field(description="Untertitel für Band 1 (z. B. 'Band 1: Der Schatten erwacht')")
+    volume_1_prompt: str = Field(description="Konkrete Handlungsidee / Plot-Prämisse für Band 1")
+
+class SeriesExtractedSchema(BaseModel):
+    world_lore: str = Field(description="Aus dem Buch abgeleitetes Worldbuilding, Regeln und Schauplätze")
+    characters: List[CharacterSchema] = Field(description="Liste der wiederkehrenden Stamm-Charaktere der Serie")
+    cover_style_prompt: str = Field(description="Vom bestehenden Cover/Buch abgeleitetes Cover-Style-Template auf Englisch")
+    series_arc: str = Field(description="Möglicher übergeordneter Serienbogen für Folgebände")
+
+class SequelPitchSchema(BaseModel):
+    title: str = Field(description="Vorgeschlagener Buchtitel für den neuen Band")
+    subtitle: str = Field(description="Untertitel mit Bandnummer (z. B. 'Band 2: Das Erwachen der Schatten')")
+    pitch: str = Field(description="Ausführlicher Klappentext / Handlungs-Pitch für diesen Band (ca. 80-120 Wörter)")
+    core_conflict: str = Field(description="Der zentrale neue Konflikt / die neue Bedrohung")
+    tone: str = Field(description="Richtung des Sequels (z. B. 'Direkte Fortsetzung / Cliffhanger-Auflösung', 'Neuer Fall / Neues Abenteuer', 'Eskalation / Größere Einsätze')")
+
+class SequelPitchesResponseSchema(BaseModel):
+    pitches: List[SequelPitchSchema] = Field(description="Genau 3 unterschiedliche, spannende Richtungen für die Fortsetzung")
+
+class CharacterEvolutionSchema(BaseModel):
+    evolved_characters: List[CharacterSchema] = Field(description="Bestehende Stamm-Charaktere mit aktualisierter Entwicklung, Beziehungen und Status")
+    new_characters: List[CharacterSchema] = Field(description="2-3 neue, speziell für diesen Band relevante Figuren (z. B. neuer Antagonist, Verbündeter)")
 
 class ChapterOutlineSchema(BaseModel):
     chapter_number: int = Field(description="Die fortlaufende Nummer des Kapitels (1-basiert)")
@@ -306,9 +335,10 @@ async def generate_outline(
     num_chapters: int = 8, 
     model: str = "gemini-3.1-flash-lite",
     instruction: Optional[str] = None,
-    genre_config: Optional[dict] = None
+    genre_config: Optional[dict] = None,
+    series_context: Optional[dict] = None
 ) -> Dict[str, Any]:
-    """Generate a chapter outline for the book."""
+    """Generate a chapter outline for the book, optionally within a series context."""
     style_resolved = get_author_names_improved(style)
     
     # Parse genre config and build genre-specific prompt section
@@ -329,10 +359,29 @@ async def generate_outline(
     
     instruction_str = f"\nNutzer-Anweisung/Kritik zur Berücksichtigung für diese Gliederung:\n\"{instruction}\"\n" if instruction else ""
     
+    series_section = ""
+    if series_context:
+        s_title = series_context.get("series_title") or "Buch-Serie"
+        s_order = series_context.get("series_order") or 1
+        s_lore = series_context.get("world_lore") or ""
+        s_arc = series_context.get("series_arc") or ""
+        s_prev = series_context.get("previous_summary") or ""
+        
+        series_section = f"""
+    --- SERIEN-KONTEXT ---
+    Dieses Buch ist Band {s_order} der Buch-Serie "{s_title}".
+    {f'Worldbuilding & Lore: {s_lore}' if s_lore else ''}
+    {f'Serien-Handlungsbogen: {s_arc}' if s_arc else ''}
+    {f'Was bisher geschah (Vorgängerbände): {s_prev}' if s_prev else ''}
+    WICHTIG FÜR FORTSETZUNG: Achte auf strenge Kontinuität mit den Vorgängerbänden. Baue auf den etablierten Beziehungen und Ereignissen auf!
+    -----------------------
+    """
+    
     prompt_content = f"""
     Buchidee: {prompt}
     
     {genre_section}
+    {series_section}
     
     Autorenstil: {style_resolved}
     Charaktere: {characters_bible}
@@ -1473,6 +1522,358 @@ async def proofread_outline_globally(
     except Exception as e:
         logger.error(f"Error in proofread_outline_globally: {e}")
         return []
+
+
+# --- Series AI Workflows ---
+
+async def generate_series_architecture(
+    title: str,
+    description: str,
+    genre: str,
+    style: str,
+    genre_config: Optional[dict] = None,
+    planned_volumes: Optional[int] = None,
+    model: str = "gemini-3.7-flash"
+) -> Dict[str, Any]:
+    """
+    Generates full worldbuilding/lore, master characters, cover styleguide,
+    series arc, and Volume 1 concept for a brand-new book series.
+    """
+    style_resolved = get_author_names_improved(style)
+    from app.services.genre_profiles import build_genre_prompt_section
+    g_config = genre_config or {}
+    genre_section = build_genre_prompt_section(
+        genre,
+        selected_tropes=g_config.get("tropes", []),
+        pov=g_config.get("pov"),
+        spice_level=g_config.get("spice_level")
+    )
+    
+    vol_text = f"Die Serie ist auf ca. {planned_volumes} Bände ausgelegt." if planned_volumes else "Die Serie ist als fortlaufende, offene Buchreihe angelegt."
+
+    system_instruction = (
+        "Du bist ein hochkarätiger Serien-Architekt, Weltenbauer und Bestseller-Autor. "
+        "Deine Aufgabe ist es, für eine neue Buch-Serie das fundamentale Serien-Universum, "
+        "die wiederkehrenden Stamm-Charaktere, das Cover-Design-System und den Einstieg für Band 1 zu entwerfen. "
+        "Antworte ausschließlich im JSON-Format."
+        f"{get_kids_book_prompt(g_config.get('is_kids_book', False))}"
+    )
+
+    prompt = f"""
+    Rahmendaten der neuen Buch-Serie:
+    - Serientitel: {title}
+    - Serien-Prämisse / Kernkonflikt: {description}
+    - Genre: {genre}
+    - Autorenstil: {style_resolved}
+    - Umfang: {vol_text}
+    
+    {genre_section}
+    
+    Erstelle eine umfassende Serien-Architektur:
+    1. 'world_lore': Ausführliches Worldbuilding (Setting, Regeln, Magie/Technologie, Schauplätze, Fraktionen und Hintergrundgeschichte).
+    2. 'characters': 4 bis 6 archetypische, vielschichtige Stamm-Charaktere, die über mehrere Bände tragen (mit 'name', 'role', 'description', 'traits').
+    3. 'cover_style_prompt': Ein detailliertes Prompt-Template auf ENGLISCH für Buchcover dieser Serie. Es muss den Art-Style (z. B. Oil painting, Cinematic digital art), die Farbpalette, Beleuchtung und das typografische Layout ('Series title prominent at top, Volume number banner, Book title in center, author Dirk Proessel at bottom') beschreiben.
+    4. 'series_arc': Die übergeordnete Story-Entwicklung und Meilensteine der einzelnen Bände (z. B. 'Band 1: ..., Band 2: ..., Band 3: ...').
+    5. 'volume_1_title': Ein packender, kreativer Buchtitel für Band 1.
+    6. 'volume_1_subtitle': Ein passender Untertitel (z. B. 'Band 1: Das Geheimnis der Schatten').
+    7. 'volume_1_prompt': Konkrete Handlungsidee / Plot-Prämisse für Band 1, die als Ausgangspunkt für die Kapitelgliederung dient.
+    """
+
+    try:
+        from app.services.text_generator import generate_text
+        response = await generate_text(
+            prompt=prompt,
+            model=model,
+            temperature=0.7,
+            response_mime_type="application/json",
+            system_instruction=system_instruction,
+            response_schema=SeriesArchitectureSchema
+        )
+        cleaned = clean_json_string(response)
+        return json.loads(cleaned)
+    except Exception as e:
+        logger.error(f"Error in generate_series_architecture: {e}")
+        # Fallback basic structure
+        return {
+            "world_lore": f"Das Universum von {title}. Ein Schauplatz voller Abenteuer im Genre {genre}.",
+            "characters": [
+                {"name": "Protagonist", "role": "Protagonist", "description": "Der Hauptcharakter der Reihe.", "traits": ["mutig", "entschlossen", "loyal"]}
+            ],
+            "cover_style_prompt": f"Professional cinematic book cover design for {genre} series, bold typography title at top, author Dirk Proessel at bottom, highly detailed art style.",
+            "series_arc": "Band 1: Einführung und erster Konflikt.",
+            "volume_1_title": f"{title} - Der Anfang",
+            "volume_1_subtitle": "Band 1",
+            "volume_1_prompt": description
+        }
+
+
+async def extract_series_from_book(
+    project: BookProject,
+    chapters: List[BookChapter],
+    model: str = "gemini-3.7-flash"
+) -> Dict[str, Any]:
+    """
+    Extracts overarching series worldbuilding, lore, master characters bible,
+    and cover style from an existing book project to turn it into Band 1.
+    """
+    chapter_summaries = []
+    for c in chapters:
+        summary_text = c.running_summary or (c.content[:300] + "..." if c.content else c.plot_outline)
+        chapter_summaries.append(f"Kapitel {c.chapter_number} ({c.title}): {summary_text}")
+    full_synopsis = "\n".join(chapter_summaries) or project.prompt
+
+    existing_chars = project.characters_bible or "Keine explizite Charakter-Bibel vorhanden."
+    existing_cover = project.cover_prompt or "Kein Cover-Prompt vorhanden."
+
+    system_instruction = (
+        "Du bist ein Bestseller-Lektor und Serien-Architekt. "
+        "Analysiere ein bestehendes Buch und extrahiere das übergeordnete Worldbuilding, "
+        "die wiederkehrenden Stamm-Charaktere und das visuelle Cover-Design-System, "
+        "um dieses Buch in den ersten Band einer mehrteiligen Serie umzuwandeln. "
+        "Antworte ausschließlich im JSON-Format."
+    )
+
+    prompt = f"""
+    Hier sind die Daten des bestehenden Buches (Band 1):
+    - Buchtitel: {project.title}
+    - Genre: {project.genre}
+    - Autorenstil: {project.style}
+    - Ausgangsidee: {project.prompt}
+    - Bestehende Charaktere:
+    {existing_chars}
+    - Bisheriges Cover-Design / Prompt:
+    {existing_cover}
+    - Handlungsverlauf des Buches:
+    \"\"\"
+    {full_synopsis[:4000]}
+    \"\"\"
+
+    Extrahiere und strukturiere die Serien-Grundlagen:
+    1. 'world_lore': Das übergeordnete Worldbuilding (Setting, Regeln, Magie/Technik, Schauplätze, Zeitlinie).
+    2. 'characters': Die wiederkehrenden Stamm-Charaktere der Serie mit Aussehen, Hintergrund und Motivation.
+    3. 'cover_style_prompt': Ein standardisiertes Cover-Design-Prompt-Template auf ENGLISCH, das den visuellen Stil, die Beleuchtung und das typografische Layout dieses Franchise festlegt.
+    4. 'series_arc': Ein Vorschlag für einen übergeordneten Handlungsbogen für Fortsetzungen (Band 2, Band 3 etc.).
+    """
+
+    try:
+        from app.services.text_generator import generate_text
+        response = await generate_text(
+            prompt=prompt,
+            model=model,
+            temperature=0.7,
+            response_mime_type="application/json",
+            system_instruction=system_instruction,
+            response_schema=SeriesExtractedSchema
+        )
+        cleaned = clean_json_string(response)
+        return json.loads(cleaned)
+    except Exception as e:
+        logger.error(f"Error in extract_series_from_book: {e}")
+        # Parse characters if json string
+        chars_list = []
+        try:
+            if project.characters_bible:
+                parsed = json.loads(clean_json_string(project.characters_bible))
+                if isinstance(parsed, list):
+                    chars_list = parsed
+        except Exception:
+            pass
+        return {
+            "world_lore": f"Das Setting und Universum von '{project.title}' im Genre {project.genre}.",
+            "characters": chars_list or [{"name": "Protagonist", "role": "Protagonist", "description": "Hauptfigur", "traits": ["mutig"]}],
+            "cover_style_prompt": project.cover_prompt or f"Cinematic book cover art style for {project.genre} series, bold title layout, author Dirk Proessel.",
+            "series_arc": f"Band 1: {project.title} - Die Geschichte wird in Band 2 fortgesetzt."
+        }
+
+
+async def suggest_sequel_pitches(
+    series: BookSeries,
+    previous_books: List[BookProject],
+    latest_book_summary: str,
+    model: str = "gemini-3.7-flash"
+) -> List[Dict[str, Any]]:
+    """
+    Generates 3 distinct and engaging sequel pitches for the next volume of a series.
+    """
+    next_volume_number = len(previous_books) + 1
+    prev_titles = ", ".join([f"Band {b.series_order or i+1}: {b.title}" for i, b in enumerate(previous_books)])
+
+    system_instruction = (
+        "Du bist ein leitender Story-Architect und Bestseller-Autor. "
+        f"Entwickle 3 packende, unterschiedliche Handlungs-Pitches für Band {next_volume_number} einer Buch-Serie. "
+        "Antworte ausschließlich im JSON-Format."
+    )
+
+    prompt = f"""
+    Serien-Informationen:
+    - Serientitel: {series.title}
+    - Serien-Prämisse: {series.description}
+    - Genre: {series.genre}
+    - Autorenstil: {series.style}
+    - Bisherige Bände: {prev_titles}
+    - Worldbuilding & Lore: {series.world_lore or 'Keine Angabe'}
+    - Stamm-Charaktere: {series.characters_bible or 'Keine Angabe'}
+    - Serien-Handlungsbogen: {series.series_arc or 'Keine Angabe'}
+    
+    Handlung des letzten Bandes (Status Quo / Finale / Offene Fäden):
+    \"\"\"
+    {latest_book_summary}
+    \"\"\"
+
+    Entwickle genau 3 unterschiedliche Richtungen für Band {next_volume_number}:
+    1. Pitch 1: 'Direkte Fortsetzung / Konsequenzen' (Schließt direkt an das Ende an, löst Cliffhanger oder unmittelbare Folgen).
+    2. Pitch 2: 'Neues Abenteuer / Neuer Fall' (Etwas zeitlicher Abstand, eine neue akute Bedrohung, die den Stamm-Cast fordert).
+    3. Pitch 3: 'Eskalation & Enthüllung' (Die Einsätze verdoppeln sich, alte Geheimnisse aus der Serien-Lore kommen ans Licht).
+
+    Jeder Pitch muss haben:
+    - 'title': Ein starker Buchtitel für Band {next_volume_number}
+    - 'subtitle': 'Band {next_volume_number}: [Passender Band-Untertitel]'
+    - 'pitch': Ausführlicher Klappentext (ca. 80-120 Wörter)
+    - 'core_conflict': Der zentrale Konflikt
+    - 'tone': Die Ausrichtung / Stimmung
+    """
+
+    try:
+        from app.services.text_generator import generate_text
+        response = await generate_text(
+            prompt=prompt,
+            model=model,
+            temperature=0.75,
+            response_mime_type="application/json",
+            system_instruction=system_instruction,
+            response_schema=SequelPitchesResponseSchema
+        )
+        cleaned = clean_json_string(response)
+        data = json.loads(cleaned)
+        if isinstance(data, dict):
+            return data.get("pitches", [])
+        return data
+    except Exception as e:
+        logger.error(f"Error in suggest_sequel_pitches: {e}")
+        return [
+            {
+                "title": f"{series.title} - Band {next_volume_number}",
+                "subtitle": f"Band {next_volume_number}: Das nächste Kapitel",
+                "pitch": f"Die Abenteuer gehen weiter. Eine neue Herausforderung wartet auf die Helden.",
+                "core_conflict": "Ein neuer unvorhergesehener Konflikt.",
+                "tone": "Spannend und handlungsgetrieben"
+            }
+        ]
+
+
+async def evolve_and_suggest_characters(
+    series_characters_bible: str,
+    previous_summary: str,
+    sequel_pitch: str,
+    genre: str,
+    style: str,
+    model: str = "gemini-3.1-flash-lite",
+    is_kids_book: bool = False
+) -> Dict[str, Any]:
+    """
+    Evolves the returning master cast from the series bible and suggests 2-3 new characters tailored to the sequel.
+    """
+    style_resolved = get_author_names_improved(style)
+    system_instruction = (
+        "Du bist ein Charakter-Designer und Romanautor. "
+        "Entwickle die bestehenden Figuren einer Buch-Serie basierend auf den vergangenen Ereignissen weiter "
+        "und erstelle 2 bis 3 neue Figuren, die für die Handlung der Fortsetzung unerlässlich sind. "
+        "Antworte ausschließlich im JSON-Format."
+        f"{get_kids_book_prompt(is_kids_book)}"
+    )
+
+    prompt = f"""
+    Genre: {genre}
+    Autorenstil: {style_resolved}
+    
+    Bisherige Stamm-Charaktere der Serie:
+    {series_characters_bible}
+    
+    Was bisher geschah (Vergangene Ereignisse & Entwicklungen):
+    {previous_summary}
+    
+    Handlung des neuen Bandes:
+    {sequel_pitch}
+    
+    Aufgabe:
+    1. 'evolved_characters': Nimm die bisherigen Stamm-Charaktere und aktualisiere ihre Beschreibungen, Beziehungen, Traumata und Ziele passend zum Beginn dieses neuen Bandes.
+    2. 'new_characters': Erfinde 2 bis 3 neue, faszinierende Charaktere speziell für diesen neuen Band (z. B. neuer Antagonist, wichtiger Informant, Rivale oder Verbündeter).
+    """
+
+    try:
+        from app.services.text_generator import generate_text
+        response = await generate_text(
+            prompt=prompt,
+            model=model,
+            temperature=0.7,
+            response_mime_type="application/json",
+            system_instruction=system_instruction,
+            response_schema=CharacterEvolutionSchema
+        )
+        cleaned = clean_json_string(response)
+        return json.loads(cleaned)
+    except Exception as e:
+        logger.error(f"Error in evolve_and_suggest_characters: {e}")
+        return {
+            "evolved_characters": [],
+            "new_characters": []
+        }
+
+
+async def suggest_series_cover_prompt(
+    series_title: str,
+    series_cover_template: str,
+    volume_number: int,
+    volume_title: str,
+    volume_prompt: str,
+    genre: str,
+    style: str,
+    model: str = "gemini-3.1-flash-lite"
+) -> str:
+    """
+    Generates a cover prompt for Band N that strictly maintains visual continuity with the series cover styleguide.
+    """
+    system_instruction = (
+        "Du bist ein Experte für Buchcover-Design und Bild-Prompt-Engineering für Buchreihen. "
+        "Erstelle einen englischen Cover-Prompt für den Folgeband einer Serie. "
+        "WICHTIG: Behalte den Kunststil, die Farbharmonie und die Typografie-Struktur des Serien-Styleguides exakt bei, "
+        "passe aber das Hauptmotiv, die Bandnummer und den Buchtitel an den Inhalt dieses Bandes an. "
+        "Antworte ausschließlich mit dem fertigen englischen Prompt ohne Einleitung."
+    )
+
+    prompt = f"""
+    Serien-Styleguide & Cover-Template:
+    \"\"\"
+    {series_cover_template}
+    \"\"\"
+
+    Angaben zum neuen Band:
+    - Serientitel: {series_title}
+    - Bandnummer: Band {volume_number} (Volume {volume_number})
+    - Buchtitel: {volume_title}
+    - Handlungsinhalt / Thema dieses Bandes: {volume_prompt}
+    - Genre: {genre}
+    - Stil: {style}
+
+    Anweisungen für den neuen Prompt:
+    1. Der Prompt muss auf ENGLISCH sein.
+    2. Der Typografie-Aufbau MUSS konsistent bleiben: Serientitel "{series_title}" oben, Bandnummer "Band {volume_number}" bzw. "Vol. {volume_number}", Buchtitel "{volume_title}" in großer eleganter Schrift, Autorenname "Dirk Proessel" unten.
+    3. Das visuelle Motiv muss die Schlüsselszene/das Thema des neuen Bandes darstellen, aber in genau demselben Rendering-Stil, Lighting und Farbpalette wie im Serien-Styleguide definiert.
+    """
+
+    try:
+        from app.services.text_generator import generate_text
+        response = await generate_text(
+            prompt=prompt,
+            model=model,
+            temperature=0.7,
+            system_instruction=system_instruction
+        )
+        return response.strip().strip('"').strip("'")
+    except Exception as e:
+        logger.error(f"Error in suggest_series_cover_prompt: {e}")
+        return f"Professional book cover design for {series_title} Volume {volume_number}: {volume_title}, maintaining franchise visual identity, author Dirk Proessel."
+
 
 
 

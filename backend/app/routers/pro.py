@@ -20,8 +20,13 @@ from app.config import settings
 from app.auth_utils import get_current_active_user, SECRET_KEY, ALGORITHM
 from app.models import (
     User,
+    BookSeries,
     BookProject,
     BookChapter,
+    BookSeriesCreate,
+    BookSeriesUpdate,
+    BookSeriesResponse,
+    BookSeriesDetailResponse,
     BookProjectCreate,
     BookProjectUpdate,
     BookOutlineImport,
@@ -43,7 +48,12 @@ from app.services.book_generator import (
     parse_imported_outline,
     expand_chapter_outline,
     apply_global_feedback_to_outline,
-    proofread_outline_globally
+    proofread_outline_globally,
+    generate_series_architecture,
+    extract_series_from_book,
+    suggest_sequel_pitches,
+    evolve_and_suggest_characters,
+    suggest_series_cover_prompt
 )
 from app.services.book_export_service import (
     generate_book_epub,
@@ -525,6 +535,442 @@ async def bg_generate_cover(project_id: str, cover_prompt: str, model: Optional[
                 session.commit()
 
 
+# --- Series Request Schemas ---
+
+class SequelCreateRequest(BaseModel):
+    title: str
+    subtitle: Optional[str] = None
+    prompt: str
+    auto_evolve_characters: bool = True
+    model: str = "gemini-3.7-flash"
+
+class SeriesBibleSyncRequest(BaseModel):
+    source_book_id: str
+
+class SeriesCoverSuggestRequest(BaseModel):
+    volume_number: int
+    volume_title: str
+    volume_prompt: str
+    model: str = "gemini-3.1-flash-lite"
+
+
+# --- Series Endpoints ---
+
+@router.get("/series", response_model=List[BookSeriesResponse])
+async def api_list_series(current_user: User = Depends(get_current_active_user)):
+    """List all book series for the current user."""
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin-Zugang verweigert.")
+    
+    with Session(engine) as session:
+        series_list = session.exec(
+            select(BookSeries).order_by(BookSeries.updated_at.desc())
+        ).all()
+        
+        result = []
+        for s in series_list:
+            resp = BookSeriesResponse.model_validate(s, from_attributes=True)
+            resp.book_count = len(s.books) if s.books else 0
+            result.append(resp)
+        return result
+
+
+@router.post("/series", response_model=BookSeriesDetailResponse)
+async def api_create_series(
+    req: BookSeriesCreate, 
+    current_user: User = Depends(get_current_active_user)
+):
+    """Create a new book series, optionally generating full architecture & Band 1 immediately."""
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin-Zugang verweigert.")
+    
+    from app.services.story_generator import generate_modular_prompt
+    initial_style = generate_modular_prompt(req.style)
+    
+    series_id = str(uuid.uuid4())[:8]
+    series = BookSeries(
+        id=series_id,
+        user_id=current_user.id,
+        title=req.title,
+        description=req.description,
+        genre=req.genre,
+        style=req.style,
+        genre_config=req.genre_config,
+        planned_volumes=req.planned_volumes,
+        style_bible=initial_style
+    )
+
+    volume_1_project = None
+
+    if req.auto_init_volume_1:
+        g_config = json.loads(req.genre_config) if req.genre_config else None
+        try:
+            arch = await generate_series_architecture(
+                title=req.title,
+                description=req.description,
+                genre=req.genre,
+                style=req.style,
+                genre_config=g_config,
+                planned_volumes=req.planned_volumes
+            )
+            series.world_lore = arch.get("world_lore")
+            chars = arch.get("characters", [])
+            series.characters_bible = json.dumps(chars, ensure_ascii=False)
+            series.cover_style_prompt = arch.get("cover_style_prompt")
+            series.series_arc = arch.get("series_arc")
+
+            # Create Band 1
+            vol1_id = str(uuid.uuid4())[:8]
+            vol1_title = arch.get("volume_1_title") or f"{req.title} - Band 1"
+            vol1_subtitle = arch.get("volume_1_subtitle") or "Band 1"
+            vol1_prompt = arch.get("volume_1_prompt") or req.description
+
+            volume_1_project = BookProject(
+                id=vol1_id,
+                user_id=current_user.id,
+                title=vol1_title,
+                prompt=vol1_prompt,
+                genre=req.genre,
+                style=req.style,
+                genre_config=req.genre_config,
+                series_id=series_id,
+                series_order=1,
+                series_subtitle=vol1_subtitle,
+                characters_bible=series.characters_bible,
+                style_bible=initial_style,
+                status="draft"
+            )
+        except Exception as e:
+            logger.error(f"Failed to generate series architecture: {e}")
+
+    with Session(engine) as session:
+        session.add(series)
+        if volume_1_project:
+            session.add(volume_1_project)
+        session.commit()
+        session.refresh(series)
+        
+        detail_resp = BookSeriesDetailResponse.model_validate(series, from_attributes=True)
+        detail_resp.book_count = len(series.books) if series.books else 0
+        if series.books:
+            detail_resp.books = [BookProjectResponse.model_validate(b, from_attributes=True) for b in series.books]
+        return detail_resp
+
+
+@router.get("/series/{id}", response_model=BookSeriesDetailResponse)
+async def api_get_series(id: str, current_user: User = Depends(get_current_active_user)):
+    """Get series detail including all associated books in order."""
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin-Zugang verweigert.")
+    
+    with Session(engine) as session:
+        series = session.get(BookSeries, id)
+        if not series:
+            raise HTTPException(status_code=404, detail="Buch-Serie nicht gefunden.")
+        
+        detail_resp = BookSeriesDetailResponse.model_validate(series, from_attributes=True)
+        detail_resp.book_count = len(series.books) if series.books else 0
+        if series.books:
+            detail_resp.books = [BookProjectResponse.model_validate(b, from_attributes=True) for b in series.books]
+        return detail_resp
+
+
+@router.put("/series/{id}", response_model=BookSeriesResponse)
+async def api_update_series(
+    id: str, 
+    req: BookSeriesUpdate, 
+    current_user: User = Depends(get_current_active_user)
+):
+    """Update series metadata and bible."""
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin-Zugang verweigert.")
+    
+    with Session(engine) as session:
+        series = session.get(BookSeries, id)
+        if not series:
+            raise HTTPException(status_code=404, detail="Buch-Serie nicht gefunden.")
+        
+        data = req.model_dump(exclude_unset=True)
+        for k, v in data.items():
+            setattr(series, k, v)
+            
+        series.updated_at = datetime.now(timezone.utc)
+        session.add(series)
+        session.commit()
+        session.refresh(series)
+        
+        resp = BookSeriesResponse.model_validate(series, from_attributes=True)
+        resp.book_count = len(series.books) if series.books else 0
+        return resp
+
+
+@router.delete("/series/{id}")
+async def api_delete_series(id: str, current_user: User = Depends(get_current_active_user)):
+    """Delete a series while preserving books (unlinking them)."""
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin-Zugang verweigert.")
+    
+    with Session(engine) as session:
+        series = session.get(BookSeries, id)
+        if not series:
+            raise HTTPException(status_code=404, detail="Buch-Serie nicht gefunden.")
+        
+        # Unlink books
+        for book in series.books:
+            book.series_id = None
+            book.series_order = None
+            book.series_subtitle = None
+            session.add(book)
+            
+        session.delete(series)
+        session.commit()
+        return {"status": "success", "message": "Serie gelöscht. Bücher wurden als Einzelbände behalten."}
+
+
+@router.post("/books/{id}/convert-to-series", response_model=BookSeriesDetailResponse)
+async def api_convert_book_to_series(id: str, current_user: User = Depends(get_current_active_user)):
+    """Convert an existing standalone book into Band 1 of a new BookSeries."""
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin-Zugang verweigert.")
+    
+    with Session(engine) as session:
+        project = session.get(BookProject, id)
+        if not project:
+            raise HTTPException(status_code=404, detail="Buchprojekt nicht gefunden.")
+        
+        if project.series_id:
+            raise HTTPException(status_code=400, detail="Dieses Buch gehört bereits zu einer Serie.")
+        
+        chapters = session.exec(
+            select(BookChapter)
+            .where(BookChapter.book_project_id == id)
+            .order_by(BookChapter.chapter_number)
+        ).all()
+
+        # Run extraction
+        extracted = await extract_series_from_book(project, chapters)
+        
+        series_id = str(uuid.uuid4())[:8]
+        chars_bible = json.dumps(extracted.get("characters", []), ensure_ascii=False) if extracted.get("characters") else project.characters_bible
+        
+        series = BookSeries(
+            id=series_id,
+            user_id=current_user.id,
+            title=project.title,
+            description=project.prompt,
+            genre=project.genre,
+            style=project.style,
+            genre_config=project.genre_config,
+            characters_bible=chars_bible,
+            style_bible=project.style_bible,
+            world_lore=extracted.get("world_lore"),
+            series_arc=extracted.get("series_arc"),
+            cover_style_prompt=extracted.get("cover_style_prompt")
+        )
+        
+        # Update project to be Volume 1
+        project.series_id = series_id
+        project.series_order = 1
+        project.series_subtitle = "Band 1"
+        
+        session.add(series)
+        session.add(project)
+        session.commit()
+        session.refresh(series)
+        
+        detail_resp = BookSeriesDetailResponse.model_validate(series, from_attributes=True)
+        detail_resp.book_count = len(series.books) if series.books else 0
+        if series.books:
+            detail_resp.books = [BookProjectResponse.model_validate(b, from_attributes=True) for b in series.books]
+        return detail_resp
+
+
+@router.post("/series/{id}/suggest-sequel")
+async def api_suggest_sequel(
+    id: str, 
+    model: str = "gemini-3.7-flash",
+    current_user: User = Depends(get_current_active_user)
+):
+    """Generate 3 sequel pitches based on the series and past volumes."""
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin-Zugang verweigert.")
+    
+    with Session(engine) as session:
+        series = session.get(BookSeries, id)
+        if not series:
+            raise HTTPException(status_code=404, detail="Buch-Serie nicht gefunden.")
+        
+        books = session.exec(
+            select(BookProject)
+            .where(BookProject.series_id == id)
+            .order_by(BookProject.series_order)
+        ).all()
+
+        latest_summary = ""
+        if books:
+            latest_book = books[-1]
+            chaps = session.exec(
+                select(BookChapter)
+                .where(BookChapter.book_project_id == latest_book.id)
+                .order_by(BookChapter.chapter_number)
+            ).all()
+            summaries = []
+            for c in chaps:
+                txt = c.running_summary or (c.content[:250] if c.content else c.plot_outline)
+                summaries.append(f"Kapitel {c.chapter_number} ({c.title}): {txt}")
+            latest_summary = f"Handlungsverlauf von {latest_book.title} (Band {latest_book.series_order or len(books)}):\n" + "\n".join(summaries)
+        else:
+            latest_summary = series.description
+
+    pitches = await suggest_sequel_pitches(
+        series=series,
+        previous_books=books,
+        latest_book_summary=latest_summary,
+        model=model
+    )
+    return {"pitches": pitches}
+
+
+@router.post("/series/{id}/create-sequel", response_model=BookProjectDetailResponse)
+async def api_create_sequel(
+    id: str,
+    req: SequelCreateRequest,
+    current_user: User = Depends(get_current_active_user)
+):
+    """Create a new volume (Band N+1) in the series, inheriting characters, style, and lore."""
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin-Zugang verweigert.")
+    
+    with Session(engine) as session:
+        series = session.get(BookSeries, id)
+        if not series:
+            raise HTTPException(status_code=404, detail="Buch-Serie nicht gefunden.")
+        
+        existing_books = session.exec(
+            select(BookProject)
+            .where(BookProject.series_id == id)
+            .order_by(BookProject.series_order)
+        ).all()
+        
+        next_order = len(existing_books) + 1
+        
+        # Build "Was bisher geschah..."
+        prev_summaries_list = []
+        for b in existing_books:
+            b_order = b.series_order or "?"
+            chaps = session.exec(
+                select(BookChapter)
+                .where(BookChapter.book_project_id == b.id)
+                .order_by(BookChapter.chapter_number)
+            ).all()
+            ch_sums = [f"- Kap. {c.chapter_number}: {c.running_summary or c.title}" for c in chaps if c.running_summary or c.title]
+            prev_summaries_list.append(f"=== Band {b_order}: {b.title} ===\n" + "\n".join(ch_sums))
+            
+        previous_summary = "\n\n".join(prev_summaries_list) or f"Vorgängerbände der Serie {series.title}."
+        
+        # Evolve characters if requested
+        characters_bible = series.characters_bible
+        if req.auto_evolve_characters and series.characters_bible:
+            is_kids = _get_kids_flag(series.genre_config)
+            try:
+                char_res = await evolve_and_suggest_characters(
+                    series_characters_bible=series.characters_bible,
+                    previous_summary=previous_summary,
+                    sequel_pitch=req.prompt,
+                    genre=series.genre,
+                    style=series.style,
+                    model="gemini-3.1-flash-lite",
+                    is_kids_book=is_kids
+                )
+                evolved = char_res.get("evolved_characters", [])
+                new_chars = char_res.get("new_characters", [])
+                all_chars = evolved + new_chars
+                if all_chars:
+                    characters_bible = json.dumps(all_chars, ensure_ascii=False)
+            except Exception as e:
+                logger.error(f"Failed to evolve characters for sequel: {e}")
+        
+        new_project_id = str(uuid.uuid4())[:8]
+        new_subtitle = req.subtitle or f"Band {next_order}"
+        
+        new_project = BookProject(
+            id=new_project_id,
+            user_id=current_user.id,
+            title=req.title,
+            prompt=req.prompt,
+            genre=series.genre,
+            style=series.style,
+            genre_config=series.genre_config,
+            series_id=id,
+            series_order=next_order,
+            series_subtitle=new_subtitle,
+            previous_summary=previous_summary,
+            characters_bible=characters_bible,
+            style_bible=series.style_bible,
+            status="draft"
+        )
+        
+        session.add(new_project)
+        session.commit()
+        session.refresh(new_project)
+        return BookProjectDetailResponse.model_validate(new_project, from_attributes=True)
+
+
+@router.post("/series/{id}/sync-bible")
+async def api_sync_series_bible(
+    id: str,
+    req: SeriesBibleSyncRequest,
+    current_user: User = Depends(get_current_active_user)
+):
+    """Sync character updates from a specific volume back to the Master Series Bible."""
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin-Zugang verweigert.")
+    
+    with Session(engine) as session:
+        series = session.get(BookSeries, id)
+        book = session.get(BookProject, req.source_book_id)
+        if not (series and book):
+            raise HTTPException(status_code=404, detail="Serie oder Buch nicht gefunden.")
+        
+        if book.characters_bible:
+            series.characters_bible = book.characters_bible
+            series.updated_at = datetime.now(timezone.utc)
+            session.add(series)
+            session.commit()
+            return {"status": "success", "message": "Master-Charakter-Bibel der Serie wurde erfolgreich aktualisiert."}
+        return {"status": "noop", "message": "Buch hat keine Charakter-Bibel."}
+
+
+@router.post("/series/{id}/cover/suggest")
+async def api_suggest_series_cover(
+    id: str,
+    req: SeriesCoverSuggestRequest,
+    current_user: User = Depends(get_current_active_user)
+):
+    """Suggests a cover prompt for Band N strictly conforming to the series cover style template."""
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin-Zugang verweigert.")
+    
+    with Session(engine) as session:
+        series = session.get(BookSeries, id)
+        if not series:
+            raise HTTPException(status_code=404, detail="Buch-Serie nicht gefunden.")
+        
+        template = series.cover_style_prompt or f"Cinematic book cover art style for {series.genre} series, bold title layout, author Dirk Proessel."
+        
+    suggested = await suggest_series_cover_prompt(
+        series_title=series.title,
+        series_cover_template=template,
+        volume_number=req.volume_number,
+        volume_title=req.volume_title,
+        volume_prompt=req.volume_prompt,
+        genre=series.genre,
+        style=series.style,
+        model=req.model
+    )
+    return {"suggested_prompt": suggested}
+
+
 # --- CRUD Endpoints ---
 
 @router.get("/genres/{genre}/profile")
@@ -678,6 +1124,18 @@ async def api_generate_outline(
         bible = project.characters_bible or "Keine Angabe"
         g_config = json.loads(project.genre_config) if project.genre_config else None
         
+        series_context = None
+        if project.series_id:
+            series = session.get(BookSeries, project.series_id)
+            if series:
+                series_context = {
+                    "series_title": series.title,
+                    "series_order": project.series_order or 1,
+                    "world_lore": series.world_lore,
+                    "series_arc": series.series_arc,
+                    "previous_summary": project.previous_summary
+                }
+        
         outline_res = await generate_outline(
             prompt=project.prompt,
             genre=project.genre,
@@ -686,7 +1144,8 @@ async def api_generate_outline(
             num_chapters=num_chapters,
             model=model,
             instruction=instruction,
-            genre_config=g_config
+            genre_config=g_config,
+            series_context=series_context
         )
         
         # Save outline structure to project

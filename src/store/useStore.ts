@@ -30,8 +30,13 @@ import { type UserVoice, type SystemVoice } from '../lib/api';
 import { 
     type BookProject, 
     type BookProjectDetail, 
+    type BookSeries,
+    type BookSeriesDetail,
     fetchProBooks, 
-    fetchProBookDetail 
+    fetchProBookDetail,
+    fetchProSeries,
+    fetchProSeriesDetail,
+    deleteProSeries as apiDeleteProSeries
 } from '../lib/api';
 
 interface AppState {
@@ -85,6 +90,14 @@ interface AppState {
     loadProProjects: () => Promise<void>;
     loadProProjectDetail: (id: string) => Promise<void>;
     setCurrentProProject: (project: BookProjectDetail | null) => void;
+
+    // Pro Series State & Actions
+    proSeries: BookSeries[];
+    currentProSeries: BookSeriesDetail | null;
+    loadProSeries: () => Promise<void>;
+    loadProSeriesDetail: (id: string) => Promise<void>;
+    setCurrentProSeries: (series: BookSeriesDetail | null) => void;
+    deleteProSeries: (id: string) => Promise<void>;
     
     // Admin
     adminUsers: User[];
@@ -187,6 +200,8 @@ export const useStore = create<AppState>((set, get) => {
     activeView: initialToken ? 'create' : 'landing',
     proProjects: [],
     currentProProject: null,
+    proSeries: [],
+    currentProSeries: null,
     adminUsers: [],
     adminClonedVoices: [],
     adminSystemVoices: [],
@@ -531,6 +546,7 @@ export const useStore = create<AppState>((set, get) => {
             get().loadStories(1);
         } else if (view === 'pro') {
             get().loadProProjects();
+            get().loadProSeries();
         }
     },
     loadProProjects: async () => {
@@ -556,6 +572,44 @@ export const useStore = create<AppState>((set, get) => {
         }
     },
     setCurrentProProject: (project) => set({ currentProProject: project }),
+
+    loadProSeries: async () => {
+        set({ isLoading: true, error: null });
+        try {
+            const proSeries = await fetchProSeries();
+            set({ proSeries });
+        } catch (e: any) {
+            set({ error: e.message });
+        } finally {
+            set({ isLoading: false });
+        }
+    },
+    loadProSeriesDetail: async (id) => {
+        set({ isLoading: true, error: null });
+        try {
+            const currentProSeries = await fetchProSeriesDetail(id);
+            set({ currentProSeries });
+        } catch (e: any) {
+            set({ error: e.message });
+        } finally {
+            set({ isLoading: false });
+        }
+    },
+    setCurrentProSeries: (series) => set({ currentProSeries: series }),
+    deleteProSeries: async (id) => {
+        try {
+            await apiDeleteProSeries(id);
+            set((state) => ({
+                proSeries: state.proSeries.filter((s) => s.id !== id),
+                currentProSeries: state.currentProSeries?.id === id ? null : state.currentProSeries,
+            }));
+            // Also refresh projects to reflect unlinked series
+            get().loadProProjects();
+        } catch (e: any) {
+            set({ error: e.message });
+            throw e;
+        }
+    },
     setSelectedStoryId: (id) => set({ selectedStoryId: id }),
     setAdminSubView: (view) => set({ adminSubView: view }),
     setReaderOpen: (open, storyId = null) => set({ 

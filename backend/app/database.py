@@ -158,6 +158,33 @@ def ensure_migrations():
                     cur.execute("INSERT INTO systemsetting (key, value, description, updated_at) VALUES (?, ?, ?, ?)", (k, v, d, now_iso))
                 conn.commit()
 
+            # --- Check if bookseries table exists ---
+            cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='bookseries'")
+            if not cur.fetchone():
+                print("Migration: Creating bookseries table...")
+                cur.execute("""
+                    CREATE TABLE bookseries (
+                        id TEXT PRIMARY KEY,
+                        user_id TEXT NOT NULL,
+                        title TEXT NOT NULL,
+                        description TEXT NOT NULL,
+                        genre TEXT NOT NULL DEFAULT 'Realismus',
+                        style TEXT NOT NULL DEFAULT 'Douglas Adams',
+                        genre_config TEXT,
+                        planned_volumes INTEGER,
+                        characters_bible TEXT,
+                        style_bible TEXT,
+                        world_lore TEXT,
+                        series_arc TEXT,
+                        cover_style_prompt TEXT,
+                        created_at DATETIME,
+                        updated_at DATETIME,
+                        FOREIGN KEY (user_id) REFERENCES user (id)
+                    )
+                """)
+                cur.execute("CREATE INDEX IF NOT EXISTS ix_bookseries_user_id ON bookseries (user_id)")
+                conn.commit()
+
             # --- Check if columns exist in bookproject table ---
             try:
                 cur.execute("PRAGMA table_info(bookproject)")
@@ -167,6 +194,20 @@ def ensure_migrations():
                         print("Migration: Adding genre_config to bookproject...")
                         cur.execute("ALTER TABLE bookproject ADD COLUMN genre_config TEXT")
                         conn.commit()
+                    
+                    series_proj_cols = [
+                        ("series_id", "TEXT"),
+                        ("series_order", "INTEGER"),
+                        ("series_subtitle", "TEXT"),
+                        ("previous_summary", "TEXT")
+                    ]
+                    for col_name, col_type in series_proj_cols:
+                        if col_name.lower() not in [c.lower() for c in proj_columns]:
+                            print(f"Migration: Adding {col_name} to bookproject...")
+                            cur.execute(f"ALTER TABLE bookproject ADD COLUMN {col_name} {col_type}")
+                            if col_name == "series_id":
+                                cur.execute("CREATE INDEX IF NOT EXISTS ix_bookproject_series_id ON bookproject (series_id)")
+                            conn.commit()
             except Exception as proj_e:
                 print(f"Migration bookproject warning: {proj_e}")
 
@@ -183,7 +224,7 @@ def ensure_migrations():
                 print(f"Migration bookchapter warning: {chap_e}")
                     
         except Exception as e:
-            print(f"Migration voice/systemvoice warning: {e}")
+            print(f"Migration voice/systemvoice/pro warning: {e}")
         
     except Exception as e:
         print(f"Migration error: {e}")

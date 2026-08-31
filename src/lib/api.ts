@@ -770,6 +770,10 @@ export interface BookProject {
     genre: string;
     style: string;
     genre_config?: string | null;
+    series_id?: string | null;
+    series_order?: number | null;
+    series_subtitle?: string | null;
+    previous_summary?: string | null;
     characters_bible: string | null;
     style_bible: string | null;
     outline: string | null;
@@ -783,12 +787,44 @@ export interface BookProject {
     status: 'draft' | 'generating' | 'proofreading' | 'completed' | 'error';
     progress: string | null;
     progress_pct: number;
+    chapters?: BookChapter[];
     created_at: string;
     updated_at: string;
 }
 
 export interface BookProjectDetail extends BookProject {
     chapters: BookChapter[];
+}
+
+export interface BookSeries {
+    id: string;
+    user_id: string;
+    title: string;
+    description: string;
+    genre: string;
+    style: string;
+    genre_config?: string | null;
+    planned_volumes?: number | null;
+    characters_bible: string | null;
+    style_bible: string | null;
+    world_lore: string | null;
+    series_arc: string | null;
+    cover_style_prompt: string | null;
+    created_at: string;
+    updated_at: string;
+    book_count?: number;
+}
+
+export interface BookSeriesDetail extends BookSeries {
+    books: BookProject[];
+}
+
+export interface SequelPitch {
+    title: string;
+    subtitle: string;
+    pitch: string;
+    core_conflict: string;
+    tone: string;
 }
 
 export interface KdpMetadata {
@@ -823,7 +859,17 @@ export async function fetchProBookDetail(id: string): Promise<BookProjectDetail>
     return res.json();
 }
 
-export async function createProBook(req: { title: string, prompt: string, genre: string, style: string, genre_config?: string }): Promise<BookProject> {
+export async function createProBook(req: { 
+    title: string, 
+    prompt: string, 
+    genre: string, 
+    style: string, 
+    genre_config?: string,
+    series_id?: string,
+    series_order?: number,
+    series_subtitle?: string,
+    previous_summary?: string
+}): Promise<BookProject> {
     const res = await fetch(`${API_BASE}/api/pro/books`, {
         method: 'POST',
         headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
@@ -849,6 +895,126 @@ export async function deleteProBook(id: string): Promise<void> {
         headers: getAuthHeaders()
     });
     if (!res.ok) throw new Error('Fehler beim Löschen des Buchprojekts');
+}
+
+// --- Pro Series Endpoints ---
+
+export async function fetchProSeries(): Promise<BookSeries[]> {
+    const res = await fetch(`${API_BASE}/api/pro/series`, { headers: getAuthHeaders() });
+    if (!res.ok) throw new Error('Fehler beim Laden der Buch-Serien');
+    return res.json();
+}
+
+export async function fetchProSeriesDetail(id: string): Promise<BookSeriesDetail> {
+    const res = await fetch(`${API_BASE}/api/pro/series/${id}`, { headers: getAuthHeaders() });
+    if (!res.ok) throw new Error('Fehler beim Laden der Seriendetails');
+    return res.json();
+}
+
+export async function createProSeries(req: {
+    title: string;
+    description: string;
+    genre: string;
+    style: string;
+    genre_config?: string;
+    planned_volumes?: number | null;
+    auto_init_volume_1?: boolean;
+}): Promise<BookSeriesDetail> {
+    const res = await fetch(`${API_BASE}/api/pro/series`, {
+        method: 'POST',
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify(req),
+    });
+    if (!res.ok) throw new Error('Fehler beim Erstellen der Buch-Serie');
+    return res.json();
+}
+
+export async function updateProSeries(id: string, data: Partial<BookSeries>): Promise<BookSeries> {
+    const res = await fetch(`${API_BASE}/api/pro/series/${id}`, {
+        method: 'PUT',
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error('Fehler beim Aktualisieren der Serie');
+    return res.json();
+}
+
+export async function deleteProSeries(id: string): Promise<void> {
+    const res = await fetch(`${API_BASE}/api/pro/series/${id}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+    });
+    if (!res.ok) throw new Error('Fehler beim Löschen der Serie');
+}
+
+export async function convertBookToSeries(bookId: string): Promise<BookSeriesDetail> {
+    const res = await fetch(`${API_BASE}/api/pro/books/${bookId}/convert-to-series`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+    });
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.detail || 'Fehler beim Konvertieren zur Serie');
+    }
+    return res.json();
+}
+
+export async function suggestProSequel(seriesId: string, model?: string): Promise<{ pitches: SequelPitch[] }> {
+    let url = `${API_BASE}/api/pro/series/${seriesId}/suggest-sequel`;
+    if (model) url += `?model=${encodeURIComponent(model)}`;
+    const res = await fetch(url, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+    });
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.detail || 'Fehler beim Abrufen von Sequel-Pitches');
+    }
+    return res.json();
+}
+
+export async function createProSequel(seriesId: string, req: {
+    title: string;
+    subtitle?: string;
+    prompt: string;
+    auto_evolve_characters?: boolean;
+    model?: string;
+}): Promise<BookProjectDetail> {
+    const res = await fetch(`${API_BASE}/api/pro/series/${seriesId}/create-sequel`, {
+        method: 'POST',
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify(req),
+    });
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.detail || 'Fehler beim Erstellen des Sequels');
+    }
+    return res.json();
+}
+
+export async function syncProSeriesBible(seriesId: string, sourceBookId: string): Promise<{ status: string; message: string }> {
+    const res = await fetch(`${API_BASE}/api/pro/series/${seriesId}/sync-bible`, {
+        method: 'POST',
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ source_book_id: sourceBookId }),
+    });
+    if (!res.ok) throw new Error('Fehler beim Synchronisieren der Serien-Bibel');
+    return res.json();
+}
+
+export async function suggestProSeriesCover(seriesId: string, req: {
+    volume_number: number;
+    volume_title: string;
+    volume_prompt: string;
+    model?: string;
+}): Promise<{ suggested_prompt: string }> {
+    const res = await fetch(`${API_BASE}/api/pro/series/${seriesId}/cover/suggest`, {
+        method: 'POST',
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify(req),
+    });
+    if (!res.ok) throw new Error('Fehler beim Vorschlagen des Serien-Covers');
+    return res.json();
 }
 
 export async function suggestProCharacters(id: string, model?: string): Promise<{ suggestions: any[] }> {

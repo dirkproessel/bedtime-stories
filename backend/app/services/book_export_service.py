@@ -395,13 +395,29 @@ async def generate_book_epub(project: BookProject, chapters: List[BookChapter], 
 
     year = datetime.date.today().year
 
+    # Check for series info
+    series_title = None
+    if project.series_id:
+        try:
+            from sqlmodel import Session
+            from app.database import engine
+            from app.models import BookSeries
+            with Session(engine) as session:
+                series = session.get(BookSeries, project.series_id)
+                if series:
+                    series_title = series.title
+        except Exception as e:
+            logger.error(f"Failed to fetch series info for EPUB: {e}")
+
     # -------------------------------------------------------
     # PAGE 1 – Titelblatt (Full Title)
     # -------------------------------------------------------
+    series_line = f'<div class="book-subtitle">{series_title} &bull; {project.series_subtitle or f"Band {project.series_order}"}</div>' if series_title else ''
     title_page = make_page(
         "title", "title.xhtml", "Titelblatt",
         f'''<div class="title-page">
   <div class="book-title">{project.title}</div>
+  {series_line}
   <div class="ornament">&#10022;</div>
   <div class="author">{author_name}</div>
   <div class="publisher">storyja.com &bull; {year}</div>
@@ -414,6 +430,7 @@ async def generate_book_epub(project: BookProject, chapters: List[BookChapter], 
     # -------------------------------------------------------
     custom_imprint = (project.epub_imprint or "").strip()
     imprint_extra = f'<hr/><p>{custom_imprint}</p>' if custom_imprint else ''
+    series_notice = f'<p><em>Dieses Werk ist {project.series_subtitle or f"Band {project.series_order}"} der Buchreihe &bdquo;{series_title}&ldquo;.</em></p><hr/>' if series_title else ''
     imprint_page = make_page(
         "imprint", "imprint.xhtml", "Impressum",
         f'''<div class="imprint-page">
@@ -425,6 +442,7 @@ async def generate_book_epub(project: BookProject, chapters: List[BookChapter], 
   Genehmigung des Autors reproduziert, verbreitet oder in irgendeiner Form
   &uuml;bertragen werden.</p>
   <hr/>
+  {series_notice}
   <p><em>Dieses Buch wurde mit Unterst&uuml;tzung k&uuml;nstlicher Intelligenz
   (storyja.com) verfasst und von {author_name} kuratiert,
   redigiert und ver&ouml;ffentlicht.</em></p>
@@ -444,6 +462,21 @@ async def generate_book_epub(project: BookProject, chapters: List[BookChapter], 
             f'<div class="dedication-page"><p>{dedication_text}</p></div>'
         )
         book.add_item(dedication_page)
+
+    # -------------------------------------------------------
+    # PAGE 3.5 – Was bisher geschah (optional for sequels)
+    # -------------------------------------------------------
+    previous_page = None
+    if project.previous_summary and project.series_order and project.series_order > 1:
+        prev_paras = text_to_html_paragraphs(project.previous_summary)
+        previous_page = make_page(
+            "previous_summary", "previous_summary.xhtml", "Was bisher geschah",
+            f'''<div class="previous-summary-page">
+  <h2>Was bisher geschah</h2>
+  {prev_paras}
+</div>'''
+        )
+        book.add_item(previous_page)
 
     # -------------------------------------------------------
     # CHAPTERS
@@ -489,6 +522,8 @@ async def generate_book_epub(project: BookProject, chapters: List[BookChapter], 
     ]
     if dedication_page:
         toc_entries.append(epub.Link('dedication.xhtml', 'Widmung', 'dedication'))
+    if previous_page:
+        toc_entries.append(epub.Link('previous_summary.xhtml', 'Was bisher geschah', 'previous_summary'))
     toc_entries.extend(epub_chapters)
     if afterword_page:
         toc_entries.append(epub.Link('afterword.xhtml', 'Nachwort', 'afterword'))
@@ -501,6 +536,8 @@ async def generate_book_epub(project: BookProject, chapters: List[BookChapter], 
     spine: list = [title_page, imprint_page]
     if dedication_page:
         spine.append(dedication_page)
+    if previous_page:
+        spine.append(previous_page)
     spine.extend(epub_chapters)
     if afterword_page:
         spine.append(afterword_page)
@@ -524,15 +561,30 @@ async def generate_kdp_metadata(project: BookProject, chapters: List[BookChapter
 
     chapter_titles = ", ".join([f"Kapitel {c.chapter_number}: {c.title}" for c in chapters])
 
+    series_clause = ""
+    if project.series_id:
+        try:
+            from sqlmodel import Session
+            from app.database import engine
+            from app.models import BookSeries
+            with Session(engine) as session:
+                series = session.get(BookSeries, project.series_id)
+                if series:
+                    series_clause = f"- Buch-Serie: '{series.title}', {project.series_subtitle or f'Band {project.series_order}'}\n"
+        except Exception:
+            pass
+
     system_instruction = (
         "Du bist ein Experte für Amazon Kindle Direct Publishing (KDP). "
         "Erstelle verkaufsoptimierte Metadaten für das hochgeladene Buchprojekt. "
+        "Falls das Buch Teil einer Serie ist, integriere die Serien-Zugehörigkeit prominent in den Klappentext und die Keywords. "
         "Antworte ausschließlich im JSON-Format."
     )
 
     prompt = f"""
     Hier sind die Daten des fertiggestellten Buches:
     - Titel: {project.title}
+    {series_clause}
     - Genre: {project.genre}
     - Stil: {project.style}
     - Wortanzahl: {word_count} (~{page_est} Buchseiten)
@@ -609,8 +661,23 @@ def generate_book_txt(project: BookProject, chapters: List[BookChapter], output_
     author_name = (project.epub_author or "").strip() or "Stanzwerk Pro"
     lines: list[str] = []
 
+    series_title = None
+    if project.series_id:
+        try:
+            from sqlmodel import Session
+            from app.database import engine
+            from app.models import BookSeries
+            with Session(engine) as session:
+                series = session.get(BookSeries, project.series_id)
+                if series:
+                    series_title = series.title
+        except Exception:
+            pass
+
     # Title block
     lines.append(project.title.upper())
+    if series_title:
+        lines.append(f"Serie: {series_title} • {project.series_subtitle or f'Band {project.series_order}'}")
     lines.append("")
     lines.append(f"von {author_name}")
     lines.append(f"© {year} {author_name}")
@@ -623,6 +690,8 @@ def generate_book_txt(project: BookProject, chapters: List[BookChapter], output_
     lines.append(f"IMPRESSUM")
     lines.append("")
     lines.append(f"{project.title}")
+    if series_title:
+        lines.append(f"Dieses Werk ist {project.series_subtitle or f'Band {project.series_order}'} der Buchreihe '{series_title}'.")
     lines.append(f"Erstauflage {year}")
     lines.append(f"© {year} {author_name}")
     lines.append("Alle Rechte vorbehalten.")
@@ -643,6 +712,15 @@ def generate_book_txt(project: BookProject, chapters: List[BookChapter], output_
     dedication_text = (project.epub_dedication or "").strip()
     if dedication_text:
         lines.append(dedication_text)
+        lines.append("")
+        lines.append("=" * 60)
+        lines.append("")
+
+    # Was bisher geschah (optional for sequels)
+    if project.previous_summary and project.series_order and project.series_order > 1:
+        lines.append("WAS BISHER GESCHAH")
+        lines.append("")
+        lines.append(project.previous_summary)
         lines.append("")
         lines.append("=" * 60)
         lines.append("")

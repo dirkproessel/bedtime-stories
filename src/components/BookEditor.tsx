@@ -35,7 +35,9 @@ import {
     applyGlobalFeedbackToOutline,
     proofreadProOutlineGlobally,
     fetchGenreProfile,
-    exportProBookToKindle
+    exportProBookToKindle,
+    convertBookToSeries,
+    suggestProSeriesCover
 } from '../lib/api';
 import { 
     ArrowLeft, 
@@ -55,7 +57,8 @@ import {
     X,
     Search,
     FileText,
-    Send
+    Send,
+    Layers
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -934,6 +937,45 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
 
 
 
+    // --- Series Actions ---
+    const [isConvertingToSeries, setIsConvertingToSeries] = useState(false);
+    const [isSuggestingSeriesCover, setIsSuggestingSeriesCover] = useState(false);
+
+    const handleConvertToSeries = async () => {
+        if (!window.confirm(`Möchtest du "${activeProject.title}" als Band 1 einer neuen Buch-Serie starten? Es wird automatisch eine Master-Bibel und ein Cover-Styleguide abgeleitet.`)) return;
+        setIsConvertingToSeries(true);
+        try {
+            toast.loading('Analysiere Buch und erstelle Buch-Serie...', { id: 'series' });
+            await convertBookToSeries(activeProject.id);
+            toast.success('Buch erfolgreich in Serie umgewandelt! (Jetzt Band 1)', { id: 'series' });
+            await loadProProjectDetail(activeProject.id);
+        } catch (e: any) {
+            toast.error(e.message || 'Fehler beim Erstellen der Serie', { id: 'series' });
+        } finally {
+            setIsConvertingToSeries(false);
+        }
+    };
+
+    const handleSuggestSeriesCover = async () => {
+        if (!activeProject.series_id) return;
+        setIsSuggestingSeriesCover(true);
+        try {
+            toast.loading('Generiere Cover-Prompt im einheitlichen Serien-Design...', { id: 'cover' });
+            const res = await suggestProSeriesCover(activeProject.series_id, {
+                volume_number: activeProject.series_order || 1,
+                volume_title: activeProject.title,
+                volume_prompt: activeProject.prompt,
+                model: coverPromptModel
+            });
+            setCoverPrompt(res.suggested_prompt);
+            toast.success('Serien-Cover-Prompt vorgeschlagen!', { id: 'cover' });
+        } catch (e: any) {
+            toast.error(e.message || 'Fehler beim Vorschlagen des Serien-Covers', { id: 'cover' });
+        } finally {
+            setIsSuggestingSeriesCover(false);
+        }
+    };
+
     // --- Step 5 Actions ---
 
     const handleSuggestCoverPrompt = async () => {
@@ -1067,6 +1109,24 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                     <div>
                         <div className="flex items-center gap-2">
                             <span className="text-[10px] uppercase font-mono tracking-wider bg-primary/10 text-primary px-2.5 py-0.5 rounded-full border border-primary/20">Pro Mode</span>
+                            
+                            {activeProject.series_id ? (
+                                <span className="text-[10px] uppercase font-mono tracking-wider bg-indigo-500/20 text-indigo-300 px-2.5 py-0.5 rounded-full border border-indigo-500/30 flex items-center gap-1">
+                                    <Layers className="w-3 h-3" />
+                                    {activeProject.series_subtitle || `Band ${activeProject.series_order || 1}`}
+                                </span>
+                            ) : (
+                                <button
+                                    onClick={handleConvertToSeries}
+                                    disabled={isConvertingToSeries}
+                                    className="text-[10px] uppercase font-mono tracking-wider bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 hover:text-white px-2.5 py-0.5 rounded-full border border-indigo-500/30 flex items-center gap-1 transition-colors disabled:opacity-50"
+                                    title="Dieses Buch zum ersten Band einer neuen Serie machen"
+                                >
+                                    <Layers className="w-3 h-3" />
+                                    {isConvertingToSeries ? 'Konvertiere...' : 'Als Serie starten'}
+                                </button>
+                            )}
+
                             {activeProject.status === 'generating' && (
                                 <span className="text-[10px] uppercase font-mono tracking-wider bg-amber-500/10 text-amber-400 px-2.5 py-0.5 rounded-full border border-amber-500/20 animate-pulse flex items-center gap-1">
                                     <Loader2 className="w-2.5 h-2.5 animate-spin" />
@@ -1231,6 +1291,17 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                                             <span className="text-slate-500 block uppercase font-mono text-[9px]">Buchidee</span>
                                             <p className="text-slate-400 leading-relaxed mt-0.5 whitespace-pre-wrap">{activeProject.prompt}</p>
                                         </div>
+                                        {activeProject.previous_summary && (
+                                            <div className="pt-2 border-t border-slate-800/80">
+                                                <span className="text-indigo-400 block uppercase font-mono text-[9px] font-bold flex items-center gap-1">
+                                                    <Layers className="w-3 h-3" />
+                                                    Was bisher geschah
+                                                </span>
+                                                <p className="text-slate-300 text-[11px] leading-relaxed mt-1 whitespace-pre-wrap max-h-36 overflow-y-auto custom-scrollbar p-2 bg-slate-950/60 rounded-xl border border-slate-800">
+                                                    {activeProject.previous_summary}
+                                                </p>
+                                            </div>
+                                        )}
                                     </>
                                 ) : (
                                     <div className="space-y-3">
@@ -2547,6 +2618,17 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                                             <option key={m.value} value={m.value}>{m.label}</option>
                                         ))}
                                     </select>
+                                    {activeProject.series_id && (
+                                        <button 
+                                            onClick={handleSuggestSeriesCover}
+                                            disabled={isAiLoading || isSuggestingSeriesCover || activeProject.status === 'generating'}
+                                            className="text-[10px] bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 rounded-lg px-2.5 py-1 flex items-center gap-1 transition-colors disabled:opacity-50"
+                                            title="Cover-Prompt passend zum Franchise-Cover-Styleguide generieren"
+                                        >
+                                            <Layers className="w-3 h-3" />
+                                            Im Serien-Stil
+                                        </button>
+                                    )}
                                     <button 
                                         onClick={handleSuggestCoverPrompt}
                                         disabled={isAiLoading || activeProject.status === 'generating'}
