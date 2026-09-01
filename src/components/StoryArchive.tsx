@@ -1,9 +1,10 @@
 import { useStore } from '../store/useStore';
 import { getVoicePreviewUrl, exportStoryToKindle, getThumbUrl, type VoiceProfile, analyzeStorySpeakers, type SpeakerInfo } from '../lib/api';
-import { Play, Trash2, Heart, BookOpen, Loader2, Mic, X, XCircle, Venus, Mars, Users, Pause, Send, Image as ImageIcon, RefreshCw, Sparkles, Settings2, MessageCircle, Search, ChevronLeft, ChevronRight, ArrowLeft, Wand2, User as UserIcon, Edit2, Music } from 'lucide-react';
+import { Play, Trash2, Heart, BookOpen, Loader2, Mic, X, XCircle, Venus, Mars, Users, Pause, Send, Image as ImageIcon, RefreshCw, Sparkles, Settings2, MessageCircle, Search, ChevronLeft, ChevronRight, ArrowLeft, Wand2, User as UserIcon, Edit2, Music, Layers } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import ConfirmModal from './ConfirmModal';
+import AnthologyWizard from './AnthologyWizard';
 
 
 import { voiceName, voiceDesc } from '../lib/voices';
@@ -381,7 +382,8 @@ export default function StoryArchive({ filterOverride }: { filterOverride?: 'my'
         archiveGenre, archiveSearch, setArchiveGenre, setArchiveSearch, toggleArchiveGenre,
         revoiceStory, availableGenres, regenerateStoryImage,
         updateStory,
-        playlist, addToPlaylist, removeFromPlaylist
+        playlist, addToPlaylist, removeFromPlaylist,
+        setCurrentProProject
     } = useStore();
     const archiveFilter = filterOverride || storeFilter;
     const isGuest = user?.email?.endsWith('@storyja.guest') ?? false;
@@ -506,6 +508,7 @@ export default function StoryArchive({ filterOverride }: { filterOverride?: 'my'
     const [originalText, setOriginalText] = useState('');
     const [isSavingEdit, setIsSavingEdit] = useState(false);
     const [showEditConfirm, setShowEditConfirm] = useState(false);
+    const [showAnthologyWizardStoryId, setShowAnthologyWizardStoryId] = useState<string | null>(null);
     const audioRef = useRef<HTMLAudioElement>(null);
     const touchStartX = useRef<number | null>(null);
     const touchStartY = useRef<number | null>(null);
@@ -1843,6 +1846,23 @@ export default function StoryArchive({ filterOverride }: { filterOverride?: 'my'
                                     </div>
                                 </button>
 
+                                {user?.is_admin && (
+                                    <button 
+                                        onClick={() => { 
+                                            setShowAnthologyWizardStoryId(activeToolboxStory.id); 
+                                            setShowToolbox(null); 
+                                        }}
+                                        className="w-full flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-white/5 transition-all outline-none"
+                                    >
+                                        <div className="w-8 h-8 bg-amber-500/20 rounded-[0.4rem] flex items-center justify-center shrink-0 text-amber-400">
+                                            <Layers className="w-4 h-4" />
+                                        </div>
+                                        <div className="text-left text-[14px] text-[#e2e8f0]">
+                                            Zu Sammelband hinzufügen
+                                        </div>
+                                    </button>
+                                )}
+
                                 {/* Löschen */}
                                 {activeToolboxStory.user_id === user?.id && (
                                     <>
@@ -2008,6 +2028,18 @@ export default function StoryArchive({ filterOverride }: { filterOverride?: 'my'
                 onClose={() => setShowEditConfirm(false)}
                 confirmLabel="Ja, Text speichern & Audio löschen"
                 isDanger={true}
+            />
+
+            {/* Anthology Wizard Modal */}
+            <AnthologyWizard
+                isOpen={!!showAnthologyWizardStoryId}
+                onClose={() => setShowAnthologyWizardStoryId(null)}
+                initialStoryIds={showAnthologyWizardStoryId ? [showAnthologyWizardStoryId] : []}
+                onCreated={(newBook) => {
+                    setShowAnthologyWizardStoryId(null);
+                    setCurrentProProject(newBook);
+                    setActiveView('pro');
+                }}
             />
         </div>
     );

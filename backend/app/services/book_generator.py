@@ -2637,6 +2637,119 @@ async def suggest_series_cover_prompt(
         return f"Professional book cover design for {series_title} Volume {volume_number}: {volume_title}, maintaining franchise visual identity, author Dirk Proessel."
 
 
+# ---------------------------------------------------------------------------
+# Anthology / Short Story Collection Synthesis
+# ---------------------------------------------------------------------------
+
+class AnthologySynthesisSchema(BaseModel):
+    title: str = Field(description="Ein verkaufsstarker, packender Gesamttitel für den Sammelband")
+    subtitle: str = Field(description="Ein ansprechender Untertitel")
+    blurb: str = Field(description="Ein mitreißender Klappentext / Buchbeschreibung, der die Vielfalt der enthaltenen Geschichten anteasert")
+    foreword: str = Field(description="Ein poetisches Vorwort / Einleitung für den Sammelband (150-250 Wörter)")
+    cover_prompt: str = Field(description="Ein detaillierter, englischer Bildprompt für die Cover-Generierung")
+    epub_dedication: str = Field(description="Eine passende Widmung (2-4 Zeilen)")
+    epub_afterword: str = Field(description="Ein kurzes Nachwort (100-150 Wörter)")
+
+
+async def synthesize_anthology_concept(
+    story_items: List[Dict[str, Any]],
+    genre: str = "Erotik",
+    style: str = "Anaïs Nin",
+    author: Optional[str] = None,
+    language: str = "de",
+    model: str = "gemini-3.7-flash"
+) -> Dict[str, Any]:
+    """
+    Synthesizes an anthology / short story collection from a list of individual stories:
+    suggests a catchy book title, subtitle, blurb, foreword, cover prompt, and afterword.
+    """
+    is_en = (language == "en")
+    count = len(story_items)
+    
+    stories_summary = []
+    for idx, s in enumerate(story_items, 1):
+        t = s.get("title", f"Story {idx}")
+        syn = s.get("synopsis") or s.get("description") or ""
+        stories_summary.append(f"{idx}. «{t}»: {syn[:250]}")
+    
+    stories_text = "\n".join(stories_summary)
+    author_display = author or ("Dirk Proessel" if not is_en else "Dirk Proessel")
+
+    if is_en:
+        system_instruction = (
+            "You are a bestselling editor, book designer, and publisher. "
+            "Synthesize a cohesive, high-converting short story collection / anthology "
+            "from the provided individual stories. Respond strictly in JSON format."
+        )
+        prompt = f"""
+        Genre: {genre}
+        Writing style: {style}
+        Number of stories: {count}
+        Author / Pen name: {author_display}
+        
+        Included stories:
+        {stories_text}
+        
+        Task:
+        1. 'title': A magnetic, evocative anthology book title (e.g. including theme or count, like '{count} Sensual Nights').
+        2. 'subtitle': A compelling subtitle (e.g. 'An Exclusive Anthology of {count} Short Stories').
+        3. 'blurb': An exciting, high-converting book description (2-3 paragraphs) teasing the emotional variety of stories.
+        4. 'foreword': An atmospheric introduction / preface (150-250 words) inviting the reader into this collection.
+        5. 'cover_prompt': A detailed, cinematic ENGLISH cover art prompt for Imagen 3 / Flux representing the core atmosphere, with space for title and author '{author_display}'.
+        6. 'epub_dedication': A poetic dedication (2-4 lines).
+        7. 'epub_afterword': A thoughtful afterword (100-150 words).
+        """
+    else:
+        system_instruction = (
+            "Du bist ein renommierter Verlags-Lektor, Buchdesigner und Bestseller-Autor. "
+            "Erstelle aus den bereitgestellten Einzelgeschichten ein stimmiges, verkaufsstarkes Gesamtkonzept "
+            "für einen Kurzgeschichten-Sammelband (Anthologie). Antworte ausschließlich im JSON-Format."
+        )
+        prompt = f"""
+        Genre: {genre}
+        Autorenstil: {style}
+        Anzahl der Geschichten: {count}
+        Autoren- / Künstlername: {author_display}
+        
+        Enthaltene Geschichten:
+        {stories_text}
+        
+        Aufgabe:
+        1. 'title': Ein magnetischer, packender Buchtitel für den Sammelband (z. B. '{count} Sinnliche Nächte: Erotische Geschichten' oder passend zum Thema).
+        2. 'subtitle': Ein ansprechender Untertitel (z. B. 'Ein exklusiver Sammelband mit {count} verführerischen Geschichten').
+        3. 'blurb': Ein mitreißender Klappentext (2–3 Absätze), der die emotionale Bandbreite und Höhepunkte der Geschichten anteasert.
+        4. 'foreword': Ein stimmungsvolles Vorwort / Einleitung des Autors (150–250 Wörter), das den Leser in die Welt des Bandes entführt.
+        5. 'cover_prompt': Ein detaillierter, englischer Bildprompt für die Cover-Generierung (Imagen 3 / Flux), der die Atmosphäre visualisiert und Raum für den Buchtitel und Autorenname '{author_display}' lässt.
+        6. 'epub_dedication': Eine poetische Widmung (2–4 Zeilen).
+        7. 'epub_afterword': Ein reflektierendes Nachwort (100–150 Wörter).
+        """
+
+    try:
+        from app.services.text_generator import generate_text
+        response = await generate_text(
+            prompt=prompt,
+            model=model,
+            temperature=0.75,
+            response_mime_type="application/json",
+            system_instruction=system_instruction,
+            response_schema=AnthologySynthesisSchema
+        )
+        cleaned = clean_json_string(response)
+        return json.loads(cleaned)
+    except Exception as e:
+        logger.error(f"Error in synthesize_anthology_concept: {e}")
+        default_title = f"{count} {genre}-Geschichten" if not is_en else f"{count} {genre} Stories"
+        return {
+            "title": default_title,
+            "subtitle": f"Ein Sammelband mit {count} Geschichten" if not is_en else f"A Collection of {count} Stories",
+            "blurb": f"Eine faszinierende Sammlung von {count} Geschichten im Genre {genre}.",
+            "foreword": f"Willkommen zu diesem Sammelband mit {count} ausgewählten Geschichten.",
+            "cover_prompt": f"Artistic book cover illustration for {genre} story collection titled {default_title}, elegant lighting, high quality, author {author_display}.",
+            "epub_dedication": "Für alle Liebhaber guter Geschichten.",
+            "epub_afterword": "Vielen Dank fürs Lesen dieser Geschichtensammlung."
+        }
+
+
 
 
 

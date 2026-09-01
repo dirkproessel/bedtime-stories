@@ -785,6 +785,8 @@ export interface BookProject {
     epub_dedication: string | null;
     epub_afterword: string | null;
     epub_imprint: string | null;
+    is_anthology?: boolean;
+    source_story_ids?: string | null;
     status: 'draft' | 'generating' | 'proofreading' | 'completed' | 'error';
     progress: string | null;
     progress_pct: number;
@@ -795,6 +797,29 @@ export interface BookProject {
 
 export interface BookProjectDetail extends BookProject {
     chapters: BookChapter[];
+}
+
+export interface BookAnthologyCreate {
+    title: string;
+    subtitle?: string;
+    author?: string;
+    genre: string;
+    style: string;
+    language?: 'de' | 'en';
+    story_ids: string[];
+    auto_generate_blurb?: boolean;
+    model?: string;
+}
+
+export interface AnthologyMetadataSuggestion {
+    title: string;
+    subtitle: string;
+    blurb: string;
+    foreword: string;
+    cover_prompt: string;
+    epub_dedication: string;
+    epub_afterword: string;
+    detected_genre?: string;
 }
 
 export interface BookSeries {
@@ -899,6 +924,39 @@ export async function createProBook(req: {
         body: JSON.stringify(req),
     });
     if (!res.ok) throw new Error('Fehler beim Erstellen des Buchprojekts');
+    return res.json();
+}
+
+export async function createAnthologyBook(req: BookAnthologyCreate): Promise<BookProjectDetail> {
+    const res = await fetch(`${API_BASE}/api/pro/books/from-stories`, {
+        method: 'POST',
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify(req),
+    });
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.detail || 'Fehler beim Erstellen des Sammelbands');
+    }
+    return res.json();
+}
+
+export async function suggestAnthologyMetadata(req: {
+    story_ids: string[];
+    model?: string;
+    genre?: string;
+    style?: string;
+    language?: string;
+    author?: string;
+}): Promise<AnthologyMetadataSuggestion> {
+    const res = await fetch(`${API_BASE}/api/pro/books/anthology/suggest-metadata`, {
+        method: 'POST',
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify(req),
+    });
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.detail || 'Fehler beim Abrufen der Anthologie-Vorschläge');
+    }
     return res.json();
 }
 

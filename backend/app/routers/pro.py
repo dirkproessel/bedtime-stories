@@ -29,6 +29,7 @@ from app.models import (
     BookSeriesDetailResponse,
     BookProjectCreate,
     BookProjectUpdate,
+    BookAnthologyCreate,
     BookOutlineImport,
     BookChapterUpdate,
     BookProjectResponse,
@@ -53,7 +54,8 @@ from app.services.book_generator import (
     extract_series_from_book,
     suggest_sequel_pitches,
     evolve_and_suggest_characters,
-    suggest_series_cover_prompt
+    suggest_series_cover_prompt,
+    synthesize_anthology_concept
 )
 from app.services.book_export_service import (
     generate_book_epub,
@@ -1026,6 +1028,225 @@ async def create_book_project(req: BookProjectCreate, current_user: User = Depen
         session.commit()
         session.refresh(project)
         return project
+
+
+class SuggestAnthologyMetadataRequest(BaseModel):
+    story_ids: List[str]
+    model: Optional[str] = "gemini-3.7-flash"
+    genre: Optional[str] = None
+    style: Optional[str] = None
+    language: Optional[str] = "de"
+    author: Optional[str] = None
+
+
+@router.post("/books/anthology/suggest-metadata")
+async def api_suggest_anthology_metadata(
+    req: SuggestAnthologyMetadataRequest,
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Analyzes selected stories and returns title, subtitle, blurb, and cover prompt suggestions.
+    """
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin-Zugang verweigert.")
+    
+    if not req.story_ids:
+        raise HTTPException(status_code=400, detail="Keine Geschichten ausgewählt.")
+    
+    from app.models import StoryMeta
+    from collections import Counter
+    
+    story_items = []
+    detected_genres = []
+    
+    with Session(engine) as session:
+        for s_id in req.story_ids:
+            story_meta = session.get(StoryMeta, s_id)
+            if not story_meta:
+                continue
+            story_items.append({
+                "id": story_meta.id,
+                "title": story_meta.title,
+                "synopsis": story_meta.description or story_meta.prompt,
+                "genre": story_meta.genre
+            })
+            if story_meta.genre:
+                detected_genres.append(story_meta.genre)
+    
+    if not story_items:
+        raise HTTPException(status_code=404, detail="Keine gültigen Geschichten gefunden.")
+    
+    genre = req.genre
+    if not genre and detected_genres:
+        genre = Counter(detected_genres).most_common(1)[0][0]
+    genre = genre or "Erotik"
+    
+    author = req.author or current_user.username or "Dirk Proessel"
+    style = req.style or "Anaïs Nin"
+    lang = req.language or "de"
+    model = req.model or "gemini-3.7-flash"
+    
+    suggested = await synthesize_anthology_concept(
+        story_items=story_items,
+        genre=genre,
+        style=style,
+        author=author,
+        language=lang,
+        model=model
+    )
+    suggested["detected_genre"] = genre
+    return suggested
+
+
+@router.post("/books/from-stories", response_model=BookProjectDetailResponse)
+async def api_create_anthology_from_stories(
+    req: BookAnthologyCreate,
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Creates a new BookProject anthology assembling chosen short stories into ready chapters.
+    """
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin-Zugang verweigert.")
+    
+    if not req.story_ids:
+        raise HTTPException(status_code=400, detail="Mindestens eine Geschichte muss ausgewählt sein.")
+        
+    from app.models import StoryMeta
+    
+    story_items = []
+    with Session(engine) as session:
+        for s_id in req.story_ids:
+            story_meta = session.get(StoryMeta, s_id)
+            if story_meta:
+                story_items.append({
+                    "id": story_meta.id,
+                    "title": story_meta.title,
+                    "synopsis": story_meta.description or story_meta.prompt,
+                    "genre": story_meta.genre
+                })
+                
+    if not story_items:
+        raise HTTPException(status_code=404, detail="Keine der ausgewählten Geschichten konnte gefunden werden.")
+        
+    author_name = req.author.strip() if req.author and req.author.strip() else (current_user.username or "Dirk Proessel")
+    lang = req.language or "de"
+    
+    # AI synthesis for anthology if requested
+    synth_meta = {}
+    if req.auto_generate_blurb:
+        try:
+            synth_meta = await synthesize_anthology_concept(
+                story_items=story_items,
+                genre=req.genre,
+                style=req.style,
+                author=author_name,
+                language=lang,
+                model=req.model or "gemini-3.7-flash"
+            )
+        except Exception as e:
+            logger.error(f"Failed to synthesize anthology metadata: {e}")
+            
+    final_title = req.title.strip() if req.title and req.title.strip() else synth_meta.get("title", f"{len(story_items)} {req.genre}-Geschichten")
+    final_prompt = synth_meta.get("blurb") or f"Sammelband mit {len(story_items)} ausgewählten Kurzgeschichten im Genre {req.genre}."
+    final_cover_prompt = synth_meta.get("cover_prompt")
+    final_dedication = synth_meta.get("epub_dedication")
+    final_afterword = synth_meta.get("epub_afterword")
+    
+    from app.services.story_generator import generate_modular_prompt
+    initial_style = generate_modular_prompt(req.style)
+    
+    project_id = str(uuid.uuid4())[:8]
+    
+    # Create BookProject
+    project = BookProject(
+        id=project_id,
+        user_id=current_user.id,
+        title=final_title,
+        prompt=final_prompt,
+        genre=req.genre,
+        style=req.style,
+        language=lang,
+        epub_author=author_name,
+        epub_dedication=final_dedication,
+        epub_afterword=final_afterword,
+        cover_prompt=final_cover_prompt,
+        style_bible=initial_style,
+        is_anthology=True,
+        source_story_ids=json.dumps(req.story_ids),
+        status="draft"
+    )
+    
+    chapters_to_add: List[BookChapter] = []
+    outline_list = []
+    
+    # Process each story
+    for idx, s_id in enumerate(req.story_ids, 1):
+        story_dir = settings.AUDIO_OUTPUT_DIR / s_id
+        text_file = story_dir / "story.json"
+        
+        story_title = f"Geschichte {idx}"
+        story_synopsis = ""
+        full_text = ""
+        
+        if text_file.exists():
+            try:
+                story_data = json.loads(text_file.read_text(encoding="utf-8"))
+                story_title = story_data.get("title", story_title)
+                story_synopsis = story_data.get("synopsis", "")
+                
+                raw_chapters = story_data.get("chapters", [])
+                if len(raw_chapters) > 1:
+                    parts = []
+                    for ch in raw_chapters:
+                        ch_t = ch.get("title", "").strip()
+                        ch_txt = ch.get("text", "").strip()
+                        if ch_t:
+                            parts.append(f"### {ch_t}\n\n{ch_txt}")
+                        else:
+                            parts.append(ch_txt)
+                    full_text = "\n\n* * *\n\n".join(parts)
+                elif len(raw_chapters) == 1:
+                    full_text = raw_chapters[0].get("text", "").strip()
+            except Exception as e:
+                logger.error(f"Error loading story.json for {s_id}: {e}")
+                
+        if not full_text:
+            with Session(engine) as session:
+                meta = session.get(StoryMeta, s_id)
+                if meta:
+                    story_title = meta.title or story_title
+                    story_synopsis = meta.description or meta.prompt
+                    full_text = meta.description or "Inhalt der Geschichte."
+                    
+        chapter_id = str(uuid.uuid4())[:8]
+        ch_obj = BookChapter(
+            id=chapter_id,
+            book_project_id=project_id,
+            chapter_number=idx,
+            title=story_title,
+            plot_outline=story_synopsis or f"Kurzgeschichte {idx}: {story_title}",
+            content=full_text,
+            running_summary=story_synopsis,
+            status="done"
+        )
+        chapters_to_add.append(ch_obj)
+        outline_list.append({
+            "chapter_number": idx,
+            "title": story_title,
+            "plot_outline": story_synopsis or f"Kurzgeschichte {idx}: {story_title}"
+        })
+        
+    project.outline = json.dumps({"chapters": outline_list}, ensure_ascii=False)
+    
+    with Session(engine) as session:
+        session.add(project)
+        for ch in chapters_to_add:
+            session.add(ch)
+        session.commit()
+        session.refresh(project)
+        return BookProjectDetailResponse.model_validate(project, from_attributes=True)
+
 
 
 @router.get("/books", response_model=List[BookProjectResponse])

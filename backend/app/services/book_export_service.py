@@ -596,6 +596,22 @@ async def generate_kdp_metadata(
         except Exception:
             pass
 
+    anthology_clause = ""
+    is_anthology = getattr(project, "is_anthology", False) or any(k in (project.genre + " " + project.prompt + " " + project.title).lower() for k in ["antholog", "sammelband", "kurzgeschichten", "geschichten"])
+    if is_anthology:
+        if is_en:
+            anthology_clause = (
+                f"- Book Format: SHORT STORY ANTHOLOGY / COLLECTION (Contains {len(chapters)} complete stories).\n"
+                "- SPECIAL INSTRUCTION: For 'kdp_categories', prioritize categories relevant to Short Stories & Anthologies or genre-specific collections. "
+                "In 'description_kdp', format the HTML blurb to highlight this multi-story collection, with bullet points teasing the included story highlights.\n"
+            )
+        else:
+            anthology_clause = (
+                f"- Buch-Format: KURZGESCHICHTEN-SAMMELBAND / ANTHOLOGIE (Enthält {len(chapters)} vollständige Kurzgeschichten).\n"
+                "- WICHTIGER HINWEIS: Wähle für 'kdp_categories' passende Kategorien für Kurzgeschichten, Erzählbände und Anthologien (z. B. Belletristik > Kurzgeschichten & Anthologien). "
+                "Erstelle im 'description_kdp' (HTML-Klappentext) eine ansprechende Aufzählung der enthaltenen Geschichten mit kurzen Teasern.\n"
+            )
+
     # Marketplace-specific taxonomy guidance
     if is_en:
         taxonomy_guide = """
@@ -649,6 +665,7 @@ Amazon KDP Main Branches:
 Book Details:
 - Title: {project.title}
 {series_clause}
+{anthology_clause}
 - Genre: {project.genre}
 - Style: {project.style}
 - Word Count: {word_count} (~{page_est} book pages)
@@ -792,6 +809,7 @@ Amazon KDP Hauptkategorien und Zweige im deutschen KDP-Dashboard:
 Hier sind die Buchdaten des fertiggestellten Werkes:
 - Titel: {project.title}
 {series_clause}
+{anthology_clause}
 - Genre: {project.genre}
 - Stil: {project.style}
 - Wortanzahl: {word_count} (~{page_est} Buchseiten)

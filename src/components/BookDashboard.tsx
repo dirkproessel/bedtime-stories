@@ -4,6 +4,7 @@ import { Plus, BookOpen, Trash2, ArrowRight, Loader2, RefreshCw, ArrowLeft, Laye
 import BookEditor from './BookEditor';
 import SeriesWizard from './SeriesWizard';
 import SeriesView from './SeriesView';
+import AnthologyWizard from './AnthologyWizard';
 import { createProBook, deleteProBook, fetchGenreProfile } from '../lib/api';
 import toast from 'react-hot-toast';
 import { AUTHORS, formatAuthorStyles } from '../lib/authors';
@@ -29,6 +30,7 @@ export default function BookDashboard() {
     const [dashboardTab, setDashboardTab] = useState<'books' | 'series'>('books');
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showSeriesWizard, setShowSeriesWizard] = useState(false);
+    const [showAnthologyWizard, setShowAnthologyWizard] = useState(false);
 
     const [title, setTitle] = useState('');
     const [prompt, setPrompt] = useState('');
@@ -231,6 +233,14 @@ export default function BookDashboard() {
                     </button>
 
                     <button 
+                        onClick={() => setShowAnthologyWizard(true)}
+                        className="px-4 py-2.5 bg-gradient-to-r from-amber-600 to-primary hover:from-amber-500 hover:to-primary-hover text-white rounded-xl text-sm font-semibold shadow-lg shadow-amber-500/20 flex items-center gap-2 transition-all"
+                    >
+                        <Layers className="w-4 h-4" />
+                        + Kurzgeschichten-Sammelband
+                    </button>
+
+                    <button 
                         onClick={() => setShowCreateModal(true)}
                         className="btn-primary py-2.5 px-4 text-sm flex items-center gap-2 rounded-xl"
                     >
@@ -351,7 +361,16 @@ export default function BookDashboard() {
                             <BookOpen className="w-12 h-12 text-slate-600 mx-auto" />
                             <div>
                                 <h3 className="text-white font-medium">Bislang keine Buchprojekte vorhanden</h3>
-                                <p className="text-xs text-text-muted mt-1">Klicke auf 'Neues Einzelbuch' oder 'Neue Buch-Serie' um zu starten.</p>
+                                <p className="text-xs text-text-muted mt-1">Klicke auf 'Neues Einzelbuch' oder 'Kurzgeschichten-Sammelband' um zu starten.</p>
+                            </div>
+                            <div className="flex justify-center gap-3 pt-2">
+                                <button
+                                    onClick={() => setShowAnthologyWizard(true)}
+                                    className="px-4 py-2 bg-gradient-to-r from-amber-600 to-primary text-white rounded-xl text-xs font-semibold inline-flex items-center gap-2 shadow-lg shadow-amber-500/20"
+                                >
+                                    <Layers className="w-3.5 h-3.5" />
+                                    Kurzgeschichten zu Sammelband bündeln
+                                </button>
                             </div>
                         </div>
                     ) : (
@@ -367,6 +386,12 @@ export default function BookDashboard() {
                                         <div className="space-y-2">
                                             <div className="flex justify-between items-start gap-4">
                                                 <div>
+                                                    {p.is_anthology && (
+                                                        <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider block mb-0.5 flex items-center gap-1">
+                                                            <Layers className="w-3 h-3" />
+                                                            Sammelband / Anthologie
+                                                        </span>
+                                                    )}
                                                     {p.series_id && (
                                                         <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider block mb-0.5">
                                                             {p.series_subtitle || 'Serie'}
@@ -422,6 +447,16 @@ export default function BookDashboard() {
                     )}
                 </div>
             )}
+
+            {/* Anthology Wizard Modal */}
+            <AnthologyWizard
+                isOpen={showAnthologyWizard}
+                onClose={() => setShowAnthologyWizard(false)}
+                onCreated={(newBook) => {
+                    loadProProjects();
+                    loadProProjectDetail(newBook.id);
+                }}
+            />
 
             {/* Series Wizard Modal */}
             <SeriesWizard 

@@ -41,7 +41,9 @@ def ensure_migrations():
             ("duration_seconds", "FLOAT"),
             ("image_url", "TEXT"),
             ("is_on_spotify", "BOOLEAN DEFAULT 0"),
-            ("highlights", "TEXT")
+            ("highlights", "TEXT"),
+            ("multi_voice", "BOOLEAN DEFAULT 0"),
+            ("is_kids_book", "BOOLEAN DEFAULT 0")
         ]
         
         for col_name, col_type in needed_columns:
@@ -216,7 +218,9 @@ def ensure_migrations():
                         ("series_id", "TEXT"),
                         ("series_order", "INTEGER"),
                         ("series_subtitle", "TEXT"),
-                        ("previous_summary", "TEXT")
+                        ("previous_summary", "TEXT"),
+                        ("is_anthology", "BOOLEAN DEFAULT 0"),
+                        ("source_story_ids", "TEXT")
                     ]
                     for col_name, col_type in series_proj_cols:
                         if col_name.lower() not in [c.lower() for c in proj_columns]:

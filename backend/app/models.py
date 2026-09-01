@@ -325,6 +325,10 @@ class BookProject(SQLModel, table=True):
     epub_afterword: Optional[str] = Field(default=None)  # Afterword / Nachwort
     epub_imprint: Optional[str] = Field(default=None)  # Extra imprint / copyright text
     
+    # Anthology / Short Story Collection support
+    is_anthology: bool = Field(default=False)
+    source_story_ids: Optional[str] = Field(default=None)  # JSON array of story IDs if assembled from stories
+    
     status: str = Field(default="draft")  # "draft", "generating", "proofreading", "completed", "error"
     progress: Optional[str] = Field(default=None)
     progress_pct: int = Field(default=0)
@@ -452,6 +456,18 @@ class BookChapterResponse(BaseModel):
     pov_character: Optional[str] = None
 
 
+class BookAnthologyCreate(BaseModel):
+    title: str
+    subtitle: Optional[str] = None
+    author: Optional[str] = None
+    genre: str = "Erotik"
+    style: str = "Anaïs Nin"
+    language: Optional[str] = "de"
+    story_ids: list[str]  # IDs of stories in order
+    auto_generate_blurb: bool = True
+    model: Optional[str] = "gemini-3.7-flash"
+
+
 class BookProjectResponse(BaseModel):
     id: str
     user_id: str
@@ -473,6 +489,8 @@ class BookProjectResponse(BaseModel):
     epub_dedication: Optional[str] = None
     epub_afterword: Optional[str] = None
     epub_imprint: Optional[str] = None
+    is_anthology: bool = False
+    source_story_ids: Optional[str] = None
     status: str
     progress: Optional[str] = None
     progress_pct: int

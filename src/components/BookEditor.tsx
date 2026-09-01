@@ -1196,12 +1196,19 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                                 {activeProject.language === 'en' ? '🇬🇧 English' : '🇩🇪 Deutsch'}
                             </span>
                             
+                            {activeProject.is_anthology && (
+                                <span className="text-[10px] uppercase font-mono tracking-wider bg-amber-500/20 text-amber-300 px-2.5 py-0.5 rounded-full border border-amber-500/30 flex items-center gap-1 font-bold">
+                                    <Layers className="w-3 h-3" />
+                                    Sammelband ({activeProject.chapters.length} Geschichten)
+                                </span>
+                            )}
+
                             {activeProject.series_id ? (
                                 <span className="text-[10px] uppercase font-mono tracking-wider bg-indigo-500/20 text-indigo-300 px-2.5 py-0.5 rounded-full border border-indigo-500/30 flex items-center gap-1">
                                     <Layers className="w-3 h-3" />
                                     {activeProject.series_subtitle || `Band ${activeProject.series_order || 1}`}
                                 </span>
-                            ) : (
+                            ) : !activeProject.is_anthology ? (
                                 <button
                                     onClick={handleConvertToSeries}
                                     disabled={isConvertingToSeries}
@@ -1211,7 +1218,7 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                                     <Layers className="w-3 h-3" />
                                     {isConvertingToSeries ? 'Konvertiere...' : 'Als Serie starten'}
                                 </button>
-                            )}
+                            ) : null}
 
                             {activeProject.status === 'generating' && (
                                 <span className="text-[10px] uppercase font-mono tracking-wider bg-amber-500/10 text-amber-400 px-2.5 py-0.5 rounded-full border border-amber-500/20 animate-pulse flex items-center gap-1">
