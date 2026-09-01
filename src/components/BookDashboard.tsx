@@ -154,9 +154,13 @@ export default function BookDashboard() {
                 genre: storyGenreFilter !== 'all' ? [storyGenreFilter] : undefined
             });
 
+            if (!res || !Array.isArray(res.stories)) return;
+
             setStoryMap(prev => {
                 const next = { ...prev };
-                res.stories.forEach((s: StoryMeta) => { next[s.id] = s; });
+                res.stories.forEach((s: StoryMeta) => { 
+                    if (s && s.id) next[s.id] = s; 
+                });
                 return next;
             });
 
@@ -171,7 +175,7 @@ export default function BookDashboard() {
             }
 
             setStoriesPage(pageToLoad);
-            setStoriesHasMore(res.stories.length === 30 && (pageToLoad * 30 < res.total));
+            setStoriesHasMore(res.stories.length === 30 && (pageToLoad * 30 < (res.total || 0)));
             if (res.available_genres && res.available_genres.length > 0) {
                 setAvailableGenres(res.available_genres);
             }
@@ -183,20 +187,21 @@ export default function BookDashboard() {
     };
 
     const toggleStorySelection = (story: StoryMeta) => {
+        if (!story || !story.id) return;
         setStoryMap(prev => ({ ...prev, [story.id]: story }));
-        setSelectedStoryIds(prev => {
-            const isAlreadySelected = prev.includes(story.id);
-            const next = isAlreadySelected 
-                ? prev.filter(id => id !== story.id)
-                : [...prev, story.id];
+        
+        const isAlreadySelected = selectedStoryIds.includes(story.id);
+        const nextIds = isAlreadySelected 
+            ? selectedStoryIds.filter(id => id !== story.id)
+            : [...selectedStoryIds, story.id];
 
-            // Auto update title if not customized
-            if (!anthologyTitle.trim() || anthologyTitle.endsWith('-Geschichten') || anthologyTitle.includes('Sammelband')) {
-                const g = story.genre || anthologyGenre || 'Kurzgeschichten';
-                setAnthologyTitle(`${next.length} ${g}-Geschichten`);
-            }
-            return next;
-        });
+        setSelectedStoryIds(nextIds);
+
+        // Auto update title if not customized
+        if (!anthologyTitle.trim() || anthologyTitle.endsWith('-Geschichten') || anthologyTitle.includes('Sammelband')) {
+            const g = story.genre || anthologyGenre || 'Kurzgeschichten';
+            setAnthologyTitle(`${nextIds.length} ${g}-Geschichten`);
+        }
     };
 
     // Calculate anthology stats
@@ -206,7 +211,8 @@ export default function BookDashboard() {
 
     const totalEstimatedWords = useMemo(() => {
         return selectedStoryList.reduce((acc, s) => {
-            const w = s.duration_seconds ? Math.round((s.duration_seconds / 60) * 160) : 1500;
+            const duration = typeof s?.duration_seconds === 'number' ? s.duration_seconds : 0;
+            const w = duration > 0 ? Math.round((duration / 60) * 160) : 1500;
             return acc + w;
         }, 0);
     }, [selectedStoryList]);
