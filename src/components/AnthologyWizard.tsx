@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useStore } from '../store/useStore';
 import { 
     X, 
@@ -15,11 +15,13 @@ import {
     Trash2, 
     Clock, 
     FileText, 
-    Wand2
+    Wand2,
+    RefreshCw
 } from 'lucide-react';
 import { 
     createAnthologyBook, 
     suggestAnthologyMetadata, 
+    fetchStories,
     getThumbUrl, 
     type StoryMeta, 
     type BookProjectDetail,
@@ -46,13 +48,23 @@ const TEXT_MODELS = [
 ];
 
 export default function AnthologyWizard({ isOpen, onClose, onCreated, initialStoryIds = EMPTY_ARRAY }: AnthologyWizardProps) {
-    const { stories, loadStories, user } = useStore();
+    const { user } = useStore();
 
     const [step, setStep] = useState<1 | 2>(1);
+    
+    // Server stories & pagination for 500+ stories
+    const [serverStories, setServerStories] = useState<StoryMeta[]>([]);
+    const [selectedMap, setSelectedMap] = useState<Record<string, StoryMeta>>({});
     const [selectedStoryIds, setSelectedStoryIds] = useState<string[]>([]);
+    const [serverGenres, setServerGenres] = useState<string[]>([]);
+    const [page, setPage] = useState(1);
+    const [hasMore, setHasMore] = useState(false);
+    const [totalCount, setTotalCount] = useState(0);
+    const [isLoadingStories, setIsLoadingStories] = useState(false);
     
     // Filter and search
     const [searchQuery, setSearchQuery] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
     const [selectedGenreFilter, setSelectedGenreFilter] = useState<string>('all');
     
     // Book details
@@ -70,55 +82,85 @@ export default function AnthologyWizard({ isOpen, onClose, onCreated, initialSto
     const [isSuggesting, setIsSuggesting] = useState(false);
     const [isCreating, setIsCreating] = useState(false);
 
-    // Track modal open state to initialize only once upon opening
+    // Debounce search input
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(searchQuery.trim());
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
+
+    // Fetch server stories on filter / search change
+    const fetchPage = useCallback(async (pageNum: number, isInitial = false) => {
+        setIsLoadingStories(true);
+        try {
+            const res = await fetchStories({
+                page: pageNum,
+                pageSize: 40,
+                filter: 'my',
+                genre: selectedGenreFilter !== 'all' ? [selectedGenreFilter] : undefined,
+                search: debouncedSearch || undefined
+            });
+
+            // Store loaded stories
+            if (isInitial || pageNum === 1) {
+                setServerStories(res.stories);
+            } else {
+                setServerStories(prev => {
+                    const ids = new Set(prev.map(s => s.id));
+                    const next = [...prev];
+                    res.stories.forEach(s => {
+                        if (!ids.has(s.id)) {
+                            next.push(s);
+                            ids.add(s.id);
+                        }
+                    });
+                    return next;
+                });
+            }
+
+            // Save to selected map
+            setSelectedMap(prev => {
+                const next = { ...prev };
+                res.stories.forEach(s => {
+                    next[s.id] = s;
+                });
+                return next;
+            });
+
+            setPage(pageNum);
+            setTotalCount(res.total_my || res.total || 0);
+            setHasMore(res.stories.length === 40);
+            if (res.available_genres && res.available_genres.length > 0) {
+                setServerGenres(res.available_genres);
+            }
+        } catch (err) {
+            console.error('Failed to fetch stories in wizard:', err);
+        } finally {
+            setIsLoadingStories(false);
+        }
+    }, [selectedGenreFilter, debouncedSearch]);
+
+    // Initial load when modal opens or filter changes
     useEffect(() => {
         if (!isOpen) return;
 
-        if (stories.length === 0) {
-            loadStories();
-        }
         if (user?.username) {
             setAuthor(user.username);
         }
         if (initialStoryIds && initialStoryIds.length > 0) {
             setSelectedStoryIds(initialStoryIds);
-        } else {
-            setSelectedStoryIds([]);
         }
-        setStep(1);
-        setSearchQuery('');
-        setSelectedGenreFilter('all');
-        setAiSuggestion(null);
-    }, [isOpen]);
 
-    // Available stories
-    const availableStories = useMemo(() => {
-        return stories.filter(s => {
-            const matchesSearch = !searchQuery.trim() || 
-                s.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                (s.description && s.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
-                (s.genre && s.genre.toLowerCase().includes(searchQuery.toLowerCase()));
-            
-            const matchesGenre = selectedGenreFilter === 'all' || s.genre === selectedGenreFilter;
-            return matchesSearch && matchesGenre;
-        });
-    }, [stories, searchQuery, selectedGenreFilter]);
+        fetchPage(1, true);
+    }, [isOpen, selectedGenreFilter, debouncedSearch]);
 
-    // Unique genres present in stories
-    const availableGenres = useMemo(() => {
-        const set = new Set<string>();
-        stories.forEach(s => {
-            if (s.genre) set.add(s.genre);
-        });
-        return Array.from(set).sort();
-    }, [stories]);
-
-    // Selected stories in ordered array
+    // Ordered selected stories array from persistent map
     const orderedSelectedStories = useMemo(() => {
         return selectedStoryIds
-            .map(id => stories.find(s => s.id === id))
+            .map(id => selectedMap[id] || serverStories.find(s => s.id === id))
             .filter((s): s is StoryMeta => !!s);
-    }, [selectedStoryIds, stories]);
+    }, [selectedStoryIds, selectedMap, serverStories]);
 
     // Statistics of selected stories
     const stats = useMemo(() => {
@@ -133,29 +175,34 @@ export default function AnthologyWizard({ isOpen, onClose, onCreated, initialSto
             }
         });
         return {
-            count: orderedSelectedStories.length,
+            count: selectedStoryIds.length,
             totalSeconds,
             estimatedWords,
             estimatedPages: Math.max(1, Math.round(estimatedWords / 250))
         };
-    }, [orderedSelectedStories]);
+    }, [orderedSelectedStories, selectedStoryIds]);
 
     if (!isOpen) return null;
 
-    const handleToggleStory = (id: string) => {
+    const handleToggleStory = (story: StoryMeta) => {
+        setSelectedMap(prev => ({ ...prev, [story.id]: story }));
         setSelectedStoryIds(prev => {
-            if (prev.includes(id)) {
-                return prev.filter(item => item !== id);
+            if (prev.includes(story.id)) {
+                return prev.filter(item => item !== story.id);
             } else {
-                return [...prev, id];
+                return [...prev, story.id];
             }
         });
     };
 
-    const handleSelectAllFiltered = () => {
-        const filteredIds = availableStories.map(s => s.id);
+    const handleSelectAllCurrent = () => {
+        setSelectedMap(prev => {
+            const next = { ...prev };
+            serverStories.forEach(s => { next[s.id] = s; });
+            return next;
+        });
         setSelectedStoryIds(prev => {
-            const set = new Set([...prev, ...filteredIds]);
+            const set = new Set([...prev, ...serverStories.map(s => s.id)]);
             return Array.from(set);
         });
     };
@@ -259,7 +306,11 @@ export default function AnthologyWizard({ isOpen, onClose, onCreated, initialSto
                 style,
                 language,
                 story_ids: selectedStoryIds,
-                auto_generate_blurb: autoGenerateBlurb,
+                auto_generate_blurb: autoGenerateBlurb && !aiSuggestion,
+                blurb: aiSuggestion?.blurb || undefined,
+                cover_prompt: aiSuggestion?.cover_prompt || undefined,
+                epub_dedication: aiSuggestion?.epub_dedication || undefined,
+                epub_afterword: aiSuggestion?.epub_afterword || undefined,
                 model: selectedModel
             });
 
@@ -345,9 +396,9 @@ export default function AnthologyWizard({ isOpen, onClose, onCreated, initialSto
                                                     : 'bg-slate-950/40 border-slate-800/80 text-slate-400 hover:text-white hover:bg-slate-800'
                                             }`}
                                         >
-                                            Alle ({stories.length})
+                                            Alle ({totalCount})
                                         </button>
-                                        {availableGenres.map(g => (
+                                        {(serverGenres.length > 0 ? serverGenres : GENRES.map(g => g.value)).map(g => (
                                             <button
                                                 key={g}
                                                 type="button"
@@ -358,21 +409,21 @@ export default function AnthologyWizard({ isOpen, onClose, onCreated, initialSto
                                                         : 'bg-slate-950/40 border-slate-800/80 text-slate-400 hover:text-white hover:bg-slate-800'
                                                 }`}
                                             >
-                                                {g} ({stories.filter(s => s.genre === g).length})
+                                                {g}
                                             </button>
                                         ))}
                                     </div>
 
                                     {/* Quick Selection Actions */}
                                     <div className="flex items-center justify-between text-xs text-slate-400 pt-1">
-                                        <span>{availableStories.length} Geschichten gefunden</span>
+                                        <span>{totalCount} Geschichten verfügbar</span>
                                         <div className="flex items-center gap-3">
                                             <button 
                                                 type="button"
-                                                onClick={handleSelectAllFiltered}
+                                                onClick={handleSelectAllCurrent}
                                                 className="text-primary hover:underline font-medium"
                                             >
-                                                Alle gefilterten auswählen
+                                                Alle geladenen auswählen
                                             </button>
                                             {selectedStoryIds.length > 0 && (
                                                 <button 
@@ -380,7 +431,7 @@ export default function AnthologyWizard({ isOpen, onClose, onCreated, initialSto
                                                     onClick={handleDeselectAll}
                                                     className="text-slate-400 hover:text-red-400 transition-colors"
                                                 >
-                                                    Auswahl leeren
+                                                    Auswahl leeren ({selectedStoryIds.length})
                                                 </button>
                                             )}
                                         </div>
@@ -389,77 +440,103 @@ export default function AnthologyWizard({ isOpen, onClose, onCreated, initialSto
 
                                 {/* Stories Scrollable List */}
                                 <div className="space-y-2.5 max-h-[50vh] overflow-y-auto pr-1">
-                                    {availableStories.length === 0 ? (
+                                    {isLoadingStories && serverStories.length === 0 ? (
+                                        <div className="py-16 text-center text-slate-500 bg-slate-950/30 rounded-2xl border border-slate-800/50 flex flex-col items-center justify-center gap-2">
+                                            <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                                            <p className="text-xs">Lade Geschichten...</p>
+                                        </div>
+                                    ) : serverStories.length === 0 ? (
                                         <div className="py-12 text-center text-slate-500 bg-slate-950/30 rounded-2xl border border-slate-800/50">
                                             <BookOpen className="w-8 h-8 mx-auto mb-2 opacity-40" />
                                             <p className="text-sm font-medium">Keine Geschichten gefunden.</p>
                                             <p className="text-xs mt-1 text-slate-600">Passe deine Such- oder Genre-Filter an.</p>
                                         </div>
                                     ) : (
-                                        availableStories.map(story => {
-                                            const isSelected = selectedStoryIds.includes(story.id);
-                                            const thumbUrl = getThumbUrl(story.id);
-                                            
-                                            return (
-                                                <div 
-                                                    key={story.id}
-                                                    onClick={() => handleToggleStory(story.id)}
-                                                    className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center gap-3.5 group ${
-                                                        isSelected 
-                                                            ? 'bg-primary/10 border-primary/50 shadow-md shadow-primary/5' 
-                                                            : 'bg-slate-950/40 border-slate-800/60 hover:bg-slate-800/40 hover:border-slate-700'
-                                                    }`}
-                                                >
-                                                    {/* Checkbox */}
-                                                    <div className={`w-5 h-5 rounded-md flex items-center justify-center border transition-all shrink-0 ${
-                                                        isSelected 
-                                                            ? 'bg-primary border-primary text-white' 
-                                                            : 'border-slate-700 bg-slate-900 group-hover:border-slate-500'
-                                                    }`}>
-                                                        {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
-                                                    </div>
+                                        <>
+                                            {serverStories.map(story => {
+                                                const isSelected = selectedStoryIds.includes(story.id);
+                                                const thumbUrl = getThumbUrl(story.id);
+                                                
+                                                return (
+                                                    <div 
+                                                        key={story.id}
+                                                        onClick={() => handleToggleStory(story)}
+                                                        className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center gap-3.5 group ${
+                                                            isSelected 
+                                                                ? 'bg-primary/10 border-primary/50 shadow-md shadow-primary/5' 
+                                                                : 'bg-slate-950/40 border-slate-800/60 hover:bg-slate-800/40 hover:border-slate-700'
+                                                        }`}
+                                                    >
+                                                        {/* Checkbox */}
+                                                        <div className={`w-5 h-5 rounded-md flex items-center justify-center border transition-all shrink-0 ${
+                                                            isSelected 
+                                                                ? 'bg-primary border-primary text-white' 
+                                                                : 'border-slate-700 bg-slate-900 group-hover:border-slate-500'
+                                                        }`}>
+                                                            {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                                                        </div>
 
-                                                    {/* Story Thumbnail */}
-                                                    <div className="w-12 h-16 rounded-xl bg-slate-900 border border-slate-800 overflow-hidden shrink-0 relative flex items-center justify-center text-slate-600">
-                                                        {story.image_url ? (
-                                                            <img 
-                                                                src={thumbUrl} 
-                                                                alt={story.title} 
-                                                                className="w-full h-full object-cover"
-                                                                onError={(e) => {
-                                                                    (e.target as HTMLElement).style.display = 'none';
-                                                                }}
-                                                            />
-                                                        ) : (
-                                                            <BookOpen className="w-5 h-5 opacity-40" />
-                                                        )}
-                                                    </div>
+                                                        {/* Story Thumbnail */}
+                                                        <div className="w-12 h-16 rounded-xl bg-slate-900 border border-slate-800 overflow-hidden shrink-0 relative flex items-center justify-center text-slate-600">
+                                                            {story.image_url ? (
+                                                                <img 
+                                                                    src={thumbUrl} 
+                                                                    alt={story.title} 
+                                                                    className="w-full h-full object-cover"
+                                                                    onError={(e) => {
+                                                                        (e.target as HTMLElement).style.display = 'none';
+                                                                    }}
+                                                                />
+                                                            ) : (
+                                                                <BookOpen className="w-5 h-5 opacity-40" />
+                                                            )}
+                                                        </div>
 
-                                                    {/* Story Meta */}
-                                                    <div className="flex-1 min-w-0">
-                                                        <h4 className="text-sm font-semibold text-white truncate group-hover:text-primary transition-colors">
-                                                            {story.title}
-                                                        </h4>
-                                                        <p className="text-xs text-slate-400 line-clamp-1 mt-0.5">
-                                                            {story.description || story.prompt}
-                                                        </p>
-                                                        <div className="flex items-center gap-3 mt-1.5 text-[11px] text-slate-500">
-                                                            <span className="px-2 py-0.5 rounded-md bg-slate-800/80 text-slate-300 border border-slate-700/50">
-                                                                {story.genre || 'Story'}
-                                                            </span>
-                                                            <span className="flex items-center gap-1">
-                                                                <Clock className="w-3 h-3 text-slate-400" />
-                                                                {formatDuration(story.duration_seconds)}
-                                                            </span>
-                                                            <span className="flex items-center gap-1">
-                                                                <FileText className="w-3 h-3 text-slate-400" />
-                                                                ~{story.word_count || Math.round((story.duration_seconds || 300) / 60 * 150)} Wörter
-                                                            </span>
+                                                        {/* Story Meta */}
+                                                        <div className="flex-1 min-w-0">
+                                                            <h4 className="text-sm font-semibold text-white truncate group-hover:text-primary transition-colors">
+                                                                {story.title}
+                                                            </h4>
+                                                            <p className="text-xs text-slate-400 line-clamp-1 mt-0.5">
+                                                                {story.description || story.prompt}
+                                                            </p>
+                                                            <div className="flex items-center gap-3 mt-1.5 text-[11px] text-slate-500">
+                                                                <span className="px-2 py-0.5 rounded-md bg-slate-800/80 text-slate-300 border border-slate-700/50">
+                                                                    {story.genre || 'Story'}
+                                                                </span>
+                                                                <span className="flex items-center gap-1">
+                                                                    <Clock className="w-3 h-3 text-slate-400" />
+                                                                    {formatDuration(story.duration_seconds)}
+                                                                </span>
+                                                                <span className="flex items-center gap-1">
+                                                                    <FileText className="w-3 h-3 text-slate-400" />
+                                                                    ~{story.word_count || Math.round((story.duration_seconds || 300) / 60 * 150)} Wörter
+                                                                </span>
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            );
-                                        })
+                                                );
+                                            })}
+
+                                            {hasMore && (
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        fetchPage(page + 1);
+                                                    }}
+                                                    disabled={isLoadingStories}
+                                                    className="w-full py-3 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-xl text-xs font-semibold text-slate-300 hover:text-white flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+                                                >
+                                                    {isLoadingStories ? (
+                                                        <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                                                    ) : (
+                                                        <RefreshCw className="w-3.5 h-3.5" />
+                                                    )}
+                                                    Weitere Geschichten laden ({serverStories.length} von {totalCount})
+                                                </button>
+                                            )}
+                                        </>
                                     )}
                                 </div>
                             </div>

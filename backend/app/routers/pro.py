@@ -1132,9 +1132,9 @@ async def api_create_anthology_from_stories(
     author_name = req.author.strip() if req.author and req.author.strip() else (current_user.username or "Dirk Proessel")
     lang = req.language or "de"
     
-    # AI synthesis for anthology if requested
+    # AI synthesis for anthology ONLY if needed and blurb not provided
     synth_meta = {}
-    if req.auto_generate_blurb:
+    if req.auto_generate_blurb and not req.blurb:
         try:
             synth_meta = await synthesize_anthology_concept(
                 story_items=story_items,
@@ -1147,11 +1147,11 @@ async def api_create_anthology_from_stories(
         except Exception as e:
             logger.error(f"Failed to synthesize anthology metadata: {e}")
             
-    final_title = req.title.strip() if req.title and req.title.strip() else synth_meta.get("title", f"{len(story_items)} {req.genre}-Geschichten")
-    final_prompt = synth_meta.get("blurb") or f"Sammelband mit {len(story_items)} ausgewählten Kurzgeschichten im Genre {req.genre}."
-    final_cover_prompt = synth_meta.get("cover_prompt")
-    final_dedication = synth_meta.get("epub_dedication")
-    final_afterword = synth_meta.get("epub_afterword")
+    final_title = req.title.strip() if req.title and req.title.strip() else (synth_meta.get("title") or f"{len(story_items)} {req.genre}-Geschichten")
+    final_prompt = req.blurb or synth_meta.get("blurb") or f"Sammelband mit {len(story_items)} ausgewählten Kurzgeschichten im Genre {req.genre}."
+    final_cover_prompt = req.cover_prompt or synth_meta.get("cover_prompt")
+    final_dedication = req.epub_dedication or synth_meta.get("epub_dedication")
+    final_afterword = req.epub_afterword or synth_meta.get("epub_afterword")
     
     from app.services.story_generator import generate_modular_prompt
     initial_style = generate_modular_prompt(req.style)
@@ -1245,7 +1245,17 @@ async def api_create_anthology_from_stories(
             session.add(ch)
         session.commit()
         session.refresh(project)
-        return BookProjectDetailResponse.model_validate(project, from_attributes=True)
+        
+        # Explicitly fetch ordered chapters for clean serialization
+        db_chapters = session.exec(
+            select(BookChapter)
+            .where(BookChapter.book_project_id == project.id)
+            .order_by(BookChapter.chapter_number)
+        ).all()
+        
+        resp_data = project.model_dump()
+        resp_data["chapters"] = [BookChapterResponse.model_validate(c, from_attributes=True) for c in db_chapters]
+        return BookProjectDetailResponse(**resp_data)
 
 
 

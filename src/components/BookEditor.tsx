@@ -215,7 +215,7 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
     const [isKidsBook, setIsKidsBook] = useState<boolean>(false);
 
     // Step 2 State: Outline
-    const [numChapters, setNumChapters] = useState(activeProject.chapters.length || 8);
+    const [numChapters, setNumChapters] = useState((activeProject.chapters || []).length || 8);
     const [outlineModel, setOutlineModel] = useState('gemini-3.1-flash-lite');
     const [editableChapters, setEditableChapters] = useState<any[]>([]);
     const [outlineFeedback, setOutlineFeedback] = useState('');
@@ -1199,7 +1199,7 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                             {activeProject.is_anthology && (
                                 <span className="text-[10px] uppercase font-mono tracking-wider bg-amber-500/20 text-amber-300 px-2.5 py-0.5 rounded-full border border-amber-500/30 flex items-center gap-1 font-bold">
                                     <Layers className="w-3 h-3" />
-                                    Sammelband ({activeProject.chapters.length} Geschichten)
+                                    Sammelband ({(activeProject.chapters || []).length} Geschichten)
                                 </span>
                             )}
 

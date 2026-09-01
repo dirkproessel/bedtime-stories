@@ -465,6 +465,10 @@ class BookAnthologyCreate(BaseModel):
     language: Optional[str] = "de"
     story_ids: list[str]  # IDs of stories in order
     auto_generate_blurb: bool = True
+    blurb: Optional[str] = None
+    cover_prompt: Optional[str] = None
+    epub_dedication: Optional[str] = None
+    epub_afterword: Optional[str] = None
     model: Optional[str] = "gemini-3.7-flash"
 
 

@@ -808,6 +808,10 @@ export interface BookAnthologyCreate {
     language?: 'de' | 'en';
     story_ids: string[];
     auto_generate_blurb?: boolean;
+    blurb?: string;
+    cover_prompt?: string;
+    epub_dedication?: string;
+    epub_afterword?: string;
     model?: string;
 }
 
