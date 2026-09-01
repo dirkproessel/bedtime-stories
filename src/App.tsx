@@ -61,7 +61,7 @@ function App() {
         }
       }
 
-      if (lowerPath === '/pro' || lowerPath.startsWith('/pro/')) {
+      if (lowerHash === '/pro' || lowerHash === 'pro' || lowerHash.startsWith('/pro/') || lowerHash.startsWith('pro/') || lowerPath === '/pro' || lowerPath.startsWith('/pro/')) {
         setActiveView('pro');
         return;
       }
