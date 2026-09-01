@@ -4,7 +4,6 @@ import { Play, Trash2, Heart, BookOpen, Loader2, Mic, X, XCircle, Venus, Mars, U
 import toast from 'react-hot-toast';
 import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import ConfirmModal from './ConfirmModal';
-import AnthologyWizard from './AnthologyWizard';
 
 
 import { voiceName, voiceDesc } from '../lib/voices';
@@ -382,8 +381,7 @@ export default function StoryArchive({ filterOverride }: { filterOverride?: 'my'
         archiveGenre, archiveSearch, setArchiveGenre, setArchiveSearch, toggleArchiveGenre,
         revoiceStory, availableGenres, regenerateStoryImage,
         updateStory,
-        playlist, addToPlaylist, removeFromPlaylist,
-        setCurrentProProject
+        playlist, addToPlaylist, removeFromPlaylist
     } = useStore();
     const archiveFilter = filterOverride || storeFilter;
     const isGuest = user?.email?.endsWith('@storyja.guest') ?? false;
@@ -508,7 +506,6 @@ export default function StoryArchive({ filterOverride }: { filterOverride?: 'my'
     const [originalText, setOriginalText] = useState('');
     const [isSavingEdit, setIsSavingEdit] = useState(false);
     const [showEditConfirm, setShowEditConfirm] = useState(false);
-    const [showAnthologyWizardStoryId, setShowAnthologyWizardStoryId] = useState<string | null>(null);
     const audioRef = useRef<HTMLAudioElement>(null);
     const touchStartX = useRef<number | null>(null);
     const touchStartY = useRef<number | null>(null);
@@ -1849,8 +1846,9 @@ export default function StoryArchive({ filterOverride }: { filterOverride?: 'my'
                                 {user?.is_admin && (
                                     <button 
                                         onClick={() => { 
-                                            setShowAnthologyWizardStoryId(activeToolboxStory.id); 
                                             setShowToolbox(null); 
+                                            setActiveView('pro');
+                                            toast('Im Pro-Modus: Wähle „Sammelband“, um deine Geschichten zusammenzufassen.', { icon: '📚' });
                                         }}
                                         className="w-full flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-white/5 transition-all outline-none"
                                     >
@@ -2028,18 +2026,6 @@ export default function StoryArchive({ filterOverride }: { filterOverride?: 'my'
                 onClose={() => setShowEditConfirm(false)}
                 confirmLabel="Ja, Text speichern & Audio löschen"
                 isDanger={true}
-            />
-
-            {/* Anthology Wizard Modal */}
-            <AnthologyWizard
-                isOpen={!!showAnthologyWizardStoryId}
-                onClose={() => setShowAnthologyWizardStoryId(null)}
-                initialStoryIds={showAnthologyWizardStoryId ? [showAnthologyWizardStoryId] : []}
-                onCreated={(newBook) => {
-                    setShowAnthologyWizardStoryId(null);
-                    setCurrentProProject(newBook);
-                    setActiveView('pro');
-                }}
             />
         </div>
     );
