@@ -230,6 +230,7 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
     const [chapterOutline, setChapterOutline] = useState('');
     const [feedback, setFeedback] = useState('');
     const [targetWords, setTargetWords] = useState<number>(2000);
+    const prevChapterNumRef = useRef<number | null>(null);
     const [completedScenes, setCompletedScenes] = useState<Record<string, boolean>>({});
 
     const toggleSceneCompleted = (chapterNum: number, sceneNum: number) => {
@@ -481,24 +482,30 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
             setChapterTitle(dbChapter.title || '');
             setChapterOutline(dbChapter.plot_outline || '');
             
-            // Calculate a default suggestion for target words based on outline length
-            const outlineLen = (dbChapter.plot_outline || '').trim().length;
-            let suggestion = 2000;
-            if (outlineLen > 0) {
-                if (outlineLen < 150) {
-                    suggestion = 1200;
-                } else if (outlineLen < 350) {
-                    suggestion = 1800;
-                } else {
-                    suggestion = 2500;
+            // Calculate a default suggestion for target words only when switching to a different chapter
+            if (prevChapterNumRef.current !== selectedChapterNum) {
+                prevChapterNumRef.current = selectedChapterNum;
+                const outlineLen = (dbChapter.plot_outline || '').trim().length;
+                let suggestion = 2000;
+                if (outlineLen > 0) {
+                    if (outlineLen < 150) {
+                        suggestion = 1200;
+                    } else if (outlineLen < 350) {
+                        suggestion = 1800;
+                    } else {
+                        suggestion = 2500;
+                    }
                 }
+                setTargetWords(suggestion);
             }
-            setTargetWords(suggestion);
         } else {
             setChapterText('');
             setChapterTitle('');
             setChapterOutline('');
-            setTargetWords(2000);
+            if (prevChapterNumRef.current !== selectedChapterNum) {
+                prevChapterNumRef.current = selectedChapterNum;
+                setTargetWords(2000);
+            }
         }
         setFindings([]); // Clear proofread findings when switching chapters
     }, [selectedChapterNum, dbChapter?.id, dbChapter?.status]);
@@ -1210,7 +1217,8 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                             {activeProject.series_id ? (
                                 <span className="text-[10px] uppercase font-mono tracking-wider bg-indigo-500/20 text-indigo-300 px-2.5 py-0.5 rounded-full border border-indigo-500/30 flex items-center gap-1">
                                     <Layers className="w-3 h-3" />
-                                    {activeProject.series_subtitle || `Band ${activeProject.series_order || 1}`}
+                                    {activeProject.series_title ? `${activeProject.series_title} • ` : ''}
+                                    {activeProject.language === 'en' ? `Vol. ${activeProject.series_order || 1}` : `Band ${activeProject.series_order || 1}`}
                                 </span>
                             ) : !activeProject.is_anthology ? (
                                 <button
@@ -2330,9 +2338,25 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
 
                         {/* Rewrite Feedback Box */}
                         <div className="bg-background p-4 rounded-2xl border border-slate-800 space-y-3">
-                            <div className="space-y-1">
-                                <h4 className="text-xs font-semibold text-white">Regeneration mit Feedback</h4>
-                                <p className="text-[10px] text-text-muted">Beschreibe Änderungen, z.B. "Mach das Kapitel spannender" oder "Füge mehr Dialog hinzu".</p>
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                <div className="space-y-0.5">
+                                    <h4 className="text-xs font-semibold text-white flex items-center gap-1.5">
+                                        <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                                        Regeneration mit Feedback & Längenanpassung
+                                    </h4>
+                                    <p className="text-[10px] text-text-muted">Beschreibe Text-Änderungen und passe bei Bedarf die Ziel-Wortanzahl für diesen Neuentwurf an.</p>
+                                </div>
+                                <div className="flex items-center gap-1.5 bg-surface border border-slate-800 rounded-lg px-2.5 py-1 text-xs text-slate-300 self-start sm:self-auto">
+                                    <span className="text-[10px] text-text-muted font-medium">Zielwörter:</span>
+                                    <input 
+                                        type="number" 
+                                        value={targetWords} 
+                                        onChange={(e) => setTargetWords(parseInt(e.target.value) || 2000)}
+                                        className="w-16 bg-transparent text-amber-400 font-bold outline-none text-right"
+                                        step={100}
+                                        min={200}
+                                    />
+                                </div>
                             </div>
 
                             <div className="flex gap-2">
@@ -2341,14 +2365,15 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                                     value={feedback}
                                     onChange={(e) => setFeedback(e.target.value)}
                                     className="w-full bg-surface border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-primary"
-                                    placeholder="z.B. Lass den Hauptcharakter misstrauischer wirken..."
+                                    placeholder="z.B. Lass den Hauptcharakter misstrauischer wirken, beschreibe die Atmosphäre noch detaillierter..."
                                 />
                                 <button
                                     onClick={() => handleGenerateChapter(true)}
                                     disabled={isAiLoading || !feedback.trim() || activeProject.status === 'generating'}
-                                    className="bg-slate-800 hover:bg-slate-700 text-amber-400 text-xs px-4 py-2 rounded-xl transition-colors border border-slate-700/50 flex items-center gap-1 shrink-0"
+                                    className="bg-slate-800 hover:bg-slate-700 text-amber-400 text-xs px-4 py-2 rounded-xl transition-colors border border-slate-700/50 flex items-center gap-1 shrink-0 font-medium"
                                 >
-                                    Regenerieren
+                                    <Sparkles className="w-3 h-3" />
+                                    Regenerieren ({targetWords} W.)
                                 </button>
                             </div>
                         </div>
@@ -3359,10 +3384,11 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                                             />
                                         ) : (
                                             <textarea
-                                                readOnly
                                                 value={kdpMetadata.description_kdp}
-                                                rows={7}
-                                                className="w-full bg-surface border border-slate-800 rounded-xl p-4 text-slate-300 font-mono text-[11px] focus:outline-none resize-none leading-relaxed select-all"
+                                                onChange={(e) => setKdpMetadata(prev => prev ? { ...prev, description_kdp: e.target.value } : null)}
+                                                rows={8}
+                                                className="w-full bg-surface border border-slate-800 rounded-xl p-4 text-slate-300 font-mono text-[11px] focus:outline-none focus:border-primary resize-y leading-relaxed"
+                                                placeholder="HTML-Klappentext..."
                                             />
                                         )}
                                     </div>

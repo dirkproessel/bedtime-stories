@@ -332,9 +332,8 @@ async def generate_book_epub(project: BookProject, chapters: List[BookChapter], 
     book.set_identifier(f"urn:uuid:pro-{project.id}")
     book.set_title(project.title)
     book.set_language('en' if is_en else 'de')
-    author_name = (project.epub_author or "").strip() or "Stanzwerk Pro"
+    author_name = (project.epub_author or "").strip() or "Dirk Proessel"
     book.add_author(author_name)
-    book.add_metadata('DC', 'publisher', 'storyja.com')
     book.add_metadata('DC', 'rights', f'© {datetime.date.today().year} {author_name}')
 
     # --- CSS item ---
@@ -404,7 +403,7 @@ async def generate_book_epub(project: BookProject, chapters: List[BookChapter], 
     # PAGE 1 – Titelblatt (Full Title)
     # -------------------------------------------------------
     vol_lbl = "Volume" if is_en else "Band"
-    series_line = f'<div class="book-subtitle">{series_title} &bull; {project.series_subtitle or f"{vol_lbl} {project.series_order}"}</div>' if series_title else ''
+    series_line = f'<div class="book-subtitle">{series_title} &bull; {vol_lbl} {project.series_order or 1}</div>' if series_title else ''
     title_lbl = "Title Page" if is_en else "Titelblatt"
     title_page = make_page(
         "title", "title.xhtml", title_lbl,
@@ -413,7 +412,7 @@ async def generate_book_epub(project: BookProject, chapters: List[BookChapter], 
   {series_line}
   <div class="ornament">&#10022;</div>
   <div class="author">{author_name}</div>
-  <div class="publisher">storyja.com &bull; {year}</div>
+  <div class="publisher">{year}</div>
 </div>'''
     )
     book.add_item(title_page)
@@ -425,7 +424,7 @@ async def generate_book_epub(project: BookProject, chapters: List[BookChapter], 
     imprint_extra = f'<hr/><p>{custom_imprint}</p>' if custom_imprint else ''
     
     if is_en:
-        series_notice = f'<hr/><p><em>This work is {project.series_subtitle or f"Volume {project.series_order}"} of the series &ldquo;{series_title}&rdquo;.</em></p>' if series_title else ''
+        series_notice = f'<hr/><p><em>This work is Volume {project.series_order or 1} of the series &ldquo;{series_title}&rdquo;.</em></p>' if series_title else ''
         imprint_lbl = "Imprint"
         imprint_body = f'''<div class="imprint-page">
   <p><strong>{project.title}</strong></p>
@@ -437,7 +436,7 @@ async def generate_book_epub(project: BookProject, chapters: List[BookChapter], 
   {imprint_extra}
 </div>'''
     else:
-        series_notice = f'<hr/><p><em>Dieses Werk ist {project.series_subtitle or f"Band {project.series_order}"} der Buchreihe &bdquo;{series_title}&ldquo;.</em></p>' if series_title else ''
+        series_notice = f'<hr/><p><em>Dieses Werk ist Band {project.series_order or 1} der Buchreihe &bdquo;{series_title}&ldquo;.</em></p>' if series_title else ''
         imprint_lbl = "Impressum"
         imprint_body = f'''<div class="imprint-page">
   <p><strong>{project.title}</strong></p>
@@ -554,11 +553,19 @@ async def generate_book_epub(project: BookProject, chapters: List[BookChapter], 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     epub.write_epub(output_path, book, {})
     logger.info(f"Professional EPUB written to {output_path}")
+def clean_kdp_description(text: str) -> str:
+    """Strip any AI generator or platform watermarks from the book description."""
+    if not text:
+        return ""
+    # Strip any occurrences of 'generiert mit storyja.com' or 'storyja.com' or 'storyja'
+    cleaned = re.sub(r'(?i)(?:generiert\s+mit|generated\s+with)\s+storyja(?:\.com)?(?:\s*•\s*\d{4})?', '', text)
+    cleaned = re.sub(r'(?i)\bgeneriert\s+mit\s+[^\n<]+', '', cleaned)
+    cleaned = re.sub(r'(?i)\bgenerated\s+with\s+[^\n<]+', '', cleaned)
+    cleaned = re.sub(r'(?i)storyja(?:\.com)?', '', cleaned)
+    cleaned = re.sub(r'<p>\s*</p>', '', cleaned)
+    cleaned = re.sub(r'\n{3,}', '\n\n', cleaned)
+    return cleaned.strip()
 
-
-# ---------------------------------------------------------------------------
-# KDP Metadata Generator
-# ---------------------------------------------------------------------------
 
 async def generate_kdp_metadata(
     project: BookProject, 
@@ -592,7 +599,7 @@ async def generate_kdp_metadata(
                 series = session.get(BookSeries, project.series_id)
                 if series:
                     vol_lbl = "Volume" if is_en else "Band"
-                    series_clause = f"- Series: '{series.title}', {project.series_subtitle or f'{vol_lbl} {project.series_order}'}\n"
+                    series_clause = f"- Series: '{series.title}', {vol_lbl} {project.series_order or 1}\n"
         except Exception:
             pass
 
@@ -608,61 +615,58 @@ async def generate_kdp_metadata(
         else:
             anthology_clause = (
                 f"- Buch-Format: KURZGESCHICHTEN-SAMMELBAND / ANTHOLOGIE (Enthält {len(chapters)} vollständige Kurzgeschichten).\n"
-                "- WICHTIGER HINWEIS: Wähle für 'kdp_categories' passende Kategorien für Kurzgeschichten, Erzählbände und Anthologien (z. B. Belletristik > Kurzgeschichten & Anthologien). "
+                "- SPEZIELLE ANWEISUNG: Bei 'kdp_categories' gezielt Pfade für Kurzgeschichten, Anthologien oder das jeweilige Subgenre priorisieren. "
                 "Erstelle im 'description_kdp' (HTML-Klappentext) eine ansprechende Aufzählung der enthaltenen Geschichten mit kurzen Teasern.\n"
             )
 
     # Marketplace-specific taxonomy guidance
     if is_en:
         taxonomy_guide = """
-Amazon KDP Category Taxonomy (English / Amazon.com & Amazon.co.uk):
-Select EXACTLY 3 categories using the hierarchical path 'Main Category > Subcategory > Specific Subcategory'.
-Amazon KDP Main Branches:
-1. 'Children's Books' (or 'Juvenile Fiction' / 'Juvenile Nonfiction'):
+Official Amazon KDP Category Taxonomy (Amazon.com / Global English):
+Select EXACTLY 3 categories following the hierarchical path 'Main Category > Subcategory > Branch'.
+Amazon KDP Top-Level Categories and Branches:
+1. 'Children's Books' (for picture books, bedtime stories, early readers):
    - Bedtime & Dreams
-   - Animals (Farm Animals, Dogs, Cats, Wildlife, Dinosaurs, Dragons & Mythical Creatures)
-   - Early Learning & Picture Books (Basic Concepts, Stories in Verse, Interactive)
-   - Growing Up & Facts of Life (Friendship, Family & Siblings, Emotions & Feelings, School & Kindergarten)
-   - Fantasy & Magic (Fairies, Wizards, Mythical Creatures, Fairy Tales & Folklore)
-   - Action & Adventure (Exploration, Pirates, Mysteries & Detectives)
-   - Humorous Stories (Funny Animal Tales, Silly Stories)
-   - Science, Nature & How It Works (Space & Astronomy, Nature & Wildlife)
-   - Holidays & Celebrations (Christmas, Halloween, Easter, Birthdays)
-   - Activities, Crafts & Games (Coloring Books, Puzzles & Mazes)
-2. 'Fiction':
-   - Fantasy (Epic / High Fantasy, Dark Fantasy, Urban Fantasy, Romantic Fantasy / Romantasy, Magical Realism, Time Travel)
-   - Science Fiction (Space Opera, Dystopian, Hard Sci-Fi & AI, Cyberpunk, Time Travel, Post-Apocalyptic & Survival, Alien Invasion)
-   - Mystery, Thriller & Suspense (Psychological Thrillers, Cozy Mystery, Crime & Detective, Serial Killers, Legal & Political Thrillers, Espionage)
-   - Romance (Contemporary Romance, Romantic Comedy, New Adult & College, Fantasy Romance, Historical Romance, Billionaires & Boss, Romantic Suspense)
-   - Historical Fiction (Ancient World, Medieval & Renaissance, 19th Century, 20th Century & World Wars, Biographical Fiction)
-   - Horror (Psychological Horror, Supernatural & Ghosts, Dark Fantasy & Monsters, Occult)
-   - Humor & Satire (Romantic & Contemporary Comedy, Parody & Satire, Dark Humor)
-   - Literary Fiction (Family Sagas, Contemporary & Social, Philosophical)
-   - Action & Adventure (Treasure Hunting, Wilderness & Survival, Military)
-   - Short Stories & Anthologies
-3. 'Young Adult Fiction' (YA):
-   - Fantasy & Romantasy (Magic Academies, Paranormal, Dark Fantasy)
-   - Romance & Coming of Age (First Love, High School & College, Romantic Comedy)
-   - Dystopian & Science Fiction
+   - Animals (Farm Animals, Dogs, Cats, Wild Animals, Dinosaurs, Dragons & Mythical, Horses)
+   - Growing Up & Facts of Life (Friendship & Sharing, Siblings, Emotions & Feelings, Courage & Self-Esteem)
+   - Fairy Tales, Folk Tales & Myths
+   - Action & Adventure (Mysteries & Detective, Space Exploration)
+   - Humor & Funny
+   - Science, Nature & How It Works
+   - Holidays & Celebrations
+2. 'Fiction' (for novels, novellas, adult & general readers):
+   - Fantasy (Epic, Dark Fantasy, Urban, Paranormal, Romance/Romantasy, Historical Fantasy)
+   - Science Fiction (Space Opera, Cyberpunk, Dystopian, Time Travel, Hard Sci-Fi, Post-Apocalyptic)
+   - Mystery, Thriller & Suspense (Psychological, Crime, Hard-Boiled, Cozy Mystery, Police Procedural, Espionage)
+   - Romance (Contemporary, Romantic Comedy, New Adult & College, Romantasy, Historical/Regency, Romantic Suspense)
+   - Historical Fiction (Ancient, Medieval, 19th Century, 20th Century, World War)
+   - Horror (Supernatural, Ghosts & Hauntings, Psychological, Dark Fantasy)
+   - Humor & Satire
+   - Literary Fiction
+   - Anthologies & Short Stories
+3. 'Young Adult' (YA Fiction):
+   - Fantasy & Romantasy (Magic Academies, Paranormal, Urban)
+   - Romance & Coming of Age
+   - Dystopian & Sci-Fi
    - Mystery & Thriller
-   - Social Issues & Identity
-4. 'Nonfiction':
-   - Self-Help & Personal Development (Mindfulness & Meditation, Habits & Motivation, Time Management, Stress Management)
-   - Health, Fitness & Dieting (Mental Health, Nutrition, Exercise, Holistic Medicine)
-   - Parenting & Relationships (Babies & Toddlers, Parenting, Family)
-   - Business & Money (Personal Finance, Investing, Entrepreneurship, Leadership)
-   - Cookbooks, Food & Wine
-   - Science, Tech & Math (AI & Technology, Astronomy, Nature)
-   - Biographies & Memoirs
+4. 'Nonfiction' (Self-help, business, history, guides):
+   - Self-Help & Personal Development (Mindfulness, Habits, Motivation, Success)
+   - Health, Fitness & Diet
+   - Parenting & Families
+   - Business & Investing
+   - History & Politics
 """
         system_instruction = (
-            "You are a leading Amazon Kindle Direct Publishing (KDP) marketing strategist and metadata architect. "
-            "Your task is to generate perfectly matching, high-converting metadata for Amazon KDP according to Amazon's official category tree and search algorithms. "
-            "Follow the 3-category strategy: Slot 1 = Primary Core Category (Highest Relevance), Slot 2 = High-Traffic Subgenre (High Browse Demand), Slot 3 = Niche Subcategory (Low Competition for #1 Bestseller Badge). "
+            "You are a top Amazon Kindle Direct Publishing (KDP) marketing strategist and book launch specialist. "
+            "Generate high-converting, accurate metadata and category recommendations aligned with the official Amazon KDP category tree. "
+            "Apply the 3-category strategy: "
+            "Slot 1 = Core Main Category (Highest relevance), "
+            "Slot 2 = High-Traffic Subgenre (High browse volume), "
+            "Slot 3 = Niche Opportunity (Low competition for #1 Bestseller badge ranking). "
             "Respond strictly with valid JSON."
         )
         prompt = f"""
-Book Details:
+Book Project Data:
 - Title: {project.title}
 {series_clause}
 {anthology_clause}
@@ -683,7 +687,7 @@ Provide the metadata in English as a single valid JSON object with the following
    - 'max_age': integer or null (e.g. 6)
    - 'label': string (e.g. 'Ages 3–6' or 'Adult / All Ages')
 4. 'suggested_subtitle': High-converting Amazon subtitle (max 180 characters, crisp and engaging)
-5. 'description_kdp': Compelling Amazon HTML blurb using <b>, <i>, <p>, <ul>, <li>, <h3> (max 2000 chars, structured with a catchy hook, bullet points of key themes, and a call to action)
+5. 'description_kdp': Compelling Amazon HTML blurb using <b>, <i>, <p>, <ul>, <li>, <h3> (max 2000 chars, structured with a catchy hook, bullet points of key themes, and a call to action). IMPORTANT: NEVER mention 'storyja.com', 'Storyja', 'AI generated', 'generated with...', or platform references.
 6. 'search_keywords': Array of EXACTLY 7 high-intent KDP search phrases (each under 50 characters, without repeating words from the title)
 7. 'kdp_categories': Array of EXACTLY 3 category objects matching the KDP taxonomy:
    - Slot 1: 'slot': 1, 'role': 'Primary Core Category (High Relevance)', 'path': 'Main Category > Subcategory > Branch', 'breadcrumbs': ['Main Category', 'Subcategory', 'Branch'], 'strategy_note': '...'
@@ -827,7 +831,7 @@ Erstelle ein JSON-Objekt auf Deutsch mit exakt folgenden Feldern:
    - 'max_age': Zahl oder null (z. B. 6)
    - 'label': String (z. B. '3–6 Jahre' oder 'Für Erwachsene / Ab 18')
 4. 'suggested_subtitle': Ein verkaufsstarker Amazon-Untertitel (max 180 Zeichen, prägnant mit emotionalem Mehrwert)
-5. 'description_kdp': Ein hochkonvertierender Klappentext in HTML (mit <b>, <i>, <p>, <ul>, <li>, <h3> Tags, max 2000 Zeichen, bestehend aus Catchy Hook, thematischen Aufzählungspunkten und Handlungsaufforderung)
+5. 'description_kdp': Ein hochkonvertierender Klappentext in HTML (mit <b>, <i>, <p>, <ul>, <li>, <h3> Tags, max 2000 Zeichen, bestehend aus Catchy Hook, thematischen Aufzählungspunkten und Handlungsaufforderung). WICHTIG: Erwähne NIEMALS 'storyja.com', 'Storyja', 'generiert mit...' oder sonstige Plattform-Referenzen. Der Text richtet sich ausschließlich an interessierte Buchkäufer.
 6. 'search_keywords': Array von EXAKT 7 hochrelevanten KDP-Keywords/Suchbegriffen (jeweils max 50 Zeichen, keine Duplikate aus Titel/Untertitel)
 7. 'kdp_categories': Array von EXAKT 3 Kategorien nach KDP-Standard:
    - Slot 1: 'slot': 1, 'role': 'Hauptkategorie (Höchste Relevanz)', 'path': 'Hauptkategorie > Unterkategorie > Spezifischer Zweig', 'breadcrumbs': ['Hauptkategorie', 'Unterkategorie', 'Spezifischer Zweig'], 'strategy_note': '...'
@@ -900,13 +904,16 @@ Format:
         response = await generate_text(
             prompt=prompt,
             model=model,
-            temperature=0.7,
+            temperature=0.4,
             response_mime_type="application/json",
             system_instruction=system_instruction
         )
         from app.services.book_generator import clean_json_string
         cleaned = clean_json_string(response)
         data = json.loads(cleaned)
+
+        if "description_kdp" in data and isinstance(data["description_kdp"], str):
+            data["description_kdp"] = clean_kdp_description(data["description_kdp"])
         
         # Ensure backward compatibility if kdp_categories exists
         if "kdp_categories" in data and isinstance(data["kdp_categories"], list):
@@ -1068,7 +1075,7 @@ def generate_book_txt(project: BookProject, chapters: List[BookChapter], output_
     # Title block
     lines.append(project.title.upper())
     if series_title:
-        lines.append(f"{'Series' if is_en else 'Serie'}: {series_title} • {project.series_subtitle or f'{vol_lbl} {project.series_order}'}")
+        lines.append(f"{'Series' if is_en else 'Serie'}: {series_title} • {vol_lbl} {project.series_order or 1}")
     lines.append("")
     lines.append(f"{by_lbl} {author_name}")
     lines.append(f"© {year} {author_name}")
@@ -1083,9 +1090,9 @@ def generate_book_txt(project: BookProject, chapters: List[BookChapter], output_
     lines.append(f"{project.title}")
     if series_title:
         if is_en:
-            lines.append(f"This work is {project.series_subtitle or f'Volume {project.series_order}'} of the series '{series_title}'.")
+            lines.append(f"This work is Volume {project.series_order or 1} of the series '{series_title}'.")
         else:
-            lines.append(f"Dieses Werk ist {project.series_subtitle or f'Band {project.series_order}'} der Buchreihe '{series_title}'.")
+            lines.append(f"Dieses Werk ist Band {project.series_order or 1} der Buchreihe '{series_title}'.")
     lines.append(f"First edition {year}" if is_en else f"Erstauflage {year}")
     lines.append(f"© {year} {author_name}")
     lines.append("All rights reserved." if is_en else "Alle Rechte vorbehalten.")
@@ -1151,7 +1158,7 @@ def generate_book_txt(project: BookProject, chapters: List[BookChapter], output_
     lines.append("")
     lines.append("")
     lines.append("=" * 60)
-    lines.append(f"{'Generated with' if is_en else 'Generiert mit'} storyja.com • {year}")
+    lines.append(f"© {year} {author_name}")
     lines.append("=" * 60)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -1253,7 +1260,7 @@ def generate_book_pdf(project: BookProject, chapters: List[BookChapter], output_
     pdf.ln(40)
     pdf.set_font("Helvetica", "", 10)
     pdf.set_text_color(130, 130, 130)
-    pdf.cell(0, 8, f"storyja.com - {year}", align="C")  # bullet replacement
+    pdf.cell(0, 8, f"{year}", align="C")
 
     # ---- Imprint Page ----
     pdf.add_page()

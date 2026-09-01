@@ -29,7 +29,7 @@ class SeriesArchitectureSchema(BaseModel):
     cover_style_prompt: str = Field(description="Visuelles Style-Template für die Buchcover (auf Englisch, spezifiziert Art-Style, Farbpalette, Beleuchtung, Schriftplatzierung)")
     series_arc: str = Field(description="Übergeordneter Handlungsbogen und Meilensteine für die Bände der Serie")
     volume_1_title: str = Field(description="Kreativer Titel für Band 1")
-    volume_1_subtitle: str = Field(description="Untertitel für Band 1 (z. B. 'Band 1: Der Schatten erwacht')")
+    volume_1_subtitle: str = Field(default="Band 1", description="Bandbezeichnung für Band 1 (z. B. 'Band 1' oder 'Volume 1')")
     volume_1_prompt: str = Field(description="Konkrete Handlungsidee / Plot-Prämisse für Band 1")
 
 class SeriesExtractedSchema(BaseModel):
@@ -40,7 +40,7 @@ class SeriesExtractedSchema(BaseModel):
 
 class SequelPitchSchema(BaseModel):
     title: str = Field(description="Vorgeschlagener Buchtitel für den neuen Band")
-    subtitle: str = Field(description="Untertitel mit Bandnummer (z. B. 'Band 2: Das Erwachen der Schatten')")
+    subtitle: str = Field(default="", description="Bandbezeichnung (z. B. 'Band 2' oder 'Volume 2')")
     pitch: str = Field(description="Ausführlicher Klappentext / Handlungs-Pitch für diesen Band (ca. 80-120 Wörter)")
     core_conflict: str = Field(description="Der zentrale neue Konflikt / die neue Bedrohung")
     tone: str = Field(description="Richtung des Sequels (z. B. 'Direkte Fortsetzung / Cliffhanger-Auflösung', 'Neuer Fall / Neues Abenteuer', 'Eskalation / Größere Einsätze')")
@@ -682,11 +682,21 @@ async def generate_chapter_content(
         
         # Extract chapter summary if present in outline
         current_summary = ""
-        if chapter.plot_outline:
-            sum_match = re.match(r"^(?:Zusammenfassung|Summary):\s*(.*?)\n\n", chapter.plot_outline, re.DOTALL | re.IGNORECASE)
-            if sum_match:
-                current_summary = sum_match.group(1).strip()
+        # Calculate total estimated words across all scenes in outline
+        total_estimated_scenes_words = 0
+        for s in scenes:
+            w = 500
+            if "estimated_words" in s:
+                m = re.search(r"\d+", s["estimated_words"])
+                if m:
+                    w = int(m.group())
+            total_estimated_scenes_words += w
         
+        # Scale scene budgets proportionally if target_words was provided
+        scale_factor = 1.0
+        if target_words and total_estimated_scenes_words > 0:
+            scale_factor = target_words / total_estimated_scenes_words
+
         for scene in scenes:
             words = 500  # Fallback target words per scene
             if "estimated_words" in scene:
@@ -694,8 +704,10 @@ async def generate_chapter_content(
                 if match:
                     words = int(match.group())
             
-            # Clamp target words between reasonable boundaries
-            words = max(200, min(words, 1500))
+            # Apply proportional scale factor according to chapter target words
+            words = int(words * scale_factor)
+            # Clamp target words between reasonable boundaries (200 to 3000 words per scene)
+            words = max(200, min(words, 3000))
             
             if is_en:
                 if chapter_prose:
@@ -2212,7 +2224,7 @@ async def generate_series_architecture(
         3. 'cover_style_prompt': Detailed image prompt template in ENGLISH for book covers of this series ('Series title prominent at top, Volume number banner, Book title in center, author Dirk Proessel at bottom').
         4. 'series_arc': Overarching multi-book story arc and milestones (e.g. 'Volume 1: ..., Volume 2: ..., Volume 3: ...').
         5. 'volume_1_title': Catchy, creative book title for Volume 1 in English.
-        6. 'volume_1_subtitle': Subtitle (e.g. 'Volume 1: The Secret of Shadows').
+        6. 'volume_1_subtitle': Volume label ('Volume 1').
         7. 'volume_1_prompt': Concrete plot premise for Volume 1 in English.
         """
     else:
@@ -2240,7 +2252,7 @@ async def generate_series_architecture(
         3. 'cover_style_prompt': Ein detailliertes Prompt-Template auf ENGLISCH für Buchcover dieser Serie. Es muss den Art-Style (z. B. Oil painting, Cinematic digital art), die Farbpalette, Beleuchtung und das typografische Layout ('Series title prominent at top, Volume number banner, Book title in center, author Dirk Proessel at bottom') beschreiben.
         4. 'series_arc': Die übergeordnete Story-Entwicklung und Meilensteine der einzelnen Bände (z. B. 'Band 1: ..., Band 2: ..., Band 3: ...').
         5. 'volume_1_title': Ein packender, kreativer Buchtitel für Band 1.
-        6. 'volume_1_subtitle': Ein passender Untertitel (z. B. 'Band 1: Das Geheimnis der Schatten').
+        6. 'volume_1_subtitle': Bandbezeichnung ('Band 1').
         7. 'volume_1_prompt': Konkrete Handlungsidee / Plot-Prämisse für Band 1, die als Ausgangspunkt für die Kapitelgliederung dient.
         """
 

@@ -774,6 +774,7 @@ export interface BookProject {
     series_id?: string | null;
     series_order?: number | null;
     series_subtitle?: string | null;
+    series_title?: string | null;
     previous_summary?: string | null;
     characters_bible: string | null;
     style_bible: string | null;

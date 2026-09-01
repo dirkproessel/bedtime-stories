@@ -408,7 +408,7 @@ export default function SeriesView({ series: initialSeries, onBack }: SeriesView
                                                 <div className="flex-1 min-w-0 space-y-1">
                                                     <div className="flex items-center justify-between">
                                                         <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider">
-                                                            {book.series_subtitle || `Band ${volNum}`}
+                                                            {series?.language === 'en' ? `Volume ${volNum}` : `Band ${volNum}`}
                                                         </span>
                                                         <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
                                                             book.status === 'completed' ? 'bg-emerald-500/20 text-emerald-300' :

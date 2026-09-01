@@ -629,7 +629,7 @@ async def api_create_series(
             # Create Band 1
             vol1_id = str(uuid.uuid4())[:8]
             vol1_title = arch.get("volume_1_title") or (f"{req.title} - Volume 1" if series_lang == "en" else f"{req.title} - Band 1")
-            vol1_subtitle = arch.get("volume_1_subtitle") or ("Volume 1" if series_lang == "en" else "Band 1")
+            vol1_subtitle = f"Volume 1" if series_lang == "en" else "Band 1"
             vol1_prompt = arch.get("volume_1_prompt") or req.description
 
             volume_1_project = BookProject(
@@ -1266,7 +1266,17 @@ async def list_book_projects(current_user: User = Depends(get_current_active_use
         
     with Session(engine) as session:
         projects = session.exec(select(BookProject).order_by(BookProject.created_at.desc())).all()
-        return projects
+        result = []
+        for p in projects:
+            p_resp = BookProjectResponse.model_validate(p, from_attributes=True)
+            if p.series:
+                p_resp.series_title = p.series.title
+            elif p.series_id:
+                s = session.get(BookSeries, p.series_id)
+                if s:
+                    p_resp.series_title = s.title
+            result.append(p_resp)
+        return result
 
 
 @router.get("/books/{id}", response_model=BookProjectDetailResponse)
@@ -1278,7 +1288,14 @@ async def get_book_project(id: str, current_user: User = Depends(get_current_act
         project = session.get(BookProject, id)
         if not project:
             raise HTTPException(status_code=404, detail="Buchprojekt nicht gefunden.")
-        return BookProjectDetailResponse.model_validate(project, from_attributes=True)
+        detail_resp = BookProjectDetailResponse.model_validate(project, from_attributes=True)
+        if project.series:
+            detail_resp.series_title = project.series.title
+        elif project.series_id:
+            s = session.get(BookSeries, project.series_id)
+            if s:
+                detail_resp.series_title = s.title
+        return detail_resp
 
 
 @router.put("/books/{id}", response_model=BookProjectResponse)
@@ -1299,7 +1316,14 @@ async def update_book_project(id: str, req: BookProjectUpdate, current_user: Use
         session.add(project)
         session.commit()
         session.refresh(project)
-        return project
+        resp = BookProjectResponse.model_validate(project, from_attributes=True)
+        if project.series:
+            resp.series_title = project.series.title
+        elif project.series_id:
+            s = session.get(BookSeries, project.series_id)
+            if s:
+                resp.series_title = s.title
+        return resp
 
 
 @router.delete("/books/{id}")

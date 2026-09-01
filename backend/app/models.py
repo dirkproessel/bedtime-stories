@@ -337,6 +337,12 @@ class BookProject(SQLModel, table=True):
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     
     series: Optional[BookSeries] = Relationship(back_populates="books")
+
+    @property
+    def series_title(self) -> Optional[str]:
+        if self.series:
+            return self.series.title
+        return None
     
     chapters: list["BookChapter"] = Relationship(
         back_populates="project",
@@ -483,6 +489,7 @@ class BookProjectResponse(BaseModel):
     series_id: Optional[str] = None
     series_order: Optional[int] = None
     series_subtitle: Optional[str] = None
+    series_title: Optional[str] = None
     previous_summary: Optional[str] = None
     characters_bible: Optional[str] = None
     style_bible: Optional[str] = None

@@ -597,8 +597,10 @@ export default function BookDashboard() {
                                                     </span>
                                                 )}
                                                 {project.series_id && (
-                                                    <span className="text-[10px] font-bold uppercase tracking-wider bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full border border-indigo-500/30">
-                                                        {project.series_subtitle || `Band ${project.series_order || 1}`}
+                                                    <span className="text-[10px] font-bold uppercase tracking-wider bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full border border-indigo-500/30 flex items-center gap-1">
+                                                        <Layers className="w-3 h-3" />
+                                                        {project.series_title ? `${project.series_title} • ` : ''}
+                                                        {project.language === 'en' ? `Vol. ${project.series_order || 1}` : `Band ${project.series_order || 1}`}
                                                     </span>
                                                 )}
                                             </div>
