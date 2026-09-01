@@ -37,13 +37,15 @@ interface AnthologyWizardProps {
     initialStoryIds?: string[];
 }
 
+const EMPTY_ARRAY: string[] = [];
+
 const TEXT_MODELS = [
     { value: 'gemini-3.7-flash', label: 'Gemini 3.7 Flash (Schnell & Kreativ)' },
     { value: 'gemini-3.7-pro', label: 'Gemini 3.7 Pro (Tiefgründig & Lyrisch)' },
     { value: 'gemini-3.1-flash-lite', label: 'Gemini 3.1 Flash (Effizient)' },
 ];
 
-export default function AnthologyWizard({ isOpen, onClose, onCreated, initialStoryIds = [] }: AnthologyWizardProps) {
+export default function AnthologyWizard({ isOpen, onClose, onCreated, initialStoryIds = EMPTY_ARRAY }: AnthologyWizardProps) {
     const { stories, loadStories, user } = useStore();
 
     const [step, setStep] = useState<1 | 2>(1);
@@ -68,18 +70,26 @@ export default function AnthologyWizard({ isOpen, onClose, onCreated, initialSto
     const [isSuggesting, setIsSuggesting] = useState(false);
     const [isCreating, setIsCreating] = useState(false);
 
-    // Initial load of stories and author name
+    // Track modal open state to initialize only once upon opening
     useEffect(() => {
-        if (isOpen) {
+        if (!isOpen) return;
+
+        if (stories.length === 0) {
             loadStories();
-            if (user?.username) {
-                setAuthor(user.username);
-            }
-            if (initialStoryIds && initialStoryIds.length > 0) {
-                setSelectedStoryIds(initialStoryIds);
-            }
         }
-    }, [isOpen, loadStories, user, initialStoryIds]);
+        if (user?.username) {
+            setAuthor(user.username);
+        }
+        if (initialStoryIds && initialStoryIds.length > 0) {
+            setSelectedStoryIds(initialStoryIds);
+        } else {
+            setSelectedStoryIds([]);
+        }
+        setStep(1);
+        setSearchQuery('');
+        setSelectedGenreFilter('all');
+        setAiSuggestion(null);
+    }, [isOpen]);
 
     // Available stories
     const availableStories = useMemo(() => {
