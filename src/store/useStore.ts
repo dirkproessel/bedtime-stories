@@ -550,49 +550,37 @@ export const useStore = create<AppState>((set, get) => {
         }
     },
     loadProProjects: async () => {
-        set({ isLoading: true, error: null });
         try {
             const proProjects = await fetchProBooks();
             set({ proProjects });
         } catch (e: any) {
             set({ error: e.message });
-        } finally {
-            set({ isLoading: false });
         }
     },
     loadProProjectDetail: async (id) => {
-        set({ isLoading: true, error: null });
         try {
             const currentProProject = await fetchProBookDetail(id);
             set({ currentProProject });
         } catch (e: any) {
             set({ error: e.message });
-        } finally {
-            set({ isLoading: false });
         }
     },
     setCurrentProProject: (project) => set({ currentProProject: project }),
 
     loadProSeries: async () => {
-        set({ isLoading: true, error: null });
         try {
             const proSeries = await fetchProSeries();
             set({ proSeries });
         } catch (e: any) {
             set({ error: e.message });
-        } finally {
-            set({ isLoading: false });
         }
     },
     loadProSeriesDetail: async (id) => {
-        set({ isLoading: true, error: null });
         try {
             const currentProSeries = await fetchProSeriesDetail(id);
             set({ currentProSeries });
         } catch (e: any) {
             set({ error: e.message });
-        } finally {
-            set({ isLoading: false });
         }
     },
     setCurrentProSeries: (series) => set({ currentProSeries: series }),

@@ -18,7 +18,7 @@ export default function SeriesWizard({ isOpen, onClose, onSuccess }: SeriesWizar
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [genre, setGenre] = useState('Fantasy');
-    const [style, setStyle] = useState('adams');
+    const [selectedAuthors, setSelectedAuthors] = useState<string[]>(['adams']);
     const [language, setLanguage] = useState<'de' | 'en'>('de');
     const [plannedVolumes, setPlannedVolumes] = useState<number | ''>(3);
     const [autoInitVolume1, setAutoInitVolume1] = useState(true);
@@ -66,6 +66,8 @@ export default function SeriesWizard({ isOpen, onClose, onSuccess }: SeriesWizar
             is_kids_book: isKidsBook
         });
 
+        const styleString = selectedAuthors.length > 0 ? selectedAuthors.join(',') : 'adams';
+
         setIsSubmitting(true);
         setSubmitStep(autoInitVolume1 ? 'Entwerfe Serien-Universum & Band 1...' : 'Erstelle Buch-Serie...');
 
@@ -74,7 +76,7 @@ export default function SeriesWizard({ isOpen, onClose, onSuccess }: SeriesWizar
                 title: title.trim(),
                 description: description.trim(),
                 genre,
-                style,
+                style: styleString,
                 language,
                 genre_config: genreConfigJson,
                 planned_volumes: plannedVolumes === '' ? null : Number(plannedVolumes),
@@ -247,18 +249,47 @@ export default function SeriesWizard({ isOpen, onClose, onSuccess }: SeriesWizar
                             </div>
 
                             <div className="space-y-1.5">
-                                <label className="text-xs font-semibold uppercase tracking-wider text-slate-300">
-                                    Autorenstil
-                                </label>
-                                <select 
-                                    value={style}
-                                    onChange={(e) => setStyle(e.target.value)}
-                                    className="w-full bg-surface border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500 transition-colors"
-                                >
-                                    {AUTHORS.map(a => (
-                                        <option key={a.id} value={a.id}>{a.name} ({a.desc})</option>
-                                    ))}
-                                </select>
+                                <div className="flex justify-between items-center">
+                                    <label className="text-xs font-semibold uppercase tracking-wider text-slate-300">
+                                        Autorenstil (Mixe bis zu 3)
+                                    </label>
+                                    <span className="text-[10px] text-indigo-400 font-bold">{selectedAuthors.length}/3 gewählt</span>
+                                </div>
+                                <div className="max-h-36 overflow-y-auto bg-surface border border-slate-700 rounded-xl p-2 space-y-1 no-scrollbar">
+                                    {AUTHORS.map(a => {
+                                        const isSelected = selectedAuthors.includes(a.id);
+                                        const authorIndex = selectedAuthors.indexOf(a.id);
+                                        return (
+                                            <div 
+                                                key={a.id}
+                                                onClick={() => {
+                                                    if (isSelected) {
+                                                        setSelectedAuthors(selectedAuthors.filter(id => id !== a.id));
+                                                    } else if (selectedAuthors.length < 3) {
+                                                        setSelectedAuthors([...selectedAuthors, a.id]);
+                                                    } else {
+                                                        toast('Maximal 3 Autoren können für den Stil kombiniert werden', { icon: 'ℹ️' });
+                                                    }
+                                                }}
+                                                className={`p-1.5 rounded-lg border text-xs cursor-pointer flex items-center justify-between transition-all ${
+                                                    isSelected 
+                                                        ? 'bg-indigo-600/20 border-indigo-500 text-white font-medium shadow-sm' 
+                                                        : 'border-slate-800 bg-slate-950/40 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                                                }`}
+                                            >
+                                                <div className="min-w-0">
+                                                    <div className="text-[11px] font-semibold truncate">{a.name}</div>
+                                                    <div className="text-[9px] text-slate-500 truncate">{a.desc}</div>
+                                                </div>
+                                                {isSelected && (
+                                                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-indigo-500/30 text-indigo-300 border border-indigo-500/40 shrink-0">
+                                                        {authorIndex === 0 ? '1. Wortwahl' : authorIndex === 1 ? '2. Atmosphäre' : '3. Erzählweise'}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
                             </div>
                         </div>
 

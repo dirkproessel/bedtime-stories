@@ -28,7 +28,7 @@ import {
     type AnthologyMetadataSuggestion
 } from '../lib/api';
 import { GENRES } from './StoryCreator';
-import { AUTHORS, formatAuthorStyles } from '../lib/authors';
+import { AUTHORS } from '../lib/authors';
 import { formatDuration } from '../lib/utils';
 import toast from 'react-hot-toast';
 
@@ -72,7 +72,7 @@ export default function AnthologyWizard({ isOpen, onClose, onCreated, initialSto
     const [subtitle, setSubtitle] = useState('');
     const [author, setAuthor] = useState('');
     const [genre, setGenre] = useState('Erotik');
-    const [style, setStyle] = useState('adams');
+    const [selectedAuthors, setSelectedAuthors] = useState<string[]>(['adams']);
     const [language, setLanguage] = useState<'de' | 'en'>('de');
     const [selectedModel, setSelectedModel] = useState('gemini-3.7-flash');
     const [autoGenerateBlurb, setAutoGenerateBlurb] = useState(true);
@@ -262,12 +262,13 @@ export default function AnthologyWizard({ isOpen, onClose, onCreated, initialSto
     const handleSuggestAiMetadata = async () => {
         if (selectedStoryIds.length === 0) return;
 
+        const styleString = selectedAuthors.length > 0 ? selectedAuthors.join(',') : 'adams';
         setIsSuggesting(true);
         try {
             const res = await suggestAnthologyMetadata({
                 story_ids: selectedStoryIds,
                 genre,
-                style,
+                style: styleString,
                 language,
                 author,
                 model: selectedModel
@@ -296,6 +297,7 @@ export default function AnthologyWizard({ isOpen, onClose, onCreated, initialSto
             return;
         }
 
+        const styleString = selectedAuthors.length > 0 ? selectedAuthors.join(',') : 'adams';
         setIsCreating(true);
         try {
             const newProject = await createAnthologyBook({
@@ -303,7 +305,7 @@ export default function AnthologyWizard({ isOpen, onClose, onCreated, initialSto
                 subtitle: subtitle.trim() || undefined,
                 author: author.trim() || undefined,
                 genre,
-                style,
+                style: styleString,
                 language,
                 story_ids: selectedStoryIds,
                 auto_generate_blurb: autoGenerateBlurb && !aiSuggestion,
@@ -738,18 +740,47 @@ export default function AnthologyWizard({ isOpen, onClose, onCreated, initialSto
 
                                 {/* Author Style */}
                                 <div>
-                                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                                        Autorenstil / Inspiration
-                                    </label>
-                                    <select
-                                        value={style}
-                                        onChange={e => setStyle(e.target.value)}
-                                        className="w-full px-4 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-primary transition-colors"
-                                    >
-                                        {AUTHORS.map(a => (
-                                            <option key={a.id} value={a.id}>{formatAuthorStyles(a.id)}</option>
-                                        ))}
-                                    </select>
+                                    <div className="flex justify-between items-center mb-1.5">
+                                        <label className="text-xs font-semibold text-slate-300">
+                                            Autorenstil (Mixe bis zu 3)
+                                        </label>
+                                        <span className="text-[10px] text-primary font-bold">{selectedAuthors.length}/3 gewählt</span>
+                                    </div>
+                                    <div className="max-h-36 overflow-y-auto bg-slate-950/80 border border-slate-800 rounded-xl p-2 space-y-1 no-scrollbar">
+                                        {AUTHORS.map(a => {
+                                            const isSelected = selectedAuthors.includes(a.id);
+                                            const authorIndex = selectedAuthors.indexOf(a.id);
+                                            return (
+                                                <div 
+                                                    key={a.id}
+                                                    onClick={() => {
+                                                        if (isSelected) {
+                                                            setSelectedAuthors(selectedAuthors.filter(id => id !== a.id));
+                                                        } else if (selectedAuthors.length < 3) {
+                                                            setSelectedAuthors([...selectedAuthors, a.id]);
+                                                        } else {
+                                                            toast('Maximal 3 Autoren können für den Stil kombiniert werden', { icon: 'ℹ️' });
+                                                        }
+                                                    }}
+                                                    className={`p-1.5 rounded-lg border text-xs cursor-pointer flex items-center justify-between transition-all ${
+                                                        isSelected 
+                                                            ? 'bg-primary/15 border-primary text-white font-medium shadow-sm' 
+                                                            : 'border-slate-800/80 bg-slate-900/40 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                                                    }`}
+                                                >
+                                                    <div className="min-w-0">
+                                                        <div className="text-[11px] font-semibold truncate">{a.name}</div>
+                                                        <div className="text-[9px] text-slate-500 truncate">{a.desc}</div>
+                                                    </div>
+                                                    {isSelected && (
+                                                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-primary/30 text-primary border border-primary/40 shrink-0">
+                                                            {authorIndex === 0 ? '1. Wortwahl' : authorIndex === 1 ? '2. Atmosphäre' : '3. Erzählweise'}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
 
                                 {/* Language */}

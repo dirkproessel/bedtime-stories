@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useStore } from '../store/useStore';
 import type { 
     BookProjectDetail, 
@@ -366,8 +366,12 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
     };
 
     // Reload active project context when step changes to keep it fresh
+    const prevStepRef = useRef(activeStep);
     useEffect(() => {
-        loadProProjectDetail(activeProject.id);
+        if (prevStepRef.current !== activeStep) {
+            prevStepRef.current = activeStep;
+            loadProProjectDetail(activeProject.id);
+        }
     }, [activeStep, loadProProjectDetail, activeProject.id]);
 
     // Synchronize editable chapters for outline editing

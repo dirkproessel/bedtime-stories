@@ -35,7 +35,7 @@ export default function BookDashboard() {
     const [title, setTitle] = useState('');
     const [prompt, setPrompt] = useState('');
     const [genre, setGenre] = useState('Fantasy');
-    const [style, setStyle] = useState('adams');
+    const [selectedAuthors, setSelectedAuthors] = useState<string[]>(['adams']);
     const [language, setLanguage] = useState<'de' | 'en'>('de');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -45,23 +45,29 @@ export default function BookDashboard() {
     const [pov, setPov] = useState<string>('');
     const [spiceLevel, setSpiceLevel] = useState<number>(3);
 
-    // Initial load and periodic polling for generating status
+    // Initial load
     useEffect(() => {
         loadProProjects();
         loadProSeries();
-    }, [loadProProjects, loadProSeries]);
+    }, []);
 
     // Simple status polling if any project is in "generating" status
     useEffect(() => {
-        const hasGenerating = proProjects.some(p => p.status === 'generating');
-        if (!hasGenerating) return;
-
-        const interval = setInterval(() => {
-            loadProProjects();
+        const interval = setInterval(async () => {
+            const hasGenerating = useStore.getState().proProjects.some(p => p.status === 'generating');
+            if (hasGenerating) {
+                try {
+                    const { fetchProBooks } = await import('../lib/api');
+                    const proProjects = await fetchProBooks();
+                    useStore.setState({ proProjects });
+                } catch (e) {
+                    console.error('Polling failed:', e);
+                }
+            }
         }, 3000);
 
         return () => clearInterval(interval);
-    }, [proProjects, loadProProjects]);
+    }, []);
 
     // Load genre profile when genre or modal changes
     useEffect(() => {
@@ -94,13 +100,15 @@ export default function BookDashboard() {
             spice_level: genreProfile?.has_spice_levels ? spiceLevel : null
         });
 
+        const styleString = selectedAuthors.length > 0 ? selectedAuthors.join(',') : 'adams';
+
         setIsSubmitting(true);
         try {
             const newProject = await createProBook({ 
                 title, 
                 prompt, 
                 genre, 
-                style, 
+                style: styleString, 
                 language,
                 genre_config: genreConfigJson 
             });
@@ -527,32 +535,61 @@ export default function BookDashboard() {
                                 />
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1">
                                     <label className="text-xs font-medium text-slate-300">Genre</label>
                                     <select 
                                         value={genre}
                                         onChange={(e) => setGenre(e.target.value)}
-                                        className="w-full bg-background border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-primary"
-                                    >
-                                        {GENRES.map(g => (
-                                            <option key={g.value} value={g.value}>{g.label}</option>
-                                        ))}
-                                    </select>
+                                            className="w-full bg-background border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-primary"
+                                        >
+                                            {GENRES.map(g => (
+                                                <option key={g.value} value={g.value}>{g.label}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <div className="flex justify-between items-center">
+                                            <label className="text-xs font-medium text-slate-300">Autorenstil (Mixe bis zu 3)</label>
+                                            <span className="text-[10px] text-primary font-bold">{selectedAuthors.length}/3 gewählt</span>
+                                        </div>
+                                        <div className="max-h-36 overflow-y-auto bg-background border border-slate-800 rounded-xl p-2 space-y-1 no-scrollbar">
+                                            {AUTHORS.map(a => {
+                                                const isSelected = selectedAuthors.includes(a.id);
+                                                const authorIndex = selectedAuthors.indexOf(a.id);
+                                                return (
+                                                    <div 
+                                                        key={a.id}
+                                                        onClick={() => {
+                                                            if (isSelected) {
+                                                                setSelectedAuthors(selectedAuthors.filter(id => id !== a.id));
+                                                            } else if (selectedAuthors.length < 3) {
+                                                                setSelectedAuthors([...selectedAuthors, a.id]);
+                                                            } else {
+                                                                toast('Maximal 3 Autoren können für den Stil kombiniert werden', { icon: 'ℹ️' });
+                                                            }
+                                                        }}
+                                                        className={`p-1.5 rounded-lg border text-xs cursor-pointer flex items-center justify-between transition-all ${
+                                                            isSelected 
+                                                                ? 'bg-primary/15 border-primary text-white font-medium shadow-sm' 
+                                                                : 'border-slate-800/80 bg-slate-900/40 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                                                        }`}
+                                                    >
+                                                        <div className="min-w-0">
+                                                            <div className="text-[11px] font-semibold truncate">{a.name}</div>
+                                                            <div className="text-[9px] text-slate-500 truncate">{a.desc}</div>
+                                                        </div>
+                                                        {isSelected && (
+                                                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-primary/30 text-primary border border-primary/40 shrink-0">
+                                                                {authorIndex === 0 ? '1. Wortwahl' : authorIndex === 1 ? '2. Atmosphäre' : '3. Erzählweise'}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className="space-y-1">
-                                    <label className="text-xs font-medium text-slate-300">Autorenstil</label>
-                                    <select 
-                                        value={style}
-                                        onChange={(e) => setStyle(e.target.value)}
-                                        className="w-full bg-background border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-primary"
-                                    >
-                                        {AUTHORS.map(s => (
-                                            <option key={s.id} value={s.id}>{s.name} ({s.desc})</option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
 
                             {/* Genre-spezifische Einstellungen (Tropes, POV, Spice) */}
                             {genreProfile && (

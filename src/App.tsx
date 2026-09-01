@@ -62,6 +62,9 @@ function App() {
       }
 
       if (lowerHash === '/pro' || lowerHash === 'pro' || lowerHash.startsWith('/pro/') || lowerHash.startsWith('pro/') || lowerPath === '/pro' || lowerPath.startsWith('/pro/')) {
+        if (window.location.pathname !== '/' && window.location.pathname !== '') {
+          window.history.replaceState(null, '', '/#/pro');
+        }
         setActiveView('pro');
         return;
       }
@@ -146,8 +149,11 @@ function App() {
       desiredHash = ``;
     }
 
-    if (desiredHash !== '' && window.location.hash !== desiredHash) {
-      window.history.pushState(null, '', desiredHash);
+    const targetUrl = desiredHash ? `/${desiredHash}` : '/';
+    const currentUrl = `${window.location.pathname}${window.location.hash}`;
+
+    if (targetUrl !== currentUrl && (window.location.hash !== desiredHash || window.location.pathname !== '/')) {
+      window.history.pushState(null, '', targetUrl);
     }
   }, [activeView, useStore.getState().isReaderOpen, useStore.getState().readerStoryId]);
 
