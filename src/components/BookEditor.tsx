@@ -176,6 +176,7 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
     const [editedStyle, setEditedStyle] = useState(activeProject.style);
     const [editedPrompt, setEditedPrompt] = useState(activeProject.prompt);
     const [editedLanguage, setEditedLanguage] = useState<'de' | 'en'>(activeProject.language || 'de');
+    const [editedTargetWords, setEditedTargetWords] = useState<number>(activeProject.target_words || 20000);
 
     // Sync basis when activeProject changes
     useEffect(() => {
@@ -183,7 +184,8 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
         setEditedStyle(activeProject.style);
         setEditedPrompt(activeProject.prompt);
         setEditedLanguage(activeProject.language || 'de');
-    }, [activeProject.id, activeProject.genre, activeProject.style, activeProject.prompt, activeProject.language]);
+        setEditedTargetWords(activeProject.target_words || 20000);
+    }, [activeProject.id, activeProject.genre, activeProject.style, activeProject.prompt, activeProject.language, activeProject.target_words]);
 
     const [activeStep, setActiveStep] = useState<StepType>('concept');
     const [isSaving, setIsSaving] = useState(false);
@@ -485,18 +487,14 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
             // Calculate a default suggestion for target words only when switching to a different chapter
             if (prevChapterNumRef.current !== selectedChapterNum) {
                 prevChapterNumRef.current = selectedChapterNum;
-                const outlineLen = (dbChapter.plot_outline || '').trim().length;
-                let suggestion = 2000;
-                if (outlineLen > 0) {
-                    if (outlineLen < 150) {
-                        suggestion = 1200;
-                    } else if (outlineLen < 350) {
-                        suggestion = 1800;
-                    } else {
-                        suggestion = 2500;
-                    }
+                if (dbChapter.target_words && dbChapter.target_words > 0) {
+                    setTargetWords(dbChapter.target_words);
+                } else {
+                    const totalTarget = activeProject.target_words || 20000;
+                    const chapCount = (activeProject.chapters || []).length || 1;
+                    const calculatedAverage = Math.round(totalTarget / chapCount);
+                    setTargetWords(calculatedAverage);
                 }
-                setTargetWords(suggestion);
             }
         } else {
             setChapterText('');
@@ -504,7 +502,9 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
             setChapterOutline('');
             if (prevChapterNumRef.current !== selectedChapterNum) {
                 prevChapterNumRef.current = selectedChapterNum;
-                setTargetWords(2000);
+                const totalTarget = activeProject.target_words || 20000;
+                const chapCount = (activeProject.chapters || []).length || 1;
+                setTargetWords(Math.round(totalTarget / chapCount));
             }
         }
         setFindings([]); // Clear proofread findings when switching chapters
@@ -565,7 +565,8 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                 genre: editedGenre,
                 style: editedStyle,
                 prompt: editedPrompt,
-                language: editedLanguage
+                language: editedLanguage,
+                target_words: editedTargetWords
             });
             await loadProProjectDetail(activeProject.id);
             toast.success('Basisdaten aktualisiert! Wenn du eine Stil-Bible oder Gliederung neu generierst, wird dies berücksichtigt.');
@@ -810,6 +811,9 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
         setIsAiLoading(true);
         try {
             toast.loading('Kapitel-Generierung gestartet...', { id: 'ai' });
+            try {
+                await updateProChapter(activeProject.id, selectedChapterNum, { target_words: targetWords });
+            } catch (ignore) {}
             await generateProChapter(
                 activeProject.id, 
                 selectedChapterNum, 
@@ -833,9 +837,10 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
             await updateProChapter(activeProject.id, selectedChapterNum, {
                 title: chapterTitle,
                 plot_outline: chapterOutline,
-                content: chapterText
+                content: chapterText,
+                target_words: targetWords
             });
-            toast.success('Kapitel-Text gespeichert!');
+            toast.success('Kapitel gespeichert!');
             await loadProProjectDetail(activeProject.id);
         } catch (e: any) {
             toast.error('Fehler beim Speichern: ' + e.message);
@@ -1367,6 +1372,7 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                                                 setEditedStyle(activeProject.style);
                                                 setEditedPrompt(activeProject.prompt);
                                                 setEditedLanguage(activeProject.language || 'de');
+                                                setEditedTargetWords(activeProject.target_words || 20000);
                                                 setIsEditingBasis(false);
                                             }}
                                             className="text-xs text-slate-500 hover:underline flex items-center gap-1"
@@ -1379,8 +1385,52 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                             </div>
                             <div className="text-xs space-y-3">
                                 <div>
-                                    <span className="text-slate-500 block uppercase font-mono text-[9px]">Ziel-Wortanzahl</span>
-                                    <span className="text-slate-300 font-medium">15.000 - 20.000 Wörter (Kurzroman)</span>
+                                    <span className="text-slate-500 block uppercase font-mono text-[9px]">Ziel-Gesamtwortzahl</span>
+                                    {!isEditingBasis ? (
+                                        <span className="text-slate-300 font-medium">
+                                            {(activeProject.target_words || 20000).toLocaleString('de-DE')} Wörter ({
+                                                (activeProject.target_words || 20000) >= 70000 ? 'Großer Roman' :
+                                                (activeProject.target_words || 20000) >= 35000 ? 'Roman' : 'Kurzroman / Novelle'
+                                            })
+                                        </span>
+                                    ) : (
+                                        <div className="space-y-1.5 mt-1">
+                                            <div className="flex items-center gap-2">
+                                                <input 
+                                                    type="number"
+                                                    value={editedTargetWords}
+                                                    onChange={(e) => setEditedTargetWords(Math.max(1000, parseInt(e.target.value) || 20000))}
+                                                    step={1000}
+                                                    min={2000}
+                                                    max={250000}
+                                                    className="w-28 bg-background border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-primary"
+                                                />
+                                                <span className="text-[10px] text-slate-400 font-mono">
+                                                    {editedTargetWords >= 70000 ? 'Großer Roman' : editedTargetWords >= 35000 ? 'Roman' : 'Kurzroman'}
+                                                </span>
+                                            </div>
+                                            <div className="flex gap-1.5">
+                                                {[
+                                                    { label: '20k (Kurz)', val: 20000 },
+                                                    { label: '50k (Roman)', val: 50000 },
+                                                    { label: '80k (Groß)', val: 80000 }
+                                                ].map(preset => (
+                                                    <button
+                                                        key={preset.val}
+                                                        type="button"
+                                                        onClick={() => setEditedTargetWords(preset.val)}
+                                                        className={`text-[10px] px-2 py-0.5 rounded border transition-all ${
+                                                            editedTargetWords === preset.val
+                                                                ? 'bg-primary/20 border-primary text-primary font-semibold'
+                                                                : 'bg-background border-slate-800 text-slate-400 hover:border-slate-700'
+                                                        }`}
+                                                    >
+                                                        {preset.label}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                                 
                                 {!isEditingBasis ? (
@@ -1798,17 +1848,24 @@ export default function BookEditor({ project, onBack }: BookEditorProps) {
                                 </button>
                             )}
 
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                                 <label className="text-xs text-slate-400">Kapitel:</label>
                                 <select 
                                     value={numChapters} 
                                     onChange={(e) => setNumChapters(parseInt(e.target.value))}
                                     className="bg-background border border-slate-800 text-xs text-slate-300 rounded-lg px-2 py-1 focus:outline-none"
                                 >
-                                    {Array.from(new Set([3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, numChapters])).sort((a, b) => a - b).map(n => (
+                                    {Array.from(new Set([3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 26, 28, 30, numChapters])).sort((a, b) => a - b).map(n => (
                                         <option key={n} value={n}>{n} Kapitel</option>
                                     ))}
                                 </select>
+                                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-900/80 border border-slate-800 rounded-lg text-[11px] text-slate-300">
+                                    <BookOpen className="w-3.5 h-3.5 text-primary shrink-0" />
+                                    <span>
+                                        Ø <strong className="text-white font-mono">{Math.round((activeProject.target_words || 20000) / (numChapters || 1)).toLocaleString('de-DE')}</strong> W./Kapitel
+                                        <span className="text-slate-500 ml-1">({(activeProject.target_words || 20000).toLocaleString('de-DE')} gesamt)</span>
+                                    </span>
+                                </div>
                                 <select 
                                     value={outlineModel} 
                                     onChange={(e) => setOutlineModel(e.target.value)}

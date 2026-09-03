@@ -754,6 +754,7 @@ export interface BookChapter {
     title: string;
     plot_outline: string;
     pov_character?: string | null;
+    target_words?: number | null;
     content: string | null;
     running_summary: string | null;
     feedback: string | null;
@@ -771,6 +772,7 @@ export interface BookProject {
     style: string;
     genre_config?: string | null;
     language?: 'de' | 'en';
+    target_words?: number;
     series_id?: string | null;
     series_order?: number | null;
     series_subtitle?: string | null;
@@ -918,6 +920,7 @@ export async function createProBook(req: {
     style: string, 
     genre_config?: string,
     language?: 'de' | 'en',
+    target_words?: number,
     series_id?: string,
     series_order?: number,
     series_subtitle?: string,
@@ -1184,7 +1187,7 @@ export async function generateProChapter(
     return res.json();
 }
 
-export async function updateProChapter(id: string, num: number, data: { title?: string, plot_outline?: string, content?: string, feedback?: string }): Promise<BookChapter> {
+export async function updateProChapter(id: string, num: number, data: { title?: string, plot_outline?: string, content?: string, feedback?: string, target_words?: number }): Promise<BookChapter> {
     const res = await fetch(`${API_BASE}/api/pro/books/${id}/chapters/${num}`, {
         method: 'PUT',
         headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },

@@ -220,7 +220,8 @@ def ensure_migrations():
                         ("series_subtitle", "TEXT"),
                         ("previous_summary", "TEXT"),
                         ("is_anthology", "BOOLEAN DEFAULT 0"),
-                        ("source_story_ids", "TEXT")
+                        ("source_story_ids", "TEXT"),
+                        ("target_words", "INTEGER DEFAULT 20000")
                     ]
                     for col_name, col_type in series_proj_cols:
                         if col_name.lower() not in [c.lower() for c in proj_columns]:
@@ -237,10 +238,15 @@ def ensure_migrations():
                 cur.execute("PRAGMA table_info(bookchapter)")
                 chap_columns = [row[1] for row in cur.fetchall()]
                 if chap_columns:
-                    if "pov_character" not in [c.lower() for c in chap_columns]:
-                        print("Migration: Adding pov_character to bookchapter...")
-                        cur.execute("ALTER TABLE bookchapter ADD COLUMN pov_character TEXT")
-                        conn.commit()
+                    chap_needed_cols = [
+                        ("pov_character", "TEXT"),
+                        ("target_words", "INTEGER")
+                    ]
+                    for col_name, col_type in chap_needed_cols:
+                        if col_name.lower() not in [c.lower() for c in chap_columns]:
+                            print(f"Migration: Adding {col_name} to bookchapter...")
+                            cur.execute(f"ALTER TABLE bookchapter ADD COLUMN {col_name} {col_type}")
+                            conn.commit()
             except Exception as chap_e:
                 print(f"Migration bookchapter warning: {chap_e}")
                     

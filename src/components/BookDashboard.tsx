@@ -59,6 +59,7 @@ export default function BookDashboard() {
     const [genre, setGenre] = useState('Fantasy');
     const [selectedAuthors, setSelectedAuthors] = useState<string[]>(['adams']);
     const [language, setLanguage] = useState<'de' | 'en'>('de');
+    const [targetWords, setTargetWords] = useState<number>(20000);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Novel Genre-specific config
@@ -243,12 +244,14 @@ export default function BookDashboard() {
                 genre, 
                 style: styleString, 
                 language,
+                target_words: targetWords,
                 genre_config: genreConfigJson 
             });
             toast.success('Projekt erfolgreich angelegt!');
             setTitle('');
             setPrompt('');
             setLanguage('de');
+            setTargetWords(20000);
             setShowCreateModal(false);
             
             // Immediately open the newly created project
@@ -745,6 +748,49 @@ export default function BookDashboard() {
                                         >
                                             <span>🇬🇧</span> English
                                         </button>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <div className="flex justify-between items-center">
+                                        <label className="text-xs font-medium text-slate-300">Ziel-Gesamtwortzahl</label>
+                                        <span className="text-[11px] font-mono font-bold text-primary">
+                                            {targetWords >= 70000 ? 'Umfangreicher Roman' : targetWords >= 35000 ? 'Roman' : 'Kurzroman / Novelle'} (~{targetWords.toLocaleString('de-DE')} Wörter)
+                                        </span>
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {[
+                                            { label: 'Kurzroman', words: 20000, desc: '~15-25k' },
+                                            { label: 'Roman', words: 50000, desc: '~45-60k' },
+                                            { label: 'Großer Roman', words: 80000, desc: '~75-100k' }
+                                        ].map((preset) => (
+                                            <button
+                                                key={preset.words}
+                                                type="button"
+                                                onClick={() => setTargetWords(preset.words)}
+                                                className={`py-2 px-2.5 rounded-xl border text-left transition-all ${
+                                                    targetWords === preset.words
+                                                        ? 'bg-primary/20 border-primary text-primary font-semibold shadow-sm'
+                                                        : 'bg-background border-slate-800 text-slate-400 hover:border-slate-700'
+                                                }`}
+                                            >
+                                                <div className="text-[11px] font-bold leading-tight">{preset.label}</div>
+                                                <div className="text-[10px] text-slate-500 font-mono mt-0.5">{preset.words.toLocaleString('de-DE')} W.</div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <div className="flex items-center gap-2 pt-0.5">
+                                        <span className="text-[11px] text-slate-400">Individuelle Wortanzahl:</span>
+                                        <input
+                                            type="number"
+                                            value={targetWords}
+                                            onChange={(e) => setTargetWords(Math.max(1000, parseInt(e.target.value) || 20000))}
+                                            step={1000}
+                                            min={2000}
+                                            max={250000}
+                                            className="w-28 bg-background border border-slate-800 rounded-lg px-2.5 py-1 text-xs text-white font-mono focus:outline-none focus:border-primary"
+                                        />
+                                        <span className="text-[11px] text-slate-500 font-mono">Wörter</span>
                                     </div>
                                 </div>
 

@@ -198,13 +198,16 @@ async def bg_generate_chapter(project_id: str, chapter_id: str, model: str, feed
             chapter_validated = BookChapter.model_validate(db_chapter)
 
         # Generate the chapter text
+        ch_target = chapter_validated.target_words or target_words or (
+            (project_validated.target_words or 20000) // max(1, len(project_validated.chapters) if project_validated.chapters else 8)
+        )
         content = await generate_chapter_content(
             project=project_validated,
             chapter=chapter_validated,
             previous_chapters=prev_chapters_list,
             model=model,
             feedback=feedback,
-            target_words=target_words,
+            target_words=ch_target,
             language=getattr(project_validated, "language", "de")
         )
 
@@ -320,13 +323,16 @@ async def bg_generate_all_chapters(
                 session.commit()
 
             # 2. Write the chapter
+            ch_target = chapter_validated.target_words or target_words or (
+                (project_validated.target_words or 20000) // max(1, total_count)
+            )
             content = await generate_chapter_content(
                 project=project_validated,
                 chapter=chapter_validated,
                 previous_chapters=prev_chapters_list,
                 model=model,
                 feedback=None,
-                target_words=target_words,
+                target_words=ch_target,
                 language=getattr(project_validated, "language", "de")
             )
             
@@ -910,6 +916,7 @@ async def api_create_sequel(
         new_project_id = str(uuid.uuid4())[:8]
         new_subtitle = req.subtitle or f"{vol_lbl} {next_order}"
         
+        inherited_target_words = existing_books[0].target_words if (existing_books and existing_books[0].target_words) else 20000
         new_project = BookProject(
             id=new_project_id,
             user_id=current_user.id,
@@ -925,6 +932,7 @@ async def api_create_sequel(
             previous_summary=previous_summary,
             characters_bible=characters_bible,
             style_bible=series.style_bible,
+            target_words=inherited_target_words,
             status="draft"
         )
         
@@ -1019,6 +1027,7 @@ async def create_book_project(req: BookProjectCreate, current_user: User = Depen
         style=req.style,
         genre_config=req.genre_config,
         language=req.language or "de",
+        target_words=req.target_words or 20000,
         style_bible=initial_style,
         status="draft"
     )
@@ -1791,6 +1800,9 @@ async def api_expand_chapter_outline(
         full_outline = project.outline or "{}"
         g_config = json.loads(project.genre_config) if project.genre_config else None
         
+        total_chaps = len(project.chapters) if project.chapters else 1
+        target_words_chapter = chapter.target_words or ((project.target_words or 20000) // max(1, total_chaps))
+        
         # Expand single chapter outline
         expanded = await expand_chapter_outline(
             project_prompt=project.prompt,
@@ -1802,6 +1814,7 @@ async def api_expand_chapter_outline(
             current_title=chapter.title,
             current_plot_outline=chapter.plot_outline,
             model=model,
+            target_words_per_chapter=target_words_chapter,
             genre_config=g_config,
             language=getattr(project, "language", "de")
         )
@@ -1863,6 +1876,9 @@ async def api_expand_all_outlines(
         g_config = json.loads(project.genre_config) if project.genre_config else None
         project_lang = getattr(project, "language", "de")
         
+        total_chaps = max(1, len(chapters))
+        default_per_chapter = (project.target_words or 20000) // total_chaps
+        
         # Build concurrent tasks for each chapter
         tasks = []
         for ch in chapters:
@@ -1877,6 +1893,7 @@ async def api_expand_all_outlines(
                     current_title=ch.title,
                     current_plot_outline=ch.plot_outline,
                     model=model,
+                    target_words_per_chapter=ch.target_words or default_per_chapter,
                     genre_config=g_config,
                     language=project_lang
                 )

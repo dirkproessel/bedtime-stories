@@ -465,6 +465,7 @@ async def generate_outline(
         -----------------------
         """
         
+        outline_word_hint = "approx. 80-120 words" if num_chapters > 16 else "approx. 100-150 words"
         prompt_content = f"""
         Book concept: {prompt}
         
@@ -478,7 +479,7 @@ async def generate_outline(
         Design an outline with exactly {num_chapters} chapters in English.
         Return a JSON object with:
         - title (A fitting, catchy English book title)
-        - chapters (List of chapters, each with 'chapter_number', 'title', 'plot_outline' [detailed description of the chapter events, approx. 100-150 words])
+        - chapters (List of chapters, each with 'chapter_number', 'title', 'plot_outline' [detailed description of the chapter events, {outline_word_hint}])
         
         Format:
         {{
@@ -518,6 +519,7 @@ async def generate_outline(
         -----------------------
         """
         
+        outline_word_hint = "ca. 80-120 Wörter" if num_chapters > 16 else "ca. 100-150 Wörter"
         prompt_content = f"""
         Buchidee: {prompt}
         
@@ -531,7 +533,7 @@ async def generate_outline(
         Entwerfe eine Gliederung mit genau {num_chapters} Kapiteln.
         Gib ein JSON-Objekt mit folgenden Feldern zurück:
         - title (Ein passender Buchtitel)
-        - chapters (Liste von Kapiteln, jedes mit 'chapter_number', 'title', 'plot_outline' [ausführliche Beschreibung des Inhalts des Kapitels, ca. 100-150 Wörter])
+        - chapters (Liste von Kapiteln, jedes mit 'chapter_number', 'title', 'plot_outline' [ausführliche Beschreibung des Inhalts des Kapitels, {outline_word_hint}])
         
         Format:
         {{
@@ -547,10 +549,12 @@ async def generate_outline(
         """
     
     try:
+        outline_max_tokens = max(8192, min(32768, num_chapters * 800))
         response = await generate_text(
             prompt=prompt_content,
             model=model,
             temperature=0.7,
+            max_tokens=outline_max_tokens,
             response_mime_type="application/json",
             system_instruction=system_instruction,
             response_schema=BookOutlineSchema
@@ -1661,6 +1665,7 @@ async def parse_imported_outline(
             prompt=prompt,
             model=model,
             temperature=0.2,
+            max_tokens=16384,
             response_mime_type="application/json",
             system_instruction=system_instruction,
             response_schema=BookOutlineSchema
@@ -2045,6 +2050,7 @@ async def apply_global_feedback_to_outline(
             prompt=prompt,
             model=model,
             temperature=0.3,
+            max_tokens=16384,
             response_mime_type="application/json",
             system_instruction=system_instruction,
             response_schema=BookOutlineSchema

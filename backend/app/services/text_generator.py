@@ -150,7 +150,7 @@ async def _generate_deepseek(prompt, model, temperature, max_tokens, response_mi
         payload["max_tokens"] = 8192
     else:
         payload["temperature"] = temperature
-        payload["max_tokens"] = max_tokens
+        payload["max_tokens"] = min(max_tokens, 8192)
         payload["presence_penalty"] = presence_penalty
         payload["frequency_penalty"] = frequency_penalty
 

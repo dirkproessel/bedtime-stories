@@ -325,6 +325,9 @@ class BookProject(SQLModel, table=True):
     epub_afterword: Optional[str] = Field(default=None)  # Afterword / Nachwort
     epub_imprint: Optional[str] = Field(default=None)  # Extra imprint / copyright text
     
+    # Target word count
+    target_words: Optional[int] = Field(default=20000)  # Ziel-Gesamtwortzahl für das Buch
+    
     # Anthology / Short Story Collection support
     is_anthology: bool = Field(default=False)
     source_story_ids: Optional[str] = Field(default=None)  # JSON array of story IDs if assembled from stories
@@ -358,6 +361,7 @@ class BookChapter(SQLModel, table=True):
     title: str
     plot_outline: str
     pov_character: Optional[str] = Field(default=None)  # Wessen Perspektive hat dieses Kapitel
+    target_words: Optional[int] = Field(default=None)  # Ziel-Wortanzahl für dieses Kapitel
     
     content: Optional[str] = Field(default=None)  # Written text
     running_summary: Optional[str] = Field(default=None)  # Small summary of this chapter for next chapters' context
@@ -405,6 +409,7 @@ class BookProjectCreate(BaseModel):
     style: str
     language: Optional[str] = "de"
     genre_config: Optional[str] = None
+    target_words: Optional[int] = 20000
     series_id: Optional[str] = None
     series_order: Optional[int] = None
     series_subtitle: Optional[str] = None
@@ -426,6 +431,7 @@ class BookProjectUpdate(BaseModel):
     epub_dedication: Optional[str] = None
     epub_afterword: Optional[str] = None
     epub_imprint: Optional[str] = None
+    target_words: Optional[int] = None
     genre_config: Optional[str] = None
     series_id: Optional[str] = None
     series_order: Optional[int] = None
@@ -445,6 +451,7 @@ class BookChapterUpdate(BaseModel):
     content: Optional[str] = None
     feedback: Optional[str] = None
     pov_character: Optional[str] = None
+    target_words: Optional[int] = None
 
 
 class BookChapterResponse(BaseModel):
@@ -460,6 +467,7 @@ class BookChapterResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     pov_character: Optional[str] = None
+    target_words: Optional[int] = None
 
 
 class BookAnthologyCreate(BaseModel):
@@ -486,6 +494,7 @@ class BookProjectResponse(BaseModel):
     genre: str
     style: str
     language: str = "de"
+    target_words: Optional[int] = 20000
     series_id: Optional[str] = None
     series_order: Optional[int] = None
     series_subtitle: Optional[str] = None
